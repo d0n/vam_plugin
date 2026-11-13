@@ -1,6 +1,6 @@
 [
   { "v": 1, "type": "speak", "id": "utt-0002", "url": "/v1/audio/utt-0002.wav",
-    "audio": "Saves/PluginData/AIBody/Person/audio/utt-0002.wav", "text": "First sentence.", "duration": 1.2 },
+    "audio": "Saves/PluginData/AIBody/default/audio/utt-0002.wav", "text": "First sentence.", "duration": 1.2 },
   { "v": 1, "type": "speak", "id": "utt-0003", "url": "/v1/audio/utt-0003.wav", "text": "Second sentence.", "queue": "append" },
   { "v": 1, "type": "speak", "id": "utt-0004", "url": "/v1/audio/utt-0004.wav", "text": "Sorry, one moment!", "queue": "interrupt" }
 ]
