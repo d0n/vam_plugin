@@ -2,6 +2,7 @@
   "_comment": "Overrides merged over packaging/meta.json by tools/build_var.py (all other fields, incl. licenseType, come from meta.json unchanged).",
   "packageName": "AIBodySession",
   "cslist": "AIBodySession.cslist",
-  "description": "AIBody Session plugin: connects VaM to the AIBody companion app (speech recognition, AI, text-to-speech), holds the microphone settings and routes commands to the AIBody Person plugins. Needs d0n.AIBodyPerson on a Person atom and the companion app.",
-  "instructions": "Main UI > Session Plugins > Add Plugin > AddonPackages > d0n.AIBodySession.<version>:/Custom/Scripts/d0n/AIBody/AIBodySession.cslist. Optionally 'Set Current As User Defaults'. Also add d0n.AIBodyPerson to a Person atom and start the companion. See https://github.com/d0n/vam_plugin"
+  "description": "AIBody Session plugin: connects VaM to the AIBody companion app (speech recognition, AI, text-to-speech), holds the microphone settings and routes commands strictly by character slot to AIBody Person (character 1, slot person1) and AIBody Person 2 (character 2, slot person2). Needs d0n.AIBodyPerson and/or d0n.AIBodyPerson2 and the companion app.",
+  "instructions": "Main UI > Session Plugins > Add Plugin > AddonPackages > d0n.AIBodySession.<version>:/Custom/Scripts/d0n/AIBody/AIBodySession.cslist. Optionally 'Set Current As User Defaults'. Add d0n.AIBodyPerson to character 1 and d0n.AIBodyPerson2 to character 2, then start the companion. See https://github.com/d0n/vam_plugin",
+  "version": 2
 }

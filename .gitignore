@@ -438,3 +438,4 @@ __pycache__/
 # Local companion config (may contain machine paths); keep config.example.json
 companion/config.json
 tools/stubs/build/
+build/

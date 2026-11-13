@@ -2,6 +2,7 @@
   "_comment": "Overrides merged over packaging/meta.json by tools/build_var.py (all other fields, incl. licenseType, come from meta.json unchanged).",
   "packageName": "AIBodyPerson",
   "cslist": "AIBodyPerson.cslist",
-  "description": "AIBody Person plugin: the AI's body on a Person atom - speech playback with lip sync, expressions, morphs, gestures, poses, idle motion and breathing. Needs d0n.AIBodySession (Session Plugins) and the companion app.",
-  "instructions": "Select a Person atom > Plugins tab > Add Plugin > AddonPackages > d0n.AIBodyPerson.<version>:/Custom/Scripts/d0n/AIBody/AIBodyPerson.cslist. Needs d0n.AIBodySession as session plugin and the companion. See https://github.com/d0n/vam_plugin"
+  "description": "AIBody Person plugin for CHARACTER 1 (slot person1): speech playback with lip sync, expressions, morphs, gestures, poses, idle motion and breathing. Character 2 uses the separate d0n.AIBodyPerson2. Needs d0n.AIBodySession (Session Plugins) and the companion app.",
+  "instructions": "Select character 1's Person atom > Plugins tab > Add Plugin > AddonPackages > d0n.AIBodyPerson.<version>:/Custom/Scripts/d0n/AIBody/AIBodyPerson.cslist. Needs d0n.AIBodySession as session plugin and the companion. See https://github.com/d0n/vam_plugin",
+  "version": 2
 }
