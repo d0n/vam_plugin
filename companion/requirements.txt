@@ -1,0 +1,6 @@
+# Core runs on the Python standard library only.
+# Microphone capture (voice mode):
+sounddevice>=0.4
+# TODO when implementing real engines, e.g.:
+# faster-whisper   # speech to text
+# piper-tts        # text to speech

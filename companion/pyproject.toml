@@ -1,0 +1,29 @@
+[project]
+name = "aibody-companion"
+version = "0.1.0"
+description = "Companion app (mic, VAD, STT, LLM, TTS) for the Virt-A-Mate AIBody plugin"
+readme = "../README.md"
+requires-python = ">=3.10"
+license = { text = "LGPL-2.1-only" }
+dependencies = []
+
+[project.optional-dependencies]
+mic = ["sounddevice>=0.4"]
+dev = ["ruff>=0.5"]
+
+[project.scripts]
+aibody-companion = "aibody_companion.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["aibody_companion*"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "N"]

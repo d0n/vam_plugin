@@ -1,0 +1,89 @@
+"""Message protocol between the companion and the VaM plugin (version 1).
+
+The authoritative description is protocol/PROTOCOL.md; JSON schemas live in
+protocol/schema/. Keep this module, the schemas and src/Protocol.cs in sync.
+"""
+from __future__ import annotations
+
+import itertools
+import time
+import uuid
+from typing import Any
+
+from . import PROTOCOL_VERSION
+
+# command type -> (required fields, optional fields)
+COMMANDS: dict[str, tuple[set[str], set[str]]] = {
+    "ping": (set(), set()),
+    "speak": ({"audio"}, {"text", "expression", "intensity"}),
+    "stop_speaking": (set(), set()),
+    "expression": ({"name"}, {"intensity", "blend", "hold"}),
+    "set_morphs": ({"morphs"}, {"blend", "release_others"}),
+    "reset_morphs": (set(), {"blend"}),
+    "gesture": ({"name"}, {"duration", "amplitude"}),
+    "pose": ({"path"}, set()),
+    "trigger": ({"storable"}, {"action", "param", "value", "value_type"}),
+    "idle": (set(), {"enabled", "intensity"}),
+    "breathing": (set(), {"enabled", "rate", "depth"}),
+}
+
+ENVELOPE_FIELDS = {"v", "type", "id", "ts", "ack"}
+
+EVENTS = {
+    "ready",
+    "heartbeat",
+    "pong",
+    "ack",
+    "error",
+    "speech_started",
+    "speech_ended",
+    "gesture_done",
+    "shutdown",
+}
+
+_counter = itertools.count(1)
+
+
+def new_id(prefix: str = "cmd") -> str:
+    return f"{prefix}-{int(time.time() * 1000)}-{next(_counter)}-{uuid.uuid4().hex[:6]}"
+
+
+def make_command(type_: str, id_: str | None = None, ack: bool = False, **fields: Any) -> dict[str, Any]:
+    """Builds a command envelope and validates it. Raises ValueError on invalid input."""
+    msg: dict[str, Any] = {"v": PROTOCOL_VERSION, "type": type_, "id": id_ or new_id(), "ts": time.time()}
+    if ack:
+        msg["ack"] = True
+    msg.update({k: v for k, v in fields.items() if v is not None})
+    errors = validate_command(msg)
+    if errors:
+        raise ValueError("; ".join(errors))
+    return msg
+
+
+def validate_command(msg: Any) -> list[str]:
+    """Returns a list of problems (empty if the command is valid)."""
+    if not isinstance(msg, dict):
+        return ["command must be a JSON object"]
+    errors: list[str] = []
+    type_ = msg.get("type")
+    if type_ not in COMMANDS:
+        return [f"unknown command type {type_!r}"]
+    if msg.get("v", PROTOCOL_VERSION) != PROTOCOL_VERSION:
+        errors.append(f"unsupported protocol version {msg.get('v')!r}")
+    required, optional = COMMANDS[type_]
+    for field in sorted(required - msg.keys()):
+        errors.append(f"{type_}: missing field {field!r}")
+    unknown = msg.keys() - required - optional - ENVELOPE_FIELDS
+    for field in sorted(unknown):
+        errors.append(f"{type_}: unknown field {field!r}")
+    if type_ == "set_morphs":
+        morphs = msg.get("morphs")
+        if not isinstance(morphs, dict) or not all(isinstance(v, (int, float)) for v in morphs.values()):
+            errors.append("set_morphs: 'morphs' must map morph names to numbers")
+    if type_ == "trigger" and not (msg.get("action") or msg.get("param")):
+        errors.append("trigger: needs 'action' or 'param'")
+    return errors
+
+
+def is_event(msg: Any) -> bool:
+    return isinstance(msg, dict) and msg.get("type") in EVENTS
