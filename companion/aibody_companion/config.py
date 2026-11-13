@@ -15,21 +15,18 @@ PLUGIN_DATA_SUBDIR = "Saves/PluginData/AIBody"
 class Config:
     vam_root: str = ""  # VaM install folder (the one containing VaM.exe)
     channel: str = "Person"  # must match the plugin's "Channel" (defaults to the atom uid)
-    transport: str = "file"  # "file" or "http"
+    transport: str = "auto"  # "auto" (HTTP + file fallback), "http" or "file"
     http_host: str = "127.0.0.1"
     http_port: int = 8765
-    poll_interval_s: float = 0.05
+    poll_interval_s: float = 0.02
+    audio_cache_dir: str = ""  # where TTS audio goes if vam_root is not set (HTTP only)
 
     sample_rate: int = 16000
     frame_ms: int = 30
-    mic_device: str | None = None
-    vad_ratio: float = 3.0
-    vad_min_rms: float = 0.01
-    start_ms: int = 90
-    end_silence_ms: int = 700
-    max_utterance_ms: int = 20000
+    # Initial microphone settings (see audio/mic_settings.py). The plugin's Microphone menu
+    # overrides them as soon as it connects.
+    mic: dict[str, Any] = field(default_factory=dict)
 
-    echo_tail_s: float = 0.4
     keep_audio_files: int = 20
 
     stt: str = "null"  # TODO: "faster-whisper", "vosk", ...
@@ -41,21 +38,35 @@ class Config:
     def channel_dir(self) -> Path:
         return Path(self.vam_root) / PLUGIN_DATA_SUBDIR / self.channel
 
-    def audio_rel_path(self, name: str) -> str:
-        """Path the plugin uses (relative to the VaM folder, forward slashes)."""
-        return f"{PLUGIN_DATA_SUBDIR}/{self.channel}/audio/{name}"
+    @property
+    def has_vam_root(self) -> bool:
+        return bool(self.vam_root)
+
+    @property
+    def audio_dir(self) -> Path:
+        if self.vam_root:
+            return self.channel_dir / "audio"
+        if self.audio_cache_dir:
+            return Path(self.audio_cache_dir)
+        return Path.home() / ".cache" / "aibody" / "audio" / self.channel
+
+    def audio_rel_path(self, name: str) -> str | None:
+        """Path the plugin can load directly (relative to the VaM folder), if vam_root is set."""
+        return f"{PLUGIN_DATA_SUBDIR}/{self.channel}/audio/{name}" if self.vam_root else None
 
     def audio_abs_path(self, name: str) -> Path:
-        return self.channel_dir / "audio" / name
+        return self.audio_dir / name
 
     def validate(self) -> list[str]:
         errors = []
-        if not self.vam_root:
-            errors.append("vam_root is not set (path to the VaM folder)")
-        elif not Path(self.vam_root).is_dir():
+        if self.transport not in ("auto", "file", "http"):
+            errors.append("transport must be 'auto', 'http' or 'file'")
+        if self.vam_root and not Path(self.vam_root).is_dir():
             errors.append(f"vam_root does not exist: {self.vam_root}")
-        if self.transport not in ("file", "http"):
-            errors.append("transport must be 'file' or 'http'")
+        if self.transport == "file" and not self.vam_root:
+            errors.append("the file transport needs vam_root (path to the VaM folder)")
+        if not (1 <= self.http_port <= 65535):
+            errors.append("http_port must be 1..65535")
         return errors
 
     def to_dict(self) -> dict[str, Any]:

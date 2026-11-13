@@ -12,10 +12,12 @@ from typing import Any
 
 from . import PROTOCOL_VERSION
 
+# Messages companion -> plugin ("commands").
 # command type -> (required fields, optional fields)
 COMMANDS: dict[str, tuple[set[str], set[str]]] = {
     "ping": (set(), set()),
-    "speak": ({"audio"}, {"text", "expression", "intensity"}),
+    # speak needs at least one of url / audio (checked in validate_command)
+    "speak": (set(), {"url", "audio", "text", "expression", "intensity", "queue", "duration"}),
     "stop_speaking": (set(), set()),
     "expression": ({"name"}, {"intensity", "blend", "hold"}),
     "set_morphs": ({"morphs"}, {"blend", "release_others"}),
@@ -25,11 +27,22 @@ COMMANDS: dict[str, tuple[set[str], set[str]]] = {
     "trigger": ({"storable"}, {"action", "param", "value", "value_type"}),
     "idle": (set(), {"enabled", "intensity"}),
     "breathing": (set(), {"enabled", "rate", "depth"}),
+    # replies / feedback for the plugin's microphone menu
+    "config_ack": (set(), {"reply_to", "applied", "errors", "mic_state"}),
+    "devices": ({"devices"}, {"error", "reply_to"}),
+    "mic_state": ({"enabled", "capturing"}, {"device", "mode", "ptt_active", "error"}),
+    "mic_level": ({"rms"}, {"speech", "gate_open"}),
 }
+
+SPEAK_QUEUE_MODES = ("append", "interrupt")
 
 ENVELOPE_FIELDS = {"v", "type", "id", "ts", "ack"}
 
+# Messages plugin -> companion ("events").
 EVENTS = {
+    "config",
+    "ptt",
+    "list_devices",
     "ready",
     "heartbeat",
     "pong",
@@ -80,6 +93,13 @@ def validate_command(msg: Any) -> list[str]:
         morphs = msg.get("morphs")
         if not isinstance(morphs, dict) or not all(isinstance(v, (int, float)) for v in morphs.values()):
             errors.append("set_morphs: 'morphs' must map morph names to numbers")
+    if type_ == "speak":
+        if not (msg.get("url") or msg.get("audio")):
+            errors.append("speak: needs 'url' or 'audio'")
+        if msg.get("queue", "append") not in SPEAK_QUEUE_MODES:
+            errors.append(f"speak: queue must be one of {SPEAK_QUEUE_MODES}")
+    if type_ == "devices" and not isinstance(msg.get("devices"), list):
+        errors.append("devices: 'devices' must be a list")
     if type_ == "trigger" and not (msg.get("action") or msg.get("param")):
         errors.append("trigger: needs 'action' or 'param'")
     return errors
@@ -87,3 +107,18 @@ def validate_command(msg: Any) -> list[str]:
 
 def is_event(msg: Any) -> bool:
     return isinstance(msg, dict) and msg.get("type") in EVENTS
+
+
+def validate_event(msg: Any) -> list[str]:
+    """Light validation of plugin events (unknown fields are allowed for forward compatibility)."""
+    if not isinstance(msg, dict):
+        return ["event must be a JSON object"]
+    type_ = msg.get("type")
+    if type_ not in EVENTS:
+        return [f"unknown event type {type_!r}"]
+    errors: list[str] = []
+    if type_ == "config" and not isinstance(msg.get("mic"), dict):
+        errors.append("config: 'mic' must be an object")
+    if type_ == "ptt" and not isinstance(msg.get("active"), bool):
+        errors.append("ptt: 'active' must be true/false")
+    return errors

@@ -1,16 +1,22 @@
 {
   "vam_root": "C:/VaM",
   "channel": "Person",
-  "transport": "file",
+  "transport": "auto",
   "http_host": "127.0.0.1",
   "http_port": 8765,
   "sample_rate": 16000,
   "frame_ms": 30,
-  "mic_device": null,
-  "vad_ratio": 3.0,
-  "vad_min_rms": 0.01,
-  "end_silence_ms": 700,
-  "echo_tail_s": 0.4,
+  "mic": {
+    "enabled": true,
+    "mode": "vad",
+    "device": "",
+    "vad_threshold": 0.01,
+    "end_silence_ms": 700,
+    "min_utterance_ms": 300,
+    "max_utterance_ms": 20000,
+    "echo_tail_s": 0.4,
+    "gain": 1.0
+  },
   "stt": "null",
   "llm": "echo",
   "tts": "tone"

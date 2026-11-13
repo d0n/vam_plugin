@@ -5,19 +5,25 @@ Without headphones this would make the AI answer itself. Strategy (same as Voxta
 
   * close the gate as soon as the companion sends a `speak` command
     (playback starts after a short load delay, sound must not leak in before)
-  * keep it closed while the plugin reports `speech_started` ... `speech_ended`
-  * keep it closed for `tail_s` afterwards (room reverb, audio buffers)
-  * failsafe: reopen after `expected duration + max_extra_s` if events got lost,
-    or right away when the plugin reports an `audio_failed` error
+  * keep it closed while any sent utterance has not reported `speech_ended`
+    (utterances play from a queue in the plugin, so several can be pending)
+  * keep it closed for `tail_s` after audio really stopped (room reverb, audio buffers)
+  * failsafes: every pending utterance gets a deadline (expected queue end + max_extra_s,
+    refreshed with the real clip length on `speech_started`), and a speaking state longer
+    than max_speaking_s is dropped, in case events get lost
+  * `error` with code `audio_failed`, or `speech_ended` with reason cancelled/failed,
+    release the utterance without a tail (nothing was played)
 
-TODO: barge-in (let the user interrupt). Needs acoustic echo cancellation (e.g. WebRTC
-AEC / speexdsp) or a much higher VAD threshold while speaking; then send stop_speaking.
+TODO: barge-in in voice-activation mode needs acoustic echo cancellation (e.g. WebRTC AEC /
+speexdsp). Push-to-talk already allows interrupting (see InputProcessor).
 """
 from __future__ import annotations
 
 import time
 from collections.abc import Callable
 from typing import Any
+
+NO_TAIL_REASONS = {"cancelled", "failed"}
 
 
 class EchoGate:
@@ -31,35 +37,48 @@ class EchoGate:
         self.tail_s = tail_s
         self.max_extra_s = max_extra_s
         self.max_speaking_s = max_speaking_s
-        self._speaking_since = 0.0
         self._clock = clock
         self._pending: dict[str, float] = {}  # utterance id -> failsafe deadline
+        self._expected_end = 0.0  # estimated end of the plugin's playback queue
         self._speaking = False
+        self._speaking_since = 0.0
         self._closed_until = 0.0
 
-    def on_speak_sent(self, utterance_id: str, expected_duration_s: float | None) -> None:
+    def on_speak_sent(self, utterance_id: str, expected_duration_s: float | None, interrupt: bool = False) -> None:
+        now = self._clock()
         duration = expected_duration_s if expected_duration_s is not None else 30.0
-        self._pending[utterance_id] = self._clock() + duration + self.max_extra_s
+        if interrupt:
+            self._pending.clear()
+            self._expected_end = now
+        self._expected_end = max(now, self._expected_end) + duration
+        self._pending[utterance_id] = self._expected_end + self.max_extra_s
 
     def on_event(self, event: dict[str, Any]) -> None:
         type_ = event.get("type")
         uid = event.get("utterance_id") or event.get("reply_to") or ""
+        now = self._clock()
         if type_ == "speech_started":
             self._speaking = True
-            self._speaking_since = self._clock()
-            # Playback started: replace the load failsafe with one based on actual start.
-            if uid in self._pending:
-                self._pending[uid] = max(self._pending[uid], self._clock() + self.max_extra_s)
+            self._speaking_since = now
+            duration = event.get("duration")
+            if isinstance(duration, (int, float)) and duration > 0:
+                self._pending[uid] = now + duration + self.max_extra_s
         elif type_ == "speech_ended":
             self._speaking = False
             self._pending.pop(uid, None)
-            self._closed_until = self._clock() + self.tail_s
+            if event.get("reason") not in NO_TAIL_REASONS:
+                self._closed_until = now + self.tail_s
+            if not self._pending:
+                self._expected_end = now
         elif type_ == "error" and event.get("code") == "audio_failed":
             self._pending.pop(uid, None)
         elif type_ in ("ready", "shutdown"):
-            # Plugin (re)started: nothing can be playing.
-            self._speaking = False
-            self._pending.clear()
+            # Plugin (re)started or stopping: nothing can be playing.
+            self.force_open()
+
+    @property
+    def is_speaking(self) -> bool:
+        return self._speaking
 
     @property
     def is_open(self) -> bool:
@@ -75,3 +94,4 @@ class EchoGate:
         self._speaking = False
         self._pending.clear()
         self._closed_until = 0.0
+        self._expected_end = 0.0

@@ -48,6 +48,47 @@ class ProtocolTests(unittest.TestCase):
         for name in protocol.COMMANDS:
             self.assertIn(f'= "{name}";', source, name)
 
+    def test_event_schema_lists_same_events(self):
+        schema = json.loads((ROOT / "protocol" / "schema" / "event.schema.json").read_text(encoding="utf-8"))
+        self.assertEqual(set(schema["properties"]["type"]["enum"]), protocol.EVENTS)
+
+    def test_csharp_lists_same_events(self):
+        source = (ROOT / "src" / "Protocol.cs").read_text(encoding="utf-8")
+        for name in protocol.EVENTS:
+            self.assertIn(f'= "{name}";', source, name)
+
+    def test_speak_needs_url_or_audio(self):
+        self.assertTrue(protocol.validate_command({"type": "speak", "text": "hi"}))
+        self.assertFalse(protocol.validate_command({"type": "speak", "url": "/v1/audio/a.wav"}))
+        self.assertFalse(protocol.validate_command({"type": "speak", "audio": "Saves/x.wav"}))
+
+    def test_speak_queue_mode(self):
+        self.assertTrue(protocol.validate_command({"type": "speak", "url": "/a.wav", "queue": "later"}))
+        self.assertFalse(protocol.validate_command({"type": "speak", "url": "/a.wav", "queue": "interrupt"}))
+
+    def test_mic_feedback_commands(self):
+        self.assertTrue(protocol.validate_command({"type": "devices", "devices": "x"}))
+        self.assertTrue(protocol.validate_command({"type": "mic_state", "enabled": True}))
+        self.assertFalse(protocol.validate_command({"type": "mic_level", "rms": 0.1, "speech": False}))
+
+    def test_validate_event(self):
+        self.assertEqual(protocol.validate_event({"type": "config", "mic": {}}), [])
+        self.assertTrue(protocol.validate_event({"type": "config"}))
+        self.assertTrue(protocol.validate_event({"type": "ptt", "active": "yes"}))
+        self.assertTrue(protocol.validate_event({"type": "nope"}))
+
+    def test_example_events_are_valid(self):
+        from aibody_companion.audio import MicSettings, apply_mic_config
+
+        files = sorted((ROOT / "examples" / "events").glob("*.json"))
+        self.assertTrue(files)
+        for f in files:
+            data = json.loads(f.read_text(encoding="utf-8"))
+            for item in data if isinstance(data, list) else [data]:
+                self.assertEqual(protocol.validate_event(item), [], f.name)
+                if item["type"] == "config":
+                    self.assertEqual(apply_mic_config(MicSettings(), item["mic"])[1], [])
+
 
 if __name__ == "__main__":
     unittest.main()

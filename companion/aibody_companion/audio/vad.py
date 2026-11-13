@@ -21,6 +21,18 @@ from dataclasses import dataclass
 from typing import Protocol
 
 
+def apply_gain(frame: bytes, gain: float) -> bytes:
+    """Scales 16-bit PCM samples by gain with clipping. Returns the frame unchanged for gain 1."""
+    if abs(gain - 1.0) < 1e-6:
+        return frame
+    samples = array.array("h")
+    samples.frombytes(frame[: len(frame) - (len(frame) % 2)])
+    for i, s in enumerate(samples):
+        v = int(s * gain)
+        samples[i] = 32767 if v > 32767 else (-32768 if v < -32768 else v)
+    return samples.tobytes()
+
+
 def frame_rms(frame: bytes) -> float:
     """RMS of a 16-bit little endian PCM frame, normalized to 0..1."""
     samples = array.array("h")
@@ -45,7 +57,9 @@ class EnergyVad:
         self.noise_floor = min_rms / ratio
 
     def is_speech(self, frame: bytes) -> bool:
-        rms = frame_rms(frame)
+        return self.is_speech_rms(frame_rms(frame))
+
+    def is_speech_rms(self, rms: float) -> bool:
         speech = rms > max(self.min_rms, self.noise_floor * self.ratio)
         if not speech:
             # Track the background level only on non-speech frames.
@@ -88,8 +102,10 @@ class UtteranceSegmenter:
         self._silence_run = 0
         self.in_speech = False
 
-    def push(self, frame: bytes) -> bytes | None:
-        speech = self.vad.is_speech(frame)
+    def push(self, frame: bytes, speech: bool | None = None) -> bytes | None:
+        """Feeds one frame. `speech` may be precomputed by the caller (else the VAD decides)."""
+        if speech is None:
+            speech = self.vad.is_speech(frame)
         ms = self.cfg.frame_ms
 
         if not self.in_speech:

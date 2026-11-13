@@ -24,7 +24,14 @@ log = logging.getLogger(__name__)
 PARTIAL_WRITE_GRACE_S = 2.0
 
 
+# The plugin counts as connected over files while it sent something within this window
+# (it sends a heartbeat every 2 s).
+FILE_ALIVE_S = 5.0
+
+
 class FileTransport(Transport):
+    name = "file"
+
     def __init__(self, channel_dir: Path):
         self.channel_dir = Path(channel_dir)
         self.inbox = self.channel_dir / "inbox"
@@ -32,6 +39,7 @@ class FileTransport(Transport):
         self.audio_dir = self.channel_dir / "audio"
         self._seq = itertools.count(1)
         self._lock = threading.Lock()
+        self._last_seen = 0.0
 
     def start(self) -> None:
         for d in (self.inbox, self.outbox, self.audio_dir):
@@ -73,8 +81,13 @@ class FileTransport(Transport):
                 path.unlink(missing_ok=True)
                 continue
             path.unlink(missing_ok=True)
+            self._last_seen = time.monotonic()
             if isinstance(data, list):
                 events.extend(d for d in data if isinstance(d, dict))
             elif isinstance(data, dict):
                 events.append(data)
         return events
+
+    @property
+    def connected(self) -> bool:
+        return self._last_seen > 0 and time.monotonic() - self._last_seen < FILE_ALIVE_S
