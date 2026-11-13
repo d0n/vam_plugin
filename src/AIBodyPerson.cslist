@@ -1,5 +1,6 @@
 Shared/Log.cs
 Shared/Protocol.cs
+Person/PersonIdentity.cs
 Person/MorphHelper.cs
 Person/SpeechPlayer.cs
 Person/ExpressionController.cs

@@ -11,8 +11,10 @@
 //     AIBODY_HTTP build), channel, connection status
 //   - microphone menu (settings, devices, push-to-talk, level meter) and engine selection,
 //     sent to the companion as "config"
-//   - routing: body commands from the companion go to the AIBody Person plugin on the target atom
-//     ("atom" field, else the default character), Person events go back to the companion.
+//   - routing by character slot: body commands go strictly to the Person plugin of their "slot"
+//     (person1 = d0n.AIBodyPerson on character 1, person2 = d0n.AIBodyPerson2 on character 2;
+//     without slot: the atom in "atom", else the "Default slot"). A missing or ambiguous slot
+//     gives an error, never another character. Person events go back with "slot" and "atom".
 using System;
 using System.Collections.Generic;
 using SimpleJSON;
@@ -23,7 +25,7 @@ namespace AIBody
 {
     public class AIBodySessionPlugin : MVRScript
     {
-        public const string PluginVersion = "0.3.0";
+        public const string PluginVersion = "0.4.0";
         public const string DataRoot = "Saves/PluginData/AIBody";
 
         private const string TransportFile = "File (shared folder)";
@@ -31,7 +33,6 @@ namespace AIBody
         private const string TransportAuto = "Auto (HTTP, file fallback)";
         private const string TransportHttp = "HTTP only";
 #endif
-        private const string FirstFound = "(first Person found)";
         private const float HeartbeatInterval = 2f;
         private const float CompanionTimeout = 6f;
 
@@ -43,7 +44,7 @@ namespace AIBody
         private JSONStorableString _hostJson;
         private JSONStorableString _portJson;
 #endif
-        private JSONStorableStringChooser _defaultPersonJson;
+        private JSONStorableStringChooser _defaultSlotJson;
         private JSONStorableStringChooser _sttJson;
         private JSONStorableStringChooser _llmJson;
         private JSONStorableStringChooser _ttsJson;
@@ -106,9 +107,10 @@ namespace AIBody
             RegisterString(_portJson);
 #endif
 
-            _defaultPersonJson = new JSONStorableStringChooser("Default character", new List<string> { FirstFound },
-                FirstFound, "Default character", (string v) => { });
-            RegisterStringChooser(_defaultPersonJson);
+            // Slot for body commands that name neither "slot" nor "atom". Strict: no fallback.
+            _defaultSlotJson = new JSONStorableStringChooser("Default slot", new List<string>(Protocol.Slots),
+                Protocol.Slot1, "Default slot", (string v) => SendPersons());
+            RegisterStringChooser(_defaultSlotJson);
 
             // Engine choices are refreshed from the companion's companion_heartbeat.
             _sttJson = Engine("Speech-to-text", "null");
@@ -160,7 +162,7 @@ namespace AIBody
             status.height = 300f;
 
             Header("<b>Characters</b>", false);
-            CreatePopup(_defaultPersonJson);
+            CreatePopup(_defaultSlotJson);
             CreateButton("Rescan characters").button.onClick.AddListener(() => _persons.ForceScan());
             CreateButton("Stop all speech").button.onClick.AddListener(StopAllSpeech);
 
@@ -272,30 +274,32 @@ namespace AIBody
             s["channel"] = Channel;
             s["transport"] = _transport != null ? _transport.Name : "none";
             s["audio_dir"] = ChannelDir + "/audio";
-            s["default_atom"] = DefaultAtom ?? "";
-            s["persons"] = _persons.ToJson();
+            AddPersons(s);
             return s;
         }
 
         private void SendPersons()
         {
+            if (_persons == null || _transport == null) return;
             JSONClass evt = Protocol.NewEvent(Protocol.EvtPersons);
-            evt["persons"] = _persons.ToJson();
-            evt["default_atom"] = DefaultAtom ?? "";
+            AddPersons(evt);
             Send(evt);
+        }
+
+        private void AddPersons(JSONClass evt)
+        {
+            evt["default_slot"] = DefaultSlot;
+            PersonLink def = _persons.Get(DefaultSlot);
+            evt["default_atom"] = def != null ? def.AtomUid : "";
+            evt["persons"] = _persons.ToJson();
+            evt["conflicts"] = _persons.ConflictsJson();
         }
 
         // ---------------------------------------------------------------- routing
 
-        /// <summary>Atom that gets body commands without an explicit "atom" field.</summary>
-        private string DefaultAtom
+        private string DefaultSlot
         {
-            get
-            {
-                if (_defaultPersonJson.val != FirstFound && _persons.Get(_defaultPersonJson.val) != null) return _defaultPersonJson.val;
-                List<string> uids = _persons.AtomUids;
-                return uids.Count > 0 ? uids[0] : null;
-            }
+            get { return Protocol.IsSlot(_defaultSlotJson.val) ? _defaultSlotJson.val : Protocol.Slot1; }
         }
 
         private void OnPayload(string payload)
@@ -332,15 +336,7 @@ namespace AIBody
 
             if (Protocol.IsBodyCommand(type))
             {
-                string target = Protocol.GetString(msg, "atom", "");
-                if (target.Length == 0) target = DefaultAtom;
-                if (target == null || !_persons.Deliver(target, msg))
-                {
-                    JSONClass err = Protocol.NewError(id, "no_person",
-                        "No AIBody Person plugin " + (string.IsNullOrEmpty(target) ? "in the scene" : "on atom '" + target + "'"));
-                    if (target != null) err["atom"] = target;
-                    Send(err);
-                }
+                RouteBodyCommand(msg, id);
                 return;
             }
 
@@ -373,6 +369,70 @@ namespace AIBody
                     Send(Protocol.NewError(id, "command_failed", "Unknown message type '" + type + "'"));
                     break;
             }
+        }
+
+        /// <summary>
+        /// Strict slot routing. Order: "slot" if given; else the slot of the plugin on "atom"; else
+        /// the Default slot. The command is delivered only if exactly that slot's plugin is present
+        /// and unambiguous (and on "atom", if both are given). Otherwise an error goes back to the
+        /// companion; a command is never redirected to another character.
+        /// </summary>
+        private void RouteBodyCommand(JSONClass msg, string id)
+        {
+            string slot = Protocol.GetString(msg, "slot", "");
+            string atom = Protocol.GetString(msg, "atom", "");
+            if (slot.Length > 0 && !Protocol.IsSlot(slot))
+            {
+                SendRouteError(id, Protocol.ErrUnknownSlot, slot, atom, "Unknown slot '" + slot + "'");
+                return;
+            }
+            if (slot.Length == 0 && atom.Length > 0)
+            {
+                List<PersonLink> onAtom = _persons.OnAtom(atom);
+                if (onAtom.Count == 0)
+                {
+                    SendRouteError(id, Protocol.ErrNoPerson, "", atom, "No AIBody Person plugin on atom '" + atom + "'");
+                    return;
+                }
+                if (onAtom.Count > 1)
+                {
+                    SendRouteError(id, Protocol.ErrSlotConflict, "", atom, "Atom '" + atom + "' has more than one AIBody Person plugin");
+                    return;
+                }
+                slot = onAtom[0].Slot;
+            }
+            if (slot.Length == 0) slot = DefaultSlot;
+
+            List<string> conflict = _persons.Conflict(slot);
+            if (conflict != null)
+            {
+                SendRouteError(id, Protocol.ErrSlotConflict, slot, atom, "Slot " + slot + " is ambiguous (atoms: "
+                    + string.Join(", ", conflict.ToArray()) + "); keep exactly one plugin per character");
+                return;
+            }
+            PersonLink link = _persons.Get(slot);
+            if (link == null)
+            {
+                SendRouteError(id, Protocol.ErrNoPerson, slot, atom, "No AIBody Person plugin for slot " + slot
+                    + " (load " + (slot == Protocol.Slot1 ? "AIBodyPerson.cslist on character 1" : "AIBodyPerson2.cslist on character 2") + ")");
+                return;
+            }
+            if (atom.Length > 0 && link.AtomUid != atom)
+            {
+                SendRouteError(id, Protocol.ErrSlotMismatch, slot, atom, "Slot " + slot + " is on atom '" + link.AtomUid
+                    + "', not '" + atom + "'");
+                return;
+            }
+            _persons.Deliver(slot, msg);
+        }
+
+        private void SendRouteError(string id, string code, string slot, string atom, string message)
+        {
+            Log.Debug("Not delivered (" + code + "): " + message);
+            JSONClass err = Protocol.NewError(id, code, message);
+            if (slot.Length > 0) err["slot"] = slot;
+            if (atom.Length > 0) err["atom"] = atom;
+            Send(err);
         }
 
         private void HandleCompanionHeartbeat(JSONClass msg)
@@ -408,14 +468,13 @@ namespace AIBody
 
         private void StopAllSpeech()
         {
-            List<string> uids = _persons.AtomUids;
-            for (int i = 0; i < uids.Count; i++)
+            for (int s = 0; s < Protocol.Slots.Length; s++)
             {
                 JSONClass stop = new JSONClass();
                 stop["v"].AsInt = Protocol.Version;
                 stop["type"] = Protocol.CmdStopSpeaking;
                 stop["id"] = "session-stop-" + DateTime.UtcNow.Ticks;
-                _persons.Deliver(uids[i], stop);
+                _persons.Deliver(Protocol.Slots[s], stop);
             }
         }
 
@@ -427,11 +486,7 @@ namespace AIBody
             try
             {
                 float dt = Time.deltaTime;
-                if (_persons.Update(dt))
-                {
-                    RefreshPersonChoices();
-                    SendPersons();
-                }
+                if (_persons.Update(dt)) SendPersons();
                 _persons.DrainOutboxes(Send);
 
                 bool connected = false;
@@ -472,14 +527,6 @@ namespace AIBody
             }
         }
 
-        private void RefreshPersonChoices()
-        {
-            List<string> choices = new List<string> { FirstFound };
-            choices.AddRange(_persons.AtomUids);
-            if (!choices.Contains(_defaultPersonJson.val)) choices.Add(_defaultPersonJson.val);
-            _defaultPersonJson.choices = choices;
-        }
-
         private void UpdateStatusText()
         {
             string text = "AIBody Session " + PluginVersion + "\n";
@@ -493,15 +540,18 @@ namespace AIBody
             text += "Companion: " + (_companionAge < CompanionTimeout
                 ? "running " + _companionVersion + " (seen " + _companionAge.ToString("0.0") + "s ago)"
                 : "NOT RUNNING (start it with --channel " + Channel + ")") + "\n";
-            List<string> uids = _persons.AtomUids;
-            string target = DefaultAtom;
-            text += "Characters (" + uids.Count + "): ";
-            if (uids.Count == 0) text += "none - add AIBodyPerson.cslist to a Person atom";
-            for (int i = 0; i < uids.Count; i++)
+            for (int s = 0; s < Protocol.Slots.Length; s++)
             {
-                text += (i > 0 ? ", " : "") + uids[i] + (uids[i] == target ? " (default)" : "");
+                string slot = Protocol.Slots[s];
+                text += slot + (slot == DefaultSlot ? " (default)" : "") + ": ";
+                PersonLink link = _persons.Get(slot);
+                List<string> conflict = _persons.Conflict(slot);
+                if (conflict != null) text += "CONFLICT on " + string.Join(", ", conflict.ToArray()) + " - nothing delivered";
+                else if (link != null) text += "'" + link.AtomUid + "' (v" + link.Version + ")";
+                else text += "missing - add " + (slot == Protocol.Slot1 ? "AIBodyPerson.cslist to character 1" : "AIBodyPerson2.cslist to character 2");
+                text += "\n";
             }
-            _statusJson.val = text + "\n";
+            _statusJson.val = text;
         }
 
         // ---------------------------------------------------------------- teardown

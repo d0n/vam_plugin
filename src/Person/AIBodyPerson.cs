@@ -1,15 +1,16 @@
 // AIBody Person plugin - the body of the AI on one Person atom (Virt-A-Mate 1.22).
 //
-// Add on each Person atom: Plugins tab -> Add Plugin ->
+// Slot person1 = character 1. Add it on character 1's Person atom: Plugins tab -> Add Plugin ->
 //   AddonPackages > d0n.AIBodyPerson.<n>:/Custom/Scripts/d0n/AIBody/AIBodyPerson.cslist
 //   (loose-file install: Custom/Scripts/d0n/AIBody/AIBodyPerson.cslist)
-// Needs the AIBody Session plugin (Main UI > Session Plugins) for the companion connection.
+// Character 2 gets the separate package d0n.AIBodyPerson2 (slot person2), generated from these
+// sources by tools/make_person2.py. Needs the AIBody Session plugin (Main UI > Session Plugins).
 //
 // This plugin does no I/O of its own. The Session plugin finds it by scanning the scene's atoms
-// and talks to it through two string params (see Protocol.PersonInboxParam/PersonOutboxParam):
+// and talks to it through string params named after the slot (see Protocol.InboxParam):
 //   - commands (speak, expression, gesture, pose, trigger, idle, breathing, ...) arrive one at a
-//     time in "AIBody Inbox"
-//   - events (speech_started/ended, errors, person_status, ...) are appended to "AIBody Outbox"
+//     time in "<prefix> Inbox"; a command addressed to another slot is refused (wrong_slot)
+//   - events (speech_started/ended, errors, person_status, ...) are appended to "<prefix> Outbox"
 // Per-character settings (volume, idle, breathing, ...) are saved with the Person atom.
 using System;
 using System.Collections.Generic;
@@ -21,7 +22,7 @@ namespace AIBody
 {
     public class AIBodyPersonPlugin : MVRScript
     {
-        public const string PluginVersion = "0.3.0";
+        public const string PluginVersion = "0.4.0";
         public const string DataRoot = "Saves/PluginData/AIBody";
         private const float StatusInterval = 2f;
 
@@ -61,7 +62,7 @@ namespace AIBody
         {
             try
             {
-                Log.Prefix = "AIBody Person: ";
+                Log.Prefix = PersonIdentity.Title + ": ";
                 if (containingAtom == null || containingAtom.type != "Person")
                 {
                     Log.Error("Add this plugin to a Person atom (the AIBody Session plugin goes into Session Plugins).");
@@ -83,11 +84,11 @@ namespace AIBody
 
         private void CreateStorables()
         {
-            _inboxJson = new JSONStorableString(Protocol.PersonInboxParam, "", OnInbox);
+            _inboxJson = new JSONStorableString(Protocol.InboxParam(PersonIdentity.Slot), "", OnInbox);
             RegisterString(_inboxJson);
-            _outboxJson = new JSONStorableString(Protocol.PersonOutboxParam, "");
+            _outboxJson = new JSONStorableString(Protocol.OutboxParam(PersonIdentity.Slot), "");
             RegisterString(_outboxJson);
-            _versionJson = new JSONStorableString(Protocol.PersonVersionParam, PluginVersion);
+            _versionJson = new JSONStorableString(Protocol.VersionParam(PersonIdentity.Slot), PluginVersion);
             RegisterString(_versionJson);
 
             _volumeJson = new JSONStorableFloat("Speech volume", 1f, (float v) => { if (_speech != null) _speech.Volume = v; }, 0f, 1f);
@@ -140,7 +141,7 @@ namespace AIBody
 
         private void CreateUI()
         {
-            Header("<b>AIBody Person</b> (needs the AIBody Session plugin)", false);
+            Header("<b>" + PersonIdentity.Title + "</b> - slot " + PersonIdentity.Slot + " (" + PersonIdentity.Character + ")", false);
             UIDynamicTextField status = CreateTextField(_statusJson);
             status.height = 220f;
             Header("<b>Speech output</b>", false);
@@ -188,7 +189,7 @@ namespace AIBody
 
         // ---------------------------------------------------------------- bridge
 
-        // Called synchronously when the Session plugin writes a command into "AIBody Inbox".
+        // Called synchronously when the Session plugin writes a command into this slot's Inbox.
         private void OnInbox(string value)
         {
             if (_handlingInbox || string.IsNullOrEmpty(value)) return;
@@ -197,7 +198,7 @@ namespace AIBody
             {
                 _lastCommandAge = 0f;
                 Log.Debug("<- " + value);
-                if (_router != null) _router.HandlePayload(value);
+                if (_router != null) HandleInbox(value);
             }
             catch (Exception e)
             {
@@ -212,10 +213,39 @@ namespace AIBody
             }
         }
 
+        private void HandleInbox(string value)
+        {
+            List<JSONClass> messages;
+            try
+            {
+                messages = Protocol.ParseMessages(value);
+            }
+            catch (Exception e)
+            {
+                Send(Protocol.NewError(null, "bad_json", e.Message));
+                return;
+            }
+            for (int i = 0; i < messages.Count; i++)
+            {
+                // Defense in depth: the Session plugin routes by slot, but never act on a command
+                // that names another character's slot.
+                string slot = Protocol.GetString(messages[i], "slot", PersonIdentity.Slot);
+                if (slot != PersonIdentity.Slot)
+                {
+                    Log.Error("Refused a command for slot '" + slot + "' (this is " + PersonIdentity.Slot + ")");
+                    Send(Protocol.NewError(Protocol.GetString(messages[i], "id", ""), Protocol.ErrWrongSlot,
+                        "Command for slot '" + slot + "' reached " + PersonIdentity.Title + " (slot " + PersonIdentity.Slot + ")"));
+                    continue;
+                }
+                _router.Handle(messages[i]);
+            }
+        }
+
         /// <summary>Appends an event to the outbox JSON array the Session plugin drains.</summary>
         private void Send(JSONClass evt)
         {
             if (_outboxJson == null || evt == null) return;
+            evt["slot"] = PersonIdentity.Slot;
             evt["atom"] = containingAtom.uid;
             JSONArray arr = null;
             if (!string.IsNullOrEmpty(_outboxJson.val)) arr = JSON.Parse(_outboxJson.val) as JSONArray;
@@ -315,7 +345,8 @@ namespace AIBody
         private void UpdateStatusText()
         {
             bool sessionSeen = _undrainedAge < 3f;
-            string text = "AIBody Person " + PluginVersion + " on '" + containingAtom.uid + "'\n";
+            string text = PersonIdentity.Title + " " + PluginVersion + " - slot " + PersonIdentity.Slot
+                + " (" + PersonIdentity.Character + ") on '" + containingAtom.uid + "'\n";
             text += "Session plugin: " + (sessionSeen ? "draining events" : "NOT FOUND (add AIBodySession in Session Plugins)") + "\n";
             text += "Last command: " + (_lastCommandAge < 999f ? _lastCommandAge.ToString("0") + "s ago" : "none yet") + "\n";
             text += "Speaking: " + (_speech.IsSpeaking ? "yes" : "no") + ", queued: " + _speech.QueueLength + "\n";

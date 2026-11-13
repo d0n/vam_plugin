@@ -47,16 +47,41 @@ namespace AIBody
         public const string EvtPersonStatus = "person_status";
 
         // ---- Session <-> Person bridge (inside VaM, no files or network involved) ----
-        // Each Person plugin registers two JSONStorableString params. The Session plugin finds
-        // them by scanning SuperController.singleton.GetAtoms() and talks through them:
-        //   Session writes ONE message (JSON object) into PersonInboxParam; the Person plugin's
-        //   callback handles it synchronously and resets the value to "".
-        //   Person appends events to a JSON array in PersonOutboxParam; the Session plugin reads
-        //   the array, resets the value to "" and forwards the events (with "atom" set).
-        public const string PersonInboxParam = "AIBody Inbox";
-        public const string PersonOutboxParam = "AIBody Outbox";
-        public const string PersonVersionParam = "AIBody Person Version";
+        // There is one Person plugin package per character SLOT, each a distinct script:
+        //   slot "person1": d0n.AIBodyPerson  (class AIBody.AIBodyPersonPlugin),   params "AIBody ..."
+        //   slot "person2": d0n.AIBodyPerson2 (class AIBody2.AIBodyPerson2Plugin), params "AIBody2 ..."
+        // Each Person plugin registers <prefix> Inbox / Outbox / Person Version string params. The
+        // Session plugin finds them by scanning SuperController.singleton.GetAtoms():
+        //   Session writes ONE message (JSON object, "slot" set) into the Inbox; the Person plugin's
+        //   callback checks the slot, handles it synchronously and resets the value to "".
+        //   Person appends events (with "slot" and "atom") to a JSON array in the Outbox; the Session
+        //   plugin reads the array, resets the value to "" and forwards the events.
+        public const string Slot1 = "person1";
+        public const string Slot2 = "person2";
+        public static readonly string[] Slots = { Slot1, Slot2 };
         public const int MaxOutboxEvents = 100;
+
+        // Error codes of slot routing (also in protocol/PROTOCOL.md).
+        public const string ErrNoPerson = "no_person";
+        public const string ErrSlotConflict = "slot_conflict";
+        public const string ErrSlotMismatch = "slot_mismatch";
+        public const string ErrWrongSlot = "wrong_slot";
+        public const string ErrUnknownSlot = "unknown_slot";
+
+        public static bool IsSlot(string slot)
+        {
+            return Array.IndexOf(Slots, slot) >= 0;
+        }
+
+        /// <summary>Param name prefix of a slot: "AIBody" (person1) or "AIBody2" (person2).</summary>
+        public static string SlotParamPrefix(string slot)
+        {
+            return slot == Slot1 ? "AIBody" : "AIBody" + slot.Substring("person".Length);
+        }
+
+        public static string InboxParam(string slot) { return SlotParamPrefix(slot) + " Inbox"; }
+        public static string OutboxParam(string slot) { return SlotParamPrefix(slot) + " Outbox"; }
+        public static string VersionParam(string slot) { return SlotParamPrefix(slot) + " Person Version"; }
 
         /// <summary>Command types the Session plugin forwards to a Person plugin.</summary>
         public static readonly string[] BodyCommands =
