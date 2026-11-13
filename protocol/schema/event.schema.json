@@ -50,7 +50,11 @@
         "bad_json",
         "command_failed",
         "audio_failed",
-        "no_person"
+        "no_person",
+        "slot_conflict",
+        "slot_mismatch",
+        "wrong_slot",
+        "unknown_slot"
       ]
     },
     "message": {
@@ -202,17 +206,24 @@
     },
     "default_atom": {
       "type": "string",
-      "description": "atom that gets body commands without 'atom' ('' = no Person)"
+      "description": "atom of the default slot ('' = not loaded)"
     },
     "persons": {
       "type": "array",
-      "description": "Person atoms with the AIBody Person plugin",
+      "description": "usable character slots (exactly one plugin, on an atom with no other slot)",
       "items": {
         "type": "object",
         "required": [
+          "slot",
           "atom"
         ],
         "properties": {
+          "slot": {
+            "enum": [
+              "person1",
+              "person2"
+            ]
+          },
           "atom": {
             "type": "string"
           },
@@ -234,6 +245,45 @@
         },
         "tts": {
           "type": "string"
+        }
+      }
+    },
+    "slot": {
+      "enum": [
+        "person1",
+        "person2"
+      ],
+      "description": "events from a Person plugin: its slot (set by the Session bridge); routing errors: the requested slot"
+    },
+    "default_slot": {
+      "enum": [
+        "person1",
+        "person2"
+      ],
+      "description": "slot that gets body commands without slot/atom"
+    },
+    "conflicts": {
+      "type": "array",
+      "description": "slots that are ambiguous (plugin on several atoms, or an atom with two slots); nothing is delivered to them",
+      "items": {
+        "type": "object",
+        "required": [
+          "slot",
+          "atoms"
+        ],
+        "properties": {
+          "slot": {
+            "enum": [
+              "person1",
+              "person2"
+            ]
+          },
+          "atoms": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
         }
       }
     }
@@ -291,6 +341,7 @@
       },
       "then": {
         "required": [
+          "slot",
           "atom"
         ]
       }

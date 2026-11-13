@@ -218,7 +218,7 @@
     "atom": {
       "type": "string",
       "minLength": 1,
-      "description": "body commands only: uid of the Person atom whose AIBody Person plugin should get it (default: the Session plugin's 'Default character', else the first Person found)"
+      "description": "body commands only: uid of the Person atom. Without slot: the slot of the plugin on that atom. With slot: must match the slot's atom (else error slot_mismatch)."
     },
     "session": {
       "type": "string",
@@ -255,6 +255,13 @@
     "mic_capturing": {
       "type": "boolean",
       "description": "companion_heartbeat: microphone open"
+    },
+    "slot": {
+      "enum": [
+        "person1",
+        "person2"
+      ],
+      "description": "body commands only: character slot. person1 = d0n.AIBodyPerson (character 1), person2 = d0n.AIBodyPerson2 (character 2). Delivered strictly to that slot's plugin, never to another character."
     }
   },
   "allOf": [

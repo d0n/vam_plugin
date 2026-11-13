@@ -21,7 +21,9 @@ class Config:
     # "file" (default; the only link the default VaM build supports). "http" / "auto" only work
     # with a plugin built with AIBODY_HTTP (see README).
     transport: str = "file"
-    default_atom: str = ""  # Person atom for body commands; "" = the Session plugin's default
+    # Character slot the AI speaks through: "person1" (d0n.AIBodyPerson on character 1) or
+    # "person2" (d0n.AIBodyPerson2 on character 2); "" = the Session plugin's "Default slot".
+    default_slot: str = ""
     http_host: str = "127.0.0.1"
     http_port: int = 8765
     poll_interval_s: float = 0.02
@@ -71,6 +73,8 @@ class Config:
             errors.append(f"vam_root does not exist: {self.vam_root}")
         if self.transport == "file" and not self.vam_root:
             errors.append("the file transport needs vam_root (path to the VaM folder)")
+        if self.default_slot not in ("", "person1", "person2"):
+            errors.append("default_slot must be 'person1', 'person2' or ''")
         for kind, name in (("stt", self.stt), ("llm", self.llm), ("tts", self.tts)):
             if name not in ENGINES_AVAILABLE[kind]:
                 errors.append(f"{kind} engine {name!r} is not available (have: {ENGINES_AVAILABLE[kind]})")

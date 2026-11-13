@@ -52,8 +52,8 @@ def evt(type_, **fields):
     return {"v": 1, "type": type_, "id": protocol.new_id("evt"), "ts": 0.0, **fields}
 
 
-def persons(*atoms, default=""):
-    return [{"atom": a, "plugin_version": "0.3.0"} for a in atoms], default
+def persons(**slots):
+    return [{"slot": slot, "atom": atom, "plugin_version": "0.4.0"} for slot, atom in slots.items()]
 
 
 class RoutingTests(unittest.TestCase):
@@ -72,38 +72,71 @@ class RoutingTests(unittest.TestCase):
         self.t.events.extend(events)
         self.c.process_events()
 
-    def test_atom_envelope_field(self):
-        self.assertEqual(protocol.validate_command({"type": "speak", "audio": "a.wav", "atom": "Person#2"}), [])
+    def test_slot_envelope_field(self):
+        self.assertEqual(protocol.validate_command({"type": "speak", "audio": "a.wav", "slot": "person2"}), [])
+        self.assertTrue(protocol.validate_command({"type": "speak", "audio": "a.wav", "slot": "person3"}))
         self.assertTrue(protocol.validate_command({"type": "speak", "audio": "a.wav", "atom": ""}))
-        self.assertTrue(protocol.validate_command({"type": "mic_level", "rms": 0.1, "atom": "Person"}))
+        self.assertTrue(protocol.validate_command({"type": "mic_level", "rms": 0.1, "slot": "person1"}))
 
-    def test_without_persons_atom_is_left_to_the_session(self):
+    def test_body_commands_always_carry_a_slot(self):
         self.c.say("hi")
+        self.assertEqual(self.t.sent[-1]["slot"], "person1")
         self.assertNotIn("atom", self.t.sent[-1])
 
-    def test_session_default_atom_is_used(self):
-        lst, _ = persons("Person", "Person#2")
-        self.feed(evt("ready", role="session", persons=lst, default_atom="Person#2"))
-        self.assertEqual(self.c.target_atom, "Person#2")
+    def test_session_default_slot_is_used(self):
+        self.feed(evt("ready", role="session", persons=persons(person1="Person", person2="Person#2"),
+                      default_slot="person2"))
+        self.assertEqual(self.c.target_slot, "person2")
         self.c.say("hi")
         speak = self.t.sent[-1]
-        self.assertEqual((speak["type"], speak["atom"]), ("speak", "Person#2"))
+        self.assertEqual((speak["type"], speak["slot"]), ("speak", "person2"))
         self.assertTrue(speak["audio"].startswith("Saves/PluginData/AIBody/default/audio/"))
 
-    def test_config_default_atom_wins_and_falls_back_when_gone(self):
-        self.cfg.default_atom = "Person#2"
-        lst, _ = persons("Person", "Person#2")
-        self.feed(evt("heartbeat", role="session", persons=lst, default_atom="Person"))
-        self.assertEqual(self.c.target_atom, "Person#2")
-        lst, _ = persons("Person")
-        self.feed(evt("persons", persons=lst, default_atom="Person"))
-        self.assertEqual(self.c.target_atom, "Person")
-        self.assertEqual(sorted(self.c.persons), ["Person"])
+    def test_config_slot_wins_and_never_falls_back(self):
+        self.cfg.default_slot = "person2"
+        self.feed(evt("heartbeat", role="session", persons=persons(person1="Person", person2="Person#2"),
+                      default_slot="person1"))
+        self.assertEqual(self.c.target_slot, "person2")
+        # character 2 leaves the scene: commands stay addressed to person2 (Session will refuse them)
+        self.feed(evt("persons", persons=persons(person1="Person"), default_slot="person1"))
+        self.assertEqual(self.c.target_slot, "person2")
+        self.c.say("hi")
+        self.assertEqual(self.t.sent[-1]["slot"], "person2")
+        self.assertEqual(sorted(self.c.persons), ["person1"])
 
-    def test_person_status_is_tracked(self):
-        self.feed(evt("person_status", atom="Person", speaking=True, expressions=["happy"]))
-        self.assertTrue(self.c.persons["Person"]["speaking"])
-        self.assertEqual(self.c.target_atom, "Person")
+    def test_explicit_slot_per_turn(self):
+        self.c.handle_user_text("Hallo", slot="person2")
+        cmds = [x for x in self.t.sent if x["type"] in protocol.BODY_COMMANDS]
+        self.assertTrue(cmds)
+        self.assertEqual({x["slot"] for x in cmds}, {"person2"})
+
+    def test_conflicts_and_person_status_are_tracked(self):
+        self.feed(evt("persons", persons=persons(person2="Person#2"), default_slot="person1",
+                      conflicts=[{"slot": "person1", "atoms": ["Person", "Person#3"]}]))
+        self.assertEqual(self.c.conflicts, {"person1": ["Person", "Person#3"]})
+        self.feed(evt("person_status", slot="person2", atom="Person#2", speaking=True))
+        self.assertTrue(self.c.persons["person2"]["speaking"])
+        self.assertEqual(self.c.persons["person2"]["atom"], "Person#2")
+        self.assertTrue(protocol.validate_event({"type": "person_status", "atom": "Person"}))
+
+    def test_slot_taken_by_another_atom_drops_stale_status(self):
+        self.feed(evt("persons", persons=persons(person1="Person")))
+        self.feed(evt("person_status", slot="person1", atom="Person", speaking=True))
+        self.feed(evt("persons", persons=persons(person1="Other")))
+        self.assertNotIn("speaking", self.c.persons["person1"])
+
+    def test_ptt_stops_every_character(self):
+        self.feed(evt("config", mic={"mode": "ptt"}))
+        self.feed(evt("persons", persons=persons(person1="Person", person2="Person#2")))
+        self.c.say("hi")
+        self.c.handle_ptt(True)
+        stops = [x["slot"] for x in self.t.sent if x["type"] == "stop_speaking"]
+        self.assertEqual(sorted(stops), ["person1", "person2"])
+
+    def test_typed_line_slot_prefix(self):
+        from aibody_companion.cli import parse_typed_line
+        self.assertEqual(parse_typed_line("@person2 hallo du"), ("person2", "hallo du"))
+        self.assertEqual(parse_typed_line("hallo"), (None, "hallo"))
 
     def test_heartbeat_only_while_connected_with_new_session_id(self):
         self.t.is_connected = False
@@ -138,11 +171,16 @@ class RoutingTests(unittest.TestCase):
         self.assertEqual(Config().transport, "file")
         self.assertTrue(Config().validate())
 
-    def test_no_person_error_opens_the_gate(self):
-        uid = self.c.say("hi")
-        self.assertFalse(self.c.gate.is_open)
-        self.feed(evt("error", reply_to=uid, code="no_person", message="No AIBody Person plugin in the scene"))
-        self.assertTrue(self.c.gate.is_open)
+    def test_routing_errors_open_the_gate(self):
+        for code in sorted(protocol.ROUTING_ERRORS):
+            uid = self.c.say("hi")
+            self.assertFalse(self.c.gate.is_open, code)
+            self.feed(evt("error", reply_to=uid, code=code, slot="person2", message="not delivered"))
+            self.assertTrue(self.c.gate.is_open, code)
+
+    def test_config_validates_slot(self):
+        self.assertTrue(Config(vam_root=self.tmp.name, default_slot="Person").validate())
+        self.assertEqual(Config(vam_root=self.tmp.name, default_slot="person2").validate(), [])
 
 
 if __name__ == "__main__":

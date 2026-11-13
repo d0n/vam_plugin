@@ -1,7 +1,8 @@
 [
-  { "v": 1, "type": "speak", "id": "utt-7", "atom": "Person#2", "audio": "Saves/PluginData/AIBody/default/audio/utt-7.wav", "text": "Hello from the second character", "duration": 1.8 },
-  { "v": 1, "type": "expression", "id": "c-8", "atom": "Person#2", "name": "happy", "intensity": 0.8, "blend": 0.4 },
-  { "v": 1, "type": "stop_speaking", "id": "c-9" },
-  { "v": 1, "type": "companion_heartbeat", "id": "c-10", "session": "3f2a9c1b77d0", "version": "0.3.0",
+  { "v": 1, "type": "speak", "id": "utt-7", "slot": "person2", "audio": "Saves/PluginData/AIBody/default/audio/utt-7.wav", "text": "Hello from character 2", "duration": 1.8 },
+  { "v": 1, "type": "expression", "id": "c-8", "slot": "person1", "name": "happy", "intensity": 0.8, "blend": 0.4 },
+  { "v": 1, "type": "gesture", "id": "c-9", "slot": "person2", "atom": "Person#2", "name": "nod" },
+  { "v": 1, "type": "stop_speaking", "id": "c-10", "slot": "person1" },
+  { "v": 1, "type": "companion_heartbeat", "id": "c-11", "session": "3f2a9c1b77d0", "version": "0.4.0",
     "engines_available": { "stt": ["null"], "llm": ["echo"], "tts": ["tone"] }, "mic_capturing": true }
 ]

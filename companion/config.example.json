@@ -2,7 +2,7 @@
   "vam_root": "C:/VaM",
   "channel": "default",
   "transport": "file",
-  "default_atom": "",
+  "default_slot": "person1",
   "http_host": "127.0.0.1",
   "http_port": 8765,
   "sample_rate": 16000,

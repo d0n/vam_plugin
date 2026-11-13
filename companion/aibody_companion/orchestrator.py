@@ -3,10 +3,11 @@
 Call tick() regularly (every ~20 ms) from one thread: it handles plugin events, pulls
 microphone frames, finishes utterances and streams level / state feedback to the plugin.
 
-VaM side = Session plugin (link, mic menu, engine menus) + one Person plugin per character.
-The companion tracks the Persons the Session reports and adds "atom" to body commands
-(config default_atom > the Session's default character > first Person; if none is known the
-field is left out and the Session picks).
+VaM side = Session plugin (link, mic menu, engine menus) + one distinct Person plugin per
+character slot (person1 = d0n.AIBodyPerson on character 1, person2 = d0n.AIBodyPerson2 on
+character 2). Every body command carries an explicit "slot" (argument > config default_slot >
+the Session's default_slot > person1). The Session delivers strictly to that slot's plugin or
+answers with an error (no_person, slot_conflict, ...); there is no fallback to another character.
 """
 from __future__ import annotations
 
@@ -65,8 +66,9 @@ class Companion:
         self._list_devices = device_lister
         self.history: list[dict[str, str]] = []
         self.body_info: dict[str, Any] = {}  # last ready/heartbeat from the Session plugin
-        self.persons: dict[str, dict[str, Any]] = {}  # atom uid -> last known Person info
-        self.session_default_atom = ""
+        self.persons: dict[str, dict[str, Any]] = {}  # slot -> last known Person info (atom, ...)
+        self.conflicts: dict[str, list[str]] = {}  # slot -> atoms, while a slot is ambiguous
+        self.session_default_slot = ""
         self.engines: dict[str, str] = {"stt": config.stt, "llm": config.llm, "tts": config.tts}
         self.session_id = uuid.uuid4().hex[:12]  # changes on every companion start
         self._last_heartbeat = -HEARTBEAT_INTERVAL_S
@@ -120,11 +122,13 @@ class Companion:
                 self._update_persons(event)
             elif type_ == "persons":
                 self._update_persons(event)
-                log.info("Characters: %s (default %s)", sorted(self.persons), self.target_atom or "-")
+                log.info("Characters: %s, target slot %s%s",
+                         {s: p.get("atom") for s, p in self.persons.items()}, self.target_slot,
+                         f", CONFLICTS {self.conflicts}" if self.conflicts else "")
             elif type_ == "person_status":
-                atom = event["atom"]
-                self.persons.setdefault(atom, {"atom": atom}).update(
-                    {k: v for k, v in event.items() if k not in protocol.ENVELOPE_FIELDS})
+                slot = event["slot"]
+                info = self.persons.setdefault(slot, {"slot": slot})
+                info.update({k: v for k, v in event.items() if k not in protocol.ENVELOPE_FIELDS - {"atom"}})
             elif type_ == "config":
                 self.handle_config(event)
             elif type_ == "ptt":
@@ -142,19 +146,23 @@ class Companion:
         if isinstance(persons, list):
             known = {}
             for p in persons:
-                if isinstance(p, dict) and isinstance(p.get("atom"), str):
-                    known[p["atom"]] = {**self.persons.get(p["atom"], {}), **p}
+                if isinstance(p, dict) and p.get("slot") in protocol.SLOTS:
+                    old = self.persons.get(p["slot"], {})
+                    if old.get("atom") != p.get("atom"):
+                        old = {}  # another atom took the slot: drop its stale status
+                    known[p["slot"]] = {**old, **p}
             self.persons = known
-        if isinstance(event.get("default_atom"), str):
-            self.session_default_atom = event["default_atom"]
+        conflicts = event.get("conflicts")
+        if isinstance(conflicts, list):
+            self.conflicts = {c["slot"]: list(c.get("atoms") or []) for c in conflicts
+                              if isinstance(c, dict) and c.get("slot") in protocol.SLOTS}
+        if event.get("default_slot") in protocol.SLOTS:
+            self.session_default_slot = event["default_slot"]
 
     @property
-    def target_atom(self) -> str | None:
-        """Person atom that gets body commands (None = let the Session plugin decide)."""
-        for atom in (self.cfg.default_atom, self.session_default_atom):
-            if atom and (atom in self.persons or not self.persons):
-                return atom
-        return next(iter(self.persons), None)
+    def target_slot(self) -> str:
+        """Slot that gets body commands without an explicit slot. Never guessed from presence."""
+        return self.cfg.default_slot or self.session_default_slot or protocol.SLOTS[0]
 
     def _send_heartbeat(self) -> None:
         # Only while the Session plugin is alive: over files, unread heartbeats would pile up.
@@ -209,7 +217,8 @@ class Companion:
             log.debug("ptt ignored: mic mode is %s", self.mic_settings.mode)
             return
         if active and self.mic_settings.ptt_interrupts and not self.gate.is_open:
-            self.send(self.body_command("stop_speaking"))
+            for slot in sorted(set(self.persons) | {self.target_slot}):
+                self.send(self.body_command("stop_speaking", slot=slot))  # user talks: everyone stops
         utterance = self.input.set_ptt(active)
         if utterance:
             self.handle_utterance(utterance)
@@ -263,22 +272,22 @@ class Companion:
             self.handle_user_text(text)
         return text
 
-    def handle_user_text(self, text: str) -> None:
+    def handle_user_text(self, text: str, slot: str | None = None) -> None:
         # TODO: run LLM + TTS on a worker thread so events keep flowing during long replies.
         self.history.append({"role": "user", "content": text})
         reply = self.llm.reply(text, self.history)
         self.history.append({"role": "assistant", "content": reply.say})
 
         if reply.expression:
-            self.send(self.body_command("expression", name=reply.expression, intensity=1.0, blend=0.4))
+            self.send(self.body_command("expression", slot=slot, name=reply.expression, intensity=1.0, blend=0.4))
         if reply.gesture:
-            self.send(self.body_command("gesture", name=reply.gesture))
+            self.send(self.body_command("gesture", slot=slot, name=reply.gesture))
         if reply.say:
-            self.say(reply.say)
+            self.say(reply.say, slot=slot)
 
     # -- output --------------------------------------------------------------------------
 
-    def say(self, text: str, interrupt: bool = False) -> str:
+    def say(self, text: str, interrupt: bool = False, slot: str | None = None) -> str:
         """Synthesizes text and queues it on the body. Returns the utterance id."""
         utterance_id = protocol.new_id("utt")
         name = f"{utterance_id}.wav"
@@ -292,18 +301,18 @@ class Companion:
             return utterance_id
         self.gate.on_speak_sent(utterance_id, duration, interrupt=interrupt)
         self.send(self.body_command(
-            "speak", id_=utterance_id, url=url, audio=rel, text=text, duration=round(duration, 3),
+            "speak", slot=slot, id_=utterance_id, url=url, audio=rel, text=text, duration=round(duration, 3),
             queue="interrupt" if interrupt else "append",
         ))
         log.info("Say (%.1fs, via %s): %s", duration, "url" if url else "file path", text)
         return utterance_id
 
-    def stop_speaking(self) -> None:
-        self.send(self.body_command("stop_speaking"))
+    def stop_speaking(self, slot: str | None = None) -> None:
+        self.send(self.body_command("stop_speaking", slot=slot))
 
-    def body_command(self, type_: str, atom: str | None = None, **fields: Any) -> dict[str, Any]:
-        """Builds a body command addressed to `atom` (default: target_atom)."""
-        return protocol.make_command(type_, atom=atom or self.target_atom, **fields)
+    def body_command(self, type_: str, slot: str | None = None, **fields: Any) -> dict[str, Any]:
+        """Builds a body command for one character slot (default: target_slot). Always explicit."""
+        return protocol.make_command(type_, slot=slot or self.target_slot, **fields)
 
     def send(self, command: dict[str, Any]) -> None:
         self.transport.send(command)

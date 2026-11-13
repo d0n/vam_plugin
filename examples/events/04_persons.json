@@ -1,11 +1,18 @@
 [
-  { "v": 1, "type": "ready", "id": "evt-10", "ts": 1763040000.0, "role": "session", "plugin_version": "0.3.0", "protocol": 1,
-    "channel": "default", "transport": "file", "audio_dir": "Saves/PluginData/AIBody/default/audio", "default_atom": "Person",
-    "persons": [ { "atom": "Person", "plugin_version": "0.3.0" }, { "atom": "Person#2", "plugin_version": "0.3.0" } ] },
-  { "v": 1, "type": "persons", "id": "evt-11", "ts": 1763040003.0, "default_atom": "Person", "persons": [ { "atom": "Person", "plugin_version": "0.3.0" } ] },
-  { "v": 1, "type": "person_status", "id": "evt-12", "ts": 1763040004.0, "atom": "Person", "plugin_version": "0.3.0", "speaking": false,
-    "speech_queue": 0, "expression": "neutral", "expressions": ["neutral", "happy"], "gestures": ["nod", "shake"] },
-  { "v": 1, "type": "speech_started", "id": "evt-13", "ts": 1763040005.0, "atom": "Person", "utterance_id": "utt-7", "duration": 1.8 },
-  { "v": 1, "type": "error", "id": "evt-14", "ts": 1763040006.0, "reply_to": "utt-8", "code": "no_person", "atom": "Person#2",
-    "message": "No AIBody Person plugin on atom 'Person#2'" }
+  { "v": 1, "type": "ready", "id": "evt-10", "ts": 1763040000.0, "role": "session", "plugin_version": "0.4.0", "protocol": 1,
+    "channel": "default", "transport": "file", "audio_dir": "Saves/PluginData/AIBody/default/audio",
+    "default_slot": "person1", "default_atom": "Person",
+    "persons": [ { "slot": "person1", "atom": "Person", "plugin_version": "0.4.0" },
+                 { "slot": "person2", "atom": "Person#2", "plugin_version": "0.4.0" } ],
+    "conflicts": [] },
+  { "v": 1, "type": "persons", "id": "evt-11", "ts": 1763040003.0, "default_slot": "person1", "default_atom": "",
+    "persons": [ { "slot": "person2", "atom": "Person#2", "plugin_version": "0.4.0" } ],
+    "conflicts": [ { "slot": "person1", "atoms": ["Person", "Person#3"] } ] },
+  { "v": 1, "type": "person_status", "id": "evt-12", "ts": 1763040004.0, "slot": "person2", "atom": "Person#2", "plugin_version": "0.4.0",
+    "speaking": false, "speech_queue": 0, "expression": "neutral", "expressions": ["neutral", "happy"], "gestures": ["nod", "shake"] },
+  { "v": 1, "type": "speech_started", "id": "evt-13", "ts": 1763040005.0, "slot": "person2", "atom": "Person#2", "utterance_id": "utt-7", "duration": 1.8 },
+  { "v": 1, "type": "error", "id": "evt-14", "ts": 1763040006.0, "reply_to": "utt-8", "code": "slot_conflict", "slot": "person1",
+    "message": "Slot person1 is ambiguous (atoms: Person, Person#3); keep exactly one plugin per character" },
+  { "v": 1, "type": "error", "id": "evt-15", "ts": 1763040007.0, "reply_to": "utt-9", "code": "no_person", "slot": "person2",
+    "message": "No AIBody Person plugin for slot person2 (load AIBodyPerson2.cslist on character 2)" }
 ]
