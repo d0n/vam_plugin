@@ -1,0 +1,19 @@
+{
+  "licenseType": "FC",
+  "creatorName": "d0n",
+  "packageName": "AIBody",
+  "standardReferenceVersionOption": "Latest",
+  "scriptReferenceVersionOption": "Exact",
+  "description": "AIBody: gives an AI a virtual body. Thin VaM plugin (speech playback with lip sync, expressions, gestures, poses, idle and breathing) controlled by an external companion app.",
+  "credits": "",
+  "instructions": "Add Custom/Scripts/d0n/AIBody/AIBody.cslist to a Person atom and start the companion app. See https://github.com/d0n/vam_plugin",
+  "promotionalLink": "https://github.com/d0n/vam_plugin",
+  "programVersion": "1.22.0.3",
+  "contentList": [],
+  "dependencies": {},
+  "customOptions": {
+    "preloadMorphs": "false"
+  },
+  "hadReferenceIssues": "false",
+  "referenceIssues": []
+}
