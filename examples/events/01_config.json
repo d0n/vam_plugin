@@ -15,5 +15,10 @@
     "gain": 1.5,
     "ptt_interrupts": true,
     "level_meter": true
+  },
+  "engines": {
+    "stt": "null",
+    "llm": "echo",
+    "tts": "tone"
   }
 }

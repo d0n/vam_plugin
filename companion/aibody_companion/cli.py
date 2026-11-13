@@ -21,8 +21,10 @@ def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="aibody_companion", description="Companion app for the VaM AIBody plugin")
     p.add_argument("--config", help="JSON config file (see config.example.json)")
     p.add_argument("--vam-root", dest="vam_root", help="VaM install folder (needed for the file transport)")
-    p.add_argument("--channel", help="plugin channel (default: Person)")
-    p.add_argument("--transport", choices=["auto", "http", "file"])
+    p.add_argument("--channel", help="Session plugin channel (default: default)")
+    p.add_argument("--atom", dest="default_atom", help="Person atom for body commands (default: Session's choice)")
+    p.add_argument("--transport", choices=["file", "http", "auto"],
+                   help="file (default). http/auto need a plugin built with AIBODY_HTTP")
     p.add_argument("--host", dest="http_host", help="HTTP bind address (default 127.0.0.1)")
     p.add_argument("--port", dest="http_port", type=int, help="HTTP port (default 8765)")
     p.add_argument("--no-mic", action="store_true", help="never open the microphone (text input only)")
@@ -46,9 +48,8 @@ def build_transport(cfg: Config) -> Transport:
 
 
 def build_stack(cfg: Config, use_mic: bool = True) -> Companion:
-    # TODO: select real engines from cfg.stt / cfg.llm / cfg.tts once implemented.
-    if (cfg.stt, cfg.llm, cfg.tts) != ("null", "echo", "tone"):
-        log.warning("Only the mock engines are implemented so far (stt=null, llm=echo, tts=tone).")
+    # TODO: select real engines from cfg.stt / cfg.llm / cfg.tts once implemented
+    # (and add them to config.ENGINES_AVAILABLE).
     cfg.audio_dir.mkdir(parents=True, exist_ok=True)
     mic = MicController(cfg.sample_rate, cfg.frame_ms) if use_mic else None
     return Companion(cfg, build_transport(cfg), NullStt(), EchoLlm(), ToneTts(), EchoGate(), mic=mic)
@@ -102,6 +103,7 @@ def main(argv: list[str] | None = None) -> int:
 
     cfg = load_config(args.config, {
         "vam_root": args.vam_root, "channel": args.channel, "transport": args.transport,
+        "default_atom": args.default_atom,
         "http_host": args.http_host, "http_port": args.http_port,
     })
     errors = cfg.validate()

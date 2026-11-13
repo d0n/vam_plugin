@@ -1,0 +1,7 @@
+[
+  { "v": 1, "type": "speak", "id": "utt-7", "atom": "Person#2", "audio": "Saves/PluginData/AIBody/default/audio/utt-7.wav", "text": "Hello from the second character", "duration": 1.8 },
+  { "v": 1, "type": "expression", "id": "c-8", "atom": "Person#2", "name": "happy", "intensity": 0.8, "blend": 0.4 },
+  { "v": 1, "type": "stop_speaking", "id": "c-9" },
+  { "v": 1, "type": "companion_heartbeat", "id": "c-10", "session": "3f2a9c1b77d0", "version": "0.3.0",
+    "engines_available": { "stt": ["null"], "llm": ["echo"], "tts": ["tone"] }, "mic_capturing": true }
+]

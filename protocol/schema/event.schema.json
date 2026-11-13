@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/d0n/vam_plugin/protocol/schema/event.schema.json",
-  "title": "AIBody message plugin -> companion (\"event\"), protocol v1",
+  "title": "AIBody message Session plugin -> companion (\"event\"), protocol v1",
   "type": "object",
   "required": [
     "v",
@@ -26,7 +26,9 @@
         "shutdown",
         "config",
         "ptt",
-        "list_devices"
+        "list_devices",
+        "persons",
+        "person_status"
       ]
     },
     "id": {
@@ -47,7 +49,8 @@
       "enum": [
         "bad_json",
         "command_failed",
-        "audio_failed"
+        "audio_failed",
+        "no_person"
       ]
     },
     "message": {
@@ -77,7 +80,8 @@
       "type": "integer"
     },
     "atom": {
-      "type": "string"
+      "type": "string",
+      "description": "events from a Person plugin: its atom uid (added by the Person plugin / the Session bridge); error no_person: the requested atom"
     },
     "channel": {
       "type": "string"
@@ -189,6 +193,49 @@
           "type": "boolean"
         }
       }
+    },
+    "role": {
+      "enum": [
+        "session"
+      ],
+      "description": "ready/heartbeat/pong: sender is the Session plugin"
+    },
+    "default_atom": {
+      "type": "string",
+      "description": "atom that gets body commands without 'atom' ('' = no Person)"
+    },
+    "persons": {
+      "type": "array",
+      "description": "Person atoms with the AIBody Person plugin",
+      "items": {
+        "type": "object",
+        "required": [
+          "atom"
+        ],
+        "properties": {
+          "atom": {
+            "type": "string"
+          },
+          "plugin_version": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "engines": {
+      "type": "object",
+      "description": "config: engines picked in the Session plugin",
+      "properties": {
+        "stt": {
+          "type": "string"
+        },
+        "llm": {
+          "type": "string"
+        },
+        "tts": {
+          "type": "string"
+        }
+      }
     }
   },
   "allOf": [
@@ -217,6 +264,34 @@
       "then": {
         "required": [
           "active"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "persons"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "persons"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "person_status"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "atom"
         ]
       }
     }

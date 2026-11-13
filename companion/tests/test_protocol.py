@@ -44,7 +44,7 @@ class ProtocolTests(unittest.TestCase):
         self.assertEqual(names, set(protocol.COMMANDS))
 
     def test_csharp_lists_same_commands(self):
-        source = (ROOT / "src" / "Protocol.cs").read_text(encoding="utf-8")
+        source = (ROOT / "src" / "Shared" / "Protocol.cs").read_text(encoding="utf-8")
         for name in protocol.COMMANDS:
             self.assertIn(f'= "{name}";', source, name)
 
@@ -53,7 +53,7 @@ class ProtocolTests(unittest.TestCase):
         self.assertEqual(set(schema["properties"]["type"]["enum"]), protocol.EVENTS)
 
     def test_csharp_lists_same_events(self):
-        source = (ROOT / "src" / "Protocol.cs").read_text(encoding="utf-8")
+        source = (ROOT / "src" / "Shared" / "Protocol.cs").read_text(encoding="utf-8")
         for name in protocol.EVENTS:
             self.assertIn(f'= "{name}";', source, name)
 

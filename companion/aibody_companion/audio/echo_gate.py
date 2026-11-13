@@ -11,8 +11,8 @@ Without headphones this would make the AI answer itself. Strategy (same as Voxta
   * failsafes: every pending utterance gets a deadline (expected queue end + max_extra_s,
     refreshed with the real clip length on `speech_started`), and a speaking state longer
     than max_speaking_s is dropped, in case events get lost
-  * `error` with code `audio_failed`, or `speech_ended` with reason cancelled/failed,
-    release the utterance without a tail (nothing was played)
+  * `error` with code `audio_failed` or `no_person` (no body to play it), or `speech_ended`
+    with reason cancelled/failed, release the utterance without a tail (nothing was played)
 
 TODO: barge-in in voice-activation mode needs acoustic echo cancellation (e.g. WebRTC AEC /
 speexdsp). Push-to-talk already allows interrupting (see InputProcessor).
@@ -24,6 +24,7 @@ from collections.abc import Callable
 from typing import Any
 
 NO_TAIL_REASONS = {"cancelled", "failed"}
+NO_PLAYBACK_ERRORS = {"audio_failed", "no_person"}
 
 
 class EchoGate:
@@ -70,7 +71,7 @@ class EchoGate:
                 self._closed_until = now + self.tail_s
             if not self._pending:
                 self._expected_end = now
-        elif type_ == "error" and event.get("code") == "audio_failed":
+        elif type_ == "error" and event.get("code") in NO_PLAYBACK_ERRORS:
             self._pending.pop(uid, None)
         elif type_ in ("ready", "shutdown"):
             # Plugin (re)started or stopping: nothing can be playing.

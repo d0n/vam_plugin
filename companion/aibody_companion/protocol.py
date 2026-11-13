@@ -1,7 +1,11 @@
 """Message protocol between the companion and the VaM plugin (version 1).
 
 The authoritative description is protocol/PROTOCOL.md; JSON schemas live in
-protocol/schema/. Keep this module, the schemas and src/Protocol.cs in sync.
+protocol/schema/. Keep this module, the schemas and src/Shared/Protocol.cs in sync.
+
+The VaM side is two plugins: the Session plugin talks to the companion and forwards body
+commands to the Person plugin on the atom named in the optional envelope field "atom"
+(default: the session's default character). Events coming from a Person carry "atom".
 """
 from __future__ import annotations
 
@@ -32,11 +36,20 @@ COMMANDS: dict[str, tuple[set[str], set[str]]] = {
     "devices": ({"devices"}, {"error", "reply_to"}),
     "mic_state": ({"enabled", "capturing"}, {"device", "mode", "ptt_active", "error"}),
     "mic_level": ({"rms"}, {"speech", "gate_open"}),
+    # liveness + identity of the companion (lets the Session plugin detect restarts over files)
+    "companion_heartbeat": ({"session"}, {"version", "engines_available", "mic_capturing"}),
+}
+
+# Commands the Session plugin forwards to a Person plugin (everything else is for the Session).
+BODY_COMMANDS = {
+    "speak", "stop_speaking", "expression", "set_morphs", "reset_morphs",
+    "gesture", "pose", "trigger", "idle", "breathing",
 }
 
 SPEAK_QUEUE_MODES = ("append", "interrupt")
 
-ENVELOPE_FIELDS = {"v", "type", "id", "ts", "ack"}
+# "atom": target Person atom uid of a body command (optional; Session plugin picks a default)
+ENVELOPE_FIELDS = {"v", "type", "id", "ts", "ack", "atom"}
 
 # Messages plugin -> companion ("events").
 EVENTS = {
@@ -52,6 +65,8 @@ EVENTS = {
     "speech_ended",
     "gesture_done",
     "shutdown",
+    "persons",
+    "person_status",
 }
 
 _counter = itertools.count(1)
@@ -100,6 +115,10 @@ def validate_command(msg: Any) -> list[str]:
             errors.append(f"speak: queue must be one of {SPEAK_QUEUE_MODES}")
     if type_ == "devices" and not isinstance(msg.get("devices"), list):
         errors.append("devices: 'devices' must be a list")
+    if "atom" in msg and type_ not in BODY_COMMANDS:
+        errors.append(f"{type_}: 'atom' is only allowed on body commands")
+    if "atom" in msg and not (isinstance(msg["atom"], str) and msg["atom"]):
+        errors.append(f"{type_}: 'atom' must be a non-empty string")
     if type_ == "trigger" and not (msg.get("action") or msg.get("param")):
         errors.append("trigger: needs 'action' or 'param'")
     return errors
@@ -121,4 +140,8 @@ def validate_event(msg: Any) -> list[str]:
         errors.append("config: 'mic' must be an object")
     if type_ == "ptt" and not isinstance(msg.get("active"), bool):
         errors.append("ptt: 'active' must be true/false")
+    if type_ == "persons" and not isinstance(msg.get("persons"), list):
+        errors.append("persons: 'persons' must be a list")
+    if type_ == "person_status" and not isinstance(msg.get("atom"), str):
+        errors.append("person_status: 'atom' must be a string")
     return errors

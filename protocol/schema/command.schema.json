@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/d0n/vam_plugin/protocol/schema/command.schema.json",
-  "title": "AIBody message companion -> plugin (\"command\"), protocol v1",
+  "title": "AIBody message companion -> Session plugin (\"command\"), protocol v1",
   "type": "object",
   "required": [
     "type"
@@ -26,7 +26,8 @@
         "config_ack",
         "devices",
         "mic_state",
-        "mic_level"
+        "mic_level",
+        "companion_heartbeat"
       ]
     },
     "id": {
@@ -213,6 +214,47 @@
     },
     "gate_open": {
       "type": "boolean"
+    },
+    "atom": {
+      "type": "string",
+      "minLength": 1,
+      "description": "body commands only: uid of the Person atom whose AIBody Person plugin should get it (default: the Session plugin's 'Default character', else the first Person found)"
+    },
+    "session": {
+      "type": "string",
+      "description": "companion_heartbeat: id that changes on every companion start (the Session plugin then re-sends ready + config)"
+    },
+    "version": {
+      "type": "string",
+      "description": "companion_heartbeat: companion version"
+    },
+    "engines_available": {
+      "type": "object",
+      "description": "companion_heartbeat: engine names per kind, fills the Session plugin's engine menus",
+      "properties": {
+        "stt": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "llm": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "tts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "mic_capturing": {
+      "type": "boolean",
+      "description": "companion_heartbeat: microphone open"
     }
   },
   "allOf": [
@@ -362,6 +404,20 @@
       "then": {
         "required": [
           "rms"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "companion_heartbeat"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "session"
         ]
       }
     }

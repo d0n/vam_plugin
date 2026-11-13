@@ -10,12 +10,18 @@ from typing import Any
 
 PLUGIN_DATA_SUBDIR = "Saves/PluginData/AIBody"
 
+# Engines this companion version can run (reported to the Session plugin's engine menus).
+ENGINES_AVAILABLE: dict[str, list[str]] = {"stt": ["null"], "llm": ["echo"], "tts": ["tone"]}
+
 
 @dataclass
 class Config:
     vam_root: str = ""  # VaM install folder (the one containing VaM.exe)
-    channel: str = "Person"  # must match the plugin's "Channel" (defaults to the atom uid)
-    transport: str = "auto"  # "auto" (HTTP + file fallback), "http" or "file"
+    channel: str = "default"  # must match the Session plugin's "Channel"
+    # "file" (default; the only link the default VaM build supports). "http" / "auto" only work
+    # with a plugin built with AIBODY_HTTP (see README).
+    transport: str = "file"
+    default_atom: str = ""  # Person atom for body commands; "" = the Session plugin's default
     http_host: str = "127.0.0.1"
     http_port: int = 8765
     poll_interval_s: float = 0.02
@@ -51,7 +57,7 @@ class Config:
         return Path.home() / ".cache" / "aibody" / "audio" / self.channel
 
     def audio_rel_path(self, name: str) -> str | None:
-        """Path the plugin can load directly (relative to the VaM folder), if vam_root is set."""
+        """Path the Person plugin can load directly (relative to the VaM folder), if vam_root is set."""
         return f"{PLUGIN_DATA_SUBDIR}/{self.channel}/audio/{name}" if self.vam_root else None
 
     def audio_abs_path(self, name: str) -> Path:
@@ -65,6 +71,9 @@ class Config:
             errors.append(f"vam_root does not exist: {self.vam_root}")
         if self.transport == "file" and not self.vam_root:
             errors.append("the file transport needs vam_root (path to the VaM folder)")
+        for kind, name in (("stt", self.stt), ("llm", self.llm), ("tts", self.tts)):
+            if name not in ENGINES_AVAILABLE[kind]:
+                errors.append(f"{kind} engine {name!r} is not available (have: {ENGINES_AVAILABLE[kind]})")
         if not (1 <= self.http_port <= 65535):
             errors.append("http_port must be 1..65535")
         return errors
