@@ -437,3 +437,4 @@ __pycache__/
 *.egg-info/
 # Local companion config (may contain machine paths); keep config.example.json
 companion/config.json
+tools/stubs/build/

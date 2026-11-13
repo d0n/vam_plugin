@@ -101,35 +101,3 @@ namespace UnityEngine.UI
     }
 }
 
-namespace UnityEngine.Networking
-{
-    public class UploadHandler { }
-    public class UploadHandlerRaw : UploadHandler { public UploadHandlerRaw(byte[] data) { } }
-    public class DownloadHandler { public string text { get { return null; } } }
-    public class DownloadHandlerBuffer : DownloadHandler { }
-    public sealed class DownloadHandlerAudioClip : DownloadHandler
-    {
-        public static AudioClip GetContent(UnityWebRequest www) { return null; }
-    }
-    public static class UnityWebRequestMultimedia
-    {
-        public static UnityWebRequest GetAudioClip(string uri, AudioType audioType) { return null; }
-    }
-    public class UnityWebRequestAsyncOperation : AsyncOperation { }
-    public class UnityWebRequest : IDisposable
-    {
-        public UnityWebRequest(string url, string method) { }
-        public static UnityWebRequest Get(string url) { return null; }
-        public static string EscapeURL(string s) { return s; }
-        public UnityWebRequestAsyncOperation SendWebRequest() { return null; }
-        public int timeout;
-        public bool isNetworkError { get { return false; } }
-        public bool isHttpError { get { return false; } }
-        public string error { get { return null; } }
-        public UploadHandler uploadHandler;
-        public DownloadHandler downloadHandler;
-        public void SetRequestHeader(string k, string v) { }
-        public void Abort() { }
-        public void Dispose() { }
-    }
-}

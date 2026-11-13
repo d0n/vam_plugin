@@ -13,6 +13,7 @@ public class SuperController : MonoBehaviour
     public static SuperController singleton;
     public static void LogMessage(string m) { }
     public static void LogError(string m) { }
+    public List<Atom> GetAtoms() { return null; }
 }
 
 public class Atom : MonoBehaviour
@@ -145,6 +146,7 @@ namespace SimpleJSON
         public virtual string Value { get { return ""; } set { } }
         public virtual int Count { get { return 0; } }
         public virtual void Add(JSONNode item) { }
+        public virtual JSONNode Remove(int index) { return null; }
         public virtual int AsInt { get; set; }
         public virtual float AsFloat { get; set; }
         public virtual double AsDouble { get; set; }
