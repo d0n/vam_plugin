@@ -1,4 +1,5 @@
-// Dispatches parsed commands to the controllers and answers with ack / error events.
+// Dispatches parsed messages from the companion to the controllers and answers with
+// ack / error events.
 using System;
 using System.Collections.Generic;
 using SimpleJSON;
@@ -8,28 +9,28 @@ namespace AIBody
     public class CommandRouter
     {
         private readonly Action<JSONClass> _send;
-        private readonly AudioController _audio;
+        private readonly SpeechPlayer _speech;
         private readonly ExpressionController _expressions;
         private readonly PoseController _poses;
         private readonly IdleController _idle;
         private readonly BreathingController _breathing;
-        private readonly StateReporter _state;
+        private readonly MicConfig _mic;
         private readonly Func<JSONClass> _statusProvider;
 
         /// <summary>Send an "ack" for every successful command (useful while debugging).</summary>
         public bool AckAll = false;
 
-        public CommandRouter(Action<JSONClass> send, AudioController audio, ExpressionController expressions,
-            PoseController poses, IdleController idle, BreathingController breathing, StateReporter state,
+        public CommandRouter(Action<JSONClass> send, SpeechPlayer speech, ExpressionController expressions,
+            PoseController poses, IdleController idle, BreathingController breathing, MicConfig mic,
             Func<JSONClass> statusProvider)
         {
             _send = send;
-            _audio = audio;
+            _speech = speech;
             _expressions = expressions;
             _poses = poses;
             _idle = idle;
             _breathing = breathing;
-            _state = state;
+            _mic = mic;
             _statusProvider = statusProvider;
         }
 
@@ -94,21 +95,19 @@ namespace AIBody
 
                 case Protocol.CmdSpeak:
                 {
-                    string audio = Protocol.GetString(msg, "audio", "");
-                    if (audio.Length == 0) return "speak needs 'audio' (file path relative to the VaM folder)";
                     string utteranceId = id.Length > 0 ? id : "utt-" + DateTime.UtcNow.Ticks;
                     if (Protocol.Has(msg, "expression"))
                     {
                         _expressions.SetExpression(Protocol.GetString(msg, "expression", ""),
                             Protocol.GetFloat(msg, "intensity", 1f), 0.4f, -1f);
                     }
-                    _audio.Play(utteranceId, audio, OnAudioError);
-                    return null;
+                    bool interrupt = Protocol.GetString(msg, "queue", "append") == "interrupt";
+                    return _speech.Enqueue(utteranceId, Protocol.GetString(msg, "url", ""),
+                        Protocol.GetString(msg, "audio", ""), interrupt);
                 }
 
                 case Protocol.CmdStopSpeaking:
-                    _state.NotifyStopRequested();
-                    _audio.Stop();
+                    _speech.StopAll("stopped");
                     return null;
 
                 case Protocol.CmdExpression:
@@ -155,17 +154,28 @@ namespace AIBody
                     _breathing.Depth = Protocol.GetFloat(msg, "depth", _breathing.Depth);
                     return null;
 
+                case Protocol.CmdConfigAck:
+                    _mic.HandleConfigAck(msg);
+                    return null;
+
+                case Protocol.CmdDevices:
+                    _mic.HandleDevices(msg);
+                    return null;
+
+                case Protocol.CmdMicState:
+                    _mic.HandleMicState(msg);
+                    return null;
+
+                case Protocol.CmdMicLevel:
+                    _mic.HandleMicLevel(msg);
+                    return null;
+
                 case "":
                     return "Message has no 'type'";
 
                 default:
                     return "Unknown command type '" + type + "'";
             }
-        }
-
-        private void OnAudioError(string utteranceId, string message)
-        {
-            _send(Protocol.NewError(utteranceId, "audio_failed", message));
         }
     }
 }

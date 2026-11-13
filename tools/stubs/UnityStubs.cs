@@ -7,7 +7,7 @@ using System.Collections;
 
 namespace UnityEngine
 {
-    public class Object { }
+    public class Object { public static void Destroy(Object o) { } }
     public class Component : Object
     {
         public GameObject gameObject { get { return null; } }
@@ -50,6 +50,12 @@ namespace UnityEngine
         public static float MoveTowards(float c, float t, float d) { return t; }
         public static bool Approximately(float a, float b) { return true; }
         public static float PerlinNoise(float x, float y) { return 0f; }
+        public static float Min(float a, float b) { return a; }
+        public static float Log10(float f) { return 0f; }
+        public static int Clamp(int v, int min, int max) { return v; }
+        public static int FloorToInt(float f) { return 0; }
+        public static int CeilToInt(float f) { return 0; }
+        public static int RoundToInt(float f) { return 0; }
     }
     public static class Time
     {
@@ -61,8 +67,16 @@ namespace UnityEngine
     {
         public static float Range(float a, float b) { return a; }
     }
-    public class AudioClip : Object { }
-    public class AudioSource : Behaviour { public bool isPlaying { get { return false; } } }
+    public class AudioClip : Object { public float length { get { return 0f; } } }
+    public enum AudioType { UNKNOWN, ACC, AIFF, IT, MOD, MPEG, OGGVORBIS, S3M, WAV, XM, XMA, VAG, AUDIOQUEUE }
+    public class AudioSource : Behaviour
+    {
+        public bool isPlaying { get { return false; } }
+        public AudioClip clip { get; set; }
+        public float volume { get; set; }
+        public void Play() { }
+        public void Stop() { }
+    }
 }
 
 namespace UnityEngine.Events
@@ -93,6 +107,14 @@ namespace UnityEngine.Networking
     public class UploadHandlerRaw : UploadHandler { public UploadHandlerRaw(byte[] data) { } }
     public class DownloadHandler { public string text { get { return null; } } }
     public class DownloadHandlerBuffer : DownloadHandler { }
+    public sealed class DownloadHandlerAudioClip : DownloadHandler
+    {
+        public static AudioClip GetContent(UnityWebRequest www) { return null; }
+    }
+    public static class UnityWebRequestMultimedia
+    {
+        public static UnityWebRequest GetAudioClip(string uri, AudioType audioType) { return null; }
+    }
     public class UnityWebRequestAsyncOperation : AsyncOperation { }
     public class UnityWebRequest : IDisposable
     {
@@ -107,6 +129,7 @@ namespace UnityEngine.Networking
         public UploadHandler uploadHandler;
         public DownloadHandler downloadHandler;
         public void SetRequestHeader(string k, string v) { }
+        public void Abort() { }
         public void Dispose() { }
     }
 }

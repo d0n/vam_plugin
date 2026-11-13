@@ -67,6 +67,7 @@ public class JSONStorableStringChooser : JSONStorableParam
     public delegate void SetStringCallback(string v);
     public JSONStorableStringChooser(string name, List<string> choices, string startingValue, string displayName, SetStringCallback callback) { }
     public string val;
+    public List<string> choices { get; set; }
 }
 public class JSONStorableUrl : JSONStorableParam { public string val; }
 public class JSONStorableAction

@@ -17,18 +17,21 @@ namespace AIBody
 {
     public class AIBodyPlugin : MVRScript
     {
-        public const string PluginVersion = "0.1.0";
+        public const string PluginVersion = "0.2.0";
         public const string DataRoot = "Saves/PluginData/AIBody";
 
-        private const string TransportFile = "File (no network needed)";
-        private const string TransportHttp = "HTTP (needs network access)";
+        private const string TransportAuto = "Auto (HTTP, file fallback)";
+        private const string TransportHttp = "HTTP only";
+        private const string TransportFile = "File only (no network)";
 
         // Persisted settings (saved with the scene).
         private JSONStorableBool _activeJson;
-        private JSONStorableString _channelJson;
         private JSONStorableStringChooser _transportJson;
-        private JSONStorableString _httpUrlJson;
-        private JSONStorableFloat _pollIntervalJson;
+        private JSONStorableString _hostJson;
+        private JSONStorableString _portJson;
+        private JSONStorableString _channelJson;
+        private JSONStorableFloat _filePollJson;
+        private JSONStorableFloat _volumeJson;
         private JSONStorableBool _idleJson;
         private JSONStorableFloat _idleIntensityJson;
         private JSONStorableBool _breathingJson;
@@ -42,15 +45,17 @@ namespace AIBody
 
         private ITransport _transport;
         private MorphHelper _morphs;
-        private AudioController _audio;
+        private SpeechPlayer _speech;
         private ExpressionController _expressions;
         private BreathingController _breathing;
         private IdleController _idle;
         private PoseController _poses;
-        private StateReporter _state;
+        private MicConfig _mic;
         private CommandRouter _router;
 
         private bool _initialized;
+        private int _seenEpoch;
+        private bool _wasConnected;
         private float _heartbeatTimer;
         private float _statusTimer;
         private const float HeartbeatInterval = 2f;
@@ -84,21 +89,26 @@ namespace AIBody
             _activeJson = new JSONStorableBool("Active", true, (bool v) => Restart());
             RegisterBool(_activeJson);
 
+            _transportJson = new JSONStorableStringChooser("Transport",
+                new List<string> { TransportAuto, TransportHttp, TransportFile }, TransportAuto, "Transport",
+                (string v) => Restart());
+            RegisterStringChooser(_transportJson);
+
+            _hostJson = new JSONStorableString("Companion host", "127.0.0.1", (string v) => Restart());
+            RegisterString(_hostJson);
+            _portJson = new JSONStorableString("Companion port", "8765", (string v) => Restart());
+            RegisterString(_portJson);
+
             // Channel = sub folder / HTTP channel name. Defaults to the atom uid so several
             // Person atoms can each have their own AI.
             _channelJson = new JSONStorableString("Channel", containingAtom.uid, (string v) => Restart());
             RegisterString(_channelJson);
 
-            _transportJson = new JSONStorableStringChooser("Transport",
-                new List<string> { TransportFile, TransportHttp }, TransportFile, "Transport",
-                (string v) => Restart());
-            RegisterStringChooser(_transportJson);
+            _filePollJson = new JSONStorableFloat("File poll interval (s)", 0.1f, (float v) => Restart(), 0.02f, 2f);
+            RegisterFloat(_filePollJson);
 
-            _httpUrlJson = new JSONStorableString("Companion URL", "http://127.0.0.1:8765", (string v) => Restart());
-            RegisterString(_httpUrlJson);
-
-            _pollIntervalJson = new JSONStorableFloat("Poll interval (s)", 0.1f, (float v) => Restart(), 0.02f, 2f);
-            RegisterFloat(_pollIntervalJson);
+            _volumeJson = new JSONStorableFloat("Speech volume", 1f, (float v) => { if (_speech != null) _speech.Volume = v; }, 0f, 1f);
+            RegisterFloat(_volumeJson);
 
             _idleJson = new JSONStorableBool("Idle head motion", true, (bool v) => { if (_idle != null) _idle.Enabled = v; });
             RegisterBool(_idleJson);
@@ -120,9 +130,12 @@ namespace AIBody
 
             _statusJson = new JSONStorableString("Status", "Starting...");
 
+            _mic = new MicConfig(this, Send);
+            _mic.CreateStorables();
+
             // Actions usable from scene triggers / buttons.
             RegisterAction(new JSONStorableAction("Reconnect", Restart));
-            RegisterAction(new JSONStorableAction("Stop speaking", () => { if (_state != null) _state.NotifyStopRequested(); if (_audio != null) _audio.Stop(); }));
+            RegisterAction(new JSONStorableAction("Stop speaking", StopSpeaking));
             RegisterAction(new JSONStorableAction("Reset expression", () => { if (_expressions != null) _expressions.Reset(0.4f); }));
             RegisterAction(new JSONStorableAction("Reload config files", ReloadConfigFiles));
             RegisterAction(new JSONStorableAction("Send ready event", SendReady));
@@ -131,13 +144,18 @@ namespace AIBody
         private void CreateControllers()
         {
             _morphs = new MorphHelper(containingAtom);
-            _audio = new AudioController(this, containingAtom);
+            _speech = new SpeechPlayer(this, containingAtom);
+            _speech.HttpBaseUrl = () => _transport != null ? _transport.HttpBaseUrl : null;
+            _speech.OnStarted = OnSpeechStarted;
+            _speech.OnEnded = OnSpeechEnded;
+            _speech.OnError = (id, message) => Send(Protocol.NewError(id, "audio_failed", message));
+            _speech.Volume = _volumeJson.val;
+
             _expressions = new ExpressionController(_morphs);
             _breathing = new BreathingController(_morphs, _breathMorphJson.val);
             _idle = new IdleController(containingAtom);
             _poses = new PoseController(containingAtom, _idle);
-            _state = new StateReporter(_audio, Send);
-            _router = new CommandRouter(Send, _audio, _expressions, _poses, _idle, _breathing, _state, BuildStatus);
+            _router = new CommandRouter(Send, _speech, _expressions, _poses, _idle, _breathing, _mic, BuildStatus);
 
             _idle.Enabled = _idleJson.val;
             _idle.Intensity = _idleIntensityJson.val;
@@ -150,23 +168,42 @@ namespace AIBody
 
         private void CreateUI()
         {
+            // Left column: connection, speech output, body.
+            Header("<b>Connection</b>", false);
             CreateToggle(_activeJson);
             CreatePopup(_transportJson);
+            CreateTextInput(_hostJson);
+            CreateTextInput(_portJson);
             CreateTextInput(_channelJson);
-            CreateTextInput(_httpUrlJson);
-            CreateSlider(_pollIntervalJson);
             CreateButton("Reconnect").button.onClick.AddListener(Restart);
+            UIDynamicTextField status = CreateTextField(_statusJson);
+            status.height = 260f;
+
+            Header("<b>Speech output</b>", false);
+            CreateSlider(_volumeJson);
+            CreateButton("Stop speaking").button.onClick.AddListener(StopSpeaking);
+
+            Header("<b>Body</b>", false);
+            CreateToggle(_idleJson);
+            CreateSlider(_idleIntensityJson);
+            CreateToggle(_breathingJson);
+            CreateSlider(_breathRateJson);
+            CreateSlider(_breathDepthJson);
+            CreateTextInput(_breathMorphJson);
             CreateButton("Reload expressions / gestures").button.onClick.AddListener(ReloadConfigFiles);
+
+            Header("<b>Advanced</b>", false);
+            CreateSlider(_filePollJson);
             CreateToggle(_verboseJson);
 
-            UIDynamicTextField status = CreateTextField(_statusJson, true);
-            status.height = 300f;
-            CreateToggle(_idleJson, true);
-            CreateSlider(_idleIntensityJson, true);
-            CreateToggle(_breathingJson, true);
-            CreateSlider(_breathRateJson, true);
-            CreateSlider(_breathDepthJson, true);
-            CreateTextInput(_breathMorphJson, true);
+            // Right column: microphone settings.
+            _mic.CreateUI(true);
+        }
+
+        private void Header(string text, bool rightSide)
+        {
+            UIDynamicTextField field = CreateTextField(new JSONStorableString("header " + text, text), rightSide);
+            field.height = 40f;
         }
 
         // VaM has no one-line text input helper; a text field with an InputField attached
@@ -188,6 +225,11 @@ namespace AIBody
             if (_poses != null) _poses.LoadGestureFile(DataRoot + "/gestures.json");
         }
 
+        private void StopSpeaking()
+        {
+            if (_speech != null) _speech.StopAll("stopped");
+        }
+
         // ---------------------------------------------------------------- transport
 
         private string ChannelDir
@@ -207,6 +249,17 @@ namespace AIBody
             return new string(chars);
         }
 
+        private int Port
+        {
+            get
+            {
+                int port;
+                if (int.TryParse(_portJson.val, out port) && port > 0 && port < 65536) return port;
+                Log.Error("Invalid companion port '" + _portJson.val + "', using 8765");
+                return 8765;
+            }
+        }
+
         private void Restart()
         {
             if (!_initialized) return;
@@ -218,26 +271,30 @@ namespace AIBody
             }
 
             string channel = SanitizeChannel(_channelJson.val);
-            if (_transportJson.val == TransportHttp)
+            string mode = _transportJson.val;
+            if (mode == TransportFile)
             {
-                _transport = new HttpTransport(this, _httpUrlJson.val, channel, _pollIntervalJson.val, OnPayload);
+                _transport = new FileTransport(ChannelDir, _filePollJson.val, OnPayload);
             }
             else
             {
-                _transport = new FileTransport(ChannelDir, _pollIntervalJson.val, OnPayload);
+                HttpTransport http = new HttpTransport(this, _hostJson.val, Port, channel, PluginVersion, OnPayload);
+                if (mode == TransportHttp) _transport = http;
+                else _transport = new AutoTransport(http, new FileTransport(ChannelDir, _filePollJson.val, OnPayload));
             }
+            _seenEpoch = 0;
+            _wasConnected = false;
             _transport.Start();
             Log.Info("Started " + _transport.Name + " transport on channel '" + channel + "'");
-            SendReady();
         }
 
         private void StopTransport()
         {
             if (_transport == null) return;
-            JSONClass bye = Protocol.NewEvent("shutdown");
-            _transport.Send(bye);
+            _transport.Send(Protocol.NewEvent(Protocol.EvtShutdown));
             _transport.Stop();
             _transport = null;
+            if (_mic != null) _mic.OnDisconnected();
         }
 
         private void OnPayload(string payload)
@@ -260,6 +317,23 @@ namespace AIBody
             Send(ready);
         }
 
+        private void OnSpeechStarted(string id, float duration)
+        {
+            JSONClass evt = Protocol.NewEvent(Protocol.EvtSpeechStarted);
+            evt["utterance_id"] = id ?? "";
+            evt["duration"].AsFloat = duration;
+            Send(evt);
+        }
+
+        private void OnSpeechEnded(string id, string reason)
+        {
+            JSONClass evt = Protocol.NewEvent(Protocol.EvtSpeechEnded);
+            evt["utterance_id"] = id ?? "";
+            evt["reason"] = reason;
+            evt["queue_length"].AsInt = _speech.QueueLength;
+            Send(evt);
+        }
+
         private JSONClass BuildStatus()
         {
             JSONClass s = Protocol.NewEvent(Protocol.EvtHeartbeat);
@@ -268,7 +342,10 @@ namespace AIBody
             s["atom"] = containingAtom.uid;
             s["channel"] = SanitizeChannel(_channelJson.val);
             s["transport"] = _transport != null ? _transport.Name : "none";
-            s["speaking"].AsBool = _state != null && _state.IsSpeaking;
+            AutoTransport auto = _transport as AutoTransport;
+            s["link"] = auto != null ? auto.ActiveLink : (_transport != null ? _transport.Name : "none");
+            s["speaking"].AsBool = _speech != null && _speech.IsSpeaking;
+            s["speech_queue"].AsInt = _speech != null ? _speech.QueueLength : 0;
             s["expression"] = _expressions != null ? _expressions.Current : "";
             s["audio_dir"] = ChannelDir + "/audio";
 
@@ -292,19 +369,34 @@ namespace AIBody
             try
             {
                 float dt = Time.deltaTime;
+                bool connected = false;
                 if (_transport != null)
                 {
                     _transport.Tick(dt);
+                    connected = _transport.IsConnected;
+
+                    // (Re)connected, companion restarted, or switched between HTTP and file.
+                    if (connected && _transport.ConnectionEpoch != _seenEpoch)
+                    {
+                        _seenEpoch = _transport.ConnectionEpoch;
+                        SendReady();
+                        _mic.OnConnected();
+                        _heartbeatTimer = 0f;
+                    }
+                    if (!connected && _wasConnected) _mic.OnDisconnected();
+                    _wasConnected = connected;
+
                     _heartbeatTimer += dt;
-                    if (_heartbeatTimer >= HeartbeatInterval)
+                    if (connected && _heartbeatTimer >= HeartbeatInterval)
                     {
                         _heartbeatTimer = 0f;
                         Send(BuildStatus());
                     }
                 }
 
-                _state.Update(dt);
-                bool speaking = _state.IsSpeaking;
+                _speech.Update(dt);
+                _mic.Update(dt, connected);
+                bool speaking = _speech.IsSpeaking;
                 _expressions.Update(dt);
                 _breathing.Update(dt, speaking);
                 string finishedGesture = _idle.Update(dt, speaking, _breathing.Cycle, _breathing.CurrentDepth);
@@ -335,13 +427,14 @@ namespace AIBody
             if (_transport == null) text += "Transport: off\n";
             else
             {
-                text += "Transport: " + _transport.Name + (_transport.IsConnected ? " (ok)" : " (waiting)") + "\n";
+                text += "Transport: " + _transport.Name + (_transport.IsConnected ? " (connected)" : " (waiting)") + "\n";
+                text += "State: " + _transport.State + "\n";
                 if (!string.IsNullOrEmpty(_transport.LastError)) text += "Last error: " + _transport.LastError + "\n";
             }
             text += "Folder: " + ChannelDir + "\n";
-            text += "Speaking: " + (_state.IsSpeaking ? "yes" : "no") + "\n";
+            text += "Speaking: " + (_speech.IsSpeaking ? "yes" : "no") + ", queued: " + _speech.QueueLength + "\n";
             text += "Expression: " + _expressions.Current + "\n";
-            text += "Audio: " + (_audio.Available ? "ok" : "missing HeadAudioSource") + "\n";
+            text += "Audio: " + (_speech.Available ? "ok" : "missing HeadAudioSource") + "\n";
             text += "Morphs: " + (_morphs.Available ? "ok" : "unavailable") + "\n";
             text += "Breath morph: " + (_morphs.Find(_breathing.MorphName) != null ? _breathing.MorphName : "not found") + "\n";
             SetStatus(text);
@@ -360,7 +453,7 @@ namespace AIBody
             try
             {
                 StopTransport();
-                if (_audio != null) _audio.Stop();
+                if (_speech != null) _speech.StopAll("stopped");
                 if (_expressions != null) _expressions.RestoreNow();
                 if (_breathing != null) _breathing.RestoreNow();
                 if (_idle != null) _idle.RestoreNow();
@@ -379,7 +472,6 @@ namespace AIBody
 
         private void OnDestroy()
         {
-            StopTransport();
             OnDisable();
         }
     }

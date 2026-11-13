@@ -3,12 +3,13 @@ Protocol.cs
 ITransport.cs
 FileTransport.cs
 HttpTransport.cs
+AutoTransport.cs
 MorphHelper.cs
-AudioController.cs
+SpeechPlayer.cs
 ExpressionController.cs
 BreathingController.cs
 IdleController.cs
 PoseController.cs
-StateReporter.cs
+MicConfig.cs
 CommandRouter.cs
 AIBodyPlugin.cs

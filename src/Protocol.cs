@@ -23,6 +23,10 @@ namespace AIBody
         public const string CmdTrigger = "trigger";
         public const string CmdIdle = "idle";
         public const string CmdBreathing = "breathing";
+        public const string CmdConfigAck = "config_ack";
+        public const string CmdDevices = "devices";
+        public const string CmdMicState = "mic_state";
+        public const string CmdMicLevel = "mic_level";
 
         // Events (plugin -> companion)
         public const string EvtReady = "ready";
@@ -33,6 +37,10 @@ namespace AIBody
         public const string EvtSpeechStarted = "speech_started";
         public const string EvtSpeechEnded = "speech_ended";
         public const string EvtGestureDone = "gesture_done";
+        public const string EvtShutdown = "shutdown";
+        public const string EvtConfig = "config";
+        public const string EvtPtt = "ptt";
+        public const string EvtListDevices = "list_devices";
 
         private static int _eventCounter;
 

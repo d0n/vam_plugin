@@ -31,6 +31,7 @@ namespace AIBody
         private bool _running;
         private bool _connected;
         private string _lastError = "";
+        private int _epoch;
 
         public FileTransport(string channelDir, float pollInterval, PayloadHandler onPayload)
         {
@@ -43,6 +44,9 @@ namespace AIBody
         public string Name { get { return "file"; } }
         public bool IsConnected { get { return _connected; } }
         public string LastError { get { return _lastError; } }
+        public string State { get { return !_running ? "stopped" : (_connected ? "ready" : "folder error"); } }
+        public int ConnectionEpoch { get { return _epoch; } }
+        public string HttpBaseUrl { get { return null; } }
 
         public float PollInterval
         {
@@ -58,6 +62,7 @@ namespace AIBody
                 FileManagerSecure.CreateDirectory(_outbox);
                 _running = true;
                 _connected = true;
+                _epoch++;
                 _lastError = "";
             }
             catch (Exception e)
