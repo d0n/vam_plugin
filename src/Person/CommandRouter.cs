@@ -1,5 +1,5 @@
-// Dispatches parsed messages from the companion to the controllers and answers with
-// ack / error events.
+// Person plugin: dispatches body commands (forwarded by the Session plugin through the
+// "AIBody Inbox" param) to the controllers and answers with ack / error events.
 using System;
 using System.Collections.Generic;
 using SimpleJSON;
@@ -14,15 +14,12 @@ namespace AIBody
         private readonly PoseController _poses;
         private readonly IdleController _idle;
         private readonly BreathingController _breathing;
-        private readonly MicConfig _mic;
-        private readonly Func<JSONClass> _statusProvider;
 
         /// <summary>Send an "ack" for every successful command (useful while debugging).</summary>
         public bool AckAll = false;
 
         public CommandRouter(Action<JSONClass> send, SpeechPlayer speech, ExpressionController expressions,
-            PoseController poses, IdleController idle, BreathingController breathing, MicConfig mic,
-            Func<JSONClass> statusProvider)
+            PoseController poses, IdleController idle, BreathingController breathing)
         {
             _send = send;
             _speech = speech;
@@ -30,8 +27,6 @@ namespace AIBody
             _poses = poses;
             _idle = idle;
             _breathing = breathing;
-            _mic = mic;
-            _statusProvider = statusProvider;
         }
 
         public void HandlePayload(string payload)
@@ -84,15 +79,6 @@ namespace AIBody
         {
             switch (type)
             {
-                case Protocol.CmdPing:
-                {
-                    JSONClass pong = _statusProvider();
-                    pong["type"] = Protocol.EvtPong;
-                    pong["reply_to"] = id;
-                    _send(pong);
-                    return null;
-                }
-
                 case Protocol.CmdSpeak:
                 {
                     string utteranceId = id.Length > 0 ? id : "utt-" + DateTime.UtcNow.Ticks;
@@ -154,27 +140,11 @@ namespace AIBody
                     _breathing.Depth = Protocol.GetFloat(msg, "depth", _breathing.Depth);
                     return null;
 
-                case Protocol.CmdConfigAck:
-                    _mic.HandleConfigAck(msg);
-                    return null;
-
-                case Protocol.CmdDevices:
-                    _mic.HandleDevices(msg);
-                    return null;
-
-                case Protocol.CmdMicState:
-                    _mic.HandleMicState(msg);
-                    return null;
-
-                case Protocol.CmdMicLevel:
-                    _mic.HandleMicLevel(msg);
-                    return null;
-
                 case "":
                     return "Message has no 'type'";
 
                 default:
-                    return "Unknown command type '" + type + "'";
+                    return "Command type '" + type + "' is not handled by the Person plugin";
             }
         }
     }

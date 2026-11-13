@@ -1,4 +1,4 @@
-// Microphone settings menu. The microphone itself is captured by the companion (the plugin
+// Session plugin: microphone settings menu. The microphone itself is captured by the companion (the plugin
 // sandbox cannot load audio libraries and Unity's Microphone class is unverified inside VaM),
 // so this class only holds the settings, shows feedback and talks to the companion:
 //   plugin -> companion: "config" (all mic settings), "ptt" (push-to-talk state), "list_devices"
@@ -50,6 +50,9 @@ namespace AIBody
             _plugin = plugin;
             _send = send;
         }
+
+        /// <summary>Lets the Session plugin add more settings (engines) to every config event.</summary>
+        public Action<JSONClass> DecorateConfig;
 
         public bool PttActive { get { return _pttActive != null && _pttActive.val; } }
 
@@ -146,6 +149,7 @@ namespace AIBody
             mic["ptt_interrupts"].AsBool = PttInterrupts.val;
             mic["level_meter"].AsBool = LevelMeter.val;
             evt["mic"] = mic;
+            if (DecorateConfig != null) DecorateConfig(evt);
             return evt;
         }
 

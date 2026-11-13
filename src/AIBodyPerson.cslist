@@ -1,0 +1,10 @@
+Shared/Log.cs
+Shared/Protocol.cs
+Person/MorphHelper.cs
+Person/SpeechPlayer.cs
+Person/ExpressionController.cs
+Person/BreathingController.cs
+Person/IdleController.cs
+Person/PoseController.cs
+Person/CommandRouter.cs
+Person/AIBodyPerson.cs

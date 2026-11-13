@@ -1,12 +1,13 @@
 // AIBody - gives an AI a virtual body in Virt-A-Mate.
-// Small logging helper so every message carries the same prefix.
+// Small logging helper so every message carries the same prefix. Shared by both plugins;
+// each plugin sets its own Prefix in Init().
 using System;
 
 namespace AIBody
 {
     public static class Log
     {
-        public const string Prefix = "AIBody: ";
+        public static string Prefix = "AIBody: ";
         public static bool Verbose = false;
 
         public static void Info(string message)

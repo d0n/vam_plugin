@@ -1,4 +1,5 @@
-// Message protocol shared with the companion app.
+// Message protocol shared with the companion app, and the bridge contract between the
+// AIBody Session plugin and the AIBody Person plugins. Compiled into both plugins.
 // See protocol/PROTOCOL.md for the authoritative description.
 using System;
 using System.Collections.Generic;
@@ -27,6 +28,7 @@ namespace AIBody
         public const string CmdDevices = "devices";
         public const string CmdMicState = "mic_state";
         public const string CmdMicLevel = "mic_level";
+        public const string CmdCompanionHeartbeat = "companion_heartbeat";
 
         // Events (plugin -> companion)
         public const string EvtReady = "ready";
@@ -41,6 +43,32 @@ namespace AIBody
         public const string EvtConfig = "config";
         public const string EvtPtt = "ptt";
         public const string EvtListDevices = "list_devices";
+        public const string EvtPersons = "persons";
+        public const string EvtPersonStatus = "person_status";
+
+        // ---- Session <-> Person bridge (inside VaM, no files or network involved) ----
+        // Each Person plugin registers two JSONStorableString params. The Session plugin finds
+        // them by scanning SuperController.singleton.GetAtoms() and talks through them:
+        //   Session writes ONE message (JSON object) into PersonInboxParam; the Person plugin's
+        //   callback handles it synchronously and resets the value to "".
+        //   Person appends events to a JSON array in PersonOutboxParam; the Session plugin reads
+        //   the array, resets the value to "" and forwards the events (with "atom" set).
+        public const string PersonInboxParam = "AIBody Inbox";
+        public const string PersonOutboxParam = "AIBody Outbox";
+        public const string PersonVersionParam = "AIBody Person Version";
+        public const int MaxOutboxEvents = 100;
+
+        /// <summary>Command types the Session plugin forwards to a Person plugin.</summary>
+        public static readonly string[] BodyCommands =
+        {
+            CmdSpeak, CmdStopSpeaking, CmdExpression, CmdSetMorphs, CmdResetMorphs,
+            CmdGesture, CmdPose, CmdTrigger, CmdIdle, CmdBreathing
+        };
+
+        public static bool IsBodyCommand(string type)
+        {
+            return Array.IndexOf(BodyCommands, type) >= 0;
+        }
 
         private static int _eventCounter;
 

@@ -1,3 +1,8 @@
+// OPTIONAL: only compiled in the AIBODY_HTTP build. Not listed in the default .cslist files,
+// because VaM 1.22 may refuse to load plugins that reference UnityEngine.Networking.
+// To enable: add "#define AIBODY_HTTP" as the first line of Session/AIBodySession.cs and
+// Person/SpeechPlayer.cs and add Optional/*.cs to AIBodySession.cslist.
+#if AIBODY_HTTP
 // "Auto" transport: HTTP is primary, the file transport is the fallback.
 //
 // Both run at the same time. Incoming commands are accepted from either (the companion only
@@ -79,3 +84,4 @@ namespace AIBody
         }
     }
 }
+#endif

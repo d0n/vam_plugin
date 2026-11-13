@@ -1,0 +1,7 @@
+Shared/Log.cs
+Shared/Protocol.cs
+Session/ITransport.cs
+Session/FileTransport.cs
+Session/PersonRegistry.cs
+Session/MicConfig.cs
+Session/AIBodySession.cs
