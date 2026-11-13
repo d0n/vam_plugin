@@ -1,46 +1,369 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/d0n/vam_plugin/protocol/schema/command.schema.json",
-  "title": "AIBody command (companion -> plugin), protocol v1",
+  "title": "AIBody message companion -> plugin (\"command\"), protocol v1",
   "type": "object",
-  "required": ["type"],
+  "required": [
+    "type"
+  ],
   "properties": {
-    "v": { "const": 1 },
-    "type": {
-      "enum": ["ping", "speak", "stop_speaking", "expression", "set_morphs", "reset_morphs",
-               "gesture", "pose", "trigger", "idle", "breathing"]
+    "v": {
+      "const": 1
     },
-    "id": { "type": "string", "description": "Unique id; echoed as reply_to / utterance_id" },
-    "ts": { "type": "number", "description": "Unix time in seconds" },
-    "ack": { "type": "boolean", "description": "Request an ack event on success" },
-    "audio": { "type": "string", "description": "speak: audio file path relative to the VaM folder" },
-    "text": { "type": "string", "description": "speak: the spoken text (informational)" },
-    "expression": { "type": "string", "description": "speak: expression to show while speaking" },
-    "intensity": { "type": "number", "minimum": 0 },
-    "name": { "type": "string" },
-    "blend": { "type": "number", "minimum": 0, "description": "seconds to blend" },
-    "hold": { "type": "number", "description": "expression: seconds before returning to neutral (<=0 = keep)" },
-    "morphs": { "type": "object", "additionalProperties": { "type": "number" } },
-    "release_others": { "type": "boolean" },
-    "duration": { "type": "number", "minimum": 0 },
-    "amplitude": { "type": "number", "minimum": 0 },
-    "path": { "type": "string", "description": "pose: preset path, may include a .var reference" },
-    "storable": { "type": "string", "description": "trigger: storable id or suffix" },
-    "action": { "type": "string" },
-    "param": { "type": "string" },
-    "value": { "type": ["string", "number", "boolean"] },
-    "value_type": { "enum": ["float", "bool", "string", "chooser"] },
-    "enabled": { "type": "boolean" },
-    "rate": { "type": "number", "minimum": 0 },
-    "depth": { "type": "number", "minimum": 0 }
+    "type": {
+      "enum": [
+        "ping",
+        "speak",
+        "stop_speaking",
+        "expression",
+        "set_morphs",
+        "reset_morphs",
+        "gesture",
+        "pose",
+        "trigger",
+        "idle",
+        "breathing",
+        "config_ack",
+        "devices",
+        "mic_state",
+        "mic_level"
+      ]
+    },
+    "id": {
+      "type": "string",
+      "description": "Unique id; echoed as reply_to / utterance_id"
+    },
+    "ts": {
+      "type": "number",
+      "description": "Unix time in seconds"
+    },
+    "ack": {
+      "type": "boolean",
+      "description": "Request an ack event on success"
+    },
+    "audio": {
+      "type": "string",
+      "description": "speak: audio file path relative to the VaM folder (file fallback)"
+    },
+    "text": {
+      "type": "string",
+      "description": "speak: the spoken text (informational)"
+    },
+    "expression": {
+      "type": "string",
+      "description": "speak: expression to show while speaking"
+    },
+    "intensity": {
+      "type": "number",
+      "minimum": 0
+    },
+    "name": {
+      "type": "string"
+    },
+    "blend": {
+      "type": "number",
+      "minimum": 0,
+      "description": "seconds to blend"
+    },
+    "hold": {
+      "type": "number",
+      "description": "expression: seconds before returning to neutral (<=0 = keep)"
+    },
+    "morphs": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "number"
+      }
+    },
+    "release_others": {
+      "type": "boolean"
+    },
+    "duration": {
+      "type": "number",
+      "minimum": 0,
+      "description": "speak: expected clip length in s (informational); gesture: s"
+    },
+    "amplitude": {
+      "type": "number",
+      "minimum": 0
+    },
+    "path": {
+      "type": "string",
+      "description": "pose: preset path, may include a .var reference"
+    },
+    "storable": {
+      "type": "string",
+      "description": "trigger: storable id or suffix"
+    },
+    "action": {
+      "type": "string"
+    },
+    "param": {
+      "type": "string"
+    },
+    "value": {
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ]
+    },
+    "value_type": {
+      "enum": [
+        "float",
+        "bool",
+        "string",
+        "chooser"
+      ]
+    },
+    "enabled": {
+      "type": "boolean"
+    },
+    "rate": {
+      "type": "number",
+      "minimum": 0
+    },
+    "depth": {
+      "type": "number",
+      "minimum": 0
+    },
+    "url": {
+      "type": "string",
+      "description": "speak: audio URL; a path like /v1/audio/x.wav is resolved against the companion base URL"
+    },
+    "queue": {
+      "enum": [
+        "append",
+        "interrupt"
+      ],
+      "description": "speak: append to the playback queue (default) or stop current speech and clear the queue"
+    },
+    "reply_to": {
+      "type": "string"
+    },
+    "applied": {
+      "type": "object",
+      "description": "config_ack: settings in effect, e.g. {\"mic\": {...}}"
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "mic_state": {
+      "type": "object",
+      "description": "config_ack: same fields as a mic_state message"
+    },
+    "devices": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "index": {
+            "type": "integer"
+          },
+          "default": {
+            "type": "boolean"
+          },
+          "channels": {
+            "type": "integer"
+          },
+          "sample_rate": {
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "error": {
+      "type": "string"
+    },
+    "capturing": {
+      "type": "boolean"
+    },
+    "device": {
+      "type": "string"
+    },
+    "mode": {
+      "enum": [
+        "vad",
+        "ptt"
+      ]
+    },
+    "ptt_active": {
+      "type": "boolean"
+    },
+    "rms": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "mic_level: peak RMS (0..1) since the last level message"
+    },
+    "speech": {
+      "type": "boolean"
+    },
+    "gate_open": {
+      "type": "boolean"
+    }
   },
   "allOf": [
-    { "if": { "properties": { "type": { "const": "speak" } } }, "then": { "required": ["audio"] } },
-    { "if": { "properties": { "type": { "const": "expression" } } }, "then": { "required": ["name"] } },
-    { "if": { "properties": { "type": { "const": "set_morphs" } } }, "then": { "required": ["morphs"] } },
-    { "if": { "properties": { "type": { "const": "gesture" } } }, "then": { "required": ["name"] } },
-    { "if": { "properties": { "type": { "const": "pose" } } }, "then": { "required": ["path"] } },
-    { "if": { "properties": { "type": { "const": "trigger" } } },
-      "then": { "required": ["storable"], "anyOf": [{ "required": ["action"] }, { "required": ["param", "value"] }] } }
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "speak"
+          }
+        }
+      },
+      "then": {
+        "anyOf": [
+          {
+            "required": [
+              "url"
+            ]
+          },
+          {
+            "required": [
+              "audio"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "expression"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "name"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "set_morphs"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "morphs"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "gesture"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "name"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "pose"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "path"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "trigger"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "storable"
+        ],
+        "anyOf": [
+          {
+            "required": [
+              "action"
+            ]
+          },
+          {
+            "required": [
+              "param",
+              "value"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "devices"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "devices"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "mic_state"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "enabled",
+          "capturing"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "mic_level"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "rms"
+        ]
+      }
+    }
   ]
 }

@@ -1,33 +1,224 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/d0n/vam_plugin/protocol/schema/event.schema.json",
-  "title": "AIBody event (plugin -> companion), protocol v1",
+  "title": "AIBody message plugin -> companion (\"event\"), protocol v1",
   "type": "object",
-  "required": ["v", "type", "id", "ts"],
+  "required": [
+    "v",
+    "type",
+    "id",
+    "ts"
+  ],
   "properties": {
-    "v": { "const": 1 },
-    "type": {
-      "enum": ["ready", "heartbeat", "pong", "ack", "error", "speech_started", "speech_ended",
-               "gesture_done", "shutdown"]
+    "v": {
+      "const": 1
     },
-    "id": { "type": "string" },
-    "ts": { "type": "number" },
-    "reply_to": { "type": "string", "description": "id of the command this answers" },
-    "command": { "type": "string", "description": "ack: command type" },
-    "code": { "enum": ["bad_json", "command_failed", "audio_failed"] },
-    "message": { "type": "string" },
-    "utterance_id": { "type": "string", "description": "speech_*: id of the speak command" },
-    "reason": { "enum": ["completed", "stopped", "interrupted"] },
-    "name": { "type": "string", "description": "gesture_done: gesture name" },
-    "plugin_version": { "type": "string" },
-    "protocol": { "type": "integer" },
-    "atom": { "type": "string" },
-    "channel": { "type": "string" },
-    "transport": { "enum": ["file", "http", "none"] },
-    "speaking": { "type": "boolean" },
-    "expression": { "type": "string" },
-    "audio_dir": { "type": "string" },
-    "expressions": { "type": "array", "items": { "type": "string" } },
-    "gestures": { "type": "array", "items": { "type": "string" } }
-  }
+    "type": {
+      "enum": [
+        "ready",
+        "heartbeat",
+        "pong",
+        "ack",
+        "error",
+        "speech_started",
+        "speech_ended",
+        "gesture_done",
+        "shutdown",
+        "config",
+        "ptt",
+        "list_devices"
+      ]
+    },
+    "id": {
+      "type": "string"
+    },
+    "ts": {
+      "type": "number"
+    },
+    "reply_to": {
+      "type": "string",
+      "description": "id of the command this answers"
+    },
+    "command": {
+      "type": "string",
+      "description": "ack: command type"
+    },
+    "code": {
+      "enum": [
+        "bad_json",
+        "command_failed",
+        "audio_failed"
+      ]
+    },
+    "message": {
+      "type": "string"
+    },
+    "utterance_id": {
+      "type": "string",
+      "description": "speech_*: id of the speak command"
+    },
+    "reason": {
+      "enum": [
+        "completed",
+        "stopped",
+        "interrupted",
+        "cancelled",
+        "failed"
+      ]
+    },
+    "name": {
+      "type": "string",
+      "description": "gesture_done: gesture name"
+    },
+    "plugin_version": {
+      "type": "string"
+    },
+    "protocol": {
+      "type": "integer"
+    },
+    "atom": {
+      "type": "string"
+    },
+    "channel": {
+      "type": "string"
+    },
+    "transport": {
+      "enum": [
+        "auto",
+        "file",
+        "http",
+        "none"
+      ]
+    },
+    "speaking": {
+      "type": "boolean"
+    },
+    "expression": {
+      "type": "string"
+    },
+    "audio_dir": {
+      "type": "string"
+    },
+    "expressions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "gestures": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "duration": {
+      "type": "number",
+      "description": "speech_started: clip length in s"
+    },
+    "queue_length": {
+      "type": "integer",
+      "description": "speech_ended: utterances still queued"
+    },
+    "speech_queue": {
+      "type": "integer"
+    },
+    "link": {
+      "enum": [
+        "http",
+        "file",
+        "auto",
+        "none"
+      ]
+    },
+    "active": {
+      "type": "boolean",
+      "description": "ptt: push-to-talk pressed"
+    },
+    "mic": {
+      "type": "object",
+      "description": "config: microphone settings",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "mode": {
+          "enum": [
+            "vad",
+            "ptt"
+          ]
+        },
+        "device": {
+          "type": "string",
+          "description": "\"\" = system default"
+        },
+        "vad_threshold": {
+          "type": "number",
+          "minimum": 0.001,
+          "maximum": 0.5
+        },
+        "end_silence_ms": {
+          "type": "integer",
+          "minimum": 200,
+          "maximum": 5000
+        },
+        "min_utterance_ms": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 5000
+        },
+        "max_utterance_ms": {
+          "type": "integer",
+          "minimum": 1000,
+          "maximum": 60000
+        },
+        "echo_tail_s": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 3
+        },
+        "gain": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 8
+        },
+        "ptt_interrupts": {
+          "type": "boolean"
+        },
+        "level_meter": {
+          "type": "boolean"
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "config"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "mic"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "ptt"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "active"
+        ]
+      }
+    }
+  ]
 }

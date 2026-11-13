@@ -1,0 +1,7 @@
+[
+  { "v": 1, "type": "config_ack", "id": "c-1", "reply_to": "evt-1", "applied": { "mic": { "enabled": true, "mode": "vad" } }, "errors": [],
+    "mic_state": { "enabled": true, "capturing": true, "device": "", "mode": "vad", "ptt_active": false } },
+  { "v": 1, "type": "devices", "id": "c-2", "devices": [ { "name": "Microphone (USB Audio)", "index": 1, "default": true, "channels": 1, "sample_rate": 48000 } ] },
+  { "v": 1, "type": "mic_state", "id": "c-3", "enabled": true, "capturing": false, "device": "Headset", "mode": "ptt", "error": "device not found" },
+  { "v": 1, "type": "mic_level", "id": "c-4", "rms": 0.034, "speech": true, "gate_open": true }
+]

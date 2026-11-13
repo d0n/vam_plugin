@@ -1,0 +1,19 @@
+{
+  "v": 1,
+  "type": "config",
+  "id": "evt-1",
+  "ts": 1763040000.0,
+  "mic": {
+    "enabled": true,
+    "mode": "vad",
+    "device": "",
+    "vad_threshold": 0.012,
+    "end_silence_ms": 800,
+    "min_utterance_ms": 300,
+    "max_utterance_ms": 20000,
+    "echo_tail_s": 0.4,
+    "gain": 1.5,
+    "ptt_interrupts": true,
+    "level_meter": true
+  }
+}

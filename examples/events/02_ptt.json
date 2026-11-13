@@ -1,0 +1,4 @@
+[
+  { "v": 1, "type": "ptt", "id": "evt-2", "ts": 1763040001.0, "active": true },
+  { "v": 1, "type": "ptt", "id": "evt-3", "ts": 1763040003.5, "active": false }
+]

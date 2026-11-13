@@ -1,0 +1,4 @@
+[
+  { "v": 1, "type": "speech_started", "id": "evt-4", "ts": 1763040004.0, "utterance_id": "utt-0001", "duration": 2.4 },
+  { "v": 1, "type": "speech_ended", "id": "evt-5", "ts": 1763040006.4, "utterance_id": "utt-0001", "reason": "completed", "queue_length": 0 }
+]
