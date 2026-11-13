@@ -1,0 +1,4 @@
+[
+  { "v": 1, "type": "idle", "id": "i-1", "enabled": true, "intensity": 0.4 },
+  { "v": 1, "type": "breathing", "id": "b-1", "enabled": true, "rate": 16, "depth": 0.3 }
+]

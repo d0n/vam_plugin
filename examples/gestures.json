@@ -1,0 +1,8 @@
+{
+  "_comment": "Copy to <VaM>/Saves/PluginData/AIBody/gestures.json. kind: head | pose | timeline | trigger.",
+  "agree":    { "kind": "head", "name": "nod", "duration": 1.0 },
+  "disagree": { "kind": "head", "name": "shake", "duration": 1.2 },
+  "wave":     { "kind": "timeline", "storable": "VamTimeline.AtomPlugin", "animation": "Wave" },
+  "think":    { "kind": "pose", "path": "Custom/Atom/Person/Pose/AIBody/thinking.json" },
+  "idle_on":  { "kind": "trigger", "storable": "VamTimeline.AtomPlugin", "action": "Play Idle" }
+}

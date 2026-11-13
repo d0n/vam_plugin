@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/d0n/vam_plugin/protocol/schema/event.schema.json",
+  "title": "AIBody event (plugin -> companion), protocol v1",
+  "type": "object",
+  "required": ["v", "type", "id", "ts"],
+  "properties": {
+    "v": { "const": 1 },
+    "type": {
+      "enum": ["ready", "heartbeat", "pong", "ack", "error", "speech_started", "speech_ended",
+               "gesture_done", "shutdown"]
+    },
+    "id": { "type": "string" },
+    "ts": { "type": "number" },
+    "reply_to": { "type": "string", "description": "id of the command this answers" },
+    "command": { "type": "string", "description": "ack: command type" },
+    "code": { "enum": ["bad_json", "command_failed", "audio_failed"] },
+    "message": { "type": "string" },
+    "utterance_id": { "type": "string", "description": "speech_*: id of the speak command" },
+    "reason": { "enum": ["completed", "stopped", "interrupted"] },
+    "name": { "type": "string", "description": "gesture_done: gesture name" },
+    "plugin_version": { "type": "string" },
+    "protocol": { "type": "integer" },
+    "atom": { "type": "string" },
+    "channel": { "type": "string" },
+    "transport": { "enum": ["file", "http", "none"] },
+    "speaking": { "type": "boolean" },
+    "expression": { "type": "string" },
+    "audio_dir": { "type": "string" },
+    "expressions": { "type": "array", "items": { "type": "string" } },
+    "gestures": { "type": "array", "items": { "type": "string" } }
+  }
+}

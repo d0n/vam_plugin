@@ -1,0 +1,4 @@
+[
+  { "v": 1, "type": "gesture", "id": "g-1", "name": "nod" },
+  { "v": 1, "type": "gesture", "id": "g-2", "name": "wave" }
+]

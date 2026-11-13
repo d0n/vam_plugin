@@ -1,0 +1,9 @@
+{
+  "_comment": "Copy to <VaM>/Saves/PluginData/AIBody/expressions.json. Keys are expression names, values map morph display names to values. Check names in the character's Morphs tab.",
+  "happy":     { "Mouth Smile Simple": 0.7, "Brow Inner Up": 0.15 },
+  "smile":     { "Mouth Smile Simple": 0.4 },
+  "sad":       { "Mouth Frown": 0.5, "Brow Inner Up": 0.6 },
+  "angry":     { "Brow Down": 0.7, "Mouth Frown": 0.3 },
+  "surprised": { "Brow Outer Up Left": 0.7, "Brow Outer Up Right": 0.7, "Mouth Open": 0.3 },
+  "thinking":  { "Brow Down Left": 0.3, "Mouth Side-Side Left": 0.2 }
+}

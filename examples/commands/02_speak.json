@@ -1,0 +1,8 @@
+{
+  "v": 1,
+  "type": "speak",
+  "id": "utt-0001",
+  "audio": "Saves/PluginData/AIBody/Person/audio/utt-0001.wav",
+  "text": "Hello, nice to meet you!",
+  "expression": "happy"
+}
