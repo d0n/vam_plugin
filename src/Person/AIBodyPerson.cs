@@ -1,7 +1,8 @@
 // AIBody Person plugin - the body of the AI on one Person atom (Virt-A-Mate 1.22).
 //
 // Add on each Person atom: Plugins tab -> Add Plugin ->
-//   Custom/Scripts/d0n/AIBody/AIBodyPerson.cslist
+//   AddonPackages > d0n.AIBodyPerson.<n>:/Custom/Scripts/d0n/AIBody/AIBodyPerson.cslist
+//   (loose-file install: Custom/Scripts/d0n/AIBody/AIBodyPerson.cslist)
 // Needs the AIBody Session plugin (Main UI > Session Plugins) for the companion connection.
 //
 // This plugin does no I/O of its own. The Session plugin finds it by scanning the scene's atoms

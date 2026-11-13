@@ -122,6 +122,7 @@ namespace AIBody
             for (int i = 0; i < ids.Count; i++)
             {
                 // Plugin storables are named "plugin#<n>_<Namespace>.<Class>".
+                // TODO(verify): id prefix on 1.22 (if it differs, drop this filter; the param check suffices).
                 if (!ids[i].StartsWith("plugin#", StringComparison.Ordinal)) continue;
                 JSONStorable storable = atom.GetStorableByID(ids[i]);
                 if (storable == null) continue;
@@ -147,6 +148,8 @@ namespace AIBody
             PersonLink link = Get(atomUid);
             if (link == null || link.Storable == null) return false;
             // The Person plugin's callback runs synchronously and resets the value to "".
+            // TODO(verify): setting .val from another plugin fires the setCallbackFunction (it does for
+            // UI and trigger changes; JSONStorableString.val's setter calls it unconditionally in 1.22?).
             link.Inbox.val = msg.ToString();
             return true;
         }

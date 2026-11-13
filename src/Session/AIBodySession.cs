@@ -1,7 +1,8 @@
 // AIBody Session plugin - the AI's connection to the companion app (Virt-A-Mate 1.22).
 //
 // Load it once via Main UI > Session Plugins > Add Plugin ->
-//   Custom/Scripts/d0n/AIBody/AIBodySession.cslist
+//   AddonPackages > d0n.AIBodySession.<n>:/Custom/Scripts/d0n/AIBody/AIBodySession.cslist
+//   (loose-file install: Custom/Scripts/d0n/AIBody/AIBodySession.cslist)
 // ("Set Current As User Defaults" there makes it load with every VaM start). Session plugins
 // survive scene changes and are not attached to a Person, so nothing here uses containingAtom.
 //
