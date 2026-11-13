@@ -8,17 +8,24 @@ and the two AIBody VaM plugins (the AI's "body"). Messages are JSON objects. JSO
 ## Parts
 
 ```
-companion  <-- files in Saves/PluginData/AIBody/<channel>/ -->  AIBody Session plugin  (Session Plugins)
-                                                                   |  "AIBody Inbox" / "AIBody Outbox"
-                                                                   v  string params, in-process
-                                                               AIBody Person plugin   (one per Person atom)
+companion  <-- files in Saves/PluginData/AIBody/<channel>/ -->  AIBody Session plugin     (Session Plugins)
+                                                                  |                |   string params,
+                                                       "AIBody Inbox/Outbox"  "AIBody2 Inbox/Outbox"  in-process
+                                                                  v                v
+                                              AIBody Person (slot person1)   AIBody Person 2 (slot person2)
+                                              on character 1                 on character 2
 ```
 
-- **Session plugin** (`AIBodySession.cslist`, loaded in Main UI > Session Plugins): the only part
-  that talks to the companion. Owns the transport, channel, microphone menu, engine menus and
-  connection status. Survives scene changes; not tied to any atom.
-- **Person plugin** (`AIBodyPerson.cslist`, loaded on a Person atom's Plugins tab): plays speech
-  with lip sync, expressions, morphs, gestures, poses, idle and breathing. No I/O of its own.
+- **Session plugin** (`d0n.AIBodySession`, `AIBody/AIBodySession.cslist`, loaded in Main UI >
+  Session Plugins): the only part that talks to the companion. Owns the transport, channel,
+  microphone menu, engine menus and connection status. Survives scene changes; not tied to any atom.
+- **Person plugin, character 1** (`d0n.AIBodyPerson`, `AIBody/AIBodyPerson.cslist`, script
+  `AIBody.AIBodyPersonPlugin`, slot **`person1`**) and **Person plugin, character 2**
+  (`d0n.AIBodyPerson2`, `AIBody2/AIBodyPerson2.cslist`, script `AIBody2.AIBodyPerson2Plugin`, slot
+  **`person2`**), each loaded on its character's Plugins tab: speech with lip sync, expressions,
+  morphs, gestures, poses, idle and breathing. No I/O of their own. Both are built from the same
+  sources (`src/Person`); `tools/make_person2.py` generates the person2 variant with its own
+  namespace, class name, slot and param names, so they are two distinct scripts.
 
 ## Envelope
 
@@ -30,45 +37,62 @@ Every message has:
 | `type`| string | message type                                                   |
 | `id`  | string | unique id. Replies carry `reply_to`.                           |
 | `ts`  | number | Unix time in seconds (informational)                           |
+| `slot`| string | optional, `person1` or `person2`. Body commands: target character slot. Events from a Person: its slot. |
 | `atom`| string | optional. Body commands: target Person atom uid. Events from a Person: its atom uid. |
 
 A command may set `"ack": true` to get an `ack` event on success. Failures always produce an
 `error` event with `reply_to` set to the command id. A transport payload may contain one message
 or a JSON array of messages.
 
-## Routing (Session plugin <-> Person plugins)
+## Routing by character slot (Session plugin <-> Person plugins)
 
 **Body commands** are `speak`, `stop_speaking`, `expression`, `set_morphs`, `reset_morphs`,
-`gesture`, `pose`, `trigger`, `idle` and `breathing`. The Session plugin forwards each to one Person
-plugin:
+`gesture`, `pose`, `trigger`, `idle` and `breathing`. The Session plugin forwards each to exactly
+one Person plugin, chosen strictly:
 
-1. the atom named in `atom`, else
-2. the Session plugin's "Default character" setting, else
-3. the first Person plugin found in the scene.
+1. `slot` given: that slot's plugin. If `atom` is also given, the slot's plugin must be on that
+   atom.
+2. Only `atom` given: the plugin on that atom (whichever slot it is).
+3. Neither: the Session plugin's **Default slot** setting (default `person1`).
 
-If that atom has no Person plugin (or there is none at all), the Session plugin answers
-`error` with `code: "no_person"`, `reply_to` = command id and `atom` = the requested atom.
+A slot is **usable** only if exactly one atom hosts its plugin and that atom hosts no other AIBody
+Person plugin. Otherwise the slot is in **conflict** and nothing is delivered to it. **A command is
+never redirected to another character**: if the target is not usable, the Session plugin answers
+`error` with `reply_to` = command id, `slot`/`atom` as requested and one of these codes:
+
+| code            | meaning |
+|-----------------|---------|
+| `no_person`     | the slot's plugin (or any plugin on `atom`) is not in the scene |
+| `slot_conflict` | the slot's plugin is on several atoms, or the atom hosts both slots |
+| `slot_mismatch` | `slot` and `atom` both given, but the slot's plugin is on another atom |
+| `unknown_slot`  | `slot` is not `person1` / `person2` |
+| `wrong_slot`    | (from the Person plugin) a command for another slot reached it; refused |
+
+Before delivery the Session plugin sets `slot` on the command; each Person plugin refuses commands
+whose `slot` is not its own (`wrong_slot`), as a second line of defense.
+
 All other commands (`ping`, `companion_heartbeat`, `config_ack`, `devices`, `mic_state`,
 `mic_level`) are handled by the Session plugin itself.
 
-The companion keeps the list of Persons from `ready`, `heartbeat` and `persons` and normally
-sets `atom` itself (its `default_atom` config, else the Session's `default_atom`, else the first
-Person).
+The companion always sets `slot` (per call, else its `default_slot` config / `--slot`, else the
+Session's `default_slot`, else `person1`) and never guesses a slot from which characters are
+present. It keeps the Persons and conflicts from `ready`, `heartbeat` and `persons`.
 
-**Bridge.** The two plugins are compiled separately by VaM, so they cannot call each other's
-C# types. They use only VaM's public scene API:
+**Bridge.** The plugins are compiled separately by VaM, so they cannot call each other's C# types.
+They use only VaM's public scene API:
 
-- The Person plugin registers three string params: `AIBody Inbox`, `AIBody Outbox` and
-  `AIBody Person Version`.
+- Each Person plugin registers three string params named after its slot:
+  - slot `person1`: `AIBody Inbox`, `AIBody Outbox`, `AIBody Person Version`
+  - slot `person2`: `AIBody2 Inbox`, `AIBody2 Outbox`, `AIBody2 Person Version`
 - Every second the Session plugin scans `SuperController.singleton.GetAtoms()` and, on each atom,
-  the storables whose id starts with `plugin#` for a storable that has both `AIBody Inbox` and
-  `AIBody Outbox`. Added or removed Persons and scene changes are picked up by the next scan; a
-  change is reported to the companion as a `persons` event.
-- **Command:** the Session sets `AIBody Inbox` to the command JSON. The Person handles it inside
+  the storables whose id starts with `plugin#`, for the Inbox/Outbox pair of each slot. Added or
+  removed Persons, conflicts and scene changes are picked up by the next scan; a change is
+  reported to the companion as a `persons` event.
+- **Command:** the Session sets the slot's Inbox to the command JSON. The Person handles it inside
   the param's change callback (synchronously) and resets the value to `""`.
-- **Events:** the Person appends events to a JSON array in `AIBody Outbox` (at most 100; the oldest
-  are dropped). Every frame the Session reads the array, resets the param to `""`, adds `atom`
-  where missing and forwards the events to the companion.
+- **Events:** the Person appends events to a JSON array in its Outbox (at most 100; the oldest
+  are dropped). Every frame the Session reads every Outbox (also of conflicting plugins), resets it
+  to `""`, sets `slot` (from the param pair it came from) and `atom`, and forwards the events.
 - The Person clears a stale outbox on start and shows "Session plugin: NOT FOUND" in its status if
   nobody drains the outbox for 3 s.
 
@@ -139,7 +163,7 @@ sequence number (plugin talked to an earlier session), the server treats it as 0
 
 ## Commands (companion -> VaM)
 
-### Body (forwarded to a Person plugin, optional `atom`)
+### Body (forwarded to one Person plugin by `slot` / `atom`)
 
 | type            | fields                                                                 | effect |
 |-----------------|------------------------------------------------------------------------|--------|
@@ -179,20 +203,20 @@ From the Session plugin:
 | `ready`          | status fields (below)                               | after start, reconnect or companion restart |
 | `heartbeat`      | status fields                                       | every 2 s |
 | `pong`           | status fields, `reply_to`                           | answer to `ping` |
-| `persons`        | `persons`, `default_atom`                           | a Person plugin appeared or disappeared, or the default changed |
-| `error`          | `reply_to`, `code`, `message`, (`atom`)             | `bad_json`, `command_failed`, `no_person` |
+| `persons`        | `persons`, `conflicts`, `default_slot`, `default_atom` | a Person plugin appeared or disappeared, a conflict changed, or the default slot changed |
+| `error`          | `reply_to`, `code`, `message`, (`slot`, `atom`)     | `bad_json`, `command_failed`, routing errors (`no_person`, `slot_conflict`, `slot_mismatch`, `unknown_slot`) |
 | `config`         | `mic` (see below), `engines` (`{"stt", "llm", "tts"}`) | after (re)connect and 0.3 s after the last settings change |
 | `ptt`            | `active` (bool)                                     | push-to-talk pressed / released |
 | `list_devices`   | -                                                   | after (re)connect and on "Refresh mic devices" |
 | `shutdown`       | -                                                   | plugin is stopping its transport |
 
-From a Person plugin (forwarded by the Session plugin, always with `atom`):
+From a Person plugin (forwarded by the Session plugin, always with `slot` and `atom`):
 
 | type             | fields                                              | when |
 |------------------|-----------------------------------------------------|------|
 | `person_status`  | `plugin_version`, `speaking`, `speech_queue`, `expression`, `expressions`, `gestures` | every 2 s |
 | `ack`            | `reply_to`, `command`                               | command succeeded and asked for an ack |
-| `error`          | `reply_to`, `code`, `message`                       | `command_failed`, `audio_failed` |
+| `error`          | `reply_to`, `code`, `message`                       | `bad_json`, `command_failed`, `audio_failed`, `wrong_slot` |
 | `speech_started` | `utterance_id`, `duration` (clip length in s)       | the clip really started playing |
 | `speech_ended`   | `utterance_id`, `reason`, `queue_length`            | the clip stopped, or a queued one was dropped |
 | `gesture_done`   | `name`                                              | a built-in head gesture finished |
@@ -202,7 +226,8 @@ From a Person plugin (forwarded by the Session plugin, always with `atom`):
 played), `failed` (could not be loaded; an `audio_failed` error comes first).
 
 Session status fields: `role` (`session`), `plugin_version`, `protocol`, `channel`, `transport`,
-`audio_dir`, `default_atom`, `persons` (list of `{atom, plugin_version}`).
+`audio_dir`, `default_slot`, `default_atom` (atom of the default slot or `""`), `persons` (usable
+slots: list of `{slot, atom, plugin_version}`), `conflicts` (list of `{slot, atoms}`).
 
 ### Microphone settings (`config.mic`)
 
@@ -252,7 +277,8 @@ The companion keeps its microphone closed:
 
 - from sending `speak` until that utterance's `speech_ended`, for every queued utterance,
 - for `echo_tail_s` after audio really stopped (not after `cancelled`/`failed`),
-- not at all for a `speak` that the Session plugin answers with `error` `no_person`,
+- not at all for a `speak` that was not delivered (routing `error`: `no_person`, `slot_conflict`,
+  `slot_mismatch`, `unknown_slot`, `wrong_slot`),
 - with failsafes: each pending utterance expires at the estimated queue end (refreshed with the
   real `duration` from `speech_started`) plus 5 s, a speaking state longer than 120 s is dropped,
   and `ready`/`shutdown` or a lost connection reset the gate.
