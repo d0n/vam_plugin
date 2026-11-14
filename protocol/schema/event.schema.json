@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/d0n/vam_plugin/protocol/schema/event.schema.json",
-  "title": "AIBody message Session plugin -> companion (\"event\"), protocol v1",
+  "title": "AIBody message AIBody Client plugin -> companion app (\"event\"), protocol v2",
   "type": "object",
   "required": [
     "v",
@@ -11,7 +11,7 @@
   ],
   "properties": {
     "v": {
-      "const": 1
+      "const": 2
     },
     "type": {
       "enum": [
@@ -27,8 +27,8 @@
         "config",
         "ptt",
         "list_devices",
-        "persons",
-        "person_status"
+        "companions",
+        "companion_status"
       ]
     },
     "id": {
@@ -50,11 +50,10 @@
         "bad_json",
         "command_failed",
         "audio_failed",
-        "no_person",
-        "slot_conflict",
-        "slot_mismatch",
-        "wrong_slot",
-        "unknown_slot"
+        "no_companion",
+        "companion_conflict",
+        "not_from_client",
+        "client_conflict"
       ]
     },
     "message": {
@@ -85,7 +84,7 @@
     },
     "atom": {
       "type": "string",
-      "description": "events from a Person plugin: its atom uid (added by the Person plugin / the Session bridge); error no_person: the requested atom"
+      "description": "events from a Companion plugin: its atom uid (set by the Client bridge); routing errors: the requested atom"
     },
     "channel": {
       "type": "string"
@@ -200,42 +199,13 @@
     },
     "role": {
       "enum": [
-        "session"
+        "client"
       ],
-      "description": "ready/heartbeat/pong: sender is the Session plugin"
-    },
-    "default_atom": {
-      "type": "string",
-      "description": "atom of the default slot ('' = not loaded)"
-    },
-    "persons": {
-      "type": "array",
-      "description": "usable character slots (exactly one plugin, on an atom with no other slot)",
-      "items": {
-        "type": "object",
-        "required": [
-          "slot",
-          "atom"
-        ],
-        "properties": {
-          "slot": {
-            "enum": [
-              "person1",
-              "person2"
-            ]
-          },
-          "atom": {
-            "type": "string"
-          },
-          "plugin_version": {
-            "type": "string"
-          }
-        }
-      }
+      "description": "ready/heartbeat/pong: sender is the AIBody Client plugin"
     },
     "engines": {
       "type": "object",
-      "description": "config: engines picked in the Session plugin",
+      "description": "config: engines picked in the Client plugin",
       "properties": {
         "stt": {
           "type": "string"
@@ -248,44 +218,31 @@
         }
       }
     },
-    "slot": {
-      "enum": [
-        "person1",
-        "person2"
-      ],
-      "description": "events from a Person plugin: its slot (set by the Session bridge); routing errors: the requested slot"
+    "client": {
+      "type": "string",
+      "description": "atom uid of the AIBody Client plugin (ready/heartbeat/pong); companion_status: the Client driving that Companion"
     },
-    "default_slot": {
-      "enum": [
-        "person1",
-        "person2"
-      ],
-      "description": "slot that gets body commands without slot/atom"
-    },
-    "conflicts": {
+    "companions": {
       "type": "array",
-      "description": "slots that are ambiguous (plugin on several atoms, or an atom with two slots); nothing is delivered to them",
+      "description": "atoms with the AIBody Companion plugin",
       "items": {
         "type": "object",
         "required": [
-          "slot",
-          "atoms"
+          "atom"
         ],
         "properties": {
-          "slot": {
-            "enum": [
-              "person1",
-              "person2"
-            ]
+          "atom": {
+            "type": "string"
           },
-          "atoms": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
+          "plugin_version": {
+            "type": "string"
           }
         }
       }
+    },
+    "selected_atom": {
+      "type": "string",
+      "description": "the Client's 'Companion atom' setting ('' = auto: the only Companion in the scene)"
     }
   },
   "allOf": [
@@ -321,13 +278,13 @@
       "if": {
         "properties": {
           "type": {
-            "const": "persons"
+            "const": "companions"
           }
         }
       },
       "then": {
         "required": [
-          "persons"
+          "companions"
         ]
       }
     },
@@ -335,13 +292,12 @@
       "if": {
         "properties": {
           "type": {
-            "const": "person_status"
+            "const": "companion_status"
           }
         }
       },
       "then": {
         "required": [
-          "slot",
           "atom"
         ]
       }

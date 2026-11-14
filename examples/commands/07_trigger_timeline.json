@@ -1,4 +1,4 @@
 [
-  { "v": 1, "type": "trigger", "id": "t-1", "storable": "VamTimeline.AtomPlugin", "action": "Play Idle" },
-  { "v": 1, "type": "trigger", "id": "t-2", "storable": "VamTimeline.AtomPlugin", "param": "Speed", "value": "1.0", "value_type": "float" }
+  { "v": 2, "type": "trigger", "id": "t-1", "storable": "VamTimeline.AtomPlugin", "action": "Play Idle" },
+  { "v": 2, "type": "trigger", "id": "t-2", "storable": "VamTimeline.AtomPlugin", "param": "Speed", "value": "1.0", "value_type": "float" }
 ]

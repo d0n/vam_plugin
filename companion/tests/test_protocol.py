@@ -11,7 +11,7 @@ class ProtocolTests(unittest.TestCase):
     def test_make_command_valid(self):
         cmd = protocol.make_command("expression", name="happy", intensity=0.5)
         self.assertEqual(cmd["type"], "expression")
-        self.assertEqual(cmd["v"], 1)
+        self.assertEqual(cmd["v"], 2)
         self.assertTrue(cmd["id"])
 
     def test_missing_field_rejected(self):

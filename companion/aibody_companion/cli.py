@@ -21,10 +21,10 @@ def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="aibody_companion", description="Companion app for the VaM AIBody plugin")
     p.add_argument("--config", help="JSON config file (see config.example.json)")
     p.add_argument("--vam-root", dest="vam_root", help="VaM install folder (needed for the file transport)")
-    p.add_argument("--channel", help="Session plugin channel (default: default)")
-    p.add_argument("--slot", dest="default_slot", choices=["person1", "person2"],
-                   help="character slot the AI speaks through: person1 = AIBodyPerson on character 1, "
-                        "person2 = AIBodyPerson2 on character 2 (default: the Session plugin's Default slot)")
+    p.add_argument("--channel", help="AIBody Client plugin channel (default: default)")
+    p.add_argument("--atom", dest="target_atom",
+                   help="atom with the AIBody Companion plugin the AI speaks through "
+                        "(default: the Client plugin's 'Companion atom', or the only one in the scene)")
     p.add_argument("--transport", choices=["file", "http", "auto"],
                    help="file (default). http/auto need a plugin built with AIBODY_HTTP")
     p.add_argument("--host", dest="http_host", help="HTTP bind address (default 127.0.0.1)")
@@ -70,19 +70,20 @@ def start_stdin_reader() -> queue.Queue[str | None]:
 
 
 def parse_typed_line(line: str) -> tuple[str | None, str]:
-    """'@person2 hello' -> ('person2', 'hello'); 'hello' -> (None, 'hello')."""
+    """'@Person#2 hello' -> ('Person#2', 'hello'); 'hello' -> (None, 'hello')."""
     text = line.strip()
-    for slot in ("person1", "person2"):
-        if text.startswith(f"@{slot}"):
-            return slot, text[len(slot) + 1:].strip()
+    if text.startswith("@") and " " in text:
+        atom, rest = text[1:].split(" ", 1)
+        if atom:
+            return atom, rest.strip()
     return None, text
 
 
 def run(companion: Companion, read_stdin: bool, poll_interval: float) -> None:
     lines = start_stdin_reader() if read_stdin else None
     if lines:
-        print("Type a message and press Enter to make the body speak; start with '@person2 ' (or '@person1 ')"
-              " to address one character (Ctrl+D / Ctrl+Z to stop typing).")
+        print("Type a message and press Enter to make the body speak; start with '@<atom> ' (e.g. '@Person#2 ')"
+              " to address one Companion atom (Ctrl+D / Ctrl+Z to stop typing).")
     while True:
         companion.tick()
         if lines is not None:
@@ -95,9 +96,9 @@ def run(companion: Companion, read_stdin: bool, poll_interval: float) -> None:
                 if not companion.mic:
                     return
             elif line.strip():
-                slot, text = parse_typed_line(line)
+                atom, text = parse_typed_line(line)
                 if text:
-                    companion.handle_user_text(text, slot=slot)
+                    companion.handle_user_text(text, atom=atom)
         time.sleep(poll_interval)
 
 
@@ -117,7 +118,7 @@ def main(argv: list[str] | None = None) -> int:
 
     cfg = load_config(args.config, {
         "vam_root": args.vam_root, "channel": args.channel, "transport": args.transport,
-        "default_slot": args.default_slot,
+        "target_atom": args.target_atom,
         "http_host": args.http_host, "http_port": args.http_port,
     })
     errors = cfg.validate()

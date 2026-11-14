@@ -72,7 +72,7 @@ class HttpTransportTests(unittest.TestCase):
     def test_hello_returns_session(self):
         hello = get_json(f"{self.base}/v1/hello?channel=Person&plugin=0.2.0")
         self.assertEqual(hello["session"], self.t.session)
-        self.assertEqual(hello["protocol"], 1)
+        self.assertEqual(hello["protocol"], 2)
         self.assertEqual(self.t.plugin_version, "0.2.0")
         self.assertTrue(self.t.connected)
 

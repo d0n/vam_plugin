@@ -3,11 +3,11 @@
 The authoritative description is protocol/PROTOCOL.md; JSON schemas live in
 protocol/schema/. Keep this module, the schemas and src/Shared/Protocol.cs in sync.
 
-The VaM side is a Session plugin plus one distinct Person plugin per character slot
-("person1" = d0n.AIBodyPerson on character 1, "person2" = d0n.AIBodyPerson2 on character 2).
-The Session plugin talks to the companion and forwards body commands strictly to the plugin of
-the envelope field "slot" (or the plugin on "atom", else its default slot); it never falls back
-to another character. Events coming from a Person carry "slot" and "atom".
+The VaM side is two plugins in one package: the AIBody Client plugin (the controlling side,
+on any atom) talks to this companion app and forwards body commands to exactly one AIBody
+Companion plugin (the AI's body, on the AI's Person atom): the one on the envelope field "atom",
+else the Client's selected Companion, else the only one in the scene. It never redirects a command
+to another atom. Events coming from a Companion plugin carry "atom".
 """
 from __future__ import annotations
 
@@ -38,11 +38,11 @@ COMMANDS: dict[str, tuple[set[str], set[str]]] = {
     "devices": ({"devices"}, {"error", "reply_to"}),
     "mic_state": ({"enabled", "capturing"}, {"device", "mode", "ptt_active", "error"}),
     "mic_level": ({"rms"}, {"speech", "gate_open"}),
-    # liveness + identity of the companion (lets the Session plugin detect restarts over files)
+    # liveness + identity of the companion (lets the Client plugin detect restarts over files)
     "companion_heartbeat": ({"session"}, {"version", "engines_available", "mic_capturing"}),
 }
 
-# Commands the Session plugin forwards to a Person plugin (everything else is for the Session).
+# Commands the Client plugin forwards to a Companion plugin (everything else is for the Client).
 BODY_COMMANDS = {
     "speak", "stop_speaking", "expression", "set_morphs", "reset_morphs",
     "gesture", "pose", "trigger", "idle", "breathing",
@@ -50,15 +50,12 @@ BODY_COMMANDS = {
 
 SPEAK_QUEUE_MODES = ("append", "interrupt")
 
-# Character slots, one distinct Person plugin package each.
-SLOTS = ("person1", "person2")
+# Error codes of the Client/Companion bridge; none of them played anything.
+ROUTING_ERRORS = {"no_companion", "companion_conflict", "not_from_client", "client_conflict"}
 
-# Error codes of the Session plugin's slot routing; none of them played anything.
-ROUTING_ERRORS = {"no_person", "slot_conflict", "slot_mismatch", "wrong_slot", "unknown_slot"}
-
-# "slot": target character slot of a body command; "atom": target Person atom uid (both optional;
-# the companion always sets "slot", see Companion.body_command)
-ENVELOPE_FIELDS = {"v", "type", "id", "ts", "ack", "atom", "slot"}
+# "atom": target atom (with the AIBody Companion plugin) of a body command; optional, the Client
+# plugin then uses its selected Companion or the only one in the scene.
+ENVELOPE_FIELDS = {"v", "type", "id", "ts", "ack", "atom"}
 
 # Messages plugin -> companion ("events").
 EVENTS = {
@@ -74,8 +71,8 @@ EVENTS = {
     "speech_ended",
     "gesture_done",
     "shutdown",
-    "persons",
-    "person_status",
+    "companions",
+    "companion_status",
 }
 
 _counter = itertools.count(1)
@@ -124,13 +121,10 @@ def validate_command(msg: Any) -> list[str]:
             errors.append(f"speak: queue must be one of {SPEAK_QUEUE_MODES}")
     if type_ == "devices" and not isinstance(msg.get("devices"), list):
         errors.append("devices: 'devices' must be a list")
-    for key in ("atom", "slot"):
-        if key in msg and type_ not in BODY_COMMANDS:
-            errors.append(f"{type_}: '{key}' is only allowed on body commands")
+    if "atom" in msg and type_ not in BODY_COMMANDS:
+        errors.append(f"{type_}: 'atom' is only allowed on body commands")
     if "atom" in msg and not (isinstance(msg["atom"], str) and msg["atom"]):
         errors.append(f"{type_}: 'atom' must be a non-empty string")
-    if "slot" in msg and msg["slot"] not in SLOTS:
-        errors.append(f"{type_}: 'slot' must be one of {SLOTS}")
     if type_ == "trigger" and not (msg.get("action") or msg.get("param")):
         errors.append("trigger: needs 'action' or 'param'")
     return errors
@@ -152,8 +146,8 @@ def validate_event(msg: Any) -> list[str]:
         errors.append("config: 'mic' must be an object")
     if type_ == "ptt" and not isinstance(msg.get("active"), bool):
         errors.append("ptt: 'active' must be true/false")
-    if type_ == "persons" and not isinstance(msg.get("persons"), list):
-        errors.append("persons: 'persons' must be a list")
-    if type_ == "person_status" and msg.get("slot") not in SLOTS:
-        errors.append(f"person_status: 'slot' must be one of {SLOTS}")
+    if type_ == "companions" and not isinstance(msg.get("companions"), list):
+        errors.append("companions: 'companions' must be a list")
+    if type_ == "companion_status" and not (isinstance(msg.get("atom"), str) and msg["atom"]):
+        errors.append("companion_status: 'atom' must be a non-empty string")
     return errors

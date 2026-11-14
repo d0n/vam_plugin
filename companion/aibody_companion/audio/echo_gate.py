@@ -11,7 +11,7 @@ Without headphones this would make the AI answer itself. Strategy (same as Voxta
   * failsafes: every pending utterance gets a deadline (expected queue end + max_extra_s,
     refreshed with the real clip length on `speech_started`), and a speaking state longer
     than max_speaking_s is dropped, in case events get lost
-  * `error` with code `audio_failed` or a routing error (`no_person`, `slot_conflict`, ...: no
+  * `error` with code `audio_failed` or a routing error (`no_companion`, `companion_conflict`, ...: no
     body played it), or `speech_ended`
     with reason cancelled/failed, release the utterance without a tail (nothing was played)
 
@@ -25,7 +25,7 @@ from collections.abc import Callable
 from typing import Any
 
 NO_TAIL_REASONS = {"cancelled", "failed"}
-NO_PLAYBACK_ERRORS = {"audio_failed", "no_person", "slot_conflict", "slot_mismatch", "wrong_slot", "unknown_slot"}
+NO_PLAYBACK_ERRORS = {"audio_failed", "no_companion", "companion_conflict", "not_from_client", "client_conflict"}
 
 
 class EchoGate:

@@ -1,4 +1,4 @@
-"""Session/Person split: per-atom routing, person tracking, companion heartbeat, engines."""
+"""Client/Companion plugins: per-atom routing, Companion tracking, companion_heartbeat, engines."""
 import tempfile
 import unittest
 from typing import Any
@@ -49,11 +49,11 @@ class Clock:
 
 
 def evt(type_, **fields):
-    return {"v": 1, "type": type_, "id": protocol.new_id("evt"), "ts": 0.0, **fields}
+    return {"v": 2, "type": type_, "id": protocol.new_id("evt"), "ts": 0.0, **fields}
 
 
-def persons(**slots):
-    return [{"slot": slot, "atom": atom, "plugin_version": "0.4.0"} for slot, atom in slots.items()]
+def companions(*atoms):
+    return [{"atom": atom, "plugin_version": "0.5.0"} for atom in atoms]
 
 
 class RoutingTests(unittest.TestCase):
@@ -72,71 +72,59 @@ class RoutingTests(unittest.TestCase):
         self.t.events.extend(events)
         self.c.process_events()
 
-    def test_slot_envelope_field(self):
-        self.assertEqual(protocol.validate_command({"type": "speak", "audio": "a.wav", "slot": "person2"}), [])
-        self.assertTrue(protocol.validate_command({"type": "speak", "audio": "a.wav", "slot": "person3"}))
+    def test_atom_envelope_field(self):
+        self.assertEqual(protocol.validate_command({"type": "speak", "audio": "a.wav", "atom": "Person#2"}), [])
         self.assertTrue(protocol.validate_command({"type": "speak", "audio": "a.wav", "atom": ""}))
-        self.assertTrue(protocol.validate_command({"type": "mic_level", "rms": 0.1, "slot": "person1"}))
+        self.assertTrue(protocol.validate_command({"type": "speak", "audio": "a.wav", "slot": "person1"}))
+        self.assertTrue(protocol.validate_command({"type": "mic_level", "rms": 0.1, "atom": "Person"}))
 
-    def test_body_commands_always_carry_a_slot(self):
-        self.c.say("hi")
-        self.assertEqual(self.t.sent[-1]["slot"], "person1")
-        self.assertNotIn("atom", self.t.sent[-1])
+    def test_protocol_version_2(self):
+        self.assertEqual(protocol.make_command("ping")["v"], 2)
+        self.assertTrue(protocol.validate_command({"v": 1, "type": "ping"}))
 
-    def test_session_default_slot_is_used(self):
-        self.feed(evt("ready", role="session", persons=persons(person1="Person", person2="Person#2"),
-                      default_slot="person2"))
-        self.assertEqual(self.c.target_slot, "person2")
+    def test_without_target_the_client_decides(self):
+        self.feed(evt("ready", role="client", client="Me", companions=companions("AI", "AI2"), selected_atom="AI2"))
         self.c.say("hi")
         speak = self.t.sent[-1]
-        self.assertEqual((speak["type"], speak["slot"]), ("speak", "person2"))
+        self.assertEqual(speak["type"], "speak")
+        self.assertNotIn("atom", speak)  # never guessed from the Companions present
         self.assertTrue(speak["audio"].startswith("Saves/PluginData/AIBody/default/audio/"))
+        self.assertEqual(self.c.client_selected_atom, "AI2")
 
-    def test_config_slot_wins_and_never_falls_back(self):
-        self.cfg.default_slot = "person2"
-        self.feed(evt("heartbeat", role="session", persons=persons(person1="Person", person2="Person#2"),
-                      default_slot="person1"))
-        self.assertEqual(self.c.target_slot, "person2")
-        # character 2 leaves the scene: commands stay addressed to person2 (Session will refuse them)
-        self.feed(evt("persons", persons=persons(person1="Person"), default_slot="person1"))
-        self.assertEqual(self.c.target_slot, "person2")
+    def test_config_target_atom_is_always_sent(self):
+        self.cfg.target_atom = "AI"
+        self.feed(evt("companions", companions=companions("Other"), selected_atom=""))
         self.c.say("hi")
-        self.assertEqual(self.t.sent[-1]["slot"], "person2")
-        self.assertEqual(sorted(self.c.persons), ["person1"])
+        self.assertEqual(self.t.sent[-1]["atom"], "AI")  # even if gone: the Client refuses, no fallback
 
-    def test_explicit_slot_per_turn(self):
-        self.c.handle_user_text("Hallo", slot="person2")
+    def test_explicit_atom_per_turn(self):
+        self.c.handle_user_text("Hallo", atom="AI2")
         cmds = [x for x in self.t.sent if x["type"] in protocol.BODY_COMMANDS]
         self.assertTrue(cmds)
-        self.assertEqual({x["slot"] for x in cmds}, {"person2"})
+        self.assertEqual({x["atom"] for x in cmds}, {"AI2"})
 
-    def test_conflicts_and_person_status_are_tracked(self):
-        self.feed(evt("persons", persons=persons(person2="Person#2"), default_slot="person1",
-                      conflicts=[{"slot": "person1", "atoms": ["Person", "Person#3"]}]))
-        self.assertEqual(self.c.conflicts, {"person1": ["Person", "Person#3"]})
-        self.feed(evt("person_status", slot="person2", atom="Person#2", speaking=True))
-        self.assertTrue(self.c.persons["person2"]["speaking"])
-        self.assertEqual(self.c.persons["person2"]["atom"], "Person#2")
-        self.assertTrue(protocol.validate_event({"type": "person_status", "atom": "Person"}))
+    def test_companions_and_status_are_tracked(self):
+        self.feed(evt("companions", companions=companions("AI"), selected_atom=""))
+        self.feed(evt("companion_status", atom="AI", speaking=True, client="Me"))
+        self.assertTrue(self.c.companions["AI"]["speaking"])
+        self.feed(evt("companions", companions=companions(), selected_atom=""))
+        self.assertEqual(self.c.companions, {})
+        self.assertTrue(protocol.validate_event({"type": "companion_status"}))
+        self.assertTrue(protocol.validate_event({"type": "companions"}))
 
-    def test_slot_taken_by_another_atom_drops_stale_status(self):
-        self.feed(evt("persons", persons=persons(person1="Person")))
-        self.feed(evt("person_status", slot="person1", atom="Person", speaking=True))
-        self.feed(evt("persons", persons=persons(person1="Other")))
-        self.assertNotIn("speaking", self.c.persons["person1"])
-
-    def test_ptt_stops_every_character(self):
+    def test_ptt_stops_every_companion(self):
         self.feed(evt("config", mic={"mode": "ptt"}))
-        self.feed(evt("persons", persons=persons(person1="Person", person2="Person#2")))
+        self.feed(evt("companions", companions=companions("AI", "AI2")))
         self.c.say("hi")
         self.c.handle_ptt(True)
-        stops = [x["slot"] for x in self.t.sent if x["type"] == "stop_speaking"]
-        self.assertEqual(sorted(stops), ["person1", "person2"])
+        stops = [x.get("atom") for x in self.t.sent if x["type"] == "stop_speaking"]
+        self.assertEqual(sorted(stops), ["AI", "AI2"])
 
-    def test_typed_line_slot_prefix(self):
+    def test_typed_line_atom_prefix(self):
         from aibody_companion.cli import parse_typed_line
-        self.assertEqual(parse_typed_line("@person2 hallo du"), ("person2", "hallo du"))
+        self.assertEqual(parse_typed_line("@Person#2 hallo du"), ("Person#2", "hallo du"))
         self.assertEqual(parse_typed_line("hallo"), (None, "hallo"))
+        self.assertEqual(parse_typed_line("@ hallo"), (None, "@ hallo"))
 
     def test_heartbeat_only_while_connected_with_new_session_id(self):
         self.t.is_connected = False
@@ -175,12 +163,9 @@ class RoutingTests(unittest.TestCase):
         for code in sorted(protocol.ROUTING_ERRORS):
             uid = self.c.say("hi")
             self.assertFalse(self.c.gate.is_open, code)
-            self.feed(evt("error", reply_to=uid, code=code, slot="person2", message="not delivered"))
+            self.feed(evt("error", reply_to=uid, code=code, atom="AI", message="not delivered"))
             self.assertTrue(self.c.gate.is_open, code)
 
-    def test_config_validates_slot(self):
-        self.assertTrue(Config(vam_root=self.tmp.name, default_slot="Person").validate())
-        self.assertEqual(Config(vam_root=self.tmp.name, default_slot="person2").validate(), [])
 
 
 if __name__ == "__main__":
