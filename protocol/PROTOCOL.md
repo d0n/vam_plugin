@@ -1,35 +1,28 @@
-# AIBody protocol, version 2
+# AIBody protocol, version 3
 
 This is the message format between the **companion app** (the AI's "brain", a Python program
-running outside VaM) and the two AIBody VaM plugins (the AI's "body"). Messages are JSON objects.
-JSON schemas: [`schema/command.schema.json`](schema/command.schema.json) (companion app to VaM) and
-[`schema/event.schema.json`](schema/event.schema.json) (VaM to companion app).
-
-Naming: the **companion app** is the Python program in `companion/`. The **Companion plugin** is
-the VaM plugin on the AI's character. They are different things; "companion" alone in this
-document means the app.
+running outside VaM) and the **AIBody plugin** (the AI's "body", inside VaM). Messages are JSON
+objects. JSON schemas: [`schema/command.schema.json`](schema/command.schema.json) (companion app
+to VaM) and [`schema/event.schema.json`](schema/event.schema.json) (VaM to companion app).
 
 ## Parts
 
 ```
-companion app <-- files in Saves/PluginData/AIBody/<channel>/ -->  AIBody Client plugin  (any atom)
-                                                                        |  string params
-                                                     "AIBody Companion Inbox/Outbox"  (in-process)
-                                                                        v
-                                                          AIBody Companion plugin  (AI's Person atom)
+companion app  <-- files in Saves/PluginData/AIBody/<channel>/ -->  AIBody plugin (AI's Person atom)
+                                                                      AppLink --in-process--> Body
 ```
 
-Both plugins ship in one package, `d0n.AIBody.2.var`:
+The VaM side is **one plugin**: `Custom/Scripts/d0n/AIBody/AIBody.cslist` in `d0n.AIBody.3.var`,
+one MVRScript (`AIBody.AIBodyPlugin`), loaded once on the AI character's Person atom (Plugins
+tab). Inside it, two plain C# components call each other directly:
 
-- **Client plugin** (`Custom/Scripts/d0n/AIBody/Client/AIBodyClient.cslist`, script
-  `AIBodyClient.AIBodyClientPlugin`), loaded on the Plugins tab of any atom, e.g. the user's own
-  Person atom or an Empty: the only part that talks to the companion app. Owns the transport,
-  channel, heartbeat/status, microphone menu and engine menus, finds the Companion plugin(s) and
-  forwards body commands to them.
-- **Companion plugin** (`Custom/Scripts/d0n/AIBody/Companion/AIBodyCompanion.cslist`, script
-  `AIBodyCompanion.AIBodyCompanionPlugin`), loaded on the AI character's Person atom: speech with
-  lip sync, expressions, morphs, gestures, poses, idle and breathing. No I/O of its own; accepts
-  commands only from a Client plugin.
+- **AppLink**: the transport to the companion app, channel, heartbeat/status, microphone menu and
+  engine menus. Handles `ping`, `companion_heartbeat` and the microphone feedback itself and hands
+  every body command to the Body.
+- **Body**: speech with lip sync on the head audio, expressions, morphs, gestures, poses, idle and
+  breathing. Its events go back through the AppLink.
+
+There is no routing, no target atom and no bridge between plugins: one plugin = one character.
 
 ## Envelope
 
@@ -37,77 +30,24 @@ Every message has:
 
 | field | type   | notes                                                          |
 |-------|--------|----------------------------------------------------------------|
-| `v`   | int    | protocol version, `2`                                          |
+| `v`   | int    | protocol version, `3`                                          |
 | `type`| string | message type                                                   |
 | `id`  | string | unique id. Replies carry `reply_to`.                           |
 | `ts`  | number | Unix time in seconds (informational)                           |
-| `atom`| string | optional. Body commands: target Companion atom uid. Events from a Companion: its atom uid. |
 
 A command may set `"ack": true` to get an `ack` event on success. Failures always produce an
 `error` event with `reply_to` set to the command id. A transport payload may contain one message
 or a JSON array of messages.
 
-## Routing (Client plugin <-> Companion plugin)
-
-**Body commands** are `speak`, `stop_speaking`, `expression`, `set_morphs`, `reset_morphs`,
-`gesture`, `pose`, `trigger`, `idle` and `breathing`. The Client plugin forwards each to exactly
-one Companion plugin:
-
-1. `atom` given: the Companion plugin on that atom.
-2. Otherwise the Client's **Companion atom** setting, if one is picked.
-3. Otherwise (setting "(auto: the only one in the scene)"): the only Companion plugin in the scene.
-
-**A command is never redirected to another atom.** If the target is missing or ambiguous, the
-Client answers `error` with `reply_to` = command id, `atom` as requested and one of:
-
-| code                 | from      | meaning |
-|----------------------|-----------|---------|
-| `no_companion`       | Client    | no Companion plugin on the requested atom (or none in the scene) |
-| `companion_conflict` | Client    | several Companion plugins match (on one atom, or in the scene with no target picked) |
-| `not_from_client`    | Companion | the command did not come through a Client plugin; refused |
-| `client_conflict`    | Companion | another Client plugin drove this Companion in the last 10 s; refused |
-
-Before delivery the Client adds `"via": "aibody_client"` and `"client": <its atom uid>`. The
-Companion refuses commands without them, and commands from a second Client while the first one
-was active in the last 10 s. This keeps triggers, other plugins and a second Client from driving
-the body by accident; it is not a security boundary.
-
-All other commands (`ping`, `companion_heartbeat`, `config_ack`, `devices`, `mic_state`,
-`mic_level`) are handled by the Client plugin itself.
-
-The companion app sets `atom` only when it knows the target (per call, else its `target_atom`
-config / `--atom`); otherwise the Client decides. It never guesses a target from which Companions
-are present. It keeps the Companions from `ready`, `heartbeat`, `companions` and
-`companion_status`.
-
-**Bridge.** The plugins are compiled separately by VaM, so they cannot call each other's C# types.
-They use only VaM's public scene API:
-
-- The Companion plugin registers three string params: `AIBody Companion Inbox`,
-  `AIBody Companion Outbox`, `AIBody Companion Version`.
-- Every second the Client scans `SuperController.singleton.GetAtoms()` and, on each atom, the
-  storables whose id starts with `plugin#`, for the Inbox/Outbox pair. Added or removed
-  Companions and scene changes are picked up by the next scan; a change is reported to the
-  companion app as a `companions` event.
-- **Command:** the Client sets the Inbox to the command JSON. The Companion handles it inside the
-  param's change callback (synchronously) and resets the value to `""`.
-- **Events:** the Companion appends events to a JSON array in its Outbox (at most 100; the oldest
-  are dropped). Every frame the Client reads every Outbox, resets it to `""`, sets `atom` and
-  forwards the events.
-- The Companion clears a stale outbox on start and shows "Client plugin: NOT FOUND" in its status
-  if nobody drains the outbox for 3 s.
-
-No files, sockets or reflection are involved, so the bridge works with every sandbox setting.
-
-## Transports (companion app <-> Client plugin)
+## Transports (companion app <-> AIBody plugin)
 
 ### File transport (default, the only one in the default build)
 
 All paths are relative to the VaM install folder:
 
 ```
-Saves/PluginData/AIBody/<channel>/inbox/    companion app -> Client plugin (commands)
-Saves/PluginData/AIBody/<channel>/outbox/   Client plugin -> companion app (events)
+Saves/PluginData/AIBody/<channel>/inbox/    companion app -> AIBody plugin (commands)
+Saves/PluginData/AIBody/<channel>/outbox/   AIBody plugin -> companion app (events)
 Saves/PluginData/AIBody/<channel>/audio/    speech audio written by the companion
 ```
 
@@ -124,15 +64,15 @@ Saves/PluginData/AIBody/<channel>/audio/    speech audio written by the companio
   while connected sends `companion_heartbeat` every 2 s. The plugin counts the companion as
   connected while a `companion_heartbeat` arrived in the last 6 s. A new `session` id in
   `companion_heartbeat` means the companion restarted: the plugin sends `ready` and `config` again.
-- `<channel>` defaults to `default` (Client plugin "Channel", companion app `channel`). Both sides
-  must use the same value. Use one Client plugin per channel.
+- `<channel>` defaults to `default` (AIBody plugin "Channel", companion app `channel`). Both sides
+  must use the same value.
 
 ### HTTP (optional build only)
 
 VaM 1.22 plugins that use `UnityEngine.Networking` / `UnityWebRequest` may be refused by the
 sandbox, so the default build contains no network code at all. `src/Optional/HttpTransport.cs`
 and `AutoTransport.cs` are compiled only with `#define AIBODY_HTTP` (see the README). With that
-build the Client plugin offers "Auto (HTTP, file fallback)" and "HTTP only", and the companion
+build the AIBody plugin offers "Auto (HTTP, file fallback)" and "HTTP only", and the companion
 `--transport http|auto` serves:
 
 ```
@@ -164,7 +104,7 @@ sequence number (plugin talked to an earlier session), the server treats it as 0
 
 ## Commands (companion -> VaM)
 
-### Body (forwarded to one Companion plugin, see [Routing](#routing-client-plugin---companion-plugin))
+### Body (handled by the plugin's Body)
 
 | type            | fields                                                                 | effect |
 |-----------------|------------------------------------------------------------------------|--------|
@@ -179,14 +119,14 @@ sequence number (plugin talked to an earlier session), the server treats it as 0
 | `idle`          | `enabled`, `intensity` 0..1                                            | procedural idle head motion |
 | `breathing`     | `enabled`, `rate` breaths/min, `depth`                                 | procedural breathing |
 
-### Client
+### App link
 
 | type                  | fields | effect |
 |-----------------------|--------|--------|
-| `ping`                | -      | Client plugin answers `pong` with its status |
+| `ping`                | -      | answers `pong` with its status |
 | `companion_heartbeat` | `session` (required), `version`, `engines_available` (`{"stt": [...], "llm": [...], "tts": [...]}`), `mic_capturing` | companion liveness; fills the engine menus |
 
-### Microphone feedback (Client plugin)
+### Microphone feedback (app link)
 
 | type         | fields | when |
 |--------------|--------|------|
@@ -197,27 +137,19 @@ sequence number (plugin talked to an earlier session), the server treats it as 0
 
 ## Events (VaM -> companion)
 
-From the Client plugin:
+All events come from the one plugin:
 
 | type             | fields                                              | when |
 |------------------|-----------------------------------------------------|------|
 | `ready`          | status fields (below)                               | after start, reconnect or companion restart |
 | `heartbeat`      | status fields                                       | every 2 s |
 | `pong`           | status fields, `reply_to`                           | answer to `ping` |
-| `companions`     | `companions`, `selected_atom`                       | a Companion plugin appeared or disappeared, or the "Companion atom" setting changed |
-| `error`          | `reply_to`, `code`, `message`, (`atom`)             | `bad_json`, `command_failed`, routing errors (`no_companion`, `companion_conflict`) |
+| `error`          | `reply_to`, `code`, `message`                       | `bad_json`, `command_failed`, `audio_failed` |
 | `config`         | `mic` (see below), `engines` (`{"stt", "llm", "tts"}`) | after (re)connect and 0.3 s after the last settings change |
 | `ptt`            | `active` (bool)                                     | push-to-talk pressed / released |
 | `list_devices`   | -                                                   | after (re)connect and on "Refresh mic devices" |
 | `shutdown`       | -                                                   | plugin is stopping its transport |
-
-From a Companion plugin (forwarded by the Client plugin, always with `atom`):
-
-| type             | fields                                              | when |
-|------------------|-----------------------------------------------------|------|
-| `companion_status` | `plugin_version`, `client`, `speaking`, `speech_queue`, `expression`, `expressions`, `gestures` | every 2 s |
 | `ack`            | `reply_to`, `command`                               | command succeeded and asked for an ack |
-| `error`          | `reply_to`, `code`, `message`                       | `bad_json`, `command_failed`, `audio_failed`, `not_from_client`, `client_conflict` |
 | `speech_started` | `utterance_id`, `duration` (clip length in s)       | the clip really started playing |
 | `speech_ended`   | `utterance_id`, `reason`, `queue_length`            | the clip stopped, or a queued one was dropped |
 | `gesture_done`   | `name`                                              | a built-in head gesture finished |
@@ -226,9 +158,9 @@ From a Companion plugin (forwarded by the Client plugin, always with `atom`):
 `queue: interrupt` speak or someone else replaced the clip), `cancelled` (was queued, never
 played), `failed` (could not be loaded; an `audio_failed` error comes first).
 
-Client status fields: `role` (`client`), `client` (atom uid of the Client plugin),
-`plugin_version`, `protocol`, `channel`, `transport`, `audio_dir`, `companions` (list of
-`{atom, plugin_version}`), `selected_atom` (the "Companion atom" setting, `""` = auto).
+Status fields (`ready`, `heartbeat`, `pong`): `plugin_version`, `protocol`, `channel`,
+`transport`, `audio_dir`, `atom` (uid of the Person atom the plugin is on, informational),
+`speaking`, `speech_queue`, `expression`, `expressions` (preset names), `gestures` (names).
 
 ### Microphone settings (`config.mic`)
 
@@ -251,7 +183,7 @@ leave the previous value in place. Numbers are clamped to the range.
 
 ### Engines (`config.engines`)
 
-`stt`, `llm`, `tts`: engine names picked in the Client plugin's menus. The companion accepts only
+`stt`, `llm`, `tts`: engine names picked in the AIBody plugin's menus. The companion accepts only
 names it has implemented (listed in `companion_heartbeat.engines_available`) and reports others
 in `config_ack.errors`. Implemented so far: `null`, `echo`, `tone` (mock engines).
 
@@ -261,16 +193,16 @@ The companion writes each TTS clip to `Saves/PluginData/AIBody/<channel>/audio/`
 `vam_root`) and sends a `speak` with:
 
 - `audio`: `Saves/PluginData/AIBody/<channel>/audio/<file>`, relative to the VaM folder. The
-  Companion plugin loads it with VaM's own `URLAudioClipManager.QueueClip` (no `UnityWebRequest` in
+  AIBody plugin loads it with VaM's own `URLAudioClipManager.QueueClip` (no `UnityWebRequest` in
   plugin code) and plays the resulting `NamedAudioClip` with the head `AudioSourceControl.PlayNow`,
   so VaM's lip sync animates the mouth.
 - `url`: only with the optional HTTP build (`/v1/audio/<file>`, downloaded with
-  `UnityWebRequestMultimedia`). The default Companion plugin ignores it.
+  `UnityWebRequestMultimedia`). The default build ignores it.
 
-The Companion plugin keeps an ordered queue (`queue: append`, default) and prefetches the next two
+The plugin keeps an ordered queue (`queue: append`, default) and prefetches the next two
 clips while one plays. `queue: interrupt` stops the current clip (`speech_ended` reason
 `interrupted`), cancels the queue and plays the new clip next. `stop_speaking` stops and cancels
-everything. The Companion plugin's "Speech volume" setting applies to every clip.
+everything. The plugin's "Speech volume" setting applies to every clip.
 
 ## Echo handling
 
@@ -278,8 +210,8 @@ The companion keeps its microphone closed:
 
 - from sending `speak` until that utterance's `speech_ended`, for every queued utterance,
 - for `echo_tail_s` after audio really stopped (not after `cancelled`/`failed`),
-- not at all for a `speak` that was not delivered (routing `error`: `no_companion`,
-  `companion_conflict`, `not_from_client`, `client_conflict`),
+- not at all for a `speak` that failed (`error` with `reply_to` = the speak id and code
+  `audio_failed` or `command_failed`),
 - with failsafes: each pending utterance expires at the estimated queue end (refreshed with the
   real `duration` from `speech_started`) plus 5 s, a speaking state longer than 120 s is dropped,
   and `ready`/`shutdown` or a lost connection reset the gate.
@@ -289,8 +221,11 @@ records regardless of the gate. See `companion/aibody_companion/audio/echo_gate.
 
 ## Versioning
 
-Version 2 (AIBody 0.5.0) replaced the Session/Person plugins and their slots with the
-Client/Companion plugins: `slot` is gone, `persons`/`person_status` became
-`companions`/`companion_status`, and the routing error codes changed. Additive changes (new
-optional fields, new types) keep `v: 2`. Receivers ignore unknown fields in events and report
-unknown command types as errors.
+- v3 (AIBody 0.6.0): one plugin on the AI character. The envelope field `atom` on commands, the
+  events `companions` / `companion_status` and the routing errors are gone; the body's state comes
+  with `ready` / `heartbeat` / `pong`.
+- v2 (0.5.0): Client + Companion plugins with an in-VaM bridge.
+- v1 (0.2-0.4): Session + Person plugins with character slots.
+
+Additive changes (new optional fields, new types) keep the version. Receivers ignore unknown
+fields in events and report unknown command types as errors.
