@@ -1,7 +1,7 @@
 // OPTIONAL: only compiled in the AIBODY_HTTP build. Not listed in the default .cslist files,
 // because VaM 1.22 may refuse to load plugins that reference UnityEngine.Networking.
 // To enable (loose files): python tools/assemble_plugins.py --http --out <dir>. That adds
-// "#define AIBODY_HTTP" to the Client and Companion sources and Optional/*.cs to AIBodyClient.cslist.
+// "#define AIBODY_HTTP" to every source and Optional/*.cs to AIBody.cslist.
 #if AIBODY_HTTP
 // HTTP transport against the companion app's local HTTP server (primary transport).
 //
@@ -29,9 +29,8 @@ using System.Text;
 using SimpleJSON;
 using UnityEngine;
 using UnityEngine.Networking;
-using AIBodyShared;
 
-namespace AIBodyClient
+namespace AIBody
 {
     public class HttpTransport : ITransport
     {
