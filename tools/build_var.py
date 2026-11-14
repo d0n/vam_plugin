@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
-"""Builds the AIBody VaM package: ONE .var with both plugins.
+"""Builds the AIBody VaM package: ONE .var with ONE plugin (one .cslist, one MVRScript).
 
   dist/d0n.AIBody.<N>.var
     meta.json
-    Custom/Scripts/d0n/AIBody/Client/AIBodyClient.cslist        (+ Shared/, sources)
-    Custom/Scripts/d0n/AIBody/Companion/AIBodyCompanion.cslist  (+ Shared/, sources)
+    Custom/Scripts/d0n/AIBody/AIBody.cslist   (+ the .cs files it lists, same folder)
 
 meta.json is packaging/meta.json (unchanged, incl. licenseType) with the overrides from
-packaging/AIBody.json, which also sets the package version <N>. The script folders are assembled
-by tools/assemble_plugins.py (sandbox-safe default build; the optional HTTP sources and the
-legacy Session/Person plugins in legacy/ are never packaged).
+packaging/AIBody.json, which also sets the package version <N>. The script folder is assembled by
+tools/assemble_plugins.py (sandbox-safe default build; the optional HTTP sources and the legacy
+plugins in legacy/ are never packaged).
 
 Usage: python tools/build_var.py [--version N]
 """
@@ -26,7 +25,7 @@ STAGE = ROOT / "build" / "var" / "AIBody"
 SCRIPT_FOLDER = "AIBody"
 
 
-def assemble() -> dict[str, list[str]]:
+def assemble() -> list[str]:
     spec = importlib.util.spec_from_file_location("assemble_plugins", ROOT / "tools" / "assemble_plugins.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -44,9 +43,9 @@ def build(version_override: int | None = None) -> Path:
     creator = meta["creatorName"]
     script_dir = f"Custom/Scripts/{creator}/{SCRIPT_FOLDER}"
 
-    files = [f"{folder}/{rel}" for folder, rels in assemble().items() for rel in rels]
+    files = assemble()
     for f in files:
-        if f.split("/")[1] == "Optional":
+        if f in ("HttpTransport.cs", "AutoTransport.cs"):
             raise SystemExit(f"refusing to package optional HTTP source {f}")
     meta["contentList"] = [f"{script_dir}/{f}" for f in files]
     out = ROOT / "dist" / f"{creator}.{meta['packageName']}.{version}.var"
