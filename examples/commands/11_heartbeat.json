@@ -1,7 +1,6 @@
 [
-  { "v": 2, "type": "speak", "id": "utt-7", "atom": "AI", "audio": "Saves/PluginData/AIBody/default/audio/utt-7.wav", "text": "Hello", "duration": 1.8 },
-  { "v": 2, "type": "expression", "id": "c-8", "name": "happy", "intensity": 0.8, "blend": 0.4 },
-  { "v": 2, "type": "stop_speaking", "id": "c-10", "atom": "AI" },
-  { "v": 2, "type": "companion_heartbeat", "id": "c-11", "session": "3f2a9c1b77d0", "version": "0.5.0",
+  { "v": 3, "type": "speak", "id": "utt-7", "audio": "Saves/PluginData/AIBody/default/audio/utt-7.wav", "text": "Hello", "duration": 1.8 },
+  { "v": 3, "type": "stop_speaking", "id": "c-10" },
+  { "v": 3, "type": "companion_heartbeat", "id": "c-11", "session": "3f2a9c1b77d0", "version": "0.6.0",
     "engines_available": { "stt": ["null"], "llm": ["echo"], "tts": ["tone"] }, "mic_capturing": true }
 ]

@@ -1,13 +1,11 @@
-"""Message protocol between the companion and the VaM plugin (version 1).
+"""Message protocol between the companion app and the AIBody VaM plugin (version 3).
 
 The authoritative description is protocol/PROTOCOL.md; JSON schemas live in
-protocol/schema/. Keep this module, the schemas and src/Shared/Protocol.cs in sync.
+protocol/schema/. Keep this module, the schemas and src/AIBody/Protocol.cs in sync.
 
-The VaM side is two plugins in one package: the AIBody Client plugin (the controlling side,
-on any atom) talks to this companion app and forwards body commands to exactly one AIBody
-Companion plugin (the AI's body, on the AI's Person atom): the one on the envelope field "atom",
-else the Client's selected Companion, else the only one in the scene. It never redirects a command
-to another atom. Events coming from a Companion plugin carry "atom".
+The VaM side is ONE plugin (AIBody.cslist) on the AI character's Person atom: its app link
+talks to this companion app and hands body commands in-process to its body. There is no
+routing and no target atom: one plugin = one character.
 """
 from __future__ import annotations
 
@@ -38,11 +36,11 @@ COMMANDS: dict[str, tuple[set[str], set[str]]] = {
     "devices": ({"devices"}, {"error", "reply_to"}),
     "mic_state": ({"enabled", "capturing"}, {"device", "mode", "ptt_active", "error"}),
     "mic_level": ({"rms"}, {"speech", "gate_open"}),
-    # liveness + identity of the companion (lets the Client plugin detect restarts over files)
+    # liveness + identity of the companion app (lets the plugin detect restarts over files)
     "companion_heartbeat": ({"session"}, {"version", "engines_available", "mic_capturing"}),
 }
 
-# Commands the Client plugin forwards to a Companion plugin (everything else is for the Client).
+# Commands for the plugin's body (everything else is handled by its app link).
 BODY_COMMANDS = {
     "speak", "stop_speaking", "expression", "set_morphs", "reset_morphs",
     "gesture", "pose", "trigger", "idle", "breathing",
@@ -50,12 +48,7 @@ BODY_COMMANDS = {
 
 SPEAK_QUEUE_MODES = ("append", "interrupt")
 
-# Error codes of the Client/Companion bridge; none of them played anything.
-ROUTING_ERRORS = {"no_companion", "companion_conflict", "not_from_client", "client_conflict"}
-
-# "atom": target atom (with the AIBody Companion plugin) of a body command; optional, the Client
-# plugin then uses its selected Companion or the only one in the scene.
-ENVELOPE_FIELDS = {"v", "type", "id", "ts", "ack", "atom"}
+ENVELOPE_FIELDS = {"v", "type", "id", "ts", "ack"}
 
 # Messages plugin -> companion ("events").
 EVENTS = {
@@ -71,8 +64,6 @@ EVENTS = {
     "speech_ended",
     "gesture_done",
     "shutdown",
-    "companions",
-    "companion_status",
 }
 
 _counter = itertools.count(1)
@@ -121,10 +112,6 @@ def validate_command(msg: Any) -> list[str]:
             errors.append(f"speak: queue must be one of {SPEAK_QUEUE_MODES}")
     if type_ == "devices" and not isinstance(msg.get("devices"), list):
         errors.append("devices: 'devices' must be a list")
-    if "atom" in msg and type_ not in BODY_COMMANDS:
-        errors.append(f"{type_}: 'atom' is only allowed on body commands")
-    if "atom" in msg and not (isinstance(msg["atom"], str) and msg["atom"]):
-        errors.append(f"{type_}: 'atom' must be a non-empty string")
     if type_ == "trigger" and not (msg.get("action") or msg.get("param")):
         errors.append("trigger: needs 'action' or 'param'")
     return errors
@@ -146,8 +133,4 @@ def validate_event(msg: Any) -> list[str]:
         errors.append("config: 'mic' must be an object")
     if type_ == "ptt" and not isinstance(msg.get("active"), bool):
         errors.append("ptt: 'active' must be true/false")
-    if type_ == "companions" and not isinstance(msg.get("companions"), list):
-        errors.append("companions: 'companions' must be a list")
-    if type_ == "companion_status" and not (isinstance(msg.get("atom"), str) and msg["atom"]):
-        errors.append("companion_status: 'atom' must be a non-empty string")
     return errors

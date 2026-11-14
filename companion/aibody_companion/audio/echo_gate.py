@@ -25,7 +25,8 @@ from collections.abc import Callable
 from typing import Any
 
 NO_TAIL_REASONS = {"cancelled", "failed"}
-NO_PLAYBACK_ERRORS = {"audio_failed", "no_companion", "companion_conflict", "not_from_client", "client_conflict"}
+# Errors replying to a speak: the clip was not played (no speech_started will follow).
+NO_PLAYBACK_ERRORS = {"audio_failed", "command_failed"}
 
 
 class EchoGate:

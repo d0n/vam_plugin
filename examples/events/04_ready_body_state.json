@@ -1,14 +1,13 @@
 [
-  { "v": 2, "type": "ready", "id": "evt-10", "ts": 1763040000.0, "role": "client", "client": "Me", "plugin_version": "0.5.0", "protocol": 2,
+  { "v": 3, "type": "ready", "id": "evt-10", "ts": 1763040000.0, "plugin_version": "0.6.0", "protocol": 3,
     "channel": "default", "transport": "file", "audio_dir": "Saves/PluginData/AIBody/default/audio",
-    "companions": [ { "atom": "AI", "plugin_version": "0.5.0" } ], "selected_atom": "" },
-  { "v": 2, "type": "companions", "id": "evt-11", "ts": 1763040003.0,
-    "companions": [ { "atom": "AI", "plugin_version": "0.5.0" }, { "atom": "AI#2", "plugin_version": "0.5.0" } ], "selected_atom": "AI" },
-  { "v": 2, "type": "companion_status", "id": "evt-12", "ts": 1763040004.0, "atom": "AI", "client": "Me", "plugin_version": "0.5.0",
-    "speaking": false, "speech_queue": 0, "expression": "neutral", "expressions": ["neutral", "happy"], "gestures": ["nod", "shake"] },
-  { "v": 2, "type": "speech_started", "id": "evt-13", "ts": 1763040005.0, "atom": "AI", "utterance_id": "utt-7", "duration": 1.8 },
-  { "v": 2, "type": "error", "id": "evt-14", "ts": 1763040006.0, "reply_to": "utt-8", "code": "companion_conflict",
-    "message": "The scene has 2 AIBody Companion plugins (AI, AI#2); pick one in the Client's 'Companion atom'" },
-  { "v": 2, "type": "error", "id": "evt-15", "ts": 1763040007.0, "reply_to": "utt-9", "code": "no_companion", "atom": "Bob",
-    "message": "No AIBody Companion plugin on atom 'Bob'" }
+    "atom": "Person", "speaking": false, "speech_queue": 0, "expression": "neutral",
+    "expressions": ["neutral", "happy"], "gestures": ["nod", "shake", "tilt"] },
+  { "v": 3, "type": "heartbeat", "id": "evt-11", "ts": 1763040002.0, "plugin_version": "0.6.0", "protocol": 3,
+    "channel": "default", "transport": "file", "audio_dir": "Saves/PluginData/AIBody/default/audio",
+    "atom": "Person", "speaking": true, "speech_queue": 1, "expression": "happy",
+    "expressions": ["neutral", "happy"], "gestures": ["nod", "shake", "tilt"] },
+  { "v": 3, "type": "speech_started", "id": "evt-12", "ts": 1763040003.0, "utterance_id": "utt-7", "duration": 1.8 },
+  { "v": 3, "type": "error", "id": "evt-13", "ts": 1763040004.0, "reply_to": "utt-8", "code": "audio_failed",
+    "message": "Could not load Saves/PluginData/AIBody/default/audio/utt-8.wav" }
 ]

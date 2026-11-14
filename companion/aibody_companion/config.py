@@ -10,20 +10,17 @@ from typing import Any
 
 PLUGIN_DATA_SUBDIR = "Saves/PluginData/AIBody"
 
-# Engines this companion version can run (reported to the Client plugin's engine menus).
+# Engines this companion version can run (reported to the AIBody plugin's engine menus).
 ENGINES_AVAILABLE: dict[str, list[str]] = {"stt": ["null"], "llm": ["echo"], "tts": ["tone"]}
 
 
 @dataclass
 class Config:
     vam_root: str = ""  # VaM install folder (the one containing VaM.exe)
-    channel: str = "default"  # must match the AIBody Client plugin's "Channel"
+    channel: str = "default"  # must match the AIBody plugin's "Channel"
     # "file" (default; the only link the default VaM build supports). "http" / "auto" only work
     # with a plugin built with AIBODY_HTTP (see README).
     transport: str = "file"
-    # Atom (with the AIBody Companion plugin) the AI speaks through; "" = the Client plugin's
-    # "Companion atom" setting, or the only Companion plugin in the scene.
-    target_atom: str = ""
     http_host: str = "127.0.0.1"
     http_port: int = 8765
     poll_interval_s: float = 0.02
@@ -59,7 +56,7 @@ class Config:
         return Path.home() / ".cache" / "aibody" / "audio" / self.channel
 
     def audio_rel_path(self, name: str) -> str | None:
-        """Path the Companion plugin can load directly (relative to the VaM folder), if vam_root is set."""
+        """Path the AIBody plugin can load directly (relative to the VaM folder), if vam_root is set."""
         return f"{PLUGIN_DATA_SUBDIR}/{self.channel}/audio/{name}" if self.vam_root else None
 
     def audio_abs_path(self, name: str) -> Path:

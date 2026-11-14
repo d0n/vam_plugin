@@ -1,14 +1,14 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/d0n/vam_plugin/protocol/schema/command.schema.json",
-  "title": "AIBody message companion app -> AIBody Client plugin (\"command\"), protocol v2",
+  "title": "AIBody message companion app -> AIBody plugin (\"command\"), protocol v3",
   "type": "object",
   "required": [
     "type"
   ],
   "properties": {
     "v": {
-      "const": 2
+      "const": 3
     },
     "type": {
       "enum": [
@@ -215,14 +215,9 @@
     "gate_open": {
       "type": "boolean"
     },
-    "atom": {
-      "type": "string",
-      "minLength": 1,
-      "description": "body commands only: atom with the AIBody Companion plugin that should get it (default: the Client's 'Companion atom', else the only Companion in the scene). Never redirected to another atom."
-    },
     "session": {
       "type": "string",
-      "description": "companion_heartbeat: id that changes on every companion start (the Client plugin then re-sends ready + config)"
+      "description": "companion_heartbeat: id that changes on every companion start (the AIBody plugin then re-sends ready + config)"
     },
     "version": {
       "type": "string",
@@ -230,7 +225,7 @@
     },
     "engines_available": {
       "type": "object",
-      "description": "companion_heartbeat: engine names per kind, fills the Client plugin's engine menus",
+      "description": "companion_heartbeat: engine names per kind, fills the AIBody plugin's engine menus",
       "properties": {
         "stt": {
           "type": "array",

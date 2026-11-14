@@ -1,4 +1,4 @@
-"""Client/Companion plugins: per-atom routing, Companion tracking, companion_heartbeat, engines."""
+"""Single AIBody plugin (protocol v3): body commands, body state, companion_heartbeat, engines."""
 import tempfile
 import unittest
 from typing import Any
@@ -49,11 +49,7 @@ class Clock:
 
 
 def evt(type_, **fields):
-    return {"v": 2, "type": type_, "id": protocol.new_id("evt"), "ts": 0.0, **fields}
-
-
-def companions(*atoms):
-    return [{"atom": atom, "plugin_version": "0.5.0"} for atom in atoms]
+    return {"v": 3, "type": type_, "id": protocol.new_id("evt"), "ts": 0.0, **fields}
 
 
 class RoutingTests(unittest.TestCase):
@@ -72,59 +68,38 @@ class RoutingTests(unittest.TestCase):
         self.t.events.extend(events)
         self.c.process_events()
 
-    def test_atom_envelope_field(self):
-        self.assertEqual(protocol.validate_command({"type": "speak", "audio": "a.wav", "atom": "Person#2"}), [])
-        self.assertTrue(protocol.validate_command({"type": "speak", "audio": "a.wav", "atom": ""}))
+    def test_no_atom_or_slot_in_v3(self):
+        self.assertEqual(protocol.validate_command({"type": "speak", "audio": "a.wav"}), [])
+        self.assertTrue(protocol.validate_command({"type": "speak", "audio": "a.wav", "atom": "Person"}))
         self.assertTrue(protocol.validate_command({"type": "speak", "audio": "a.wav", "slot": "person1"}))
-        self.assertTrue(protocol.validate_command({"type": "mic_level", "rms": 0.1, "atom": "Person"}))
 
-    def test_protocol_version_2(self):
-        self.assertEqual(protocol.make_command("ping")["v"], 2)
-        self.assertTrue(protocol.validate_command({"v": 1, "type": "ping"}))
+    def test_protocol_version_3(self):
+        self.assertEqual(protocol.make_command("ping")["v"], 3)
+        self.assertTrue(protocol.validate_command({"v": 2, "type": "ping"}))
 
-    def test_without_target_the_client_decides(self):
-        self.feed(evt("ready", role="client", client="Me", companions=companions("AI", "AI2"), selected_atom="AI2"))
-        self.c.say("hi")
-        speak = self.t.sent[-1]
-        self.assertEqual(speak["type"], "speak")
-        self.assertNotIn("atom", speak)  # never guessed from the Companions present
-        self.assertTrue(speak["audio"].startswith("Saves/PluginData/AIBody/default/audio/"))
-        self.assertEqual(self.c.client_selected_atom, "AI2")
-
-    def test_config_target_atom_is_always_sent(self):
-        self.cfg.target_atom = "AI"
-        self.feed(evt("companions", companions=companions("Other"), selected_atom=""))
-        self.c.say("hi")
-        self.assertEqual(self.t.sent[-1]["atom"], "AI")  # even if gone: the Client refuses, no fallback
-
-    def test_explicit_atom_per_turn(self):
-        self.c.handle_user_text("Hallo", atom="AI2")
+    def test_speak_goes_to_the_one_body(self):
+        self.feed(evt("ready", atom="AI", plugin_version="0.6.0", channel="default", speaking=False))
+        self.c.handle_user_text("Hallo")
         cmds = [x for x in self.t.sent if x["type"] in protocol.BODY_COMMANDS]
-        self.assertTrue(cmds)
-        self.assertEqual({x["atom"] for x in cmds}, {"AI2"})
+        self.assertIn("speak", [x["type"] for x in cmds])
+        self.assertTrue(all("atom" not in x for x in cmds))
+        speak = [x for x in cmds if x["type"] == "speak"][-1]
+        self.assertTrue(speak["audio"].startswith("Saves/PluginData/AIBody/default/audio/"))
 
-    def test_companions_and_status_are_tracked(self):
-        self.feed(evt("companions", companions=companions("AI"), selected_atom=""))
-        self.feed(evt("companion_status", atom="AI", speaking=True, client="Me"))
-        self.assertTrue(self.c.companions["AI"]["speaking"])
-        self.feed(evt("companions", companions=companions(), selected_atom=""))
-        self.assertEqual(self.c.companions, {})
-        self.assertTrue(protocol.validate_event({"type": "companion_status"}))
-        self.assertTrue(protocol.validate_event({"type": "companions"}))
+    def test_body_state_comes_with_heartbeat(self):
+        self.feed(evt("heartbeat", atom="AI", speaking=True, expressions=["happy"]))
+        self.assertTrue(self.c.body_info["speaking"])
+        self.assertEqual(self.c.body_info["atom"], "AI")
+        for gone in ("companions", "companion_status", "persons", "person_status"):
+            self.assertTrue(protocol.validate_event({"type": gone}), gone)
 
-    def test_ptt_stops_every_companion(self):
+    def test_ptt_stops_the_body(self):
         self.feed(evt("config", mic={"mode": "ptt"}))
-        self.feed(evt("companions", companions=companions("AI", "AI2")))
         self.c.say("hi")
         self.c.handle_ptt(True)
-        stops = [x.get("atom") for x in self.t.sent if x["type"] == "stop_speaking"]
-        self.assertEqual(sorted(stops), ["AI", "AI2"])
-
-    def test_typed_line_atom_prefix(self):
-        from aibody_companion.cli import parse_typed_line
-        self.assertEqual(parse_typed_line("@Person#2 hallo du"), ("Person#2", "hallo du"))
-        self.assertEqual(parse_typed_line("hallo"), (None, "hallo"))
-        self.assertEqual(parse_typed_line("@ hallo"), (None, "@ hallo"))
+        stops = [x for x in self.t.sent if x["type"] == "stop_speaking"]
+        self.assertEqual(len(stops), 1)
+        self.assertNotIn("atom", stops[0])
 
     def test_heartbeat_only_while_connected_with_new_session_id(self):
         self.t.is_connected = False
@@ -159,13 +134,12 @@ class RoutingTests(unittest.TestCase):
         self.assertEqual(Config().transport, "file")
         self.assertTrue(Config().validate())
 
-    def test_routing_errors_open_the_gate(self):
-        for code in sorted(protocol.ROUTING_ERRORS):
+    def test_failed_speak_opens_the_gate(self):
+        for code in ("audio_failed", "command_failed"):
             uid = self.c.say("hi")
             self.assertFalse(self.c.gate.is_open, code)
-            self.feed(evt("error", reply_to=uid, code=code, atom="AI", message="not delivered"))
+            self.feed(evt("error", reply_to=uid, code=code, message="not played"))
             self.assertTrue(self.c.gate.is_open, code)
-
 
 
 if __name__ == "__main__":

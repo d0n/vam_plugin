@@ -3,12 +3,9 @@
 Call tick() regularly (every ~20 ms) from one thread: it handles plugin events, pulls
 microphone frames, finishes utterances and streams level / state feedback to the plugin.
 
-VaM side = one package with two plugins: the AIBody Client plugin (link to this app, mic menu,
-engine menus; on any atom) and the AIBody Companion plugin (the AI's body, on the AI's Person
-atom). Body commands carry "atom" when a target is known (argument > config target_atom);
-otherwise the Client uses its "Companion atom" setting or the only Companion in the scene. The
-Client delivers to exactly that Companion or answers with an error (no_companion,
-companion_conflict, ...); there is no fallback to another atom.
+VaM side = ONE plugin (AIBody.cslist) on the AI character's Person atom: its app link talks to
+this app (files in Saves/PluginData/AIBody/<channel>/) and hands body commands in-process to its
+body. The body's state comes with ready / heartbeat / pong.
 """
 from __future__ import annotations
 
@@ -66,9 +63,7 @@ class Companion:
         self.mic = mic  # None = no microphone (text only)
         self._list_devices = device_lister
         self.history: list[dict[str, str]] = []
-        self.body_info: dict[str, Any] = {}  # last ready/heartbeat from the Client plugin
-        self.companions: dict[str, dict[str, Any]] = {}  # atom -> last known Companion plugin info
-        self.client_selected_atom = ""  # the Client's "Companion atom" ("" = auto)
+        self.body_info: dict[str, Any] = {}  # last ready/heartbeat from the AIBody plugin
         self.engines: dict[str, str] = {"stt": config.stt, "llm": config.llm, "tts": config.tts}
         self.session_id = uuid.uuid4().hex[:12]  # changes on every companion start
         self._last_heartbeat = -HEARTBEAT_INTERVAL_S
@@ -115,20 +110,10 @@ class Companion:
             type_ = event.get("type")
             if type_ in ("ready", "heartbeat"):
                 if type_ == "ready":
-                    log.info("Client ready on %r: plugin=%s channel=%s companions=%s", event.get("client"),
-                             event.get("plugin_version"), event.get("channel"),
-                             [p.get("atom") for p in event.get("companions") or []])
+                    log.info("AIBody plugin ready on %r: plugin=%s channel=%s", event.get("atom"),
+                             event.get("plugin_version"), event.get("channel"))
                     self._last_mic_state = None  # make sure the plugin gets a fresh mic_state
                 self.body_info = event
-                self._update_companions(event)
-            elif type_ == "companions":
-                self._update_companions(event)
-                log.info("Companion plugins: %s (Client selection: %s, target: %s)", sorted(self.companions),
-                         self.client_selected_atom or "auto", self.target_atom or "Client's choice")
-            elif type_ == "companion_status":
-                atom = event["atom"]
-                info = self.companions.setdefault(atom, {"atom": atom})
-                info.update({k: v for k, v in event.items() if k not in protocol.ENVELOPE_FIELDS - {"atom"}})
             elif type_ == "config":
                 self.handle_config(event)
             elif type_ == "ptt":
@@ -141,24 +126,8 @@ class Companion:
                 log.debug("event: %s", event)
         return events
 
-    def _update_companions(self, event: dict[str, Any]) -> None:
-        companions = event.get("companions")
-        if isinstance(companions, list):
-            known = {}
-            for c in companions:
-                if isinstance(c, dict) and isinstance(c.get("atom"), str) and c["atom"]:
-                    known[c["atom"]] = {**self.companions.get(c["atom"], {}), **c}
-            self.companions = known
-        if isinstance(event.get("selected_atom"), str):
-            self.client_selected_atom = event["selected_atom"]
-
-    @property
-    def target_atom(self) -> str | None:
-        """Explicit target of body commands (config), or None to let the Client plugin pick."""
-        return self.cfg.target_atom or None
-
     def _send_heartbeat(self) -> None:
-        # Only while the Client plugin is alive: over files, unread heartbeats would pile up.
+        # Only while the AIBody plugin is alive: over files, unread heartbeats would pile up.
         if not self.transport.connected:
             return
         now = self._clock()
@@ -171,7 +140,7 @@ class Companion:
         ))
 
     def apply_engines(self, requested: Any) -> list[str]:
-        """Applies the Client plugin's engine menu. Only implemented engines are accepted."""
+        """Applies the AIBody plugin's engine menu. Only implemented engines are accepted."""
         if requested is None:
             return []
         if not isinstance(requested, dict):
@@ -210,9 +179,7 @@ class Companion:
             log.debug("ptt ignored: mic mode is %s", self.mic_settings.mode)
             return
         if active and self.mic_settings.ptt_interrupts and not self.gate.is_open:
-            # The user talks: every known body stops (or the Client's default one).
-            for atom in sorted(self.companions) or [self.target_atom]:
-                self.send(self.body_command("stop_speaking", atom=atom))
+            self.send(self.body_command("stop_speaking"))  # the user talks: the body stops
         utterance = self.input.set_ptt(active)
         if utterance:
             self.handle_utterance(utterance)
@@ -266,22 +233,22 @@ class Companion:
             self.handle_user_text(text)
         return text
 
-    def handle_user_text(self, text: str, atom: str | None = None) -> None:
+    def handle_user_text(self, text: str) -> None:
         # TODO: run LLM + TTS on a worker thread so events keep flowing during long replies.
         self.history.append({"role": "user", "content": text})
         reply = self.llm.reply(text, self.history)
         self.history.append({"role": "assistant", "content": reply.say})
 
         if reply.expression:
-            self.send(self.body_command("expression", atom=atom, name=reply.expression, intensity=1.0, blend=0.4))
+            self.send(self.body_command("expression", name=reply.expression, intensity=1.0, blend=0.4))
         if reply.gesture:
-            self.send(self.body_command("gesture", atom=atom, name=reply.gesture))
+            self.send(self.body_command("gesture", name=reply.gesture))
         if reply.say:
-            self.say(reply.say, atom=atom)
+            self.say(reply.say)
 
     # -- output --------------------------------------------------------------------------
 
-    def say(self, text: str, interrupt: bool = False, atom: str | None = None) -> str:
+    def say(self, text: str, interrupt: bool = False) -> str:
         """Synthesizes text and queues it on the body. Returns the utterance id."""
         utterance_id = protocol.new_id("utt")
         name = f"{utterance_id}.wav"
@@ -295,18 +262,18 @@ class Companion:
             return utterance_id
         self.gate.on_speak_sent(utterance_id, duration, interrupt=interrupt)
         self.send(self.body_command(
-            "speak", atom=atom, id_=utterance_id, url=url, audio=rel, text=text, duration=round(duration, 3),
+            "speak", id_=utterance_id, url=url, audio=rel, text=text, duration=round(duration, 3),
             queue="interrupt" if interrupt else "append",
         ))
         log.info("Say (%.1fs, via %s): %s", duration, "url" if url else "file path", text)
         return utterance_id
 
-    def stop_speaking(self, atom: str | None = None) -> None:
-        self.send(self.body_command("stop_speaking", atom=atom))
+    def stop_speaking(self) -> None:
+        self.send(self.body_command("stop_speaking"))
 
-    def body_command(self, type_: str, atom: str | None = None, **fields: Any) -> dict[str, Any]:
-        """Builds a body command for one Companion atom (default: target_atom, None = Client's choice)."""
-        return protocol.make_command(type_, atom=atom or self.target_atom, **fields)
+    def body_command(self, type_: str, **fields: Any) -> dict[str, Any]:
+        """Builds a body command (speak, expression, ...) for the plugin's body."""
+        return protocol.make_command(type_, **fields)
 
     def send(self, command: dict[str, Any]) -> None:
         self.transport.send(command)
