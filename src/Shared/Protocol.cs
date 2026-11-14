@@ -1,16 +1,18 @@
-// Message protocol shared with the companion app, and the bridge contract between the
-// AIBody Session plugin and the AIBody Person plugins. Compiled into both plugins.
+// Message protocol shared with the companion app (Python), and the bridge contract between the
+// AIBody Client plugin and the AIBody Companion plugin. Compiled into both plugins: the build
+// (tools/assemble_plugins.py) renames the namespace AIBodyShared to AIBodyClientShared /
+// AIBodyCompanionShared, so the two plugins never define the same type names.
 // See protocol/PROTOCOL.md for the authoritative description.
 using System;
 using System.Collections.Generic;
 using SimpleJSON;
 using UnityEngine;
 
-namespace AIBody
+namespace AIBodyShared
 {
     public static class Protocol
     {
-        public const int Version = 1;
+        public const int Version = 2;
 
         // Commands (companion -> plugin)
         public const string CmdPing = "ping";
@@ -43,47 +45,30 @@ namespace AIBody
         public const string EvtConfig = "config";
         public const string EvtPtt = "ptt";
         public const string EvtListDevices = "list_devices";
-        public const string EvtPersons = "persons";
-        public const string EvtPersonStatus = "person_status";
+        public const string EvtCompanions = "companions";
+        public const string EvtCompanionStatus = "companion_status";
 
-        // ---- Session <-> Person bridge (inside VaM, no files or network involved) ----
-        // There is one Person plugin package per character SLOT, each a distinct script:
-        //   slot "person1": d0n.AIBodyPerson  (class AIBody.AIBodyPersonPlugin),   params "AIBody ..."
-        //   slot "person2": d0n.AIBodyPerson2 (class AIBody2.AIBodyPerson2Plugin), params "AIBody2 ..."
-        // Each Person plugin registers <prefix> Inbox / Outbox / Person Version string params. The
-        // Session plugin finds them by scanning SuperController.singleton.GetAtoms():
-        //   Session writes ONE message (JSON object, "slot" set) into the Inbox; the Person plugin's
-        //   callback checks the slot, handles it synchronously and resets the value to "".
-        //   Person appends events (with "slot" and "atom") to a JSON array in the Outbox; the Session
-        //   plugin reads the array, resets the value to "" and forwards the events.
-        public const string Slot1 = "person1";
-        public const string Slot2 = "person2";
-        public static readonly string[] Slots = { Slot1, Slot2 };
+        // ---- Client <-> Companion bridge (inside VaM, no files or network involved) ----
+        // The Companion plugin (on the AI's Person atom) registers three JSONStorableString params.
+        // The Client plugin finds them by scanning SuperController.singleton.GetAtoms():
+        //   Client writes ONE message (JSON object, with "via":"aibody_client" and "client":<its
+        //   atom uid>) into CompanionInboxParam; the Companion's callback checks the sender,
+        //   handles it synchronously and resets the value to "".
+        //   Companion appends events (with "atom") to a JSON array in CompanionOutboxParam; the
+        //   Client reads the array, resets the value to "" and forwards the events.
+        public const string CompanionInboxParam = "AIBody Companion Inbox";
+        public const string CompanionOutboxParam = "AIBody Companion Outbox";
+        public const string CompanionVersionParam = "AIBody Companion Version";
+        public const string ViaClient = "aibody_client";
         public const int MaxOutboxEvents = 100;
 
-        // Error codes of slot routing (also in protocol/PROTOCOL.md).
-        public const string ErrNoPerson = "no_person";
-        public const string ErrSlotConflict = "slot_conflict";
-        public const string ErrSlotMismatch = "slot_mismatch";
-        public const string ErrWrongSlot = "wrong_slot";
-        public const string ErrUnknownSlot = "unknown_slot";
+        // Error codes of the bridge (also in protocol/PROTOCOL.md).
+        public const string ErrNoCompanion = "no_companion";
+        public const string ErrCompanionConflict = "companion_conflict";
+        public const string ErrNotFromClient = "not_from_client";
+        public const string ErrClientConflict = "client_conflict";
 
-        public static bool IsSlot(string slot)
-        {
-            return Array.IndexOf(Slots, slot) >= 0;
-        }
-
-        /// <summary>Param name prefix of a slot: "AIBody" (person1) or "AIBody2" (person2).</summary>
-        public static string SlotParamPrefix(string slot)
-        {
-            return slot == Slot1 ? "AIBody" : "AIBody" + slot.Substring("person".Length);
-        }
-
-        public static string InboxParam(string slot) { return SlotParamPrefix(slot) + " Inbox"; }
-        public static string OutboxParam(string slot) { return SlotParamPrefix(slot) + " Outbox"; }
-        public static string VersionParam(string slot) { return SlotParamPrefix(slot) + " Person Version"; }
-
-        /// <summary>Command types the Session plugin forwards to a Person plugin.</summary>
+        /// <summary>Command types the Client plugin forwards to the Companion plugin.</summary>
         public static readonly string[] BodyCommands =
         {
             CmdSpeak, CmdStopSpeaking, CmdExpression, CmdSetMorphs, CmdResetMorphs,

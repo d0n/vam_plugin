@@ -1,0 +1,7 @@
+Shared/Log.cs
+Shared/Protocol.cs
+ITransport.cs
+FileTransport.cs
+CompanionRegistry.cs
+MicConfig.cs
+AIBodyClient.cs

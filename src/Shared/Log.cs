@@ -3,7 +3,7 @@
 // each plugin sets its own Prefix in Init().
 using System;
 
-namespace AIBody
+namespace AIBodyShared
 {
     public static class Log
     {

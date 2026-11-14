@@ -1,9 +1,9 @@
 // OPTIONAL: only compiled in the AIBODY_HTTP build. Not listed in the default .cslist files,
 // because VaM 1.22 may refuse to load plugins that reference UnityEngine.Networking.
-// To enable: add "#define AIBODY_HTTP" as the first line of Session/AIBodySession.cs and
-// Person/SpeechPlayer.cs and add Optional/*.cs to AIBodySession.cslist.
+// To enable (loose files): python tools/assemble_plugins.py --http --out <dir>. That adds
+// "#define AIBODY_HTTP" to the Client and Companion sources and Optional/*.cs to AIBodyClient.cslist.
 #if AIBODY_HTTP
-// HTTP transport against the companion's local HTTP server (primary transport).
+// HTTP transport against the companion app's local HTTP server (primary transport).
 //
 // Needs "Allow Plugins Network Access" in VaM's security settings (off by default).
 // Raw sockets and WebSockets are not usable from the plugin sandbox / Unity 2018.1 Mono,
@@ -11,7 +11,7 @@
 //   - long-poll for commands (the server holds the request until a command arrives or
 //     `wait` seconds pass), so latency is near zero without hammering the server
 //   - batched POSTs for events
-//   - hello handshake with a server session id; a changed session id means the companion
+//   - hello handshake with a server session id; a changed session id means the companion app
 //     restarted, which bumps ConnectionEpoch so the plugin re-sends ready + config
 //   - exponential backoff with jitter on any failure, then a fresh hello
 // TODO(verify): on VaM 1.22 confirm UnityWebRequest to 127.0.0.1 works with network access
@@ -29,8 +29,9 @@ using System.Text;
 using SimpleJSON;
 using UnityEngine;
 using UnityEngine.Networking;
+using AIBodyShared;
 
-namespace AIBody
+namespace AIBodyClient
 {
     public class HttpTransport : ITransport
     {
@@ -161,7 +162,7 @@ namespace AIBody
             _sendInFlight = false;
             float delay = Mathf.Min(MaxBackoff, BaseBackoff * Mathf.Pow(2f, Mathf.Min(_failures - 1, 6)));
             _backoffRemaining = delay * UnityEngine.Random.Range(0.8f, 1.2f);
-            if (_phase == Phase.Connected) Log.Info("Lost connection to companion: " + message);
+            if (_phase == Phase.Connected) Log.Info("Lost connection to companion app: " + message);
             _phase = Phase.Backoff;
         }
 
@@ -180,7 +181,7 @@ namespace AIBody
         private static string Describe(UnityWebRequest req)
         {
             string text = req.error ?? "unknown error";
-            if (req.isNetworkError) text += " (is the companion running and 'Allow Plugins Network Access' enabled?)";
+            if (req.isNetworkError) text += " (is the companion app running and 'Allow Plugins Network Access' enabled?)";
             return text;
         }
 
@@ -216,7 +217,7 @@ namespace AIBody
                 _lastError = "";
                 _reconnects++;
                 _epoch++;
-                Log.Info("Connected to companion at " + _baseUrl + " (session " + _session + ")");
+                Log.Info("Connected to companion app at " + _baseUrl + " (session " + _session + ")");
             }
             finally
             {
@@ -228,7 +229,7 @@ namespace AIBody
         {
             if (session == _session) return;
             _session = session;
-            _lastSeq = 0; // sequence numbers restart with every companion session
+            _lastSeq = 0; // sequence numbers restart with every companion app session
         }
 
         private IEnumerator PollRoutine(int gen)
@@ -261,7 +262,7 @@ namespace AIBody
             JSONClass root = JSON.Parse(body) as JSONClass;
             if (root == null)
             {
-                Fail("poll: invalid JSON from companion");
+                Fail("poll: invalid JSON from companion app");
                 return;
             }
             if (Protocol.Has(root, "session") && root["session"].Value != _session)

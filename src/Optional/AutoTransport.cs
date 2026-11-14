@@ -1,17 +1,18 @@
 // OPTIONAL: only compiled in the AIBODY_HTTP build. Not listed in the default .cslist files,
 // because VaM 1.22 may refuse to load plugins that reference UnityEngine.Networking.
-// To enable: add "#define AIBODY_HTTP" as the first line of Session/AIBodySession.cs and
-// Person/SpeechPlayer.cs and add Optional/*.cs to AIBodySession.cslist.
+// To enable (loose files): python tools/assemble_plugins.py --http --out <dir>. That adds
+// "#define AIBODY_HTTP" to the Client and Companion sources and Optional/*.cs to AIBodyClient.cslist.
 #if AIBODY_HTTP
 // "Auto" transport: HTTP is primary, the file transport is the fallback.
 //
-// Both run at the same time. Incoming commands are accepted from either (the companion only
+// Both run at the same time. Incoming commands are accepted from either (the companion app only
 // sends each command over one of them). Outgoing events go over HTTP while it is connected and
 // through the shared folder otherwise. The inbox is polled more slowly while HTTP is up.
 using System;
 using SimpleJSON;
+using AIBodyShared;
 
-namespace AIBody
+namespace AIBodyClient
 {
     public class AutoTransport : ITransport
     {
