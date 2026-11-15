@@ -9,6 +9,7 @@
 using System;
 using System.Collections.Generic;
 using SimpleJSON;
+using MVR.FileManagementSecure;
 
 namespace AIBody
 {
@@ -21,6 +22,7 @@ namespace AIBody
 
         private readonly MVRScript _plugin;
         private readonly string _pluginVersion;
+        private readonly Diag _diag;
 
         private JSONStorableBool _activeJson;
         private JSONStorableString _channelJson;
@@ -47,14 +49,18 @@ namespace AIBody
         /// <summary>Adds the body's state to ready / heartbeat / pong.</summary>
         public Action<JSONClass> DecorateStatus;
 
-        public AppLink(MVRScript plugin, string pluginVersion)
+        public AppLink(MVRScript plugin, string pluginVersion, Diag diag)
         {
             _plugin = plugin;
             _pluginVersion = pluginVersion;
+            _diag = diag ?? new Diag();
         }
 
         public bool Active { get { return _activeJson != null && _activeJson.val; } }
         public bool IsRunning { get { return _transport != null; } }
+
+        /// <summary>True once a companion_heartbeat arrived in this session.</summary>
+        public bool AppSeen { get { return _appSession != null; } }
 
         // ---------------------------------------------------------------- setup
 
@@ -73,9 +79,10 @@ namespace AIBody
             _llmJson = Engine("Language model", "echo");
             _ttsJson = Engine("Text-to-speech", "tone");
 
-            _mic = new MicConfig(_plugin, Send);
-            _mic.CreateStorables();
-            _mic.DecorateConfig = AddEngines;
+            MicConfig mic = new MicConfig(_plugin, Send);
+            mic.DecorateConfig = AddEngines;
+            _diag.Run("Mikrofon-Einstellungen (Storables)", mic.CreateStorables);
+            _mic = mic;
 
             _plugin.RegisterAction(new JSONStorableAction("Reconnect", Restart));
         }
@@ -100,20 +107,48 @@ namespace AIBody
         /// <summary>Connection controls on the left (below the status box), engines, advanced; mic menu on the right.</summary>
         public void CreateUI()
         {
-            UiHelper.Header(_plugin, "<b>Companion app link</b>", false);
-            _plugin.CreateToggle(_activeJson);
-            UiHelper.TextInput(_plugin, _channelJson, false);
-            _plugin.CreateButton("Reconnect").button.onClick.AddListener(Restart);
+            _diag.Run("UI Companion-Verbindung", () =>
+            {
+                UiHelper.Header(_plugin, "<b>Companion app link</b>", false);
+                _plugin.CreateToggle(_activeJson);
+                if (!UiHelper.TextInput(_plugin, _channelJson, false))
+                    _diag.Warn("Feld 'Channel' ist nur lesbar (InputField ging nicht); Standard 'default' bleibt.");
+                _plugin.CreateButton("Reconnect").button.onClick.AddListener(Restart);
+            });
+            _diag.Run("UI Engines", () =>
+            {
+                UiHelper.Header(_plugin, "<b>Engines</b> (provided by the companion app)", false);
+                _plugin.CreatePopup(_sttJson);
+                _plugin.CreatePopup(_llmJson);
+                _plugin.CreatePopup(_ttsJson);
+            });
+            _diag.Run("UI Erweitert", () =>
+            {
+                UiHelper.Header(_plugin, "<b>Advanced</b>", false);
+                _plugin.CreateSlider(_filePollJson);
+            });
+            if (_mic != null) _diag.Run("UI Mikrofon", () => _mic.CreateUI(true));
+        }
 
-            UiHelper.Header(_plugin, "<b>Engines</b> (provided by the companion app)", false);
-            _plugin.CreatePopup(_sttJson);
-            _plugin.CreatePopup(_llmJson);
-            _plugin.CreatePopup(_ttsJson);
-
-            UiHelper.Header(_plugin, "<b>Advanced</b>", false);
-            _plugin.CreateSlider(_filePollJson);
-
-            _mic.CreateUI(true);
+        /// <summary>
+        /// Self test: creates the channel folder and writes, checks and deletes a small file there.
+        /// Returns null if that worked, else the error.
+        /// </summary>
+        public string TestWritable()
+        {
+            string path = ChannelDir + "/selftest.txt";
+            try
+            {
+                FileManagerSecure.CreateDirectory(ChannelDir);
+                FileManagerSecure.WriteAllText(path, "AIBody self test");
+                if (!FileManagerSecure.FileExists(path)) return "Testdatei nicht gefunden: " + path;
+                FileManagerSecure.DeleteFile(path);
+                return null;
+            }
+            catch (Exception e)
+            {
+                return Diag.Describe(e);
+            }
         }
 
         // ---------------------------------------------------------------- transport
@@ -122,7 +157,7 @@ namespace AIBody
         {
             get
             {
-                string channel = _channelJson.val;
+                string channel = _channelJson != null ? _channelJson.val : "default";
                 if (string.IsNullOrEmpty(channel)) return "default";
                 char[] chars = channel.ToCharArray();
                 for (int i = 0; i < chars.Length; i++)
@@ -140,7 +175,7 @@ namespace AIBody
         {
             if (!Ready) return;
             Stop();
-            if (!_activeJson.val) return;
+            if (_activeJson == null || !_activeJson.val || _filePollJson == null) return;
             FileTransport file = new FileTransport(ChannelDir, _filePollJson.val, OnPayload);
             _transport = file;
             _seenEpoch = 0;
@@ -240,16 +275,16 @@ namespace AIBody
                     HandleCompanionHeartbeat(msg);
                     break;
                 case Protocol.CmdConfigAck:
-                    _mic.HandleConfigAck(msg);
+                    if (_mic != null) _mic.HandleConfigAck(msg);
                     break;
                 case Protocol.CmdDevices:
-                    _mic.HandleDevices(msg);
+                    if (_mic != null) _mic.HandleDevices(msg);
                     break;
                 case Protocol.CmdMicState:
-                    _mic.HandleMicState(msg);
+                    if (_mic != null) _mic.HandleMicState(msg);
                     break;
                 case Protocol.CmdMicLevel:
-                    _mic.HandleMicLevel(msg);
+                    if (_mic != null) _mic.HandleMicLevel(msg);
                     break;
                 default:
                     Send(Protocol.NewError(id, "command_failed", "Unknown message type '" + type + "'"));
@@ -278,14 +313,25 @@ namespace AIBody
             }
         }
 
-        private static void SetChoices(JSONStorableStringChooser chooser, JSONArray names)
+        private bool _choicesWarned;
+
+        private void SetChoices(JSONStorableStringChooser chooser, JSONArray names)
         {
-            if (names == null) return;
+            if (names == null || chooser == null) return;
             List<string> choices = new List<string>();
             for (int i = 0; i < names.Count; i++) choices.Add(names[i].Value);
             if (!choices.Contains(chooser.val)) choices.Add(chooser.val);
-            // TODO(verify): JSONStorableStringChooser.choices is settable and refreshes the popup.
-            chooser.choices = choices;
+            try
+            {
+                // TODO(verify): JSONStorableStringChooser.choices is settable and refreshes the popup.
+                chooser.choices = choices;
+            }
+            catch (Exception e)
+            {
+                if (_choicesWarned) return;
+                _choicesWarned = true;
+                _diag.Fail("Engine-Auswahl aktualisieren", e);
+            }
         }
 
         // ---------------------------------------------------------------- frame loop
@@ -304,7 +350,7 @@ namespace AIBody
                 {
                     _seenEpoch = _transport.ConnectionEpoch;
                     SendReady();
-                    _mic.OnConnected();
+                    if (_mic != null) _mic.OnConnected();
                     _heartbeatTimer = 0f;
                 }
                 _heartbeatTimer += dt;
@@ -314,7 +360,7 @@ namespace AIBody
                     Send(BuildStatus());
                 }
             }
-            _mic.Update(dt, connected);
+            if (_mic != null) _mic.Update(dt, connected);
         }
 
         public string StatusText()

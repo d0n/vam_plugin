@@ -37,8 +37,11 @@ namespace AIBody
             public float RetryTimer;
         }
 
-        private readonly AudioSourceControl _control;
-        private readonly AudioSource _audio;
+        private readonly Atom _atom;
+        private AudioSourceControl _control;   // looked up lazily (Resolve), retried every 5 s
+        private AudioSource _audio;
+        private float _retryIn;
+        private bool _warned;
         private readonly List<Utterance> _queue = new List<Utterance>();
         private Utterance _current;
         private float _volume = 1f;
@@ -60,12 +63,46 @@ namespace AIBody
 
         public SpeechPlayer(Atom atom)
         {
-            _control = atom.GetStorableByID("HeadAudioSource") as AudioSourceControl;
-            if (_control != null) _audio = _control.audioSource;
-            if (_audio == null) Log.Error("No HeadAudioSource on atom " + atom.uid + "; speech output disabled.");
+            _atom = atom;
+            Resolve();
         }
 
-        public bool Available { get { return _audio != null; } }
+        /// <summary>Why the head audio is not available (null while it is).</summary>
+        public string LookupError { get; private set; }
+
+        public bool Available { get { return Resolve(); } }
+
+        /// <summary>Finds the head AudioSourceControl; a failed lookup is retried every 5 s.</summary>
+        private bool Resolve()
+        {
+            if (_audio != null) return true;
+            if (_retryIn > 0f) return false;
+            _retryIn = 5f;
+            try
+            {
+                _control = _atom.GetStorableByID("HeadAudioSource") as AudioSourceControl;
+                _audio = _control != null ? _control.audioSource : null;
+                if (_audio != null)
+                {
+                    _control.volume = _volume;
+                    LookupError = null;
+                    if (_warned) Log.Info("HeadAudioSource found; speech output enabled.");
+                    return true;
+                }
+                LookupError = _control == null ? "kein Storable 'HeadAudioSource'" : "HeadAudioSource ohne audioSource";
+            }
+            catch (Exception e)
+            {
+                _control = null;
+                LookupError = Diag.Describe(e);
+            }
+            if (!_warned)
+            {
+                _warned = true;
+                Log.Error("Speech output not available yet: " + LookupError + " (retrying every 5 s)");
+            }
+            return false;
+        }
         public bool IsSpeaking { get { return _current != null; } }
         public int QueueLength { get { return _queue.Count; } }
 
@@ -85,7 +122,7 @@ namespace AIBody
         /// </summary>
         public string Enqueue(string id, string path, bool interrupt)
         {
-            if (_audio == null) return "No HeadAudioSource on this atom";
+            if (!Resolve()) return "No HeadAudioSource on this atom (" + LookupError + ")";
             if (string.IsNullOrEmpty(path)) return "speak needs 'audio' (a file path below the VaM folder)";
             if (interrupt) StopAll("interrupted");
             _queue.Add(new Utterance { Id = id, Path = path });
@@ -103,15 +140,16 @@ namespace AIBody
             _queue.Clear();
             if (_current != null)
             {
-                bool ours = !_current.Started || _audio.clip == _current.StartedClip;
-                if (ours) _control.Stop();
+                bool ours = _audio != null && (!_current.Started || _audio.clip == _current.StartedClip);
+                if (ours && _control != null) _control.Stop();
                 Finish(reason);
             }
         }
 
         public void Update(float deltaTime)
         {
-            if (_audio == null) return;
+            if (_retryIn > 0f) _retryIn -= deltaTime;
+            if (!Resolve()) return;
 
             int limit = Math.Min(_queue.Count, Math.Max(1, PrefetchCount));
             for (int i = 0; i < limit; i++)

@@ -14,6 +14,7 @@ namespace AIBody
         private readonly MVRScript _plugin;
         private readonly Atom _atom;
         private readonly Action<JSONClass> _send;
+        private readonly Diag _diag;
 
         private JSONStorableFloat _volumeJson;
         private JSONStorableBool _idleJson;
@@ -33,12 +34,19 @@ namespace AIBody
 
         private float _lastCommandAge = 999f;
 
-        public Body(MVRScript plugin, Atom atom, Action<JSONClass> send)
+        public Body(MVRScript plugin, Atom atom, Action<JSONClass> send, Diag diag)
         {
             _plugin = plugin;
             _atom = atom;
             _send = send;
+            _diag = diag ?? new Diag();
         }
+
+        // Self test (looked up lazily, so these also turn true once VaM finished loading the atom).
+        public bool SpeechAvailable { get { return _speech != null && _speech.Available; } }
+        public string SpeechError { get { return _speech != null ? _speech.LookupError : "SpeechPlayer fehlt"; } }
+        public bool MorphsAvailable { get { return _morphs != null && _morphs.Available; } }
+        public string MorphsError { get { return _morphs != null ? _morphs.LookupError : "MorphHelper fehlt"; } }
 
         // ---------------------------------------------------------------- setup
 
@@ -67,42 +75,65 @@ namespace AIBody
 
         public void CreateControllers()
         {
-            _morphs = new MorphHelper(_atom);
-            _speech = new SpeechPlayer(_atom);
-            _speech.OnStarted = OnSpeechStarted;
-            _speech.OnEnded = OnSpeechEnded;
-            _speech.OnError = (id, message) => _send(Protocol.NewError(id, "audio_failed", message));
-            _speech.Volume = _volumeJson.val;
-
-            _expressions = new ExpressionController(_morphs);
-            _breathing = new BreathingController(_morphs, _breathMorphJson.val);
-            _idle = new IdleController(_atom);
-            _poses = new PoseController(_atom, _idle);
-            _router = new CommandRouter(_send, _speech, _expressions, _poses, _idle, _breathing);
-
-            _idle.Enabled = _idleJson.val;
-            _idle.Intensity = _idleIntensityJson.val;
-            _breathing.Enabled = _breathingJson.val;
-            _breathing.Rate = _breathRateJson.val;
-            _breathing.Depth = _breathDepthJson.val;
-            ReloadConfigFiles();
+            // Each controller on its own: a failing one disables only its feature. Atom lookups
+            // (HeadAudioSource, geometry, headControl) are lazy and retried, see the controllers.
+            _diag.Run("Morphs (MorphHelper)", () => _morphs = new MorphHelper(_atom));
+            _diag.Run("Sprachausgabe (SpeechPlayer)", () =>
+            {
+                SpeechPlayer speech = new SpeechPlayer(_atom);
+                speech.OnStarted = OnSpeechStarted;
+                speech.OnEnded = OnSpeechEnded;
+                speech.OnError = (id, message) => _send(Protocol.NewError(id, "audio_failed", message));
+                speech.Volume = _volumeJson != null ? _volumeJson.val : 1f;
+                _speech = speech;
+            });
+            if (_morphs != null)
+            {
+                _diag.Run("Ausdrücke (ExpressionController)", () => _expressions = new ExpressionController(_morphs));
+                _diag.Run("Atmung (BreathingController)", () =>
+                {
+                    BreathingController breathing = new BreathingController(_morphs, _breathMorphJson != null ? _breathMorphJson.val : "Breath1");
+                    if (_breathingJson != null) breathing.Enabled = _breathingJson.val;
+                    if (_breathRateJson != null) breathing.Rate = _breathRateJson.val;
+                    if (_breathDepthJson != null) breathing.Depth = _breathDepthJson.val;
+                    _breathing = breathing;
+                });
+            }
+            _diag.Run("Kopfbewegung (IdleController)", () =>
+            {
+                IdleController idle = new IdleController(_atom);
+                if (_idleJson != null) idle.Enabled = _idleJson.val;
+                if (_idleIntensityJson != null) idle.Intensity = _idleIntensityJson.val;
+                _idle = idle;
+            });
+            _diag.Run("Posen/Gesten (PoseController)", () => _poses = new PoseController(_atom, _idle));
+            _diag.Run("Befehle (CommandRouter)", () =>
+                _router = new CommandRouter(_send, _speech, _expressions, _poses, _idle, _breathing));
+            _diag.Run("Config-Dateien laden", ReloadConfigFiles);
         }
 
         /// <summary>Speech controls on the left, body settings on the right (below the mic menu).</summary>
         public void CreateUI()
         {
-            UiHelper.Header(_plugin, "<b>Speech output</b>", false);
-            _plugin.CreateSlider(_volumeJson);
-            _plugin.CreateButton("Stop speaking").button.onClick.AddListener(StopSpeaking);
-
-            UiHelper.Header(_plugin, "<b>Body</b>", true);
-            _plugin.CreateToggle(_idleJson, true);
-            _plugin.CreateSlider(_idleIntensityJson, true);
-            _plugin.CreateToggle(_breathingJson, true);
-            _plugin.CreateSlider(_breathRateJson, true);
-            _plugin.CreateSlider(_breathDepthJson, true);
-            UiHelper.TextInput(_plugin, _breathMorphJson, true);
-            _plugin.CreateButton("Reload expressions / gestures", true).button.onClick.AddListener(ReloadConfigFiles);
+            if (_volumeJson == null) { _diag.Warn("Body-UI übersprungen: Einstellungen fehlen (Body.CreateStorables)."); return; }
+            _diag.Run("UI Sprachausgabe", () =>
+            {
+                UiHelper.Header(_plugin, "<b>Speech output</b>", false);
+                _plugin.CreateSlider(_volumeJson);
+                _plugin.CreateButton("Stop speaking").button.onClick.AddListener(StopSpeaking);
+            });
+            _diag.Run("UI Körper", () =>
+            {
+                UiHelper.Header(_plugin, "<b>Body</b>", true);
+                _plugin.CreateToggle(_idleJson, true);
+                _plugin.CreateSlider(_idleIntensityJson, true);
+                _plugin.CreateToggle(_breathingJson, true);
+                _plugin.CreateSlider(_breathRateJson, true);
+                _plugin.CreateSlider(_breathDepthJson, true);
+                if (!UiHelper.TextInput(_plugin, _breathMorphJson, true))
+                    _diag.Warn("Feld 'Breath morph' ist nur lesbar (InputField ging nicht).");
+                _plugin.CreateButton("Reload expressions / gestures", true).button.onClick.AddListener(ReloadConfigFiles);
+            });
         }
 
         public void ReloadConfigFiles()
@@ -157,7 +188,7 @@ namespace AIBody
             JSONClass evt = Protocol.NewEvent(Protocol.EvtSpeechEnded);
             evt["utterance_id"] = id ?? "";
             evt["reason"] = reason;
-            evt["queue_length"].AsInt = _speech.QueueLength;
+            evt["queue_length"].AsInt = _speech != null ? _speech.QueueLength : 0;
             _send(evt);
         }
 
@@ -166,11 +197,13 @@ namespace AIBody
         public void Update(float dt)
         {
             _lastCommandAge += dt;
-            _speech.Update(dt);
-            bool speaking = _speech.IsSpeaking;
-            _expressions.Update(dt);
-            _breathing.Update(dt, speaking);
-            string finishedGesture = _idle.Update(dt, speaking, _breathing.Cycle, _breathing.CurrentDepth);
+            if (_speech != null) _speech.Update(dt);
+            bool speaking = _speech != null && _speech.IsSpeaking;
+            if (_expressions != null) _expressions.Update(dt);
+            if (_breathing != null) _breathing.Update(dt, speaking);
+            if (_idle == null) return;
+            string finishedGesture = _idle.Update(dt, speaking,
+                _breathing != null ? _breathing.Cycle : 0f, _breathing != null ? _breathing.CurrentDepth : 0f);
             if (finishedGesture != null)
             {
                 JSONClass done = Protocol.NewEvent(Protocol.EvtGestureDone);
@@ -182,11 +215,10 @@ namespace AIBody
         public string StatusText()
         {
             string text = "Last command: " + (_lastCommandAge < 999f ? _lastCommandAge.ToString("0") + "s ago" : "none yet") + "\n";
-            text += "Speaking: " + (_speech.IsSpeaking ? "yes" : "no") + ", queued: " + _speech.QueueLength + "\n";
-            text += "Expression: " + _expressions.Current + "\n";
-            text += "Audio: " + (_speech.Available ? "ok" : "missing HeadAudioSource") + "\n";
-            text += "Morphs: " + (_morphs.Available ? "ok" : "unavailable") + "\n";
-            text += "Breath morph: " + (_morphs.Find(_breathing.MorphName) != null ? _breathing.MorphName : "not found") + "\n";
+            if (_speech != null) text += "Speaking: " + (_speech.IsSpeaking ? "yes" : "no") + ", queued: " + _speech.QueueLength + "\n";
+            if (_expressions != null) text += "Expression: " + _expressions.Current + "\n";
+            if (_breathing != null && _morphs != null)
+                text += "Breath morph: " + (_breathing.HasMorph ? _breathing.MorphName : "'" + _breathing.MorphName + "' not found") + "\n";
             return text;
         }
 

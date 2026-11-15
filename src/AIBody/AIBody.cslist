@@ -1,4 +1,5 @@
 Log.cs
+Diag.cs
 Protocol.cs
 UiHelper.cs
 ITransport.cs

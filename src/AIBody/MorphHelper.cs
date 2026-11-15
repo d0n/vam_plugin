@@ -13,11 +13,17 @@ namespace AIBody
         private readonly Dictionary<string, DAZMorph> _cache = new Dictionary<string, DAZMorph>();
         private readonly HashSet<string> _missing = new HashSet<string>();
 
+        private float _nextTry;
+        private bool _warned;
+
         public MorphHelper(Atom atom)
         {
             _atom = atom;
             Refresh();
         }
+
+        /// <summary>Why morphs are not available (null while they are).</summary>
+        public string LookupError { get; private set; }
 
         /// <summary>Re-resolves the morph UI, e.g. after the character (gender) changed.</summary>
         public void Refresh()
@@ -25,22 +31,45 @@ namespace AIBody
             _cache.Clear();
             _missing.Clear();
             _morphsUI = null;
-            DAZCharacterSelector selector = _atom.GetStorableByID("geometry") as DAZCharacterSelector;
-            if (selector == null)
+            _nextTry = Time.time + 5f;
+            try
             {
-                Log.Error("No DAZCharacterSelector ('geometry') on atom " + _atom.uid + "; morph features disabled.");
-                return;
+                DAZCharacterSelector selector = _atom.GetStorableByID("geometry") as DAZCharacterSelector;
+                // morphsControlUI follows the currently selected character's gender.
+                if (selector != null) _morphsUI = selector.morphsControlUI;
+                LookupError = selector == null ? "kein DAZCharacterSelector 'geometry'"
+                    : (_morphsUI == null ? "morphsControlUI ist leer" : null);
             }
-            // morphsControlUI follows the currently selected character's gender.
-            _morphsUI = selector.morphsControlUI;
+            catch (Exception e)
+            {
+                LookupError = Diag.Describe(e);
+            }
+            if (_morphsUI == null && !_warned)
+            {
+                _warned = true;
+                Log.Error("Morphs not available yet: " + LookupError + " (retrying every 5 s)");
+            }
+            else if (_morphsUI != null && _warned)
+            {
+                _warned = false;
+                Log.Info("Morphs found.");
+            }
         }
 
-        public bool Available { get { return _morphsUI != null; } }
+        /// <summary>True once the morph UI was found; a failed lookup is retried every 5 s.</summary>
+        public bool Available
+        {
+            get
+            {
+                if (_morphsUI == null && Time.time >= _nextTry) Refresh();
+                return _morphsUI != null;
+            }
+        }
 
         /// <summary>Looks up a morph by display name first, then by uid. Returns null if unknown.</summary>
         public DAZMorph Find(string name)
         {
-            if (_morphsUI == null || string.IsNullOrEmpty(name)) return null;
+            if (string.IsNullOrEmpty(name) || !Available) return null;
             DAZMorph morph;
             if (_cache.TryGetValue(name, out morph)) return morph;
             if (_missing.Contains(name)) return null;

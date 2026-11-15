@@ -35,6 +35,10 @@ namespace AIBody
 
         public string MorphName { get { return _morphName; } }
 
+        public bool HasMorph { get { return _morph != null; } }
+
+        private float _retryIn;
+
         /// <summary>
         /// TODO(verify): there is no single standard "breath" morph in stock VaM. Pick a chest
         /// expansion morph available on the character (or one from a morph pack) in the UI.
@@ -56,7 +60,16 @@ namespace AIBody
         {
             float targetDepth = Enabled ? Depth * (speaking ? SpeakingDepthFactor : 1f) : 0f;
             _currentDepth = Mathf.MoveTowards(_currentDepth, targetDepth, deltaTime * 0.5f);
-            if (_morph == null) return;
+            if (_morph == null)
+            {
+                // The morph UI may not be ready at Init: look the morph up again every 5 s.
+                _retryIn -= deltaTime;
+                if (_retryIn > 0f || string.IsNullOrEmpty(_morphName)) return;
+                _retryIn = 5f;
+                _morph = _morphs.Find(_morphName);
+                if (_morph == null) return;
+                _baseValue = _morph.morphValue;
+            }
             if (!Enabled && _currentDepth <= 0f)
             {
                 _morph.morphValue = _baseValue;

@@ -14,7 +14,9 @@ namespace AIBody
 {
     public class IdleController
     {
-        private readonly FreeControllerV3 _head;
+        private readonly Atom _atom;
+        private FreeControllerV3 _head;   // looked up lazily, retried every 5 s
+        private float _retryIn;
         private Quaternion _lastOffset = Quaternion.identity;
         private float _time;
         private readonly float _seed;
@@ -37,12 +39,19 @@ namespace AIBody
 
         public IdleController(Atom atom)
         {
-            _head = atom.GetStorableByID("headControl") as FreeControllerV3;
-            if (_head == null) Log.Error("No headControl on atom " + atom.uid + "; idle head motion disabled.");
+            _atom = atom;
+            Resolve();
+            if (_head == null) Log.Error("No headControl on atom " + atom.uid + " yet; idle head motion waits for it.");
             _seed = UnityEngine.Random.Range(0f, 100f);
         }
 
         public bool Available { get { return _head != null; } }
+
+        private void Resolve()
+        {
+            try { _head = _atom.GetStorableByID("headControl") as FreeControllerV3; }
+            catch (Exception) { _head = null; }
+        }
 
         public bool IsGesturing { get { return _gesture != null; } }
 
@@ -60,7 +69,15 @@ namespace AIBody
         /// <summary>Returns the gesture name when it just finished this frame, else null.</summary>
         public string Update(float deltaTime, bool speaking, float breathCycle, float breathDepth)
         {
-            if (_head == null) return null;
+            if (_head == null)
+            {
+                _retryIn -= deltaTime;
+                if (_retryIn > 0f) return null;
+                _retryIn = 5f;
+                Resolve();
+                if (_head == null) return null;
+                Log.Info("headControl found; idle head motion enabled.");
+            }
             _time += deltaTime;
             string finished = null;
 
