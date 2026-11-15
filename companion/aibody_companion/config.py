@@ -18,13 +18,7 @@ ENGINES_AVAILABLE: dict[str, list[str]] = {"stt": ["null"], "llm": ["echo"], "tt
 class Config:
     vam_root: str = ""  # VaM install folder (the one containing VaM.exe)
     channel: str = "default"  # must match the AIBody plugin's "Channel"
-    # "file" (default; the only link the default VaM build supports). "http" / "auto" only work
-    # with a plugin built with AIBODY_HTTP (see README).
-    transport: str = "file"
-    http_host: str = "127.0.0.1"
-    http_port: int = 8765
     poll_interval_s: float = 0.02
-    audio_cache_dir: str = ""  # where TTS audio goes if vam_root is not set (HTTP only)
 
     sample_rate: int = 16000
     frame_ms: int = 30
@@ -49,32 +43,24 @@ class Config:
 
     @property
     def audio_dir(self) -> Path:
-        if self.vam_root:
-            return self.channel_dir / "audio"
-        if self.audio_cache_dir:
-            return Path(self.audio_cache_dir)
-        return Path.home() / ".cache" / "aibody" / "audio" / self.channel
+        return self.channel_dir / "audio"
 
-    def audio_rel_path(self, name: str) -> str | None:
-        """Path the AIBody plugin can load directly (relative to the VaM folder), if vam_root is set."""
-        return f"{PLUGIN_DATA_SUBDIR}/{self.channel}/audio/{name}" if self.vam_root else None
+    def audio_rel_path(self, name: str) -> str:
+        """Path the AIBody plugin loads with VaM's URLAudioClipManager (relative to the VaM folder)."""
+        return f"{PLUGIN_DATA_SUBDIR}/{self.channel}/audio/{name}"
 
     def audio_abs_path(self, name: str) -> Path:
         return self.audio_dir / name
 
     def validate(self) -> list[str]:
         errors = []
-        if self.transport not in ("auto", "file", "http"):
-            errors.append("transport must be 'auto', 'http' or 'file'")
-        if self.vam_root and not Path(self.vam_root).is_dir():
+        if not self.vam_root:
+            errors.append("vam_root is required (path to the VaM folder; the plugin and this app share files there)")
+        elif not Path(self.vam_root).is_dir():
             errors.append(f"vam_root does not exist: {self.vam_root}")
-        if self.transport == "file" and not self.vam_root:
-            errors.append("the file transport needs vam_root (path to the VaM folder)")
         for kind, name in (("stt", self.stt), ("llm", self.llm), ("tts", self.tts)):
             if name not in ENGINES_AVAILABLE[kind]:
                 errors.append(f"{kind} engine {name!r} is not available (have: {ENGINES_AVAILABLE[kind]})")
-        if not (1 <= self.http_port <= 65535):
-            errors.append("http_port must be 1..65535")
         return errors
 
     def to_dict(self) -> dict[str, Any]:

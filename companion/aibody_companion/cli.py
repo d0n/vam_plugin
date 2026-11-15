@@ -12,7 +12,7 @@ from .audio import EchoGate, MicController
 from .config import Config, load_config
 from .orchestrator import Companion
 from .pipeline import EchoLlm, NullStt, ToneTts
-from .transport import AutoTransport, FileTransport, HttpTransport, Transport
+from .transport import FileTransport, Transport
 
 log = logging.getLogger("aibody_companion")
 
@@ -20,12 +20,8 @@ log = logging.getLogger("aibody_companion")
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="aibody_companion", description="Companion app for the VaM AIBody plugin")
     p.add_argument("--config", help="JSON config file (see config.example.json)")
-    p.add_argument("--vam-root", dest="vam_root", help="VaM install folder (needed for the file transport)")
+    p.add_argument("--vam-root", dest="vam_root", help="VaM install folder (required)")
     p.add_argument("--channel", help="AIBody plugin channel (default: default)")
-    p.add_argument("--transport", choices=["file", "http", "auto"],
-                   help="file (default). http/auto need a plugin built with AIBODY_HTTP")
-    p.add_argument("--host", dest="http_host", help="HTTP bind address (default 127.0.0.1)")
-    p.add_argument("--port", dest="http_port", type=int, help="HTTP port (default 8765)")
     p.add_argument("--no-mic", action="store_true", help="never open the microphone (text input only)")
     p.add_argument("--no-stdin", action="store_true", help="do not read typed messages from stdin")
     p.add_argument("--list-devices", action="store_true", help="print input devices and exit")
@@ -34,16 +30,8 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def build_transport(cfg: Config) -> Transport:
-    file = FileTransport(cfg.channel_dir) if cfg.has_vam_root else None
-    if cfg.transport == "file":
-        assert file is not None
-        return file
-    http = HttpTransport(cfg.channel, cfg.http_host, cfg.http_port, audio_dir=cfg.audio_dir)
-    if cfg.transport == "http":
-        return http
-    if file is None:
-        log.warning("vam_root not set: file fallback disabled, using HTTP only")
-    return AutoTransport(http, file)
+    """The only link to the plugin: JSON files in <vam_root>/Saves/PluginData/AIBody/<channel>/."""
+    return FileTransport(cfg.channel_dir)
 
 
 def build_stack(cfg: Config, use_mic: bool = True) -> Companion:
@@ -101,8 +89,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0 if not error else 1
 
     cfg = load_config(args.config, {
-        "vam_root": args.vam_root, "channel": args.channel, "transport": args.transport,
-        "http_host": args.http_host, "http_port": args.http_port,
+        "vam_root": args.vam_root, "channel": args.channel,
     })
     errors = cfg.validate()
     if errors:

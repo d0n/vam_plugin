@@ -12,7 +12,7 @@ companion app  <-- files in Saves/PluginData/AIBody/<channel>/ -->  AIBody plugi
                                                                       AppLink --in-process--> Body
 ```
 
-The VaM side is **one plugin**: `Custom/Scripts/d0n/AIBody/AIBody.cslist` in `d0n.AIBody.3.var`,
+The VaM side is **one plugin**: `Custom/Scripts/d0n/AIBody/AIBody.cslist` in `d0n.AIBody.4.var`,
 one MVRScript (`AIBody.AIBodyPlugin`), loaded once on the AI character's Person atom (Plugins
 tab). Inside it, two plain C# components call each other directly:
 
@@ -41,7 +41,10 @@ or a JSON array of messages.
 
 ## Transports (companion app <-> AIBody plugin)
 
-### File transport (default, the only one in the default build)
+### File transport (the only transport)
+
+The plugin contains no network code at all (no `UnityEngine.Networking`, no `UnityWebRequest`,
+no sockets), so it needs no "Allow Plugins Network Access". The file folder is the only link.
 
 All paths are relative to the VaM install folder:
 
@@ -67,48 +70,13 @@ Saves/PluginData/AIBody/<channel>/audio/    speech audio written by the companio
 - `<channel>` defaults to `default` (AIBody plugin "Channel", companion app `channel`). Both sides
   must use the same value.
 
-### HTTP (optional build only)
-
-VaM 1.22 plugins that use `UnityEngine.Networking` / `UnityWebRequest` may be refused by the
-sandbox, so the default build contains no network code at all. `src/Optional/HttpTransport.cs`
-and `AutoTransport.cs` are compiled only with `#define AIBODY_HTTP` (see the README). With that
-build the AIBody plugin offers "Auto (HTTP, file fallback)" and "HTTP only", and the companion
-`--transport http|auto` serves:
-
-```
-GET  /v1/health
-GET  /v1/hello?channel=<c>&plugin=<version>        -> {"session", "protocol", "server", "channel", "long_poll_max"}
-GET  /v1/commands?channel=<c>&after=<seq>&wait=<s> -> {"commands": [...], "last": <seq>, "session": "..."}
-POST /v1/events?channel=<c>                        body: JSON array of events (a single object is accepted)
-GET  /v1/audio/<file>                              speech audio (wav/ogg/mp3) from the companion's audio folder
-```
-
-Connection life cycle (plugin side):
-
-1. **hello**: the plugin sends its version and gets the server `session` id. A different session
-   id than last time means the companion restarted: the plugin resets `after` to 0.
-2. **connected**: the plugin keeps one long-poll open (`wait=10`, request timeout 15 s). The
-   server answers as soon as a command newer than `after` exists, or with an empty list after
-   `wait` seconds (max 25). `last` becomes the next `after`. Events are POSTed in batches of up
-   to 50 as they occur.
-3. **any failure** (network error, HTTP error, invalid JSON): the plugin aborts open requests,
-   waits with exponential backoff (0.5 s doubling up to 10 s, ±20 % jitter) and starts again
-   with hello. Events queued while offline are dropped on reconnect (they are stale).
-4. After every (re)connect, companion restart or switch between HTTP and files, the plugin sends
-   `ready`, its full `config` and `list_devices`. While connected it sends a `heartbeat` every 2 s.
-
-Server side: the companion counts the plugin as connected while a long-poll is open or it was
-seen in the last 5 s. Commands older than 10 s are not delivered (no replay of old speech after a
-late start). Requests for another channel get `409`. If `after` is larger than the server's last
-sequence number (plugin talked to an earlier session), the server treats it as 0.
-
 ## Commands (companion -> VaM)
 
 ### Body (handled by the plugin's Body)
 
 | type            | fields                                                                 | effect |
 |-----------------|------------------------------------------------------------------------|--------|
-| `speak`         | `url` and/or `audio` (one required), `text`, `expression`, `intensity`, `queue` (`append`/`interrupt`), `duration` | queues speech audio, see [Audio delivery](#audio-delivery) |
+| `speak`         | `audio` (required), `text`, `expression`, `intensity`, `queue` (`append`/`interrupt`), `duration` | queues speech audio, see [Audio delivery](#audio-delivery) |
 | `stop_speaking` | -                                                                      | stops playback and clears the queue |
 | `expression`    | `name` (required), `intensity` (1), `blend` s (0.4), `hold` s (keep)   | blends to an expression preset |
 | `set_morphs`    | `morphs` {name: value} (required), `blend` s, `release_others` bool    | sets raw morph values |
@@ -119,6 +87,10 @@ sequence number (plugin talked to an earlier session), the server treats it as 0
 | `idle`          | `enabled`, `intensity` 0..1                                            | procedural idle head motion |
 | `breathing`     | `enabled`, `rate` breaths/min, `depth`                                 | procedural breathing |
 
+`pose`, `gesture` (Timeline) and `trigger` use `JSONStorable.CallAction(name)` directly. The plugin
+cannot list a storable's actions (no evidenced API for that), so a misspelled action name is
+not detected by the plugin; a missing storable or parameter is reported as `command_failed`.
+
 ### App link
 
 | type                  | fields | effect |
@@ -127,6 +99,10 @@ sequence number (plugin talked to an earlier session), the server treats it as 0
 | `companion_heartbeat` | `session` (required), `version`, `engines_available` (`{"stt": [...], "llm": [...], "tts": [...]}`), `mic_capturing` | companion liveness; fills the engine menus |
 
 ### Microphone feedback (app link)
+
+The microphone is opened only by the companion app. The plugin never touches a VaM/Unity
+microphone API: it shows the device names from `devices`, and sends settings (`config`) and
+push-to-talk (`ptt`) as event files.
 
 | type         | fields | when |
 |--------------|--------|------|
@@ -193,11 +169,9 @@ The companion writes each TTS clip to `Saves/PluginData/AIBody/<channel>/audio/`
 `vam_root`) and sends a `speak` with:
 
 - `audio`: `Saves/PluginData/AIBody/<channel>/audio/<file>`, relative to the VaM folder. The
-  AIBody plugin loads it with VaM's own `URLAudioClipManager.QueueClip` (no `UnityWebRequest` in
-  plugin code) and plays the resulting `NamedAudioClip` with the head `AudioSourceControl.PlayNow`,
+  AIBody plugin loads it with VaM's own `URLAudioClipManager.QueueClip` (after
+  `SuperController.NormalizeMediaPath`) and plays the resulting `NamedAudioClip` with the head `AudioSourceControl.PlayNow`,
   so VaM's lip sync animates the mouth.
-- `url`: only with the optional HTTP build (`/v1/audio/<file>`, downloaded with
-  `UnityWebRequestMultimedia`). The default build ignores it.
 
 The plugin keeps an ordered queue (`queue: append`, default) and prefetches the next two
 clips while one plays. `queue: interrupt` stops the current clip (`speech_ended` reason
@@ -221,6 +195,9 @@ records regardless of the gate. See `companion/aibody_companion/audio/echo_gate.
 
 ## Versioning
 
+- v3, AIBody 0.6.1 revision: the optional HTTP transport is gone, so `speak.url` was removed and
+  `speak.audio` is required; `transport` / `link` in events are `file` or `none`. A 0.6.0 plugin
+  and a 0.6.1 companion app still work together (0.6.0 used only `audio` over files).
 - v3 (AIBody 0.6.0): one plugin on the AI character. The envelope field `atom` on commands, the
   events `companions` / `companion_status` and the routing errors are gone; the body's state comes
   with `ready` / `heartbeat` / `pong`.

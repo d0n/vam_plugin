@@ -85,9 +85,7 @@
     },
     "transport": {
       "enum": [
-        "auto",
         "file",
-        "http",
         "none"
       ]
     },
@@ -125,9 +123,7 @@
     },
     "link": {
       "enum": [
-        "http",
         "file",
-        "auto",
         "none"
       ]
     },

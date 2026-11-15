@@ -30,9 +30,5 @@ class Transport(abc.ABC):
 
     @property
     def link(self) -> str | None:
-        """Which link currently reaches the plugin: "http", "file" or None."""
+        """Which link currently reaches the plugin ("file") or None."""
         return self.name if self.connected else None
-
-    def audio_url(self, file_name: str) -> str | None:
-        """URL path the plugin can download an audio file from, or None if not served."""
-        return None

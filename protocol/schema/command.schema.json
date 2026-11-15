@@ -128,10 +128,6 @@
       "type": "number",
       "minimum": 0
     },
-    "url": {
-      "type": "string",
-      "description": "speak: audio URL; a path like /v1/audio/x.wav is resolved against the companion base URL"
-    },
     "queue": {
       "enum": [
         "append",
@@ -262,17 +258,8 @@
         }
       },
       "then": {
-        "anyOf": [
-          {
-            "required": [
-              "url"
-            ]
-          },
-          {
-            "required": [
-              "audio"
-            ]
-          }
+        "required": [
+          "audio"
         ]
       }
     },

@@ -57,14 +57,15 @@ class ProtocolTests(unittest.TestCase):
         for name in protocol.EVENTS:
             self.assertIn(f'= "{name}";', source, name)
 
-    def test_speak_needs_url_or_audio(self):
+    def test_speak_needs_audio_and_has_no_url(self):
         self.assertTrue(protocol.validate_command({"type": "speak", "text": "hi"}))
-        self.assertFalse(protocol.validate_command({"type": "speak", "url": "/v1/audio/a.wav"}))
+        self.assertTrue(protocol.validate_command({"type": "speak", "audio": "Saves/x.wav", "url": "/a.wav"}))
+        self.assertTrue(protocol.validate_command({"type": "speak", "audio": ""}))
         self.assertFalse(protocol.validate_command({"type": "speak", "audio": "Saves/x.wav"}))
 
     def test_speak_queue_mode(self):
-        self.assertTrue(protocol.validate_command({"type": "speak", "url": "/a.wav", "queue": "later"}))
-        self.assertFalse(protocol.validate_command({"type": "speak", "url": "/a.wav", "queue": "interrupt"}))
+        self.assertTrue(protocol.validate_command({"type": "speak", "audio": "a.wav", "queue": "later"}))
+        self.assertFalse(protocol.validate_command({"type": "speak", "audio": "a.wav", "queue": "interrupt"}))
 
     def test_mic_feedback_commands(self):
         self.assertTrue(protocol.validate_command({"type": "devices", "devices": "x"}))

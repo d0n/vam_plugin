@@ -20,8 +20,8 @@ from . import PROTOCOL_VERSION
 # command type -> (required fields, optional fields)
 COMMANDS: dict[str, tuple[set[str], set[str]]] = {
     "ping": (set(), set()),
-    # speak needs at least one of url / audio (checked in validate_command)
-    "speak": (set(), {"url", "audio", "text", "expression", "intensity", "queue", "duration"}),
+    # audio: WAV/OGG path relative to the VaM folder (Saves/PluginData/AIBody/<channel>/audio/...)
+    "speak": ({"audio"}, {"text", "expression", "intensity", "queue", "duration"}),
     "stop_speaking": (set(), set()),
     "expression": ({"name"}, {"intensity", "blend", "hold"}),
     "set_morphs": ({"morphs"}, {"blend", "release_others"}),
@@ -106,8 +106,8 @@ def validate_command(msg: Any) -> list[str]:
         if not isinstance(morphs, dict) or not all(isinstance(v, (int, float)) for v in morphs.values()):
             errors.append("set_morphs: 'morphs' must map morph names to numbers")
     if type_ == "speak":
-        if not (msg.get("url") or msg.get("audio")):
-            errors.append("speak: needs 'url' or 'audio'")
+        if not (isinstance(msg.get("audio"), str) and msg["audio"]):
+            errors.append("speak: 'audio' must be a non-empty path")
         if msg.get("queue", "append") not in SPEAK_QUEUE_MODES:
             errors.append(f"speak: queue must be one of {SPEAK_QUEUE_MODES}")
     if type_ == "devices" and not isinstance(msg.get("devices"), list):

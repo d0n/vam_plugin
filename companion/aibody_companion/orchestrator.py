@@ -255,17 +255,13 @@ class Companion:
         path = self.cfg.audio_abs_path(name)
         duration = self.tts.synthesize(text, path)
         self._track_audio_file(path)
-        url = self.transport.audio_url(name)
         rel = self.cfg.audio_rel_path(name)
-        if not url and not rel:
-            log.error("Cannot deliver audio: no HTTP link and no vam_root for the file path")
-            return utterance_id
         self.gate.on_speak_sent(utterance_id, duration, interrupt=interrupt)
         self.send(self.body_command(
-            "speak", id_=utterance_id, url=url, audio=rel, text=text, duration=round(duration, 3),
+            "speak", id_=utterance_id, audio=rel, text=text, duration=round(duration, 3),
             queue="interrupt" if interrupt else "append",
         ))
-        log.info("Say (%.1fs, via %s): %s", duration, "url" if url else "file path", text)
+        log.info("Say (%.1fs): %s", duration, text)
         return utterance_id
 
     def stop_speaking(self) -> None:

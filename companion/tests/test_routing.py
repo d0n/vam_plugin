@@ -130,9 +130,9 @@ class RoutingTests(unittest.TestCase):
         self.assertTrue(Config(vam_root=self.tmp.name, tts="nope").validate())
         self.assertEqual(Config(vam_root=self.tmp.name).validate(), [])
 
-    def test_default_transport_is_file_and_needs_vam_root(self):
-        self.assertEqual(Config().transport, "file")
+    def test_vam_root_is_required(self):
         self.assertTrue(Config().validate())
+        self.assertFalse(hasattr(Config(), "transport"), "file transport is the only link")
 
     def test_failed_speak_opens_the_gate(self):
         for code in ("audio_failed", "command_failed"):

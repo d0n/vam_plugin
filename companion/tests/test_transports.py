@@ -1,32 +1,13 @@
 import json
 import tempfile
-import threading
 import time
 import unittest
-import urllib.error
-import urllib.request
 from pathlib import Path
 
 from aibody_companion.config import Config
 from aibody_companion.orchestrator import Companion
 from aibody_companion.pipeline import EchoLlm, NullStt, ToneTts, wav_duration
-from aibody_companion.transport import AutoTransport, FileTransport, HttpTransport
-
-
-def get(url, timeout=5):
-    with urllib.request.urlopen(url, timeout=timeout) as r:
-        return r.status, r.read()
-
-
-def get_json(url, timeout=5):
-    return json.loads(get(url, timeout)[1])
-
-
-def post_json(url, payload):
-    req = urllib.request.Request(url, data=json.dumps(payload).encode(), method="POST",
-                                 headers={"Content-Type": "application/json"})
-    with urllib.request.urlopen(req, timeout=5) as r:
-        return json.loads(r.read())
+from aibody_companion.transport import FileTransport
 
 
 class FileTransportTests(unittest.TestCase):
@@ -56,99 +37,6 @@ class FileTransportTests(unittest.TestCase):
             self.assertFalse(list(t.inbox.glob("*.json")))
 
 
-class HttpTransportTests(unittest.TestCase):
-    def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory()
-        self.audio = Path(self.tmp.name) / "audio"
-        self.audio.mkdir()
-        self.t = HttpTransport("Person", port=0, audio_dir=self.audio)
-        self.t.start()
-        self.base = f"http://127.0.0.1:{self.t.port}"
-
-    def tearDown(self):
-        self.t.stop()
-        self.tmp.cleanup()
-
-    def test_hello_returns_session(self):
-        hello = get_json(f"{self.base}/v1/hello?channel=Person&plugin=0.2.0")
-        self.assertEqual(hello["session"], self.t.session)
-        self.assertEqual(hello["protocol"], 3)
-        self.assertEqual(self.t.plugin_version, "0.2.0")
-        self.assertTrue(self.t.connected)
-
-    def test_wrong_channel_rejected(self):
-        with self.assertRaises(urllib.error.HTTPError) as ctx:
-            get(f"{self.base}/v1/hello?channel=Other")
-        self.assertEqual(ctx.exception.code, 409)
-
-    def test_poll_and_post(self):
-        self.t.send({"type": "ping", "id": "1"})
-        data = get_json(f"{self.base}/v1/commands?channel=Person&after=0")
-        self.assertEqual(data["last"], 1)
-        self.assertEqual(data["session"], self.t.session)
-        self.assertEqual(data["commands"][0]["id"], "1")
-        self.assertEqual(get_json(f"{self.base}/v1/commands?channel=Person&after=1")["commands"], [])
-        post_json(f"{self.base}/v1/events?channel=Person", [{"type": "ready"}, {"type": "heartbeat"}])
-        self.assertEqual([e["type"] for e in self.t.poll_events()], ["ready", "heartbeat"])
-
-    def test_long_poll_returns_when_command_arrives(self):
-        threading.Timer(0.3, lambda: self.t.send({"type": "ping", "id": "late"})).start()
-        start = time.monotonic()
-        data = get_json(f"{self.base}/v1/commands?channel=Person&after=0&wait=5", timeout=10)
-        elapsed = time.monotonic() - start
-        self.assertEqual(data["commands"][0]["id"], "late")
-        self.assertLess(elapsed, 2.0)
-        self.assertGreaterEqual(elapsed, 0.25)
-
-    def test_long_poll_times_out_empty(self):
-        start = time.monotonic()
-        data = get_json(f"{self.base}/v1/commands?channel=Person&after=0&wait=0.4")
-        self.assertEqual(data["commands"], [])
-        self.assertGreaterEqual(time.monotonic() - start, 0.35)
-
-    def test_plugin_ahead_of_new_session_resyncs(self):
-        self.t.send({"type": "ping", "id": "1"})
-        data = get_json(f"{self.base}/v1/commands?channel=Person&after=99")
-        self.assertEqual([c["id"] for c in data["commands"]], ["1"])
-
-    def test_audio_served(self):
-        (self.audio / "utt-1.wav").write_bytes(b"RIFFdata")
-        self.assertEqual(self.t.audio_url("utt-1.wav"), "/v1/audio/utt-1.wav")
-        status, body = get(f"{self.base}/v1/audio/utt-1.wav")
-        self.assertEqual((status, body), (200, b"RIFFdata"))
-
-    def test_audio_rejects_traversal_and_missing(self):
-        (Path(self.tmp.name) / "secret.wav").write_bytes(b"x")
-        for name in ("..%2Fsecret.wav", "missing.wav", "notes.txt"):
-            with self.assertRaises(urllib.error.HTTPError) as ctx:
-                get(f"{self.base}/v1/audio/{name}")
-            self.assertEqual(ctx.exception.code, 404, name)
-
-
-class AutoTransportTests(unittest.TestCase):
-    def test_link_selection(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            http = HttpTransport("Person", port=0, audio_dir=Path(tmp))
-            file = FileTransport(Path(tmp) / "ch")
-            auto = AutoTransport(http, file)
-            auto.start()
-            try:
-                self.assertIsNone(auto.link)
-                auto.send({"type": "ping", "id": "early"})  # nobody connected yet: buffered on HTTP
-                self.assertFalse(list(file.inbox.glob("*.json")))
-                (file.outbox / "00000000000000000001_000001.json").write_text('{"type": "heartbeat"}')
-                self.assertEqual(len(auto.poll_events()), 1)
-                self.assertEqual(auto.link, "file")
-                self.assertIsNone(auto.audio_url("a.wav"))
-                auto.send({"type": "ping", "id": "via-file"})
-                self.assertEqual(len(list(file.inbox.glob("*.json"))), 1)
-                get(f"http://127.0.0.1:{http.port}/v1/hello?channel=Person")
-                self.assertEqual(auto.link, "http")
-                self.assertEqual(auto.audio_url("a.wav"), "/v1/audio/a.wav")
-            finally:
-                auto.stop()
-
-
 class CompanionFileTests(unittest.TestCase):
     def test_text_turn_produces_commands_and_wav(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -168,51 +56,53 @@ class CompanionFileTests(unittest.TestCase):
 
 
 class FakePlugin:
-    """Talks to the companion's HTTP server the way the C# HttpTransport does."""
+    """Talks to the companion through the channel folder the way the C# FileTransport does:
+    reads and deletes inbox/*.json, writes events as outbox/<20 digits>_<6 digits>.json."""
 
-    def __init__(self, base):
-        self.base = base
-        self.after = 0
-        self.session = None
+    def __init__(self, channel_dir: Path):
+        self.inbox = channel_dir / "inbox"
+        self.outbox = channel_dir / "outbox"
+        self.seq = 0
 
-    def hello(self):
-        self.session = get_json(f"{self.base}/v1/hello?channel=Person&plugin=test")["session"]
-
-    def poll(self, wait=0.0):
-        data = get_json(f"{self.base}/v1/commands?channel=Person&after={self.after}&wait={wait}")
-        self.after = data["last"]
-        return data["commands"]
+    def poll(self):
+        commands = []
+        for f in sorted(self.inbox.glob("*.json")):
+            commands.append(json.loads(f.read_text(encoding="utf-8")))
+            f.unlink()
+        return commands
 
     def send(self, *events):
-        batch = [dict(v=1, id=f"e{i}", ts=0, **e) for i, e in enumerate(events)]
-        post_json(f"{self.base}/v1/events?channel=Person", batch)
+        for e in events:
+            self.seq += 1
+            msg = dict(v=3, id=f"e{self.seq - 1}", ts=0, **e)
+            name = f"{time.time_ns():020d}_{self.seq:06d}.json"
+            (self.outbox / name).write_text(json.dumps(msg), encoding="utf-8")
 
 
-class CompanionHttpTests(unittest.TestCase):
+class CompanionFilePluginTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
-        self.cfg = Config(channel="Person", audio_cache_dir=str(Path(self.tmp.name) / "cache"))
-        self.cfg.audio_dir.mkdir(parents=True)
-        self.http = HttpTransport("Person", port=0, audio_dir=self.cfg.audio_dir)
-        self.http.start()
+        self.cfg = Config(vam_root=self.tmp.name, channel="Person")
+        self.t = FileTransport(self.cfg.channel_dir)
+        self.t.start()
         self.devices = [{"name": "USB Mic", "index": 1, "default": True}]
-        self.c = Companion(self.cfg, self.http, NullStt(), EchoLlm(), ToneTts(),
+        self.c = Companion(self.cfg, self.t, NullStt(), EchoLlm(), ToneTts(),
                            device_lister=lambda: (self.devices, None))
-        self.plugin = FakePlugin(f"http://127.0.0.1:{self.http.port}")
-        self.plugin.hello()
+        self.plugin = FakePlugin(self.cfg.channel_dir)
+        self.plugin.send({"type": "ready", "plugin_version": "test", "protocol": 3})
+        self.c.tick()
+        self.plugin.poll()  # drop the greeting (mic_state, heartbeat, ...)
 
     def tearDown(self):
-        self.http.stop()
         self.tmp.cleanup()
 
-    def test_speak_delivers_downloadable_audio_and_gate_follows_playback(self):
+    def test_speak_points_to_a_wav_in_the_channel_folder_and_gate_follows_playback(self):
         uid = self.c.say("Hello there")
         speak = [m for m in self.plugin.poll() if m["type"] == "speak"][0]
         self.assertEqual(speak["id"], uid)
-        self.assertNotIn("audio", speak, "no vam_root: only the URL is offered")
-        status, wav = get(self.plugin.base + speak["url"])
-        self.assertEqual(status, 200)
-        self.assertEqual(wav[:4], b"RIFF")
+        self.assertNotIn("url", speak)
+        wav = Path(self.tmp.name) / speak["audio"]
+        self.assertEqual(wav.read_bytes()[:4], b"RIFF")
         self.assertFalse(self.c.gate.is_open)
         self.plugin.send({"type": "speech_started", "utterance_id": uid, "duration": 1.0})
         self.c.tick()
@@ -231,7 +121,7 @@ class CompanionHttpTests(unittest.TestCase):
         self.assertEqual(self.c.input.vad.min_rms, 0.05)
         self.assertEqual(self.c.gate.tail_s, 1.0)
         ack = [m for m in self.plugin.poll() if m["type"] == "config_ack"][0]
-        self.assertEqual(ack["reply_to"], "e0")
+        self.assertEqual(ack["reply_to"], "e1")
         self.assertEqual(ack["applied"]["mic"]["gain"], 2.0)
         self.assertEqual(len(ack["errors"]), 1)
         self.assertEqual(ack["mic_state"]["capturing"], False)
@@ -253,12 +143,14 @@ class CompanionHttpTests(unittest.TestCase):
         self.assertIn("stop_speaking", types)
         self.assertTrue(self.c.input.ptt_active)
 
-    def test_mic_state_sent_when_connected(self):
-        self.c.tick()
+    def test_mic_state_sent_once_when_connected(self):
+        fresh = Companion(self.cfg, self.t, NullStt(), EchoLlm(), ToneTts(),
+                          device_lister=lambda: (self.devices, None))
+        fresh.tick()
         states = [m for m in self.plugin.poll() if m["type"] == "mic_state"]
         self.assertEqual(len(states), 1)
         self.assertIn("error", states[0])  # no microphone in this test stack
-        self.c.tick()
+        fresh.tick()
         self.assertEqual([m for m in self.plugin.poll() if m["type"] == "mic_state"], [])
 
 
