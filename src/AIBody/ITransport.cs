@@ -1,4 +1,4 @@
-// Transport abstraction between the plugin and the companion app.
+// Transport abstraction between the plugin and the companion app (only FileTransport exists).
 using System;
 using SimpleJSON;
 
@@ -6,7 +6,7 @@ namespace AIBody
 {
     public interface ITransport
     {
-        /// <summary>"http", "file" or "auto".</summary>
+        /// <summary>Short name for status and heartbeat ("file").</summary>
         string Name { get; }
 
         /// <summary>True while the companion app is reachable (file transport: folders are usable).</summary>
@@ -19,16 +19,10 @@ namespace AIBody
         string LastError { get; }
 
         /// <summary>
-        /// Incremented on every (re)connect, including a companion app restart behind the same URL.
+        /// Incremented on every (re)connect, including a companion app restart.
         /// The plugin re-sends "ready" and its configuration when this changes.
         /// </summary>
         int ConnectionEpoch { get; }
-
-        /// <summary>
-        /// Base URL of the companion app's HTTP server while connected over HTTP (used to download
-        /// audio), otherwise null.
-        /// </summary>
-        string HttpBaseUrl { get; }
 
         void Start();
 

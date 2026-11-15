@@ -5,9 +5,6 @@
 // with VaM's own URLAudioClipManager, the same loader the scene audio panel uses, and played
 // with AudioSourceControl.PlayNow, so VaM's built-in lip sync follows it.
 //
-// Optional build (#define AIBODY_HTTP): an absolute "url" can also be downloaded with
-// UnityWebRequestMultimedia. That code is excluded from the default compile because VaM 1.22
-// may refuse plugins that reference UnityEngine.Networking.
 //
 // Utterances play strictly in order; the next ones are prefetched while one plays.
 // speech_started / speech_ended are emitted from actual AudioSource playback state.
@@ -16,9 +13,6 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using AIBodyShared;
-#if AIBODY_HTTP
-using UnityEngine.Networking;
-#endif
 
 namespace AIBodyCompanion
 {
@@ -103,9 +97,7 @@ namespace AIBodyCompanion
         public string Enqueue(string id, string url, string path, bool interrupt)
         {
             if (_audio == null) return "No HeadAudioSource on this atom";
-#if !AIBODY_HTTP
             url = null; // downloads need the optional HTTP build
-#endif
             if (string.IsNullOrEmpty(url) && string.IsNullOrEmpty(path))
                 return "speak needs 'audio' (a file path below the VaM folder)";
             if (interrupt) StopAll("interrupted");
@@ -222,26 +214,6 @@ namespace AIBodyCompanion
         {
             string error = null;
 
-#if AIBODY_HTTP
-            if (!string.IsNullOrEmpty(u.Url) && u.Url.StartsWith("http"))
-            {
-                UnityWebRequest req = UnityWebRequestMultimedia.GetAudioClip(u.Url, GuessAudioType(u.Url));
-                req.timeout = Mathf.CeilToInt(LoadTimeout);
-                yield return req.SendWebRequest();
-                if (req.isNetworkError || req.isHttpError) error = "download failed (" + req.error + "): " + u.Url;
-                else
-                {
-                    AudioClip clip = DownloadHandlerAudioClip.GetContent(req);
-                    if (clip != null && clip.length > 0f)
-                    {
-                        u.Clip = clip;
-                        u.OwnsClip = true;
-                    }
-                    else error = "downloaded audio could not be decoded";
-                }
-                req.Dispose();
-            }
-#endif
 
             if (u.Clip == null && !string.IsNullOrEmpty(u.Path) && !u.Cancelled)
             {
@@ -281,15 +253,6 @@ namespace AIBodyCompanion
             return string.IsNullOrEmpty(a) ? b : a + "; " + b;
         }
 
-#if AIBODY_HTTP
-        private static AudioType GuessAudioType(string url)
-        {
-            string u = url.ToLowerInvariant();
-            if (u.EndsWith(".ogg")) return AudioType.OGGVORBIS;
-            if (u.EndsWith(".mp3")) return AudioType.MPEG;
-            return AudioType.WAV;
-        }
-#endif
 
         // TODO(verify): NamedAudioClip.clipToPlay is null until the URL clip finished loading.
         private static bool IsClipReady(NamedAudioClip clip)

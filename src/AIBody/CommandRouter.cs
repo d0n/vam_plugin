@@ -88,8 +88,7 @@ namespace AIBody
                             Protocol.GetFloat(msg, "intensity", 1f), 0.4f, -1f);
                     }
                     bool interrupt = Protocol.GetString(msg, "queue", "append") == "interrupt";
-                    return _speech.Enqueue(utteranceId, Protocol.GetString(msg, "url", ""),
-                        Protocol.GetString(msg, "audio", ""), interrupt);
+                    return _speech.Enqueue(utteranceId, Protocol.GetString(msg, "audio", ""), interrupt);
                 }
 
                 case Protocol.CmdStopSpeaking:

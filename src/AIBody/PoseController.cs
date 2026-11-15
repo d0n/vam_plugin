@@ -93,11 +93,12 @@ namespace AIBody
             if (string.IsNullOrEmpty(path)) return "Pose path is empty";
             JSONStorable presets = _atom.GetStorableByID("PosePresets");
             if (presets == null) return "Atom has no PosePresets storable";
-            // TODO(verify): param/action names as used by VaM 1.22's preset manager UI
-            // ("presetBrowsePath" + "LoadPreset"). Alternative: "LoadPresetWithPath" if present.
+            // Same pattern as vamdeluxe's PresetRandomizer for the Morph/Hair/Skin preset storables:
+            // presetBrowsePath = SuperController.singleton.NormalizePath(path), then CallAction("LoadPreset").
+            // TODO(verify): the "PosePresets" storable follows the same pattern on 1.22.
             JSONStorableUrl url = presets.GetUrlJSONParam("presetBrowsePath");
             if (url == null) return "PosePresets has no presetBrowsePath parameter";
-            url.val = path;
+            url.val = SuperController.singleton.NormalizePath(path);
             presets.CallAction("LoadPreset");
             return null;
         }
@@ -108,10 +109,9 @@ namespace AIBody
             if (string.IsNullOrEmpty(animation)) return "Timeline animation name is empty";
             JSONStorable timeline = FindStorable(storableHint);
             if (timeline == null) return "Timeline plugin not found on atom (looked for '" + storableHint + "')";
-            // TODO(verify): Timeline exposes one "Play <animation>" action per animation.
-            string action = "Play " + animation;
-            if (!HasAction(timeline, action)) return "Timeline has no action '" + action + "'";
-            timeline.CallAction(action);
+            // Timeline registers one "Play <animation>" action per animation and its own
+            // ControllerPlugin calls it exactly like this (vam-timeline AtomPlugin / ControllerPlugin).
+            timeline.CallAction("Play " + animation);
             return null;
         }
 
@@ -128,7 +128,6 @@ namespace AIBody
             string action = Protocol.GetString(msg, "action", "");
             if (action.Length > 0)
             {
-                if (!HasAction(storable, action)) return "Storable '" + storable.storeId + "' has no action '" + action + "'";
                 storable.CallAction(action);
                 return null;
             }
@@ -182,12 +181,6 @@ namespace AIBody
                 return null;
             }
             return "Param '" + param + "' not found on '" + storable.storeId + "'";
-        }
-
-        private static bool HasAction(JSONStorable storable, string action)
-        {
-            List<string> names = storable.GetActionNames();
-            return names != null && names.Contains(action);
         }
 
         /// <summary>

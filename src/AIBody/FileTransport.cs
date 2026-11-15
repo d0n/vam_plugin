@@ -11,8 +11,8 @@
 // Readers delete files after processing.
 // File names must sort in send order (zero padded sequence number or timestamp first).
 //
-// All file access goes through FileManagerSecure because System.IO is blocked by the
-// VaM plugin sandbox. Writes are only allowed below Saves/PluginData (and Custom/PluginData).
+// All file access goes through FileManagerSecure, the file API VaM provides to sandboxed
+// plugins. Writes are only allowed below Saves/PluginData.
 using System;
 using System.Collections.Generic;
 using SimpleJSON;
@@ -46,7 +46,6 @@ namespace AIBody
         public string LastError { get { return _lastError; } }
         public string State { get { return !_running ? "stopped" : (_connected ? "ready" : "folder error"); } }
         public int ConnectionEpoch { get { return _epoch; } }
-        public string HttpBaseUrl { get { return null; } }
 
         public float PollInterval
         {
@@ -88,14 +87,25 @@ namespace AIBody
             Poll();
         }
 
+        private static string[] OnlyJson(string[] files)
+        {
+            if (files == null) return null;
+            List<string> result = new List<string>();
+            for (int i = 0; i < files.Length; i++)
+            {
+                if (files[i] != null && files[i].EndsWith(".json", StringComparison.OrdinalIgnoreCase)) result.Add(files[i]);
+            }
+            return result.ToArray();
+        }
+
         private void Poll()
         {
             string[] files;
             try
             {
-                // TODO(verify): FileManagerSecure.GetFiles(dir, pattern) returns paths usable by
-                // ReadAllText/DeleteFile. Confirmed usage in community plugins, but check on 1.22.
-                files = FileManagerSecure.GetFiles(_inbox, "*.json");
+                // GetFiles(dir) without a pattern, as vam-scripter uses it; filtered to *.json below.
+                // TODO(verify): the returned paths are accepted by ReadAllText/DeleteFile on 1.22.
+                files = OnlyJson(FileManagerSecure.GetFiles(_inbox));
             }
             catch (Exception e)
             {

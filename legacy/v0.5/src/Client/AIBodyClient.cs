@@ -9,7 +9,6 @@
 //
 // Responsibilities:
 //   - companion app link (file transport in Saves/PluginData/AIBody/<channel>/; HTTP only in
-//     the optional AIBODY_HTTP build), channel, heartbeat, connection status
 //   - microphone menu (settings, devices, push-to-talk, level meter) and engine selection,
 //     sent to the companion app as "config"
 //   - routing: body commands from the companion app go to exactly one Companion plugin (the
@@ -31,10 +30,6 @@ namespace AIBodyClient
         public const string DataRoot = "Saves/PluginData/AIBody";
 
         private const string TransportFile = "File (shared folder)";
-#if AIBODY_HTTP
-        private const string TransportAuto = "Auto (HTTP, file fallback)";
-        private const string TransportHttp = "HTTP only";
-#endif
         private const float HeartbeatInterval = 2f;
         private const float AppTimeout = 6f;
         private const string AutoCompanion = "(auto: the only one in the scene)";
@@ -43,10 +38,6 @@ namespace AIBodyClient
         private JSONStorableStringChooser _transportJson;
         private JSONStorableString _channelJson;
         private JSONStorableFloat _filePollJson;
-#if AIBODY_HTTP
-        private JSONStorableString _hostJson;
-        private JSONStorableString _portJson;
-#endif
         private JSONStorableStringChooser _companionAtomJson;
         private JSONStorableStringChooser _sttJson;
         private JSONStorableStringChooser _llmJson;
@@ -92,10 +83,6 @@ namespace AIBodyClient
             RegisterBool(_activeJson);
 
             List<string> transports = new List<string> { TransportFile };
-#if AIBODY_HTTP
-            transports.Insert(0, TransportAuto);
-            transports.Add(TransportHttp);
-#endif
             _transportJson = new JSONStorableStringChooser("Transport", transports, transports[0], "Transport", (string v) => Restart());
             RegisterStringChooser(_transportJson);
 
@@ -104,12 +91,6 @@ namespace AIBodyClient
             RegisterString(_channelJson);
             _filePollJson = new JSONStorableFloat("File poll interval (s)", 0.1f, (float v) => Restart(), 0.02f, 2f);
             RegisterFloat(_filePollJson);
-#if AIBODY_HTTP
-            _hostJson = new JSONStorableString("Companion host", "127.0.0.1", (string v) => Restart());
-            RegisterString(_hostJson);
-            _portJson = new JSONStorableString("Companion port", "8765", (string v) => Restart());
-            RegisterString(_portJson);
-#endif
 
             // Companion for body commands without "atom". Auto = only if exactly one is in the scene.
             _companionAtomJson = new JSONStorableStringChooser("Companion atom", new List<string> { AutoCompanion },
@@ -157,10 +138,6 @@ namespace AIBodyClient
             CreateToggle(_activeJson);
             CreatePopup(_transportJson);
             CreateTextInput(_channelJson, false);
-#if AIBODY_HTTP
-            CreateTextInput(_hostJson, false);
-            CreateTextInput(_portJson, false);
-#endif
             CreateButton("Reconnect").button.onClick.AddListener(Restart);
             UIDynamicTextField status = CreateTextField(_statusJson);
             status.height = 300f;
@@ -230,15 +207,6 @@ namespace AIBodyClient
             }
             FileTransport file = new FileTransport(ChannelDir, _filePollJson.val, OnPayload);
             _transport = file;
-#if AIBODY_HTTP
-            if (_transportJson.val != TransportFile)
-            {
-                int port;
-                if (!int.TryParse(_portJson.val, out port)) port = 8765;
-                HttpTransport http = new HttpTransport(this, _hostJson.val, port, Channel, PluginVersion, OnPayload);
-                _transport = _transportJson.val == TransportHttp ? (ITransport)http : new AutoTransport(http, file);
-            }
-#endif
             _seenEpoch = 0;
             _appSession = null;
             _appAge = 999f;

@@ -68,7 +68,7 @@ namespace AIBody
         public void CreateControllers()
         {
             _morphs = new MorphHelper(_atom);
-            _speech = new SpeechPlayer(_plugin, _atom);
+            _speech = new SpeechPlayer(_atom);
             _speech.OnStarted = OnSpeechStarted;
             _speech.OnEnded = OnSpeechEnded;
             _speech.OnError = (id, message) => _send(Protocol.NewError(id, "audio_failed", message));

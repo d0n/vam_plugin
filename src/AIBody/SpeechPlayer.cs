@@ -1,54 +1,52 @@
 // Speech output: a playback queue on the Person's head audio source.
 //
-// Default build (sandbox safe, no networking): each utterance is a WAV/OGG file below the VaM
-// folder (written by the companion into Saves/PluginData/AIBody/<channel>/audio/). It is loaded
-// with VaM's own URLAudioClipManager, the same loader the scene audio panel uses, and played
-// with AudioSourceControl.PlayNow, so VaM's built-in lip sync follows it.
+// Each utterance is a WAV/OGG file below the VaM folder, written by the companion app into
+// Saves/PluginData/AIBody/<channel>/audio/. Only VaM's own audio path is used, exactly as public
+// sandboxed plugins do it (see docs/API_AUDIT.md for the evidence links):
+//   - load:  URLAudioClipManager.singleton.QueueClip(SuperController.singleton.NormalizeMediaPath(path))
+//            then URLAudioClipManager.singleton.GetClip(clip.uid)          (Dollmaster, FreeMMD)
+//   - play:  the "HeadAudioSource" AudioSourceControl's PlayNow(namedClip) (Dollmaster), so VaM's
+//            built-in lip sync follows it; Stop() and .audioSource            (FreeMMD); .volume (Dollmaster SFX)
+//   - free:  URLAudioClipManager.singleton.RemoveClip(namedClip)           (Dollmaster SFX)
+// There is no network code and no readiness API: a clip counts as started when the head
+// AudioSource (UnityEngine.AudioSource) is playing a new clip, and as finished when it stops.
+// TODO(verify): on 1.22, that a Saves/PluginData relative path works with NormalizeMediaPath +
+// QueueClip (the evidence loads paths picked in the file browser), and that PlayNow on a clip
+// still loading is retried safely (start detection via AudioSource.isPlaying/clip).
 //
-// Optional build (#define AIBODY_HTTP): an absolute "url" can also be downloaded with
-// UnityWebRequestMultimedia. That code is excluded from the default compile because VaM 1.22
-// may refuse plugins that reference UnityEngine.Networking.
-//
-// Utterances play strictly in order; the next ones are prefetched while one plays.
-// speech_started / speech_ended are emitted from actual AudioSource playback state.
+// Utterances play strictly in order; the next ones are queued for loading while one plays.
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-#if AIBODY_HTTP
-using UnityEngine.Networking;
-#endif
 
 namespace AIBody
 {
     public class SpeechPlayer
     {
-        private enum LoadState { Pending, Loading, Ready, Failed }
-
         private class Utterance
         {
             public string Id;
-            public string Url;
             public string Path;
-            public LoadState State;
+            public bool Queued;              // handed to URLAudioClipManager
+            public NamedAudioClip Clip;      // remove from URLAudioClipManager when done
             public string Error;
-            public AudioClip Clip;
-            public bool OwnsClip;           // downloaded clip (HTTP build): destroy when done
-            public NamedAudioClip Managed;   // URLAudioClipManager clip: remove when done
-            public bool Cancelled;
-            public bool SeenPlaying;
+            public bool Started;
+            public AudioClip PreviousClip;   // what the head audio held before our PlayNow
+            public AudioClip StartedClip;    // what it plays once our clip started
             public float PlayTime;
+            public float RetryTimer;
         }
 
-        private readonly MonoBehaviour _host;
         private readonly AudioSourceControl _control;
         private readonly AudioSource _audio;
-        private readonly JSONStorableFloat _controlVolume;
         private readonly List<Utterance> _queue = new List<Utterance>();
         private Utterance _current;
         private float _volume = 1f;
 
-        public float LoadTimeout = 15f;
+        /// <summary>Seconds to wait for a clip to start playing before reporting it as failed.</summary>
+        public float StartTimeout = 15f;
+        /// <summary>PlayNow is called again at this interval until the clip plays (it may still be loading).</summary>
+        public float RetryInterval = 1f;
         public int PrefetchCount = 2;
 
         /// <summary>(utteranceId, clipLengthSeconds)</summary>
@@ -60,23 +58,15 @@ namespace AIBody
         /// <summary>(utteranceId, message)</summary>
         public Action<string, string> OnError;
 
-        public SpeechPlayer(MonoBehaviour host, Atom atom)
+        public SpeechPlayer(Atom atom)
         {
-            _host = host;
             _control = atom.GetStorableByID("HeadAudioSource") as AudioSourceControl;
-            if (_control != null)
-            {
-                _audio = _control.audioSource;
-                // TODO(verify): AudioSourceControl exposes its volume slider as float param "volume".
-                // If not, GetFloatJSONParam returns null and we set AudioSource.volume directly.
-                _controlVolume = _control.GetFloatJSONParam("volume");
-            }
+            if (_control != null) _audio = _control.audioSource;
             if (_audio == null) Log.Error("No HeadAudioSource on atom " + atom.uid + "; speech output disabled.");
         }
 
         public bool Available { get { return _audio != null; } }
         public bool IsSpeaking { get { return _current != null; } }
-        public string CurrentId { get { return _current != null ? _current.Id : null; } }
         public int QueueLength { get { return _queue.Count; } }
 
         public float Volume
@@ -85,30 +75,20 @@ namespace AIBody
             set
             {
                 _volume = Mathf.Clamp01(value);
-                ApplyVolume();
+                if (_control != null) _control.volume = _volume;
             }
         }
 
-        private void ApplyVolume()
-        {
-            if (_controlVolume != null) _controlVolume.val = _volume;
-            else if (_audio != null) _audio.volume = _volume;
-        }
-
         /// <summary>
-        /// Adds an utterance. interrupt=true stops current speech and drops the queue first.
-        /// Returns an error message, or null.
+        /// Adds an utterance (path below the VaM folder). interrupt=true stops current speech and
+        /// drops the queue first. Returns an error message, or null.
         /// </summary>
-        public string Enqueue(string id, string url, string path, bool interrupt)
+        public string Enqueue(string id, string path, bool interrupt)
         {
             if (_audio == null) return "No HeadAudioSource on this atom";
-#if !AIBODY_HTTP
-            url = null; // downloads need the optional HTTP build
-#endif
-            if (string.IsNullOrEmpty(url) && string.IsNullOrEmpty(path))
-                return "speak needs 'audio' (a file path below the VaM folder)";
+            if (string.IsNullOrEmpty(path)) return "speak needs 'audio' (a file path below the VaM folder)";
             if (interrupt) StopAll("interrupted");
-            _queue.Add(new Utterance { Id = id, Url = url, Path = path, State = LoadState.Pending });
+            _queue.Add(new Utterance { Id = id, Path = path });
             return null;
         }
 
@@ -117,15 +97,14 @@ namespace AIBody
         {
             for (int i = 0; i < _queue.Count; i++)
             {
-                Utterance u = _queue[i];
-                u.Cancelled = true;
-                if (u.State != LoadState.Loading) Release(u);
-                Fire(OnEnded, u.Id, "cancelled");
+                Release(_queue[i]);
+                Fire(OnEnded, _queue[i].Id, "cancelled");
             }
             _queue.Clear();
             if (_current != null)
             {
-                if (IsOurs(_current)) StopSource();
+                bool ours = !_current.Started || _audio.clip == _current.StartedClip;
+                if (ours) _control.Stop();
                 Finish(reason);
             }
         }
@@ -137,69 +116,76 @@ namespace AIBody
             int limit = Math.Min(_queue.Count, Math.Max(1, PrefetchCount));
             for (int i = 0; i < limit; i++)
             {
-                if (_queue[i].State == LoadState.Pending)
-                {
-                    _queue[i].State = LoadState.Loading;
-                    _host.StartCoroutine(LoadRoutine(_queue[i]));
-                }
+                if (!_queue[i].Queued) Queue(_queue[i]);
             }
 
-            if (_current != null)
-            {
-                bool ours = IsOurs(_current);
-                bool playing = ours && _audio.isPlaying;
-                if (playing) _current.SeenPlaying = true;
-                _current.PlayTime += deltaTime;
-                // Grace period: playback may start a frame late, and PlayNow may swap clips once.
-                if (!ours && _current.PlayTime > 0.5f) Finish("interrupted");
-                else if (ours && !playing && (_current.SeenPlaying || _current.PlayTime > 0.5f)) Finish("completed");
-            }
+            if (_current != null) Track(deltaTime);
 
-            if (_current == null && _queue.Count > 0)
+            if (_current == null && _queue.Count > 0 && _queue[0].Queued)
             {
                 Utterance next = _queue[0];
-                if (next.State == LoadState.Failed)
+                _queue.RemoveAt(0);
+                if (next.Clip == null)
                 {
-                    _queue.RemoveAt(0);
-                    Fire(OnError, next.Id, next.Error ?? "audio failed to load");
+                    Fire(OnError, next.Id, next.Error ?? "audio could not be queued");
                     Fire(OnEnded, next.Id, "failed");
                 }
-                else if (next.State == LoadState.Ready)
-                {
-                    _queue.RemoveAt(0);
-                    Play(next);
-                }
+                else Play(next);
             }
         }
 
-        private bool IsOurs(Utterance u)
+        private void Queue(Utterance u)
         {
-            return _audio != null && u.Clip != null && _audio.clip == u.Clip;
+            u.Queued = true;
+            string url = SuperController.singleton.NormalizeMediaPath(u.Path);
+            URLAudioClip queued = URLAudioClipManager.singleton.QueueClip(url);
+            if (queued == null)
+            {
+                u.Error = "could not queue " + u.Path;
+                return;
+            }
+            u.Clip = URLAudioClipManager.singleton.GetClip(queued.uid);
+            if (u.Clip == null) u.Error = "no clip registered for " + u.Path;
         }
 
         private void Play(Utterance u)
         {
             _current = u;
-            ApplyVolume();
-            if (u.Managed != null && _control != null)
-            {
-                // VaM's own playback path: lip sync and the audio source settings apply.
-                // TODO(verify): PlayNow assigns clip.clipToPlay to the AudioSource (IsOurs relies on it).
-                _control.PlayNow(u.Managed);
-            }
-            else
-            {
-                _audio.Stop();
-                _audio.clip = u.Clip;
-                _audio.Play();
-            }
-            if (OnStarted != null) OnStarted(u.Id, u.Clip.length);
+            u.PreviousClip = _audio.clip;
+            _control.volume = _volume;
+            _control.PlayNow(u.Clip);
         }
 
-        private void StopSource()
+        private void Track(float deltaTime)
         {
-            if (_control != null) _control.Stop();
-            else _audio.Stop();
+            Utterance u = _current;
+            u.PlayTime += deltaTime;
+            if (!u.Started)
+            {
+                AudioClip clip = _audio.clip;
+                if (_audio.isPlaying && clip != null && clip != u.PreviousClip)
+                {
+                    u.Started = true;
+                    u.StartedClip = clip;
+                    if (OnStarted != null) OnStarted(u.Id, clip.length);
+                    return;
+                }
+                if (u.PlayTime > StartTimeout)
+                {
+                    Fire(OnError, u.Id, "did not start playing within " + StartTimeout.ToString("0") + " s: " + u.Path);
+                    Finish("failed");
+                    return;
+                }
+                u.RetryTimer += deltaTime;
+                if (u.RetryTimer >= RetryInterval)
+                {
+                    u.RetryTimer = 0f;
+                    _control.PlayNow(u.Clip); // the clip may have still been loading
+                }
+                return;
+            }
+            if (_audio.clip != u.StartedClip) Finish("interrupted");
+            else if (!_audio.isPlaying) Finish("completed");
         }
 
         private void Finish(string reason)
@@ -215,98 +201,10 @@ namespace AIBody
             if (cb != null) cb(a, b);
         }
 
-        // ------------------------------------------------------------------ loading
-
-        private IEnumerator LoadRoutine(Utterance u)
-        {
-            string error = null;
-
-#if AIBODY_HTTP
-            if (!string.IsNullOrEmpty(u.Url) && u.Url.StartsWith("http"))
-            {
-                UnityWebRequest req = UnityWebRequestMultimedia.GetAudioClip(u.Url, GuessAudioType(u.Url));
-                req.timeout = Mathf.CeilToInt(LoadTimeout);
-                yield return req.SendWebRequest();
-                if (req.isNetworkError || req.isHttpError) error = "download failed (" + req.error + "): " + u.Url;
-                else
-                {
-                    AudioClip clip = DownloadHandlerAudioClip.GetContent(req);
-                    if (clip != null && clip.length > 0f)
-                    {
-                        u.Clip = clip;
-                        u.OwnsClip = true;
-                    }
-                    else error = "downloaded audio could not be decoded";
-                }
-                req.Dispose();
-            }
-#endif
-
-            if (u.Clip == null && !string.IsNullOrEmpty(u.Path) && !u.Cancelled)
-            {
-                // TODO(verify): QueueClip accepts a path relative to the VaM folder on 1.22
-                // (e.g. "Saves/PluginData/AIBody/default/audio/utt-1.wav") and loads WAV/OGG.
-                NamedAudioClip managed = URLAudioClipManager.singleton.QueueClip(u.Path);
-                if (managed == null) error = AppendError(error, "could not queue " + u.Path);
-                else
-                {
-                    u.Managed = managed;
-                    float waited = 0f;
-                    while (!IsClipReady(managed) && waited < LoadTimeout && !u.Cancelled)
-                    {
-                        waited += Time.unscaledDeltaTime;
-                        yield return null;
-                    }
-                    if (IsClipReady(managed)) u.Clip = managed.clipToPlay;
-                    else error = AppendError(error, "timed out loading " + u.Path);
-                }
-            }
-
-            if (u.Cancelled)
-            {
-                Release(u);
-                yield break;
-            }
-            if (u.Clip != null) u.State = LoadState.Ready;
-            else
-            {
-                u.State = LoadState.Failed;
-                u.Error = error ?? "no audio file given";
-            }
-        }
-
-        private static string AppendError(string a, string b)
-        {
-            return string.IsNullOrEmpty(a) ? b : a + "; " + b;
-        }
-
-#if AIBODY_HTTP
-        private static AudioType GuessAudioType(string url)
-        {
-            string u = url.ToLowerInvariant();
-            if (u.EndsWith(".ogg")) return AudioType.OGGVORBIS;
-            if (u.EndsWith(".mp3")) return AudioType.MPEG;
-            return AudioType.WAV;
-        }
-#endif
-
-        // TODO(verify): NamedAudioClip.clipToPlay is null until the URL clip finished loading.
-        private static bool IsClipReady(NamedAudioClip clip)
-        {
-            return clip.clipToPlay != null;
-        }
-
         private static void Release(Utterance u)
         {
-            if (u.OwnsClip && u.Clip != null) UnityEngine.Object.Destroy(u.Clip);
+            if (u.Clip != null) URLAudioClipManager.singleton.RemoveClip(u.Clip);
             u.Clip = null;
-            u.OwnsClip = false;
-            if (u.Managed != null)
-            {
-                URLAudioClip urlClip = u.Managed as URLAudioClip;
-                if (urlClip != null) URLAudioClipManager.singleton.RemoveClip(urlClip);
-                u.Managed = null;
-            }
         }
     }
 }
