@@ -59,6 +59,8 @@ namespace AIBody
             {
                 FileManagerSecure.CreateDirectory(_inbox);
                 FileManagerSecure.CreateDirectory(_outbox);
+                ClearStaleInbox();
+                PruneOutbox(20);
                 _running = true;
                 _connected = true;
                 _epoch++;
@@ -85,6 +87,43 @@ namespace AIBody
             if (_timer < _pollInterval) return;
             _timer = 0f;
             Poll();
+        }
+
+        /// <summary>
+        /// Commands left over from before this start (e.g. the companion app wrote them while the
+        /// plugin was off, or the app crashed) must not be replayed: old speech, old poses.
+        /// </summary>
+        private void ClearStaleInbox()
+        {
+            try
+            {
+                string[] files = OnlyJson(FileManagerSecure.GetFiles(_inbox));
+                if (files == null || files.Length == 0) return;
+                for (int i = 0; i < files.Length; i++) FileManagerSecure.DeleteFile(files[i]);
+                Log.Info("Removed " + files.Length + " stale command file(s) from " + _inbox);
+            }
+            catch (Exception e)
+            {
+                Log.Debug("Could not clear stale inbox files: " + e.Message);
+            }
+        }
+
+        public int PruneOutbox(int keep)
+        {
+            try
+            {
+                string[] files = OnlyJson(FileManagerSecure.GetFiles(_outbox));
+                if (files == null || files.Length <= keep) return 0;
+                Array.Sort(files, StringComparer.Ordinal);   // names start with a timestamp
+                int remove = files.Length - Math.Max(0, keep);
+                for (int i = 0; i < remove; i++) FileManagerSecure.DeleteFile(files[i]);
+                return remove;
+            }
+            catch (Exception e)
+            {
+                Log.Debug("Could not prune outbox: " + e.Message);
+                return 0;
+            }
         }
 
         private static string[] OnlyJson(string[] files)

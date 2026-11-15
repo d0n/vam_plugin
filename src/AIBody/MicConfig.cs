@@ -87,25 +87,23 @@ namespace AIBody
         private JSONStorableBool Reg(JSONStorableBool p) { _plugin.RegisterBool(p); return p; }
         private JSONStorableFloat Reg(JSONStorableFloat p) { _plugin.RegisterFloat(p); return p; }
 
-        public void CreateUI(bool rightSide)
+        /// <summary>The "Mikrofon &amp; PTT" tab.</summary>
+        public void BuildTab(UiPage page)
         {
-            UIDynamicTextField header = _plugin.CreateTextField(new JSONStorableString("mic header", "<b>Microphone</b> (captured by the companion app)"), rightSide);
-            header.height = 40f;
-            _plugin.CreateToggle(Enabled, rightSide);
-            _plugin.CreatePopup(Mode, rightSide);
-            _plugin.CreatePopup(Device, rightSide);
-            _plugin.CreateButton("Refresh device list", rightSide).button.onClick.AddListener(RequestDevices);
-            _plugin.CreateToggle(_pttActive, rightSide);
-            _plugin.CreateToggle(PttInterrupts, rightSide);
-            UIDynamicTextField status = _plugin.CreateTextField(_status, rightSide);
-            status.height = 160f;
-            _plugin.CreateToggle(LevelMeter, rightSide);
-            _plugin.CreateSlider(Threshold, rightSide);
-            _plugin.CreateSlider(Gain, rightSide);
-            _plugin.CreateSlider(SilenceMs, rightSide);
-            _plugin.CreateSlider(MinUtteranceMs, rightSide);
-            _plugin.CreateSlider(MaxUtteranceMs, rightSide);
-            _plugin.CreateSlider(EchoTail, rightSide);
+            page.Toggle(Enabled);
+            page.Popup(Mode);
+            page.Popup(Device);
+            page.Button("Refresh device list", RequestDevices);
+            page.Toggle(_pttActive);
+            page.Toggle(PttInterrupts);
+            page.Text(_status, 160f);
+            page.Toggle(LevelMeter);
+            page.Slider(Threshold);
+            page.Slider(Gain);
+            page.Slider(SilenceMs);
+            page.Slider(MinUtteranceMs);
+            page.Slider(MaxUtteranceMs);
+            page.Slider(EchoTail);
         }
 
         public void MarkDirty()
@@ -136,6 +134,14 @@ namespace AIBody
         public JSONClass BuildConfigEvent()
         {
             JSONClass evt = Protocol.NewEvent(Protocol.EvtConfig);
+            evt["mic"] = BuildMicJson();
+            if (DecorateConfig != null) DecorateConfig(evt);
+            return evt;
+        }
+
+        /// <summary>The "mic" object: same keys in the config event and in config.json.</summary>
+        public JSONClass BuildMicJson()
+        {
             JSONClass mic = new JSONClass();
             mic["enabled"].AsBool = Enabled.val;
             mic["mode"] = Mode.val == ModePtt ? "ptt" : "vad";
@@ -148,9 +154,29 @@ namespace AIBody
             mic["gain"].AsFloat = Gain.val;
             mic["ptt_interrupts"].AsBool = PttInterrupts.val;
             mic["level_meter"].AsBool = LevelMeter.val;
-            evt["mic"] = mic;
-            if (DecorateConfig != null) DecorateConfig(evt);
-            return evt;
+            return mic;
+        }
+
+        /// <summary>Seeds the menu from config.json's "mic" object (missing keys keep their value).</summary>
+        public void ApplyMicJson(JSONClass mic)
+        {
+            if (mic == null) return;
+            Enabled.val = Protocol.GetBool(mic, "enabled", Enabled.val);
+            if (Protocol.Has(mic, "mode")) Mode.val = Protocol.GetString(mic, "mode", "vad") == "ptt" ? ModePtt : ModeVad;
+            if (Protocol.Has(mic, "device"))
+            {
+                string device = Protocol.GetString(mic, "device", "");
+                Device.val = device.Length > 0 ? device : DefaultDevice;
+            }
+            Threshold.val = Protocol.GetFloat(mic, "vad_threshold", Threshold.val);
+            SilenceMs.val = Protocol.GetFloat(mic, "end_silence_ms", SilenceMs.val);
+            MinUtteranceMs.val = Protocol.GetFloat(mic, "min_utterance_ms", MinUtteranceMs.val);
+            MaxUtteranceMs.val = Protocol.GetFloat(mic, "max_utterance_ms", MaxUtteranceMs.val);
+            EchoTail.val = Protocol.GetFloat(mic, "echo_tail_s", EchoTail.val);
+            Gain.val = Protocol.GetFloat(mic, "gain", Gain.val);
+            PttInterrupts.val = Protocol.GetBool(mic, "ptt_interrupts", PttInterrupts.val);
+            LevelMeter.val = Protocol.GetBool(mic, "level_meter", LevelMeter.val);
+            MarkDirty();
         }
 
         private void SendConfig()

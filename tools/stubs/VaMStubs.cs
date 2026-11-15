@@ -2,7 +2,7 @@
 //
 // Only members with public evidence of use in sandboxed VaM plugins are declared here, so the
 // compile check fails if the plugin starts using anything else. Each group names its evidence
-// (keys E1..E16 = links in docs/API_AUDIT.md). Deliberately NOT declared: NamedAudioClip.clipToPlay,
+// (keys E1..E20 = links in docs/API_AUDIT.md). Deliberately NOT declared: NamedAudioClip.clipToPlay,
 // JSONStorable.GetActionNames, FileManagerSecure.GetFiles(dir, pattern), SuperController.GetAtoms,
 // UnityEngine.Networking / UnityWebRequest (no stub file exists for them at all).
 #pragma warning disable 0067, 0649, 0169, 1591
@@ -96,6 +96,12 @@ public class MVRScript : JSONStorable
     public UIDynamicPopup CreatePopup(JSONStorableStringChooser p, bool rightSide = false) { return null; }  // E16
     public UIDynamicTextField CreateTextField(JSONStorableString p, bool rightSide = false) { return null; } // E12
     public UIDynamicButton CreateButton(string label, bool rightSide = false) { return null; }        // E1, E3
+    // Tabs: remove the controls of the old tab, create the new ones.                     E17, E18
+    public void RemoveToggle(UIDynamicToggle t) { }
+    public void RemoveSlider(UIDynamicSlider s) { }
+    public void RemovePopup(UIDynamicPopup p) { }
+    public void RemoveButton(UIDynamicButton b) { }
+    public void RemoveTextField(UIDynamicTextField t) { }
 }
 
 public class DAZMorph { public float morphValue; }                    // E4
@@ -135,7 +141,7 @@ namespace MVR.FileManagementSecure                                    // E15 (of
     {
         public static bool FileExists(string path, bool onlySystemFiles = false) { return false; } // E10
         public static string ReadAllText(string path) { return null; }                             // E11
-        public static void WriteAllText(string path, string text) { }                              // E11
+        public static void WriteAllText(string path, string text) { }                              // E11, E20
         public static void DeleteFile(string path) { }                                             // E10
         public static void CreateDirectory(string path) { }                                        // E10, E11
         public static string[] GetFiles(string dir) { return null; }                               // E11

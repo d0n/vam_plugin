@@ -17,15 +17,24 @@
 // phase runs in its own try/catch (Diag). A failing phase is shown in the status box and the log,
 // and the rest of the UI still appears. A non-Person atom gets an explanation instead of a blank
 // window.
+//
+// Layout: left column = header + status box (Selbsttest, live state, start log), always visible.
+// Right column = a row of tab buttons and below it the controls of the active tab. Switching tabs
+// removes the old controls with the standard Remove* methods (UiPage, evidence E17/E18).
+//
+// config.json (Saves/PluginData/AIBody/config.json, one global file) is shared with the companion
+// app, one object per tab category (docs/CONFIG.md). The plugin UI (saved with the scene) wins
+// and is written back; a scene without saved AIBody settings is seeded from the file once.
 using System;
 using SimpleJSON;
+using MVR.FileManagementSecure;
 using UnityEngine;
 
 namespace AIBody
 {
     public class AIBodyPlugin : MVRScript
     {
-        public const string PluginVersion = "0.6.2";
+        public const string PluginVersion = "0.6.3";
 
         private AppLink _link;
         private Body _body;
@@ -40,6 +49,18 @@ namespace AIBody
         private string _atomType = "?";
         private string _writable = "noch nicht geprüft";
         private string _live = "";
+
+        private static readonly string[] Tabs = { "Status", "Verbindung", "Engines", "Mikrofon & PTT", "Körper", "Erweitert" };
+        private UiPage _page;
+        private int _tab = -1;
+
+        private JSONStorableBool _settingsInitJson;   // saved with the scene: "this scene has AIBody settings"
+        private float _settingsAge;
+        private float _settingsTimer;
+        private bool _settingsChecked;
+        private bool _settingsWriteWarned;
+        private string _lastSettingsText;
+        private string _lastSettingsPath;
 
         public override void Init()
         {
@@ -88,11 +109,25 @@ namespace AIBody
             {
                 _link.OnBodyCommand = _body.Handle;
                 _link.DecorateStatus = _body.AddStatus;
+                _link.OnAppRestarted = () =>
+                {
+                    // The restarted app forgot its queue and echo gate: drop the old speech too.
+                    _body.StopSpeaking();
+                    _diag.Step("Companion-App neu gestartet: alte Sprachausgabe abgebrochen.");
+                };
+                _link.OnPathsChanged = () =>
+                {
+                    _body.ExpressionsPath = _link.ExpressionsPath;
+                    _body.GesturesPath = _link.GesturesPath;
+                    _body.ReloadConfigFiles();
+                };
             }
             _diag.Run("Verbose-Schalter", () =>
             {
                 _verboseJson = new JSONStorableBool("Verbose log", false, (bool v) => Log.Verbose = v);
                 RegisterBool(_verboseJson);
+                _settingsInitJson = new JSONStorableBool("Settings initialized", false, (bool v) => { });
+                RegisterBool(_settingsInitJson);
             });
             if (_link != null) _diag.Run("AppLink.CreateStorables", _link.CreateStorables);
             if (_body != null)
@@ -102,10 +137,17 @@ namespace AIBody
             }
             if (_verboseJson != null) Log.Verbose = _verboseJson.val;
 
-            // 4. UI; each block guards itself, so one broken block does not hide the others.
-            if (_body != null) _diag.Run("Body.CreateUI", _body.CreateUI);
-            if (_link != null) _diag.Run("AppLink.CreateUI", _link.CreateUI);
-            if (_verboseJson != null) _diag.Run("UI Verbose-Schalter", () => CreateToggle(_verboseJson));
+            // 4. UI: tab buttons (right column), then the first tab. Each tab guards itself.
+            _diag.Run("UI Tab-Leiste", () =>
+            {
+                _page = new UiPage(this, true);
+                for (int i = 0; i < Tabs.Length; i++)
+                {
+                    int index = i;
+                    CreateButton(Tabs[i], true).button.onClick.AddListener(() => ShowTab(index));
+                }
+            });
+            ShowTab(0);
 
             // 5. Start the link and run the self test.
             _initialized = true;
@@ -122,6 +164,111 @@ namespace AIBody
             _diag.Step(_diag.FailureCount == 0
                 ? "Init fertig, keine Fehler."
                 : "Init fertig mit " + _diag.FailureCount + " Fehler(n): " + string.Join(", ", ToArray(_diag.FailedPhases)));
+        }
+
+        // ---------------------------------------------------------------- tabs
+
+        private void ShowTab(int index)
+        {
+            if (_page == null) return;
+            string name = Tabs[index];
+            try { _page.Clear(); }
+            catch (Exception e) { _diag.Fail("Tab wechseln (alte Elemente entfernen)", e); }
+            _tab = index;
+            try
+            {
+                _page.Header("<b>" + name + "</b>");
+                switch (index)
+                {
+                    case 0:
+                        if (_link != null) _link.BuildStatusTab(_page);
+                        if (_body != null) _body.BuildStatusTab(_page);
+                        break;
+                    case 1:
+                        if (_link != null) _link.BuildConnectionTab(_page);
+                        if (_body != null) _body.BuildConnectionTab(_page);
+                        break;
+                    case 2:
+                        if (_link != null) _link.BuildEnginesTab(_page);
+                        break;
+                    case 3:
+                        if (_link != null) _link.BuildMicTab(_page);
+                        break;
+                    case 4:
+                        if (_body != null) _body.BuildBodyTab(_page);
+                        break;
+                    default:
+                        if (_link != null) _link.BuildAdvancedTab(_page);
+                        _page.Toggle(_verboseJson);
+                        break;
+                }
+            }
+            catch (Exception e)
+            {
+                _diag.Fail("UI Tab " + name, e);
+            }
+        }
+
+        // ---------------------------------------------------------------- config.json
+
+        private void UpdateSettings(float dt)
+        {
+            if (_link == null || _settingsInitJson == null) return;
+            _settingsAge += dt;
+            // Wait until VaM restored the scene's saved values (that happens after Init).
+            // TODO(verify): 1.5 s is enough after a scene load.
+            if (!_settingsChecked)
+            {
+                if (_settingsAge < 1.5f) return;
+                _settingsChecked = true;
+                JSONClass file = null;
+                _diag.Run("config.json lesen", () => file = _link.LoadSettingsFile());
+                if (file != null && !_settingsInitJson.val)
+                {
+                    _diag.Run("Einstellungen aus config.json übernehmen (neue Szene)", () =>
+                    {
+                        _link.ApplySettings(file);
+                        if (_body != null) _body.ApplySettings(file);
+                        JSONClass advanced = file["advanced"] as JSONClass;
+                        if (advanced != null && _verboseJson != null)
+                            _verboseJson.val = Protocol.GetBool(advanced, "verbose_log", _verboseJson.val);
+                    });
+                }
+                _settingsInitJson.val = true;
+            }
+            _settingsTimer += dt;
+            if (_settingsTimer < 1f) return;
+            _settingsTimer = 0f;
+            WriteSettings();
+        }
+
+        /// <summary>Writes the UI values back to config.json when they changed (UI wins).</summary>
+        private void WriteSettings()
+        {
+            try
+            {
+                JSONClass root = new JSONClass();
+                root["version"].AsInt = 1;
+                root["written_by"] = "AIBody plugin " + PluginVersion;
+                _link.WriteSettings(root);
+                if (_body != null) _body.WriteSettings(root);
+                JSONClass advanced = root["advanced"] as JSONClass;
+                if (advanced != null && _verboseJson != null) advanced["verbose_log"].AsBool = _verboseJson.val;
+                string text = root.ToString();
+                string path = _link.SettingsPath;
+                if (text == _lastSettingsText && path == _lastSettingsPath) return;
+                FileManagerSecure.CreateDirectory(_link.ChannelDir);
+                FileManagerSecure.WriteAllText(path, text);
+                _lastSettingsText = text;
+                _lastSettingsPath = path;
+                Log.Debug("settings written: " + path);
+            }
+            catch (Exception e)
+            {
+                if (_settingsWriteWarned) return;
+                _settingsWriteWarned = true;
+                _diag.Fail("config.json schreiben", e);
+            }
         }
 
         private void SendToApp(JSONClass evt)
@@ -145,7 +292,7 @@ namespace AIBody
             text += "  Kopf-Audio (HeadAudioSource): " + (_body != null && _body.SpeechAvailable ? "ja" : "NEIN" + Reason(_body != null ? _body.SpeechError : "Body fehlt")) + "\n";
             text += "  Morphs (geometry): " + (_body != null && _body.MorphsAvailable ? "ja" : "NEIN" + Reason(_body != null ? _body.MorphsError : "Body fehlt")) + "\n";
             text += "  PluginData beschreibbar: " + _writable + "\n";
-            text += "  Companion-App-Heartbeat: " + (_link != null && _link.AppSeen ? "ja" : "noch nicht") + "\n";
+            text += "  Companion-App-Heartbeat: " + (_link == null ? "-" : _link.AppSeen ? "ja" : _link.AppLost ? "GETRENNT (verbindet automatisch neu)" : "noch nicht") + "\n";
             return text;
         }
 
@@ -182,6 +329,9 @@ namespace AIBody
                 try { _body.Update(dt); }
                 catch (Exception e) { _bodyBroken = true; _diag.Fail("Body.Update (Körper angehalten)", e); }
             }
+
+            try { UpdateSettings(dt); }
+            catch (Exception e) { _settingsChecked = true; _diag.Fail("config.json", e); }
 
             _uiTimer += dt;
             if (_uiTimer < 0.5f) return;

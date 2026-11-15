@@ -35,6 +35,8 @@ namespace AIBody
         private MicConfig _mic;
 
         private int _seenEpoch;
+        private bool _appAlive;
+        private string _lastSession;   // survives plugin-side restarts; a new value = app restarted
         private float _heartbeatTimer;
         private float _appAge = 999f;
         private string _appSession;
@@ -59,8 +61,17 @@ namespace AIBody
         public bool Active { get { return _activeJson != null && _activeJson.val; } }
         public bool IsRunning { get { return _transport != null; } }
 
-        /// <summary>True once a companion_heartbeat arrived in this session.</summary>
-        public bool AppSeen { get { return _appSession != null; } }
+        /// <summary>True while companion_heartbeats arrive (last one less than 6 s ago).</summary>
+        public bool AppSeen { get { return _appAlive; } }
+
+        /// <summary>True if the app was connected before and its heartbeat stopped.</summary>
+        public bool AppLost { get { return !_appAlive && _lastSession != null; } }
+
+        /// <summary>Called when the companion app restarted (new session id): its old speech is void.</summary>
+        public Action OnAppRestarted;
+
+        /// <summary>Outbox files kept while the companion app is away (it clears them on start).</summary>
+        private const int MaxOutboxWhileAway = 20;
 
         // ---------------------------------------------------------------- setup
 
@@ -104,30 +115,148 @@ namespace AIBody
             configEvent["engines"] = engines;
         }
 
-        /// <summary>Connection controls on the left (below the status box), engines, advanced; mic menu on the right.</summary>
-        public void CreateUI()
+        // ---------------------------------------------------------------- tabs (see AIBodyPlugin)
+
+        public void BuildStatusTab(UiPage page)
         {
-            _diag.Run("UI Companion-Verbindung", () =>
+            page.Toggle(_activeJson);
+            page.Button("Reconnect", Restart);
+        }
+
+        public void BuildConnectionTab(UiPage page)
+        {
+            if (!page.TextInput(_channelJson))
+                _diag.Warn("Feld 'Channel' ist nur lesbar (InputField ging nicht); Standard 'default' bleibt.");
+            page.Text(_pathsInfo, 150f);
+            page.Button("Reload config.json (paths)", () => { LoadSettingsFile(); });
+        }
+
+        public void BuildEnginesTab(UiPage page)
+        {
+            page.Popup(_sttJson);
+            page.Popup(_llmJson);
+            page.Popup(_ttsJson);
+        }
+
+        public void BuildMicTab(UiPage page)
+        {
+            if (_mic != null) _mic.BuildTab(page);
+        }
+
+        public void BuildAdvancedTab(UiPage page)
+        {
+            page.Slider(_filePollJson);
+        }
+
+        // ---------------------------------------------------------------- shared settings file
+
+        /// <summary>
+        /// Saves/PluginData/AIBody/config.json: ONE global file shared with the companion app, in the
+        /// customary per-plugin folder (Timeline: Saves/PluginData/Timeline/settings.json,
+        /// Keybindings: Saves/PluginData/Keybindings; docs/API_AUDIT.md E10, E19).
+        /// </summary>
+        public string SettingsPath { get { return DataRoot + "/" + SettingsFileName; } }
+        public const string SettingsFileName = "config.json";
+
+        public string ExpressionsPath = DataRoot + "/expressions.json";
+        public string GesturesPath = DataRoot + "/gestures.json";
+
+        /// <summary>Called when the paths from config.json changed (the Body reloads its files).</summary>
+        public Action OnPathsChanged;
+
+        private readonly JSONStorableString _pathsInfo = new JSONStorableString("Paths info", "");
+
+        /// <summary>
+        /// Reads config.json (if there is one), applies the file-only part
+        /// (connection.paths) and returns the parsed file for seeding a new scene, else null.
+        /// </summary>
+        public JSONClass LoadSettingsFile()
+        {
+            JSONClass root = null;
+            string note = "no config.json yet (the plugin and the companion app create it)";
+            try
             {
-                UiHelper.Header(_plugin, "<b>Companion app link</b>", false);
-                _plugin.CreateToggle(_activeJson);
-                if (!UiHelper.TextInput(_plugin, _channelJson, false))
-                    _diag.Warn("Feld 'Channel' ist nur lesbar (InputField ging nicht); Standard 'default' bleibt.");
-                _plugin.CreateButton("Reconnect").button.onClick.AddListener(Restart);
-            });
-            _diag.Run("UI Engines", () =>
+                if (FileManagerSecure.FileExists(SettingsPath))
+                {
+                    root = JSON.Parse(FileManagerSecure.ReadAllText(SettingsPath)) as JSONClass;
+                    note = root != null ? "loaded" : "not valid JSON, using defaults";
+                }
+            }
+            catch (Exception e)
             {
-                UiHelper.Header(_plugin, "<b>Engines</b> (provided by the companion app)", false);
-                _plugin.CreatePopup(_sttJson);
-                _plugin.CreatePopup(_llmJson);
-                _plugin.CreatePopup(_ttsJson);
-            });
-            _diag.Run("UI Erweitert", () =>
+                root = null;
+                note = "read failed: " + Diag.Describe(e);
+            }
+            string expressions = DataRoot + "/expressions.json";
+            string gestures = DataRoot + "/gestures.json";
+            JSONClass connection = root != null ? root["connection"] as JSONClass : null;
+            JSONClass paths = connection != null ? connection["paths"] as JSONClass : null;
+            if (paths != null)
             {
-                UiHelper.Header(_plugin, "<b>Advanced</b>", false);
-                _plugin.CreateSlider(_filePollJson);
-            });
-            if (_mic != null) _diag.Run("UI Mikrofon", () => _mic.CreateUI(true));
+                expressions = CheckPath(Protocol.GetString(paths, "expressions", expressions), expressions);
+                gestures = CheckPath(Protocol.GetString(paths, "gestures", gestures), gestures);
+            }
+            bool changed = expressions != ExpressionsPath || gestures != GesturesPath;
+            ExpressionsPath = expressions;
+            GesturesPath = gestures;
+            _pathsInfo.val = "Settings file: " + SettingsPath + " (" + note + ")\nExpressions: " + ExpressionsPath
+                + "\nGestures: " + GesturesPath + "\nAudio: " + ChannelDir + "/audio";
+            if (changed && OnPathsChanged != null) OnPathsChanged();
+            return root;
+        }
+
+        /// <summary>Paths must stay relative to the VaM folder, below Saves/ or Custom/.</summary>
+        private static string CheckPath(string path, string fallback)
+        {
+            if (string.IsNullOrEmpty(path)) return fallback;
+            string p = path.Replace('\\', '/');
+            bool ok = (p.StartsWith("Saves/") || p.StartsWith("Custom/")) && !p.Contains("..") && !p.Contains(":");
+            if (ok) return p;
+            Log.Error("config.json: ignoring path '" + path + "' (must be relative, below Saves/ or Custom/)");
+            return fallback;
+        }
+
+        /// <summary>Adds connection, engines, mic and advanced (file poll) to config.json.</summary>
+        public void WriteSettings(JSONClass root)
+        {
+            JSONClass connection = new JSONClass();
+            connection["channel"] = Channel;
+            connection["active"].AsBool = Active;
+            JSONClass paths = new JSONClass();
+            paths["expressions"] = ExpressionsPath;
+            paths["gestures"] = GesturesPath;
+            connection["paths"] = paths;
+            root["connection"] = connection;
+            JSONClass engines = new JSONClass();
+            engines["stt"] = _sttJson.val;
+            engines["llm"] = _llmJson.val;
+            engines["tts"] = _ttsJson.val;
+            root["engines"] = engines;
+            if (_mic != null) root["mic"] = _mic.BuildMicJson();
+            JSONClass advanced = new JSONClass();
+            advanced["file_poll_interval_s"].AsFloat = _filePollJson.val;
+            root["advanced"] = advanced;
+        }
+
+        /// <summary>Seeds the UI from config.json (only for a scene without saved AIBody settings).</summary>
+        public void ApplySettings(JSONClass root)
+        {
+            JSONClass connection = root["connection"] as JSONClass;
+            if (connection != null)
+            {
+                if (Protocol.Has(connection, "channel")) _channelJson.val = Protocol.GetString(connection, "channel", _channelJson.val);
+                if (Protocol.Has(connection, "active")) _activeJson.val = Protocol.GetBool(connection, "active", true);
+            }
+            JSONClass engines = root["engines"] as JSONClass;
+            if (engines != null)
+            {
+                _sttJson.val = Protocol.GetString(engines, "stt", _sttJson.val);
+                _llmJson.val = Protocol.GetString(engines, "llm", _llmJson.val);
+                _ttsJson.val = Protocol.GetString(engines, "tts", _ttsJson.val);
+            }
+            if (_mic != null) _mic.ApplyMicJson(root["mic"] as JSONClass);
+            JSONClass advanced = root["advanced"] as JSONClass;
+            if (advanced != null) _filePollJson.val = Protocol.GetFloat(advanced, "file_poll_interval_s", _filePollJson.val);
         }
 
         /// <summary>
@@ -180,9 +309,11 @@ namespace AIBody
             _transport = file;
             _seenEpoch = 0;
             _appSession = null;
+            _appAlive = false;
             _appAge = 999f;
             _transport.Start();
             Log.Info("Started " + _transport.Name + " transport on channel '" + Channel + "'");
+            LoadSettingsFile();
         }
 
         public void Stop()
@@ -299,10 +430,13 @@ namespace AIBody
             string session = Protocol.GetString(msg, "session", "");
             if (session != _appSession)
             {
-                // Companion app (re)started: it lost our settings and cleared its folders.
+                // Companion app (re)started, or this link restarted: send ready + config again.
+                bool appRestarted = _lastSession != null && session != _lastSession;
                 _appSession = session;
-                Log.Info("Companion app " + _appVersion + " is running (session " + session + ")");
+                _lastSession = session;
+                Log.Info("Companion app " + _appVersion + " connected (session " + session + ")");
                 _seenEpoch = -1; // forces ready + config in Update
+                if (appRestarted && OnAppRestarted != null) OnAppRestarted();
             }
             JSONClass available = msg["engines_available"] as JSONClass;
             if (available != null)
@@ -353,11 +487,24 @@ namespace AIBody
                     if (_mic != null) _mic.OnConnected();
                     _heartbeatTimer = 0f;
                 }
+                bool alive = _appSession != null && _appAge < AppTimeout;
+                if (_appAlive && !alive)
+                {
+                    // Logged once per loss, not every frame.
+                    Log.Info("Companion app disconnected (no heartbeat for " + AppTimeout.ToString("0") + " s); "
+                        + "reconnects by itself as soon as it runs again.");
+                    if (_mic != null) _mic.OnDisconnected();
+                    _appSession = null;
+                }
+                _appAlive = alive;
+
                 _heartbeatTimer += dt;
                 if (connected && _heartbeatTimer >= HeartbeatInterval)
                 {
                     _heartbeatTimer = 0f;
                     Send(BuildStatus());
+                    // Nobody reads the outbox while the app is away: keep only the newest files.
+                    if (!alive) _transport.PruneOutbox(MaxOutboxWhileAway);
                 }
             }
             if (_mic != null) _mic.Update(dt, connected);
@@ -369,9 +516,9 @@ namespace AIBody
             string text = "Link: " + _transport.Name + " - " + _transport.State + "\n";
             if (!string.IsNullOrEmpty(_transport.LastError)) text += "Last error: " + _transport.LastError + "\n";
             text += "Folder: " + ChannelDir + "\n";
-            text += "Companion app: " + (_appAge < AppTimeout
-                ? "running " + _appVersion + " (seen " + _appAge.ToString("0.0") + "s ago)"
-                : "NOT RUNNING (start it with --channel " + Channel + ")") + "\n";
+            if (_appAlive) text += "Companion app: verbunden, " + _appVersion + " (Heartbeat vor " + _appAge.ToString("0.0") + " s)\n";
+            else if (_lastSession != null) text += "Companion app: GETRENNT – verbindet automatisch neu, sobald die App wieder läuft\n";
+            else text += "Companion app: noch nicht gesehen – starten: python -m aibody_companion --vam-root \"<VaM>\" --channel " + Channel + "\n";
             return text;
         }
     }

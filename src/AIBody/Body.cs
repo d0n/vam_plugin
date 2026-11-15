@@ -113,33 +113,68 @@ namespace AIBody
         }
 
         /// <summary>Speech controls on the left, body settings on the right (below the mic menu).</summary>
-        public void CreateUI()
+        // ---------------------------------------------------------------- tabs (see AIBodyPlugin)
+
+        public void BuildStatusTab(UiPage page)
         {
-            if (_volumeJson == null) { _diag.Warn("Body-UI übersprungen: Einstellungen fehlen (Body.CreateStorables)."); return; }
-            _diag.Run("UI Sprachausgabe", () =>
-            {
-                UiHelper.Header(_plugin, "<b>Speech output</b>", false);
-                _plugin.CreateSlider(_volumeJson);
-                _plugin.CreateButton("Stop speaking").button.onClick.AddListener(StopSpeaking);
-            });
-            _diag.Run("UI Körper", () =>
-            {
-                UiHelper.Header(_plugin, "<b>Body</b>", true);
-                _plugin.CreateToggle(_idleJson, true);
-                _plugin.CreateSlider(_idleIntensityJson, true);
-                _plugin.CreateToggle(_breathingJson, true);
-                _plugin.CreateSlider(_breathRateJson, true);
-                _plugin.CreateSlider(_breathDepthJson, true);
-                if (!UiHelper.TextInput(_plugin, _breathMorphJson, true))
-                    _diag.Warn("Feld 'Breath morph' ist nur lesbar (InputField ging nicht).");
-                _plugin.CreateButton("Reload expressions / gestures", true).button.onClick.AddListener(ReloadConfigFiles);
-            });
+            page.Button("Stop speaking", StopSpeaking);
+            page.Button("Reset expression", () => { if (_expressions != null) _expressions.Reset(0.4f); });
         }
+
+        public void BuildConnectionTab(UiPage page)
+        {
+            page.Button("Reload expressions / gestures", ReloadConfigFiles);
+        }
+
+        public void BuildBodyTab(UiPage page)
+        {
+            page.Slider(_volumeJson);
+            page.Toggle(_idleJson);
+            page.Slider(_idleIntensityJson);
+            page.Toggle(_breathingJson);
+            page.Slider(_breathRateJson);
+            page.Slider(_breathDepthJson);
+            if (!page.TextInput(_breathMorphJson))
+                _diag.Warn("Feld 'Breath morph' ist nur lesbar (InputField ging nicht).");
+        }
+
+        // ---------------------------------------------------------------- config.json "body"
+
+        public void WriteSettings(JSONClass root)
+        {
+            if (_volumeJson == null) return;
+            JSONClass body = new JSONClass();
+            body["speech_volume"].AsFloat = _volumeJson.val;
+            body["idle_motion"].AsBool = _idleJson.val;
+            body["idle_intensity"].AsFloat = _idleIntensityJson.val;
+            body["breathing"].AsBool = _breathingJson.val;
+            body["breaths_per_minute"].AsFloat = _breathRateJson.val;
+            body["breath_depth"].AsFloat = _breathDepthJson.val;
+            body["breath_morph"] = _breathMorphJson.val;
+            root["body"] = body;
+        }
+
+        public void ApplySettings(JSONClass root)
+        {
+            JSONClass body = root["body"] as JSONClass;
+            if (body == null || _volumeJson == null) return;
+            _volumeJson.val = Protocol.GetFloat(body, "speech_volume", _volumeJson.val);
+            _idleJson.val = Protocol.GetBool(body, "idle_motion", _idleJson.val);
+            _idleIntensityJson.val = Protocol.GetFloat(body, "idle_intensity", _idleIntensityJson.val);
+            _breathingJson.val = Protocol.GetBool(body, "breathing", _breathingJson.val);
+            _breathRateJson.val = Protocol.GetFloat(body, "breaths_per_minute", _breathRateJson.val);
+            _breathDepthJson.val = Protocol.GetFloat(body, "breath_depth", _breathDepthJson.val);
+            _breathMorphJson.val = Protocol.GetString(body, "breath_morph", _breathMorphJson.val);
+        }
+
+        /// <summary>Set from config.json (connection.paths) by the plugin.</summary>
+        public string ExpressionsPath = AppLink.DataRoot + "/expressions.json";
+        public string GesturesPath = AppLink.DataRoot + "/gestures.json";
 
         public void ReloadConfigFiles()
         {
-            if (_expressions != null) _expressions.LoadPresetFile(AppLink.DataRoot + "/expressions.json");
-            if (_poses != null) _poses.LoadGestureFile(AppLink.DataRoot + "/gestures.json");
+            if (_expressions != null) _expressions.LoadPresetFile(ExpressionsPath);
+            if (_poses != null) _poses.LoadGestureFile(GesturesPath);
         }
 
         public void StopSpeaking()

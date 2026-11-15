@@ -31,6 +31,9 @@ namespace AIBody
         /// <summary>Called every frame from the plugin's Update(). Implementations poll at their own rate.</summary>
         void Tick(float deltaTime);
 
+        /// <summary>Deletes the oldest unread outgoing files beyond the newest `keep` ones.</summary>
+        int PruneOutbox(int keep);
+
         /// <summary>Sends one event to the companion. Must never throw.</summary>
         void Send(JSONClass evt);
     }
