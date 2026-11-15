@@ -47,3 +47,12 @@ verified inside VaM 1.22.
 - **LogicBricks-style features**: reactions to scene events (touch, proximity, gaze, triggers)
   wired to body commands or companion app events, and simple state machines for scene builders.
 - Reactions to collisions/touch zones fed back to the companion app as events.
+
+## Removed for good (not backlog)
+
+- **HTTP transport / any network code in the plugin** (removed in 0.6.1): no
+  `UnityEngine.Networking`, `UnityWebRequest`, `WWW` or sockets, not even behind a compile flag.
+  The shared folder is the only link. The companion app's HTTP server went with it.
+- **Microphone capture inside VaM**: stays in the companion app; the plugin has no microphone API.
+- **Anything without a public, working plugin as evidence** for VaM 1.22's sandbox: see
+  `docs/API_AUDIT.md`. New VaM API use needs such evidence before it goes in.

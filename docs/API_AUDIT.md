@@ -1,0 +1,86 @@
+# VaM API audit (AIBody 0.6.1)
+
+Rule: the plugin uses only VaM 1.22 APIs that the official VaM notes or established, working
+plugins show in use inside the plugin sandbox. **Anything without such visible evidence is
+removed, never worked around.** Not allowed at all: network code of any kind
+(`UnityEngine.Networking`, `UnityWebRequest`, `WWW`, sockets), `System.IO`, `System.Net`,
+`Process` / `System.Diagnostics`, reflection, `Assembly.Load`, native libraries (`DllImport`), the
+Unity microphone API, `Application.OpenURL`.
+
+Enforcement:
+
+- `tools/check_plugin.py` scans the full text of every file below `src/` and of the assembled
+  plugin folder (`tools/sandbox_rules.py`): zero matches required, comments included.
+- `tools/build_var.py` scans every file inside the built `.var` with the same rules and deletes
+  the package on any match.
+- The compile stubs `tools/stubs/VaMStubs.cs` / `UnityStubs.cs` declare only the members listed
+  here (each tagged with its evidence key), so a new, unaudited VaM API fails the compile check.
+
+## Evidence (pinned commits)
+
+| key | source | what it shows |
+|-----|--------|---------------|
+| E1  | [Dollmaster.cs](https://github.com/vamdeluxe/DeluxePlugin/blob/e606e780e79af214b2b4be0a53b1e7b45ecf59b7/Dollmaster/src/Dollmaster.cs) (VAMDeluxe) | `GetStorableByID("HeadAudioSource") as AudioSourceControl` (L60), `PlayNow(clip)` (L246), `QueueClip(SuperController.singleton.NormalizeMediaPath(path))` + `GetClip(clip.uid)` (L296-308), `CreateButton` (L124), `RegisterAction` (L122), `storeId` (L286) |
+| E2  | [SFXController.cs](https://github.com/vamdeluxe/DeluxePlugin/blob/e606e780e79af214b2b4be0a53b1e7b45ecf59b7/Dollmaster/src/SFXController.cs) (VAMDeluxe) | `AudioSourceControl.volume` (L116, L121), `PlayNow` (L117, L122), `URLAudioClipManager.singleton.RemoveClip(clip)` (L150), `currentRotationState` / `FreeControllerV3.RotationState` (L36) |
+| E3  | [FreeMMD.cs](https://github.com/lfe999/VamFreeMMD/blob/e90be09c06a3ca40962ff6aac3a1a36c7bfbe010/src/FreeMMD.cs) (lfe999); same pattern in [mmd2timeline AudioClipHelper.cs](https://github.com/sFisherE/mmd2timeline/blob/1d22f6de2eb076a56768830eb44f5f9a5ce1d78d/src/Player/Audio/AudioClipHelper.cs) | `headAudioSource.audioSource` (L54), `headAudioSource.Stop()` (L155), `QueueClip(NormalizeMediaPath(path))` (L325), `CreateButton` (L221) |
+| E4  | [Qualia Breathing.cs](https://github.com/vamdeluxe/DeluxePlugin/blob/e606e780e79af214b2b4be0a53b1e7b45ecf59b7/Qualia/src/Breathing.cs) (VAMDeluxe) | `GetStorableByID("geometry")` as `DAZCharacterSelector`, `morphsControlUI`, `GetMorphByDisplayName("Breath1")` (L20-23), `morphValue` (L45), `RegisterFloat` (L29) |
+| E5  | [TittyMagic Utils.cs](https://github.com/everlasterVR/TittyMagic/blob/eca6d093450994cf589e51e148ceaadf9adfbc79/src/Utils/Utils.cs) (everlaster) | `morphsControlUI.GetMorphByUid(uid)` (L65) |
+| E6  | [HeadIdle.cs](https://github.com/vamdeluxe/DeluxePlugin/blob/e606e780e79af214b2b4be0a53b1e7b45ecf59b7/HeadIdle/HeadIdle.cs) (VAMDeluxe) | `GetStorableByID("headControl") as FreeControllerV3` (L31), rotating `headControl.transform` (L35, L45) |
+| E7  | [PresetRandomizer.cs](https://github.com/vamdeluxe/DeluxePlugin/blob/e606e780e79af214b2b4be0a53b1e7b45ecf59b7/PresetRandomizer/PresetRandomizer.cs) (VAMDeluxe) | preset loading: `GetStorableByID(presetType)`, `GetUrlJSONParam("presetBrowsePath")`, `.val = SuperController.singleton.NormalizePath(path)`, `CallAction("LoadPreset")` (L58-66) |
+| E8  | [vam-timeline ControllerPlugin.cs](https://github.com/acidbubbles/vam-timeline/blob/54e294256d7b73ec7d00d4216fcc7f01bc9d8133/src/ControllerPlugin.cs) (Acid Bubbles) | `atom.GetStorableIDs()` + `EndsWith("VamTimeline.AtomPlugin")` (L196), `storable.CallAction($"Play {animationName}")` (L548) |
+| E9  | [vam-timeline AtomPlugin.cs](https://github.com/acidbubbles/vam-timeline/blob/54e294256d7b73ec7d00d4216fcc7f01bc9d8133/src/AtomPlugin.cs) (Acid Bubbles) | registers the `Play <name>` actions (L1024), `RegisterStringChooser` (L310), `RegisterAction` (L321), `RegisterBool` (L400), `RegisterString` (L493), `chooser.choices = ...` (L874), `SuperController.LogError` (L118) |
+| E10 | [vam-timeline TimelineDefaults.cs](https://github.com/acidbubbles/vam-timeline/blob/54e294256d7b73ec7d00d4216fcc7f01bc9d8133/src/AtomAnimations/Editing/TimelineDefaults.cs) | `FileManagerSecure.FileExists` (L16), `CreateDirectory` (L21), `DeleteFile` (L67) |
+| E11 | [vam-scripter Scripter.cs](https://github.com/acidbubbles/vam-scripter/blob/96674ce01a3ca1e8d5eaebceccf047f14de69394/Scripter.Plugin/src/Scripter.cs) (Acid Bubbles) | `FileManagerSecure.CreateDirectory` (L295), `GetFiles(folder)` without a pattern (L296), `ReadAllText` on the returned paths (L302), `WriteAllText` (L334) |
+| E12 | [vam-glance Glance.cs](https://github.com/acidbubbles/vam-glance/blob/dae3c96d06f67a8ca7155ac4d6622a3434d8b013/Glance.cs) (Acid Bubbles) | `containingAtom.type != "Person"` (L149), `JSONStorableAction` (L142), `LogError` (L151), `GetBoolJSONParam` (L182, L843), `GetFloatJSONParam` (L848), `CreateToggle` (L191), `CreateTextField` (L194), `CreateSlider` (L213) |
+| E13 | vam-scripter [StringParamReference.cs](https://github.com/acidbubbles/vam-scripter/blob/96674ce01a3ca1e8d5eaebceccf047f14de69394/Scripter.Plugin/src/Module/StorableParams/StringParamReference.cs), [StringChooserParamReference.cs](https://github.com/acidbubbles/vam-scripter/blob/96674ce01a3ca1e8d5eaebceccf047f14de69394/Scripter.Plugin/src/Module/StorableParams/StringChooserParamReference.cs) | `GetStringJSONParam` (L17), `GetStringChooserJSONParam` (L18) on another storable |
+| E14 | [ToySerialController UITextInput.cs](https://github.com/Yoooi0/ToySerialController/blob/8aefbbd2dc3e9701bcf7d1010f6fd9b2bb7a5c83/src/UI/Control/UITextInput.cs) (Yoooi) | editable text field: `textField.gameObject.AddComponent<InputField>()`, `input.textComponent = textField.UItext`, `storable.inputField = input` (L44-47) |
+| E15 | [Official VaM patch notes](https://cdn.virtamate.com/Release/VaM_PatchNotes.html) (MeshedVR) | `FileManagerSecure` is the file API for plugins (writes below `Saves/PluginData`); plugin network access is a user preference, off by default |
+| E16 | [CycleForce.cs](https://github.com/vamdeluxe/DeluxePlugin/blob/e606e780e79af214b2b4be0a53b1e7b45ecf59b7/Templates/CycleForce.cs) (VaM plugin template, in DeluxePlugin) | `RegisterStringChooser` + `CreatePopup` (L85-86), `RegisterBool` + `CreateToggle` (L130-131) |
+
+## Kept
+
+| feature | APIs | evidence |
+|---------|------|----------|
+| Companion app link (files) | `FileManagerSecure.CreateDirectory`, `FileExists`, `ReadAllText`, `WriteAllText`, `DeleteFile`, `GetFiles(dir)` (filtered to `.json` in code) | E10, E11, E15 |
+| Speech audio load | `SuperController.singleton.NormalizeMediaPath`, `URLAudioClipManager.singleton.QueueClip`, `GetClip(uid)`, `RemoveClip` | E1, E2, E3 |
+| Speech playback + lip sync | `GetStorableByID("HeadAudioSource") as AudioSourceControl`, `PlayNow`, `Stop`, `volume`, `audioSource` (read `isPlaying` / `clip` for start/end detection) | E1, E2, E3 |
+| Morphs, expressions, breathing | `GetStorableByID("geometry") as DAZCharacterSelector`, `morphsControlUI`, `GetMorphByDisplayName`, `GetMorphByUid`, `morphValue` | E4, E5 |
+| Idle head motion, head gestures | `GetStorableByID("headControl") as FreeControllerV3`, `transform.rotation`, `currentRotationState` | E6, E2 |
+| Timeline gestures | `GetStorableIDs()` + suffix match, `CallAction("Play <animation>")` | E8, E9 |
+| Pose presets | `GetStorableByID("PosePresets")`, `GetUrlJSONParam("presetBrowsePath")`, `NormalizePath`, `CallAction("LoadPreset")` | E7 (pattern; the `PosePresets` id itself is `TODO(verify)`) |
+| Generic trigger | `CallAction`, `GetFloatJSONParam`, `GetBoolJSONParam`, `GetStringJSONParam`, `GetStringChooserJSONParam` | E8, E12, E13 |
+| Plugin UI and storables | `CreateToggle`, `CreateSlider`, `CreatePopup`, `CreateButton`, `CreateTextField` (+ `InputField` for editing), `Register*`, `JSONStorableAction`, `chooser.choices` | E1, E9, E12, E14, E16 |
+| Logging, Person check | `SuperController.LogMessage` / `LogError`, `containingAtom.type`, `containingAtom.uid` | E9, E12 |
+
+## Removed / dropped (with reason)
+
+| what | reason |
+|------|--------|
+| Optional HTTP transport (`src/Optional/HttpTransport.cs`, `AutoTransport.cs`, `#if AIBODY_HTTP`), `--http` build path, networking stubs | Owner rule: zero `UnityWebRequest` / `UnityEngine.Networking` in the plugin sources at all, not only in the build |
+| Audio download over HTTP (`UnityWebRequestMultimedia`), `speak.url` field | same rule; audio comes only from a local file via `URLAudioClipManager` |
+| Transport chooser in the plugin UI | only one transport is left |
+| Companion app HTTP server, `auto` mode, `--transport/--host/--port`, `http_host/http_port/audio_cache_dir` | no plugin can talk HTTP any more |
+| Clip readiness check via `NamedAudioClip.clipToPlay` | no public plugin shows it; replaced by `PlayNow` retries (1 s) and watching `AudioSource.isPlaying/clip`, 15 s timeout -> `audio_failed` |
+| Direct `AudioSource.Play` fallback, `AudioSource.volume` writes | playback only through `AudioSourceControl` as in E1-E3 |
+| `AudioSourceControl` "volume" float param lookup | no evidence; the `volume` field (E2) is used instead |
+| `JSONStorable.GetActionNames` checks before `CallAction` | no evidence; actions are called directly (E7, E8). A misspelled action is not detected |
+| `FileManagerSecure.GetFiles(dir, pattern)` | no evidence for the pattern overload; `GetFiles(dir)` (E11) plus a `.json` filter |
+| `SuperController.GetAtoms` | not needed by the single plugin |
+| `UnityEngine.Microphone` / mic capture in VaM | never used; the scan forbids it. Capture and device listing live in the companion app; the plugin only shows device names, sends settings and push-to-talk (`ptt` event file) |
+| Coroutines in the speech player | not needed after removing the download path |
+
+## Still TODO(verify) in VaM 1.22
+
+These use evidenced APIs but in a combination nobody has shown publicly, or depend on scene content:
+
+1. The plugin loads from `d0n.AIBody.4.var` in the sandbox (flat `.cslist`).
+2. `FileManagerSecure.GetFiles(dir)` returns paths that `ReadAllText` / `DeleteFile` accept for
+   `Saves/PluginData/AIBody/<channel>/inbox` (`FileTransport.cs`).
+3. `NormalizeMediaPath` + `QueueClip` with a `Saves/PluginData/...` relative path (evidence uses
+   file-browser paths), and `PlayNow` on a still loading clip being retried safely; start/end
+   detection via `AudioSource.isPlaying` / `clip`; lip sync follows (`SpeechPlayer.cs`).
+4. `JSONStorableStringChooser.choices` refreshes an open popup (`AppLink.cs`, `MicConfig.cs`).
+5. The `InputField` text field pattern on `CreateTextField` (`UiHelper.cs`).
+6. The `PosePresets` storable id and its `presetBrowsePath` / `LoadPreset` (`PoseController.cs`).
+7. Morph names of the built-in expressions and the breath morph (`ExpressionController.cs`,
+   `BreathingController.cs`, `Body.cs`).

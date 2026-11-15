@@ -6,7 +6,7 @@ poses, and keeps moving (idle motion and breathing) while it waits.
 
 Two parts, **both needed**:
 
-- **AIBody plugin** (`src/AIBody/`, package `d0n.AIBody.3.var`): ONE plugin, loaded once on the AI
+- **AIBody plugin** (`src/AIBody/`, package `d0n.AIBody.4.var`): ONE plugin, loaded once on the AI
   character's Person atom. It links to the companion app through a shared folder (heartbeat,
   status, microphone/push-to-talk and engine menus) and drives the body: speech with lip sync on
   the head audio, morphs, expressions, gestures, poses, idle motion and breathing.
@@ -14,16 +14,16 @@ Two parts, **both needed**:
   the VaM plugin sandbox does not allow: microphone capture, voice activity detection, speech to
   text, the language model and text to speech.
 
-Status: **early (v0.6.0)**. The plugin compiles as C# 6 against API stubs but has not been run
+Status: **early (v0.6.1)**. The plugin compiles as C# 6 against API stubs but has not been run
 inside VaM yet; every unverified VaM/Unity call is marked `TODO(verify)` in the code. The
 companion app runs end to end with mock engines (no real STT, LLM or TTS yet). Deferred features
 are in [docs/BACKLOG.md](docs/BACKLOG.md).
 
 ## Load flow (the whole setup)
 
-1. Copy `d0n.AIBody.3.var` to `<VaM>/AddonPackages/` (remove older AIBody packages, see below).
+1. Copy `d0n.AIBody.4.var` to `<VaM>/AddonPackages/` (remove older AIBody packages, see below).
 2. In VaM select the AI character's Person atom > **Plugins** tab > **Add Plugin** > choose
-   `AddonPackages > d0n.AIBody.3:/Custom/Scripts/d0n/AIBody/AIBody.cslist`.
+   `AddonPackages > d0n.AIBody.4:/Custom/Scripts/d0n/AIBody/AIBody.cslist`.
 3. Start the companion app: `python -m aibody_companion --vam-root "C:/VaM"`.
 
 That's it. The plugin's status box shows "Companion app: running ..." once both sides see each
@@ -108,12 +108,11 @@ src/AIBody/                the plugin (C# 6), one flat folder = what ships
   IdleController.cs          idle head sway and head gestures (nod, shake, tilt)
   BreathingController.cs     procedural breathing on a chest morph
   Log.cs, Protocol.cs, UiHelper.cs
-src/Optional/              HTTP transport (UnityWebRequest), NOT in the package
 legacy/                    earlier plugin layouts (v0.4 Session/Person, v0.5 Client/Companion); not built
 protocol/                  PROTOCOL.md and JSON schemas
 companion/                 Python companion app (stdlib only for the core)
   aibody_companion/
-    transport/               file transport (default), optional HTTP server, auto
+    transport/               file transport (the only link to the plugin)
     audio/                   capture + device control, mic settings, input processor, VAD, echo gate
     pipeline/                STT, LLM, TTS interfaces and mock engines
     orchestrator.py          ties it all together (tick loop, heartbeat)
@@ -131,25 +130,26 @@ tools/                     assemble_plugins.py (plugin folder), build_var.py (pa
 
 - Virt-A-Mate **1.22** (VaM 1.x). VaM 2 does not support plugins yet.
 - Windows PC that runs VaM, Python 3.10+ for the companion app, a microphone.
-- No "Allow Plugins Network Access" needed: the default build uses no network code.
+- No "Allow Plugins Network Access" needed: the plugin contains no network code at all.
 
 ### Install the package
 
-Download `d0n.AIBody.3.var` from the [releases](https://github.com/d0n/vam_plugin/releases), or
-build it with `python tools/build_var.py` (writes `dist/d0n.AIBody.3.var`), and copy it to:
+Download `d0n.AIBody.4.var` from the [releases](https://github.com/d0n/vam_plugin/releases), or
+build it with `python tools/build_var.py` (writes `dist/d0n.AIBody.4.var`), and copy it to:
 
 ```
-<VaM>/AddonPackages/d0n.AIBody.3.var
+<VaM>/AddonPackages/d0n.AIBody.4.var
 ```
 
 Remove all older AIBody packages from `AddonPackages`: `d0n.AIBody.1.var`, `d0n.AIBody.2.var`,
-`d0n.AIBodySession.*.var`, `d0n.AIBodyPerson.*.var`, `d0n.AIBodyPerson2.*.var`. Scenes saved with
-the old plugins need the plugin added again.
+`d0n.AIBody.3.var`, `d0n.AIBodySession.*.var`, `d0n.AIBodyPerson.*.var`,
+`d0n.AIBodyPerson2.*.var`. Scenes saved with an older package point at that package's path, so
+remove the old plugin entry from the character and add `d0n.AIBody.4` again, then save.
 
 Contents:
 
 ```
-d0n.AIBody.3.var
+d0n.AIBody.4.var
 ├── meta.json
 └── Custom/Scripts/d0n/AIBody/
     ├── AIBody.cslist
@@ -176,9 +176,8 @@ Left column:
 - Status box: link state, folder, whether the companion app is running, last command, speaking,
   expression, audio source, morphs.
 - **Speech output**: **Speech volume**, **Stop speaking**.
-- **Companion app link**: **Active**, **Transport** (only "File (shared folder)" in the default
-  build), **Channel** (default `default`; must match the companion app's `channel`),
-  **Reconnect**.
+- **Companion app link**: **Active**, **Channel** (default `default`; must match the companion
+  app's `channel`), **Reconnect**. The shared folder is the only link.
 - **Engines**: **Speech-to-text**, **Language model**, **Text-to-speech**, filled from the
   companion app's list of available engines and sent with the settings.
 - **Advanced**: **File poll interval**, **Verbose log**.
@@ -205,12 +204,13 @@ same atom.
 cd companion
 pip install sounddevice                                   # microphone support
 python -m aibody_companion --list-devices                 # check the microphone
-python -m aibody_companion --vam-root "C:/VaM"            # file transport, channel "default"
+python -m aibody_companion --vam-root "C:/VaM"            # channel "default"
 ```
 
 Options: `--channel` (default `default`), `--no-mic` (text only), `--no-stdin`,
 `--config config.json` (see `config.example.json`, including initial `mic` settings).
-`--transport http|auto` only works with the optional HTTP build (below). Typed lines on stdin make
+`--vam-root` is required: the app and the plugin exchange JSON and audio files in
+`<VaM>/Saves/PluginData/AIBody/<channel>/`. Typed lines on stdin make
 the body speak, which is handy for testing without a microphone. With the mock engines the
 character answers "You said: ..." with a humming tone, enough to test lip sync, expressions,
 gestures, queueing and echo gating. Put API keys for real engines in environment variables, never
@@ -220,40 +220,51 @@ Tests and checks:
 
 ```
 cd companion && python -m unittest discover -s tests -t .
-tools/check_plugin.sh      # needs the .NET SDK: sandbox scan, single-plugin check, compile (C# 6)
+python tools/check_plugin.py   # needs the .NET SDK: strict sandbox scan, single-plugin check, compile (C# 6)
+python tools/build_var.py      # builds dist/d0n.AIBody.<N>.var and scans every file inside it
 ```
 
 ## Plugin sandbox limits
 
 VaM compiles plugins itself (C# 6, Mono, .NET 3.5 profile) and runs them in a sandbox. A plugin
-that uses a blocked API does not load at all, so the default build avoids all of them and
-`tools/check_plugin.sh` enforces it:
+that uses a blocked API does not load at all. AIBody uses only APIs that public, working VaM
+plugins use (evidence per API in [docs/API_AUDIT.md](docs/API_AUDIT.md)); anything without such
+evidence was removed, not worked around. `tools/check_plugin.py` and `tools/build_var.py` enforce
+it with a strict scan of every file in `src/` and in the built `.var` (code, comments and strings):
+zero matches for `UnityWebRequest`, `UnityEngine.Networking`, `WWW`, `System.IO`, `System.Net`,
+sockets, `Process`, `System.Diagnostics`, reflection, `Assembly.Load`, `DllImport`, the Unity
+microphone API and `OpenURL`. The compile stubs in `tools/stubs` declare only the evidenced VaM
+members, so using anything else fails the compile.
 
 - **No `System.IO`.** File access goes through `MVR.FileManagementSecure.FileManagerSecure`.
   Writing is limited to `Saves/PluginData`. There is no reliable rename, so the plugin writes
   event files in place and the companion app tolerates partial files.
 - **No native DLLs, no `System.Diagnostics.Process`, no reflection.** The plugin cannot start the
   companion app or load speech engines. That is why the brain is a separate app.
-- **No `UnityEngine.Networking` / `UnityWebRequest`** in the default build. The companion app link
-  is the shared folder; speech audio is loaded from a local file path with VaM's own
-  `URLAudioClipManager` (`TODO(verify)` on 1.22).
+- **No network code at all** (no `UnityEngine.Networking`, no `UnityWebRequest`, no `WWW`). The
+  companion app link is the shared folder; speech audio is loaded from a local file path with
+  VaM's own `URLAudioClipManager` and played with the head `AudioSourceControl` (the Dollmaster /
+  FreeMMD pattern).
 - **C# 6 only.** No tuples, `out var`, pattern matching or other C# 7+ features.
 - **One MVRScript per `.cslist`**, flat file list (sub folder paths inside a `.var` are
   unverified).
-- **Microphone inside VaM is unverified**, so capture and device listing live in the companion app.
+- **No microphone API in the plugin.** Capture and device listing live in the companion app; the
+  plugin only shows the device names it reports and sends settings and push-to-talk as files.
 
-### Optional HTTP build (not in the package)
+### API audit (v0.6.1)
 
-`src/Optional/HttpTransport.cs` and `AutoTransport.cs` (HTTP long-poll with file fallback, needs
-"Allow Plugins Network Access") are wrapped in `#if AIBODY_HTTP` and never packaged. To try them
-with loose files:
+Kept, each with a public plugin that uses it (links in [docs/API_AUDIT.md](docs/API_AUDIT.md)):
+`FileManagerSecure` (CreateDirectory, FileExists, ReadAllText, WriteAllText, DeleteFile,
+GetFiles(dir)); `URLAudioClipManager` (QueueClip after `NormalizeMediaPath`, GetClip, RemoveClip);
+the `HeadAudioSource` `AudioSourceControl` (PlayNow, Stop, volume, audioSource); morphs via
+`geometry` > `DAZCharacterSelector.morphsControlUI` > GetMorphByDisplayName / GetMorphByUid;
+`headControl` rotation; Timeline via `GetStorableIDs` + `CallAction("Play <name>")`; pose presets via
+`presetBrowsePath` + `NormalizePath` + `CallAction("LoadPreset")`; generic triggers via CallAction
+and Get*JSONParam; the standard MVRScript UI.
 
-```
-python tools/assemble_plugins.py --http --out "<VaM>/Custom/Scripts/d0n/AIBody"
-```
-
-and run the companion app with `--transport auto`. This may not load on sandboxed VaM 1.22
-installs.
+Removed: the optional HTTP transport and `--http` build, the `speak.url` field, the transport
+chooser, the companion app's HTTP/auto modes, the clip readiness check (`clipToPlay`), action-name
+lookup before `CallAction`, the `GetFiles` search pattern, the direct `AudioSource.Play` fallback.
 
 ## Protocol summary
 
@@ -280,7 +291,8 @@ Example:
 
 v0.2 shipped one plugin (`d0n.AIBody.1.var`), v0.3/v0.4 a Session plugin plus Person/Person2
 plugins with character slots (protocol v1), v0.5 a Client and a Companion plugin in
-`d0n.AIBody.2.var` (protocol v2). Their sources are kept in [legacy/](legacy/) for reference; use
+`d0n.AIBody.2.var` (protocol v2), v0.6.0 the same single plugin as now in `d0n.AIBody.3.var`
+(still with an optional HTTP build, removed in 0.6.1). The older sources are kept in [legacy/](legacy/) for reference; use
 the tags `v0.4.0-session` or `v0.5.0` for a buildable tree.
 
 ## Reusing other plugins
@@ -307,9 +319,9 @@ Poses from VaMHub can be loaded with the `pose` command using the usual package 
 ## Roadmap
 
 1. **Test inside VaM 1.22** and fix every `TODO(verify)` in `src/AIBody/`: that the plugin loads
-   from the `.var` in the sandbox, `FileManagerSecure` file listing, `URLAudioClipManager` path
-   loading and `PlayNow` playback (lip sync), pose preset loading, Timeline action names,
-   editable text fields, chooser updates, morph names.
+   from the `.var` in the sandbox, `FileManagerSecure.GetFiles` paths, `URLAudioClipManager`
+   loading of a `Saves/PluginData` path and `PlayNow` playback (lip sync, start detection), the
+   `PosePresets` storable, editable text fields, chooser updates, morph names (breath morph).
 2. **Real engines** in the companion app (STT, LLM, TTS), streamed sentence by sentence.
 3. Everything else is parked in [docs/BACKLOG.md](docs/BACKLOG.md).
 
