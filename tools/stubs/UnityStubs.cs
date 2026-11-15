@@ -1,5 +1,5 @@
 // Compile-only stubs of the small UnityEngine surface used by the plugin.
-// NOT shipped to VaM. Used by tools/check_plugin.sh to syntax/type-check src/*.cs with
+// NOT shipped to VaM. Used by tools/check_plugin.py to syntax/type-check src/*.cs with
 // C# 6 outside of VaM. Behaviour is irrelevant; only signatures matter.
 #pragma warning disable 0067, 0649, 0169, 1591
 using System;
@@ -14,17 +14,11 @@ namespace UnityEngine
         public Transform transform { get { return null; } }
     }
     public class Behaviour : Component { public bool enabled; }
-    public class MonoBehaviour : Behaviour
-    {
-        public Coroutine StartCoroutine(IEnumerator routine) { return null; }
-        public void StopCoroutine(Coroutine routine) { }
-    }
+    public class MonoBehaviour : Behaviour { }
     public class GameObject : Object
     {
         public T AddComponent<T>() where T : Component { return null; }
     }
-    public sealed class Coroutine { }
-    public class AsyncOperation { }
     public class Transform : Component
     {
         public Quaternion rotation { get; set; }
@@ -68,14 +62,11 @@ namespace UnityEngine
         public static float Range(float a, float b) { return a; }
     }
     public class AudioClip : Object { public float length { get { return 0f; } } }
-    public enum AudioType { UNKNOWN, ACC, AIFF, IT, MOD, MPEG, OGGVORBIS, S3M, WAV, XM, XMA, VAG, AUDIOQUEUE }
     public class AudioSource : Behaviour
     {
+        // Read-only use: playback goes through AudioSourceControl (FreeMMD reads .audioSource).
         public bool isPlaying { get { return false; } }
         public AudioClip clip { get; set; }
-        public float volume { get; set; }
-        public void Play() { }
-        public void Stop() { }
     }
 }
 

@@ -7,8 +7,9 @@
 
 meta.json is packaging/meta.json (unchanged, incl. licenseType) with the overrides from
 packaging/AIBody.json, which also sets the package version <N>. The script folder is assembled by
-tools/assemble_plugins.py (sandbox-safe default build; the optional HTTP sources and the legacy
-plugins in legacy/ are never packaged).
+tools/assemble_plugins.py (the legacy plugins in legacy/ are never packaged). After writing,
+every file inside the .var is scanned with the strict sandbox rules (tools/sandbox_rules.py);
+on any match the .var is deleted and the build fails.
 
 Usage: python tools/build_var.py [--version N]
 """
@@ -29,7 +30,16 @@ def assemble() -> list[str]:
     spec = importlib.util.spec_from_file_location("assemble_plugins", ROOT / "tools" / "assemble_plugins.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    return module.assemble(STAGE, http=False)
+    return module.assemble(STAGE)
+
+
+def scan_var(path: Path) -> list[str]:
+    spec = importlib.util.spec_from_file_location("sandbox_rules", ROOT / "tools" / "sandbox_rules.py")
+    rules = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(rules)
+    with zipfile.ZipFile(path) as z:
+        items = [(f"{path.name}:{n}", z.read(n).decode("utf-8", "replace")) for n in z.namelist()]
+    return rules.scan_files(items)
 
 
 def build(version_override: int | None = None) -> Path:
@@ -44,9 +54,6 @@ def build(version_override: int | None = None) -> Path:
     script_dir = f"Custom/Scripts/{creator}/{SCRIPT_FOLDER}"
 
     files = assemble()
-    for f in files:
-        if f in ("HttpTransport.cs", "AutoTransport.cs"):
-            raise SystemExit(f"refusing to package optional HTTP source {f}")
     meta["contentList"] = [f"{script_dir}/{f}" for f in files]
     out = ROOT / "dist" / f"{creator}.{meta['packageName']}.{version}.var"
     out.parent.mkdir(exist_ok=True)
@@ -54,7 +61,11 @@ def build(version_override: int | None = None) -> Path:
         z.writestr("meta.json", json.dumps(meta, indent=2))
         for f in files:
             z.write(STAGE / f, f"{script_dir}/{f}")
-    print(f"Wrote {out.relative_to(ROOT)} ({len(files)} files)")
+    problems = scan_var(out)
+    if problems:
+        out.unlink()
+        raise SystemExit("forbidden APIs inside the .var (deleted):\n" + "\n".join(problems))
+    print(f"Wrote {out.relative_to(ROOT)} ({len(files)} files); strict scan of the .var: 0 forbidden matches")
     return out
 
 

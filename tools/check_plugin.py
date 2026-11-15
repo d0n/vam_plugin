@@ -1,19 +1,17 @@
 #!/usr/bin/env python3
 """Checks the AIBody VaM plugin (one .cslist, one MVRScript) without VaM.
 
-The plugin folder is first assembled from src/AIBody exactly as it ships
-(tools/assemble_plugins.py), then:
-
-1. Sandbox scan: the default build must not use APIs VaM 1.22's plugin sandbox blocks
-   (System.IO, System.Net, Process, reflection, native interop, UnityEngine.Networking /
-   UnityWebRequest, WWW), ignoring code inside `#if AIBODY_HTTP` blocks.
+1. Strict sandbox scan (tools/sandbox_rules.py): EVERY file below src/ and every file of the
+   assembled plugin folder must contain zero matches for UnityWebRequest, UnityEngine.Networking,
+   WWW, System.IO, System.Net, sockets, Process, System.Diagnostics, reflection, Assembly.Load,
+   DllImport/InteropServices, UnityEngine.Microphone, OpenURL and the old AIBODY_HTTP flag -
+   in code, comments and strings alike.
 2. Single plugin: AIBody.cslist is flat (plain file names) and its files declare exactly ONE
    MVRScript (AIBody.AIBodyPlugin), one namespace, and no type twice.
 3. Compile check: the .cslist is compiled as one assembly (as VaM does) as C# 6 against the
-   .NET 3.5 profile and the API stubs in tools/stubs, WITHOUT the UnityEngine.Networking stubs in
-   the default build. The optional AIBODY_HTTP build is compiled too.
+   .NET 3.5 profile and the API stubs in tools/stubs. The stubs declare only APIs with public
+   evidence (docs/API_AUDIT.md), so any other VaM API fails the compile.
 
-The stubs encode assumptions about the real VaM API; see TODO(verify) in src/.
 Usage: python tools/check_plugin.py   (needs the .NET SDK 6+ on PATH or in ~/.dotnet)
 """
 from __future__ import annotations
@@ -31,31 +29,20 @@ STUBS = ROOT / "tools" / "stubs"
 BUILD = STUBS / "build"
 ASSEMBLED = BUILD / "assembled"
 
-FORBIDDEN = [
-    r"\bSystem\.IO\b",
-    r"\bSystem\.Net\b",
-    r"\bSystem\.Diagnostics\.Process\b",
-    r"\bProcess\.Start\b",
-    r"\bSystem\.Reflection\b",
-    r"\bSystem\.Runtime\.InteropServices\b",
-    r"\bDllImport\b",
-    r"\bUnityEngine\.Networking\b",
-    r"\bUnityWebRequest\w*\b",
-    r"\bWWW\b",
-]
-
 CSLIST = "AIBody.cslist"
 ENTRY = "AIBody.AIBodyPlugin"
-# (name, variant, define AIBODY_HTTP)
-TARGETS = [("aibody", "default", False), ("aibody-http", "http", True)]
+SRC = ROOT / "src"
+
+
+def load_tool(name: str):
+    spec = importlib.util.spec_from_file_location(name, ROOT / "tools" / f"{name}.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def assemble() -> None:
-    spec = importlib.util.spec_from_file_location("assemble_plugins", ROOT / "tools" / "assemble_plugins.py")
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    module.assemble(ASSEMBLED / "default", http=False)
-    module.assemble(ASSEMBLED / "http", http=True)
+    load_tool("assemble_plugins").assemble(ASSEMBLED)
 
 
 def cslist_files(folder: Path, cslist: str) -> list[str]:
@@ -67,42 +54,12 @@ def cslist_files(folder: Path, cslist: str) -> list[str]:
     return files
 
 
-def strip_optional(text: str) -> str:
-    """Removes `#if AIBODY_HTTP ... #else/#endif` regions (keeps `#if !AIBODY_HTTP` regions)."""
-    out, depth_skip, stack = [], 0, []
-    for line in text.splitlines():
-        s = line.strip()
-        if s.startswith("#if"):
-            skip = s == "#if AIBODY_HTTP"
-            stack.append(skip)
-            depth_skip += skip
-            continue
-        if s.startswith("#else") and stack:
-            was = stack[-1]
-            depth_skip += (not was) - was
-            stack[-1] = not was
-            continue
-        if s.startswith("#endif") and stack:
-            depth_skip -= stack.pop()
-            continue
-        if depth_skip == 0:
-            out.append(line)
-    return "\n".join(out)
-
-
-def sandbox_scan() -> list[str]:
-    problems = []
-    root = ASSEMBLED / "default"
-    for rel in cslist_files(root, CSLIST):
-        if rel in ("HttpTransport.cs", "AutoTransport.cs"):
-            problems.append(f"{CSLIST}: lists optional HTTP source {rel}")
-        code = strip_optional((root / rel).read_text(encoding="utf-8"))
-        code = re.sub(r"//.*", "", code)  # comments may mention the APIs
-        for pattern in FORBIDDEN:
-            for m in re.finditer(pattern, code):
-                line = code[: m.start()].count("\n") + 1
-                problems.append(f"{rel}:{line}: forbidden API '{m.group(0)}'")
-    return problems
+def sandbox_scan() -> tuple[list[str], int]:
+    rules = load_tool("sandbox_rules")
+    files = [p for p in sorted(SRC.rglob("*")) if p.is_file()]
+    files += [p for p in sorted(ASSEMBLED.rglob("*")) if p.is_file()]
+    items = [(str(p.relative_to(ROOT)), p.read_text(encoding="utf-8", errors="replace")) for p in files]
+    return rules.scan_files(items), len(items)
 
 
 TYPE_RE = re.compile(r"(?m)^\s*(?:public |internal |static |sealed |abstract |partial )*"
@@ -112,12 +69,12 @@ TYPE_RE = re.compile(r"(?m)^\s*(?:public |internal |static |sealed |abstract |pa
 def single_plugin_check() -> list[str]:
     """Flat .cslist, exactly one MVRScript (the entry class), one namespace, no duplicate types."""
     problems, scripts, types, namespaces = [], [], [], set()
-    root = ASSEMBLED / "default"
+    root = ASSEMBLED
     files = cslist_files(root, CSLIST)
     if any("/" in f or "\\" in f for f in files):
         problems.append(f"{CSLIST}: sub folder entries: {files}")
     for rel in files:
-        code = strip_optional((root / rel).read_text(encoding="utf-8"))
+        code = (root / rel).read_text(encoding="utf-8")
         ns = re.findall(r"(?m)^namespace ([\w.]+)", code)
         if len(ns) != 1:
             problems.append(f"{rel}: expected one namespace, got {ns}")
@@ -144,11 +101,11 @@ def dotnet() -> str:
     return exe
 
 
-def compile_target(name: str, variant: str, http: bool) -> bool:
-    root = ASSEMBLED / variant
-    paths = [root / f for f in cslist_files(root, CSLIST)]
+def compile_target() -> bool:
+    name = "aibody"
+    paths = [ASSEMBLED / f for f in cslist_files(ASSEMBLED, CSLIST)]
     files = paths
-    stubs = ["UnityStubs.cs", "VaMStubs.cs"] + (["NetworkingStubs.cs"] if http else [])
+    stubs = ["UnityStubs.cs", "VaMStubs.cs"]
     items = "\n".join(f'    <Compile Include="{STUBS / s}" />' for s in stubs)
     items += "\n" + "\n".join(f'    <Compile Include="{p}" />' for p in paths)
     project = f"""<Project Sdk="Microsoft.NET.Sdk">
@@ -158,7 +115,6 @@ def compile_target(name: str, variant: str, http: bool) -> bool:
     <OutputType>Library</OutputType>
     <AssemblyName>AIBodyCheck_{re.sub(r'[^A-Za-z0-9]', '_', name)}</AssemblyName>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
-    <DefineConstants>{'AIBODY_HTTP' if http else ''}</DefineConstants>
     <NoWarn>CS0618</NoWarn>
   </PropertyGroup>
   <ItemGroup>
@@ -187,16 +143,16 @@ def compile_target(name: str, variant: str, http: bool) -> bool:
 
 def main() -> int:
     assemble()
-    problems = sandbox_scan()
-    print(f"[sandbox] {'ok' if not problems else 'FAILED'} (default build)")
+    problems, count = sandbox_scan()
+    print(f"[sandbox] {'ok' if not problems else 'FAILED'}: {len(problems)} forbidden matches in {count} files "
+          "(src/ + assembled plugin)")
     for p in problems:
         print("   ", p)
     single = single_plugin_check()
     for p in single:
         print("   ", p)
     ok = not problems and not single
-    for target in TARGETS:
-        ok &= compile_target(*target)
+    ok &= compile_target()
     return 0 if ok else 1
 
 

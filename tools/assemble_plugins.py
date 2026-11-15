@@ -3,11 +3,10 @@
 
   <out>/AIBody.cslist + the .cs files it lists (one flat folder, no sub folders)
 
-The default build is a plain copy of src/AIBody (that folder is installable as is). --http
-prepends "#define AIBODY_HTTP" to every source and adds src/Optional/*.cs (HTTP transport,
-UnityWebRequest) to the folder and the .cslist; never ship that by default.
+This is a plain copy of src/AIBody (that folder is installable as is). There is exactly one
+build: no optional transports, no compile flags.
 
-Usage: python tools/assemble_plugins.py [--out DIR] [--http]
+Usage: python tools/assemble_plugins.py [--out DIR]
   default DIR: build/scripts/AIBody   (loose-file install: <VaM>/Custom/Scripts/d0n/AIBody)
 """
 from __future__ import annotations
@@ -18,10 +17,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src" / "AIBody"
-OPTIONAL_DIR = ROOT / "src" / "Optional"
 DEFAULT_OUT = ROOT / "build" / "scripts" / "AIBody"
 CSLIST = "AIBody.cslist"
-OPTIONAL = ["HttpTransport.cs", "AutoTransport.cs"]
 
 
 def cslist_entries() -> list[str]:
@@ -35,31 +32,26 @@ def cslist_entries() -> list[str]:
     return entries
 
 
-def assemble(out: Path = DEFAULT_OUT, http: bool = False) -> list[str]:
+def assemble(out: Path = DEFAULT_OUT) -> list[str]:
     """Writes the plugin folder `out` (replacing it). Returns the relative files, cslist first."""
     if out.exists():
         shutil.rmtree(out)
     out.mkdir(parents=True)
     entries = cslist_entries()
-    sources = [SRC / e for e in entries] + ([OPTIONAL_DIR / o for o in OPTIONAL] if http else [])
-    names = [p.name for p in sources]
-    for src in sources:
+    for name in entries:
+        src = SRC / name
         if not src.is_file():
             raise SystemExit(f"missing source {src.relative_to(ROOT)}")
-        text = src.read_text(encoding="utf-8")
-        if http:
-            text = "#define AIBODY_HTTP\n" + text  # #define must come before any code
-        (out / src.name).write_text(text, encoding="utf-8")
-    (out / CSLIST).write_text("\n".join(names) + "\n", encoding="utf-8")
-    return [CSLIST] + names
+        shutil.copyfile(src, out / name)
+    (out / CSLIST).write_text("\n".join(entries) + "\n", encoding="utf-8")
+    return [CSLIST] + entries
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
-    parser.add_argument("--http", action="store_true", help="optional AIBODY_HTTP build (not sandbox-safe)")
     args = parser.parse_args()
-    print(f"{args.out}: {len(assemble(args.out, args.http))} files")
+    print(f"{args.out}: {len(assemble(args.out))} files")
     return 0
 
 
