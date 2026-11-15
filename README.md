@@ -6,7 +6,7 @@ poses, and keeps moving (idle motion and breathing) while it waits.
 
 Two parts, **both needed**:
 
-- **AIBody plugin** (`src/AIBody/`, package `d0n.AIBody.4.var`): ONE plugin, loaded once on the AI
+- **AIBody plugin** (`src/AIBody/`, package `d0n.AIBody.5.var`): ONE plugin, loaded once on the AI
   character's Person atom. It links to the companion app through a shared folder (heartbeat,
   status, microphone/push-to-talk and engine menus) and drives the body: speech with lip sync on
   the head audio, morphs, expressions, gestures, poses, idle motion and breathing.
@@ -14,16 +14,16 @@ Two parts, **both needed**:
   the VaM plugin sandbox does not allow: microphone capture, voice activity detection, speech to
   text, the language model and text to speech.
 
-Status: **early (v0.6.1)**. The plugin compiles as C# 6 against API stubs but has not been run
+Status: **early (v0.6.2)**. The plugin compiles as C# 6 against API stubs but has not been run
 inside VaM yet; every unverified VaM/Unity call is marked `TODO(verify)` in the code. The
 companion app runs end to end with mock engines (no real STT, LLM or TTS yet). Deferred features
 are in [docs/BACKLOG.md](docs/BACKLOG.md).
 
 ## Load flow (the whole setup)
 
-1. Copy `d0n.AIBody.4.var` to `<VaM>/AddonPackages/` (remove older AIBody packages, see below).
+1. Copy `d0n.AIBody.5.var` to `<VaM>/AddonPackages/` (remove older AIBody packages, see below).
 2. In VaM select the AI character's Person atom > **Plugins** tab > **Add Plugin** > choose
-   `AddonPackages > d0n.AIBody.4:/Custom/Scripts/d0n/AIBody/AIBody.cslist`.
+   `AddonPackages > d0n.AIBody.5:/Custom/Scripts/d0n/AIBody/AIBody.cslist`.
 3. Start the companion app: `python -m aibody_companion --vam-root "C:/VaM"`.
 
 That's it. The plugin's status box shows "Companion app: running ..." once both sides see each
@@ -107,6 +107,7 @@ src/AIBody/                the plugin (C# 6), one flat folder = what ships
   PoseController.cs          poses, gestures.json, Timeline and generic triggers
   IdleController.cs          idle head sway and head gestures (nod, shake, tilt)
   BreathingController.cs     procedural breathing on a chest morph
+  Diag.cs                    start-up diagnostics for the status box and the log
   Log.cs, Protocol.cs, UiHelper.cs
 legacy/                    earlier plugin layouts (v0.4 Session/Person, v0.5 Client/Companion); not built
 protocol/                  PROTOCOL.md and JSON schemas
@@ -134,26 +135,26 @@ tools/                     assemble_plugins.py (plugin folder), build_var.py (pa
 
 ### Install the package
 
-Download `d0n.AIBody.4.var` from the [releases](https://github.com/d0n/vam_plugin/releases), or
-build it with `python tools/build_var.py` (writes `dist/d0n.AIBody.4.var`), and copy it to:
+Download `d0n.AIBody.5.var` from the [releases](https://github.com/d0n/vam_plugin/releases), or
+build it with `python tools/build_var.py` (writes `dist/d0n.AIBody.5.var`), and copy it to:
 
 ```
-<VaM>/AddonPackages/d0n.AIBody.4.var
+<VaM>/AddonPackages/d0n.AIBody.5.var
 ```
 
 Remove all older AIBody packages from `AddonPackages`: `d0n.AIBody.1.var`, `d0n.AIBody.2.var`,
-`d0n.AIBody.3.var`, `d0n.AIBodySession.*.var`, `d0n.AIBodyPerson.*.var`,
+`d0n.AIBody.3.var`, `d0n.AIBody.4.var`, `d0n.AIBodySession.*.var`, `d0n.AIBodyPerson.*.var`,
 `d0n.AIBodyPerson2.*.var`. Scenes saved with an older package point at that package's path, so
-remove the old plugin entry from the character and add `d0n.AIBody.4` again, then save.
+remove the old plugin entry from the character and add `d0n.AIBody.5` again, then save.
 
 Contents:
 
 ```
-d0n.AIBody.4.var
+d0n.AIBody.5.var
 ├── meta.json
 └── Custom/Scripts/d0n/AIBody/
     ├── AIBody.cslist
-    └── Log.cs, Protocol.cs, UiHelper.cs, ITransport.cs, FileTransport.cs, MicConfig.cs,
+    └── Log.cs, Diag.cs, Protocol.cs, UiHelper.cs, ITransport.cs, FileTransport.cs, MicConfig.cs,
         AppLink.cs, MorphHelper.cs, SpeechPlayer.cs, ExpressionController.cs,
         BreathingController.cs, IdleController.cs, PoseController.cs, CommandRouter.cs,
         Body.cs, AIBody.cs
@@ -168,6 +169,25 @@ Loose files instead of the package (handy while developing): copy `src/AIBody/` 
 `<VaM>/Custom/Scripts/d0n/AIBody/` (or run
 `python tools/assemble_plugins.py --out "<VaM>/Custom/Scripts/d0n/AIBody"`) and pick
 `Custom/Scripts/d0n/AIBody/AIBody.cslist`. Use either the package or the loose files, not both.
+
+### If the plugin window looks wrong (troubleshooting)
+
+Since 0.6.2 the plugin window always starts with the header and a status box, built before
+anything else. It shows:
+
+- **Selbsttest**: Person atom yes/no, head audio (`HeadAudioSource`) found, morphs (`geometry`)
+  found, `Saves/PluginData/AIBody/<channel>` writable, companion app heartbeat seen.
+- **Live**: link state, folder, companion app, speech, expression, breath morph.
+- **Start-Protokoll**: every Init step (`ok: ...`) and every failure as
+  `FEHLER in <phase>: <exception type>: <message> | at <first stack line>`.
+
+Every phase (AppLink, Body, storables, controllers, each UI block, link start) runs on its own: a
+failing phase is marked and the rest of the window still appears. Head audio, morphs and the head
+controller are looked up lazily and retried every 5 s, so a missing one only disables its feature.
+On an atom that is not a Person (Session/Scene Plugins, an Empty, ...) the window explains where the
+plugin belongs instead of staying empty. The same lines go to the VaM log with the prefix
+`AIBody:`. For a bug report send a screenshot of the plugin window plus the red `AIBody:` lines from
+the error log.
 
 ### Plugin settings
 

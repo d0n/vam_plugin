@@ -1,4 +1,4 @@
-# VaM API audit (AIBody 0.6.1)
+# VaM API audit (AIBody 0.6.1, still valid for 0.6.2)
 
 Rule: the plugin uses only VaM 1.22 APIs that the official VaM notes or established, working
 plugins show in use inside the plugin sandbox. **Anything without such visible evidence is
@@ -73,7 +73,7 @@ Enforcement:
 
 These use evidenced APIs but in a combination nobody has shown publicly, or depend on scene content:
 
-1. The plugin loads from `d0n.AIBody.4.var` in the sandbox (flat `.cslist`).
+1. The plugin loads from `d0n.AIBody.5.var` in the sandbox (flat `.cslist`).
 2. `FileManagerSecure.GetFiles(dir)` returns paths that `ReadAllText` / `DeleteFile` accept for
    `Saves/PluginData/AIBody/<channel>/inbox` (`FileTransport.cs`).
 3. `NormalizeMediaPath` + `QueueClip` with a `Saves/PluginData/...` relative path (evidence uses
@@ -84,3 +84,11 @@ These use evidenced APIs but in a combination nobody has shown publicly, or depe
 6. The `PosePresets` storable id and its `presetBrowsePath` / `LoadPreset` (`PoseController.cs`).
 7. Morph names of the built-in expressions and the breath morph (`ExpressionController.cs`,
    `BreathingController.cs`, `Body.cs`).
+
+## 0.6.2: no new VaM APIs
+
+0.6.2 only reorders and guards the start-up (status box first, one try/catch per phase, lazy
+retried lookups of `HeadAudioSource`, `geometry` and `headControl`, a guarded `InputField`, a
+PluginData write test with the already audited `FileManagerSecure` calls). Exception details come
+from `Exception.ToString()`, not from reflection. The only additions outside the VaM API are plain
+`UnityEngine.Time.time` reads for the retry timers.

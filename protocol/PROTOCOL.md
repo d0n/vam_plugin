@@ -12,7 +12,7 @@ companion app  <-- files in Saves/PluginData/AIBody/<channel>/ -->  AIBody plugi
                                                                       AppLink --in-process--> Body
 ```
 
-The VaM side is **one plugin**: `Custom/Scripts/d0n/AIBody/AIBody.cslist` in `d0n.AIBody.4.var`,
+The VaM side is **one plugin**: `Custom/Scripts/d0n/AIBody/AIBody.cslist` in `d0n.AIBody.5.var`,
 one MVRScript (`AIBody.AIBodyPlugin`), loaded once on the AI character's Person atom (Plugins
 tab). Inside it, two plain C# components call each other directly:
 
