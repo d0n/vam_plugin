@@ -1,0 +1,103 @@
+# AIBody – Testprotokoll für den ersten Test in VaM 1.22 (ab v0.6.3)
+
+Ziel: die offenen „Muss jetzt“-Punkte, die nur in VaM prüfbar sind. Bitte jeden Punkt der Reihe
+nach durchgehen und das Ergebnis eintragen (✅ / ❌ / unklar). Dauer: etwa 20 Minuten.
+
+**Was ich bei jedem Punkt brauche**
+
+- einen **Screenshot des Plugin-Fensters** (links das Statusfeld mit *Selbsttest*, *Live* und
+  *Start-Protokoll*),
+- alle **roten Zeilen mit „AIBody:“** aus dem Error-Log (VaM: Hauptmenü unten links *Show Errors*,
+  oder die Fehlermeldung, die sich von selbst öffnet). Bitte als Text kopieren oder fotografieren.
+
+**Vorbereitung**
+
+- VaM schließen. In `<VaM-Hauptordner>/AddonPackages/` alle alten AIBody-Pakete löschen:
+  `d0n.AIBody.1.var` bis `d0n.AIBody.5.var`, `d0n.AIBodySession.*`, `d0n.AIBodyPerson.*`,
+  `d0n.AIBodyPerson2.*`. Lose Dateien unter `Custom/Scripts/d0n/AIBody/` ebenfalls entfernen.
+- `d0n.AIBody.6.var` nach `<VaM-Hauptordner>/AddonPackages/` kopieren.
+- Companion-App bereithalten (noch **nicht** starten):
+  `python -m aibody_companion --vam-root "C:/VaM"` (Pfad zum eigenen VaM-Ordner anpassen).
+
+---
+
+## T1 – Alte Pakete entfernt, Laden aus der `.var`
+
+1. VaM starten, eine Szene mit einer weiblichen Standard-Figur öffnen (oder neue Szene + Person).
+2. Die Figur (Person-Atom) auswählen > Tab **Plugins** > **Add Plugin** >
+   `AddonPackages > d0n.AIBody.6:/Custom/Scripts/d0n/AIBody/AIBody.cslist`.
+   **Nicht** unter *Session Plugins* oder *Scene Plugins*.
+3. Falls VaM fragt, ob Plugins aus dem Paket erlaubt werden sollen: erlauben und notieren, dass gefragt wurde.
+4. **Open Custom UI** (Plugin-Fenster) öffnen.
+
+Melden: Taucht in der Paketliste nur noch `d0n.AIBody.6` auf? Hat VaM nach Erlaubnis gefragt?
+Screenshot des Fensters; rote „AIBody:“-Zeilen. Erwartet: *Selbsttest* „Person-Atom: ja“,
+Start-Protokoll endet mit „Init fertig, keine Fehler.“
+
+## T2 – Dateipfade: `GetFiles` → `ReadAllText` / `DeleteFile`
+
+1. Companion-App starten (siehe oben).
+2. Etwa 5 Sekunden warten.
+
+Melden: Steht im *Selbsttest* „PluginData beschreibbar: ja“ und „Companion-App-Heartbeat: ja“?
+Steht unter *Live* „Companion app: verbunden …“? Liegen in
+`<VaM>/Saves/PluginData/AIBody/default/inbox/` dauerhaft Dateien herum (sollte leer bleiben)?
+Gibt es Zeilen wie „Could not delete processed inbox file“? Gibt es
+`<VaM>/Saves/PluginData/AIBody/config.json`?
+
+## T3 – Kopf-Audio, Lippensync, `PlayNow`-Retry, Start/Ende
+
+1. Im Fenster der Companion-App (Konsole) einen Satz tippen und Enter drücken, z. B. `Hallo, wie geht es dir?`.
+2. Zuhören und auf den Mund schauen. Drei Sätze schnell hintereinander tippen (Warteschlange).
+
+Melden: Hört man den Ton aus dem Kopf der Figur (die Test-Engine `tone` spielt einen Summton statt einer Stimme)? Bewegt sich der Mund (Lippensync)? Kommt der Ton
+sofort oder erst nach 1–2 Sekunden? Werden die drei Sätze nacheinander gespielt? In der
+Companion-App: erscheinen `speech_started`/`speech_ended` bzw. Fehler wie `audio_failed`
+(bitte die Konsolenzeilen kopieren)? Steht im *Selbsttest* „Kopf-Audio (HeadAudioSource): ja“?
+
+## T4 – Menü-Aktualisierung und Textfeld
+
+1. Tab **Mikrofon & PTT** öffnen > **Refresh device list** > Auswahl **Mic device** öffnen.
+2. Tab **Engines** öffnen und die drei Auswahllisten öffnen.
+3. Tab **Verbindung**: ins Feld **Channel** klicken, `test` eintippen, Enter. Danach wieder `default`.
+4. Tab **Körper**: ins Feld **Breath morph** klicken und einen Buchstaben ändern, dann zurück.
+5. Alle sechs Tabs einmal durchklicken (Status, Verbindung, Engines, Mikrofon & PTT, Körper, Erweitert).
+
+Melden: Zeigt die Geräteliste die echten Mikrofone? Lässt sich in die Textfelder tippen? Ändert
+sich nach `test` der Ordner unter *Live* auf `Saves/PluginData/AIBody/test`? Wechseln die Tabs
+sauber (alte Elemente weg, keine doppelten)? Steht eine *WARNUNG „nur lesbar“* im Start-Protokoll?
+
+## T5 – Pose-Speicher, Morph-Namen, Atem-Morph
+
+1. Tab **Körper**: **Breathing** an; auf die Brust schauen. Unter *Live* die Zeile „Breath morph“ lesen.
+2. In der Companion-App nacheinander tippen: `Hallo` (fröhlich + Nicken), `Nein` (traurig +
+   Kopfschütteln), `Was machst du?` (nachdenklich + Kopfneigen). Die Test-Engine schickt Ausdruck
+   und Geste automatisch mit. Auf Gesicht und Kopf achten.
+3. **Pose-Speicher:** Companion-App beenden. Eine eigene Pose der Figur speichern (Figur > Tab
+   *Pose* > Preset speichern, z. B. unter `Custom/Atom/Person/Pose/test.json`). Dann eine
+   Textdatei `<VaM>/Saves/PluginData/AIBody/default/inbox/pose_test.json` anlegen mit dem Inhalt
+   `{ "v": 3, "type": "pose", "id": "p-1", "path": "Custom/Atom/Person/Pose/test.json" }`
+   (Pfad an die eigene Pose anpassen). Die Figur vorher etwas anders hinstellen.
+
+Melden: Hebt und senkt sich die Brust? Steht unter *Live* „Breath morph: Breath1“ oder „not found“?
+Ändert sich das Gesicht beim Sprechen (Lächeln, Augenbrauen)? Rote Zeilen mit „Morph not found“
+bitte vollständig kopieren. Kommen Nicken/Kopfschütteln/Kopfneigen an? Springt die Figur in die gespeicherte Pose? Was
+steht unter *Live* beim letzten Befehl, und was steht in der neuesten Datei in
+`Saves/PluginData/AIBody/default/outbox/` (z. B. „Atom has no PosePresets storable“)?
+
+## T6 – Hinzufügen, Entfernen, Speichern, Neu laden (Exceptions, FPS)
+
+1. FPS-Anzeige einschalten (VaM: *User Preferences* > *Show FPS*), FPS ohne Plugin notieren.
+2. Plugin wie in T1 hinzufügen, FPS notieren. Companion-App beenden (Strg+C), 20 s warten,
+   *Live*/Selbsttest ansehen, App wieder starten, 10 s warten.
+3. Szene speichern (*File* > *Save Scene*), Szene neu laden, Plugin-Fenster öffnen.
+4. Plugin entfernen (Plugins-Tab > **X** am Eintrag), wieder hinzufügen.
+
+Melden: FPS ohne / mit Plugin. Steht nach dem Beenden der App „GETRENNT“ und nach dem Neustart
+wieder „verbunden“, ohne dass man etwas klickt? Sind die eigenen Einstellungen nach dem Neuladen
+noch da? Rote Zeilen beim Entfernen, Speichern oder Neuladen? Wie viele Dateien liegen nach
+einer Minute ohne App in `Saves/PluginData/AIBody/default/outbox/` (sollten höchstens ~20 sein)?
+
+---
+
+**Ergebnis zurückschicken:** pro Punkt T1–T6 ✅/❌, die Screenshots und die roten „AIBody:“-Zeilen.

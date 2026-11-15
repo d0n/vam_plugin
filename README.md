@@ -6,7 +6,7 @@ poses, and keeps moving (idle motion and breathing) while it waits.
 
 Two parts, **both needed**:
 
-- **AIBody plugin** (`src/AIBody/`, package `d0n.AIBody.5.var`): ONE plugin, loaded once on the AI
+- **AIBody plugin** (`src/AIBody/`, package `d0n.AIBody.6.var`): ONE plugin, loaded once on the AI
   character's Person atom. It links to the companion app through a shared folder (heartbeat,
   status, microphone/push-to-talk and engine menus) and drives the body: speech with lip sync on
   the head audio, morphs, expressions, gestures, poses, idle motion and breathing.
@@ -14,16 +14,16 @@ Two parts, **both needed**:
   the VaM plugin sandbox does not allow: microphone capture, voice activity detection, speech to
   text, the language model and text to speech.
 
-Status: **early (v0.6.2)**. The plugin compiles as C# 6 against API stubs but has not been run
+Status: **early (v0.6.3)**. The plugin compiles as C# 6 against API stubs but has not been run
 inside VaM yet; every unverified VaM/Unity call is marked `TODO(verify)` in the code. The
 companion app runs end to end with mock engines (no real STT, LLM or TTS yet). Deferred features
 are in [docs/BACKLOG.md](docs/BACKLOG.md).
 
 ## Load flow (the whole setup)
 
-1. Copy `d0n.AIBody.5.var` to `<VaM>/AddonPackages/` (remove older AIBody packages, see below).
+1. Copy `d0n.AIBody.6.var` to `<VaM>/AddonPackages/` (remove older AIBody packages, see below).
 2. In VaM select the AI character's Person atom > **Plugins** tab > **Add Plugin** > choose
-   `AddonPackages > d0n.AIBody.5:/Custom/Scripts/d0n/AIBody/AIBody.cslist`.
+   `AddonPackages > d0n.AIBody.6:/Custom/Scripts/d0n/AIBody/AIBody.cslist`.
 3. Start the companion app: `python -m aibody_companion --vam-root "C:/VaM"`.
 
 That's it. The plugin's status box shows "Companion app: running ..." once both sides see each
@@ -135,22 +135,22 @@ tools/                     assemble_plugins.py (plugin folder), build_var.py (pa
 
 ### Install the package
 
-Download `d0n.AIBody.5.var` from the [releases](https://github.com/d0n/vam_plugin/releases), or
-build it with `python tools/build_var.py` (writes `dist/d0n.AIBody.5.var`), and copy it to:
+Download `d0n.AIBody.6.var` from the [releases](https://github.com/d0n/vam_plugin/releases), or
+build it with `python tools/build_var.py` (writes `dist/d0n.AIBody.6.var`), and copy it to:
 
 ```
-<VaM>/AddonPackages/d0n.AIBody.5.var
+<VaM>/AddonPackages/d0n.AIBody.6.var
 ```
 
 Remove all older AIBody packages from `AddonPackages`: `d0n.AIBody.1.var`, `d0n.AIBody.2.var`,
-`d0n.AIBody.3.var`, `d0n.AIBody.4.var`, `d0n.AIBodySession.*.var`, `d0n.AIBodyPerson.*.var`,
+`d0n.AIBody.3.var`, `d0n.AIBody.4.var`, `d0n.AIBody.5.var`, `d0n.AIBodySession.*.var`, `d0n.AIBodyPerson.*.var`,
 `d0n.AIBodyPerson2.*.var`. Scenes saved with an older package point at that package's path, so
-remove the old plugin entry from the character and add `d0n.AIBody.5` again, then save.
+remove the old plugin entry from the character and add `d0n.AIBody.6` again, then save.
 
 Contents:
 
 ```
-d0n.AIBody.5.var
+d0n.AIBody.6.var
 ├── meta.json
 └── Custom/Scripts/d0n/AIBody/
     ├── AIBody.cslist
@@ -189,29 +189,29 @@ plugin belongs instead of staying empty. The same lines go to the VaM log with t
 `AIBody:`. For a bug report send a screenshot of the plugin window plus the red `AIBody:` lines from
 the error log.
 
-### Plugin settings
+### Plugin settings (tabs)
 
-Left column:
+Left column, always visible: header and the **status box** (Selbsttest, live state, start log).
+Right column: a row of tab buttons, below it the settings of the active tab:
 
-- Status box: link state, folder, whether the companion app is running, last command, speaking,
-  expression, audio source, morphs.
-- **Speech output**: **Speech volume**, **Stop speaking**.
-- **Companion app link**: **Active**, **Channel** (default `default`; must match the companion
-  app's `channel`), **Reconnect**. The shared folder is the only link.
-- **Engines**: **Speech-to-text**, **Language model**, **Text-to-speech**, filled from the
-  companion app's list of available engines and sent with the settings.
-- **Advanced**: **File poll interval**, **Verbose log**.
+| tab | settings |
+|-----|----------|
+| **Status** | **Active** (link on/off), **Reconnect**, **Stop speaking**, **Reset expression** |
+| **Verbindung** | **Channel** (default `default`; folder below `Saves/PluginData/AIBody`), paths and config file info, **Reload config.json (paths)**, **Reload expressions / gestures** |
+| **Engines** | **Speech-to-text**, **Language model**, **Text-to-speech** (lists come from the companion app) |
+| **Mikrofon & PTT** | captured by the companion app, applied live 0.3 s after the last change: **Mic enabled**, **Mic mode** (Voice activation / Push-to-talk), **Mic device** (**Refresh device list**), **Push-to-talk active**, **Push-to-talk interrupts speech**, mic status, **Show level meter**, **VAD threshold**, **Input gain**, **Silence timeout**, **Min / Max utterance**, **Echo gate tail** |
+| **Körper** | **Speech volume**, **Idle head motion**, **Idle intensity**, **Breathing**, **Breaths per minute**, **Breath depth**, **Breath morph** |
+| **Erweitert** | **File poll interval**, **Verbose log** |
 
-Right column:
+All settings are saved with the scene and mirrored to the shared config file
+`<VaM>/Saves/PluginData/AIBody/config.json` (one object per tab; see [docs/CONFIG.md](docs/CONFIG.md)).
+The companion app reads it on start. A scene without saved AIBody settings takes its values from
+that file once.
 
-- **Body**: **Idle head motion**, **Idle intensity**, **Breathing**, **Breaths per minute**,
-  **Breath depth**, **Breath morph**, **Reload expressions / gestures**.
-- **Microphone** (captured by the companion app, configured here, applied live 0.3 s after the
-  last change): **Mic enabled**, **Mic mode** (Voice activation / Push-to-talk), **Mic device**
-  (**Refresh mic devices**), **VAD threshold**, **Input gain**, **Silence timeout**,
-  **Min / Max utterance**, **Echo gate tail**, **Push-to-talk active** plus the actions
-  *Push-to-talk start / stop / toggle* for triggers or key bindings, **Push-to-talk interrupts
-  speech**, **Show level meter**.
+If the companion app is missing or crashes, the plugin keeps running: the status shows
+"GETRENNT", unread files in the channel folder are kept small (old commands are dropped, at most 20
+old events are kept), and the link comes back by itself as soon as the app runs again. If the app
+restarted while the body was speaking, the old speech is cancelled.
 
 Actions for triggers: *Reconnect*, *Stop speaking*, *Reset expression*, *Reload config files*,
 *Push-to-talk start / stop / toggle*. Gaze is not part of AIBody yet; use
@@ -224,7 +224,7 @@ same atom.
 cd companion
 pip install sounddevice                                   # microphone support
 python -m aibody_companion --list-devices                 # check the microphone
-python -m aibody_companion --vam-root "C:/VaM"            # channel "default"
+python -m aibody_companion --vam-root "C:/VaM"            # channel from config.json ("default")
 ```
 
 Options: `--channel` (default `default`), `--no-mic` (text only), `--no-stdin`,

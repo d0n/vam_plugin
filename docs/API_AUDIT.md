@@ -1,4 +1,4 @@
-# VaM API audit (AIBody 0.6.1, still valid for 0.6.2)
+# VaM API audit (AIBody 0.6.1, extended for 0.6.3)
 
 Rule: the plugin uses only VaM 1.22 APIs that the official VaM notes or established, working
 plugins show in use inside the plugin sandbox. **Anything without such visible evidence is
@@ -36,6 +36,10 @@ Enforcement:
 | E14 | [ToySerialController UITextInput.cs](https://github.com/Yoooi0/ToySerialController/blob/8aefbbd2dc3e9701bcf7d1010f6fd9b2bb7a5c83/src/UI/Control/UITextInput.cs) (Yoooi) | editable text field: `textField.gameObject.AddComponent<InputField>()`, `input.textComponent = textField.UItext`, `storable.inputField = input` (L44-47) |
 | E15 | [Official VaM patch notes](https://cdn.virtamate.com/Release/VaM_PatchNotes.html) (MeshedVR) | `FileManagerSecure` is the file API for plugins (writes below `Saves/PluginData`); plugin network access is a user preference, off by default |
 | E16 | [CycleForce.cs](https://github.com/vamdeluxe/DeluxePlugin/blob/e606e780e79af214b2b4be0a53b1e7b45ecf59b7/Templates/CycleForce.cs) (VaM plugin template, in DeluxePlugin) | `RegisterStringChooser` + `CreatePopup` (L85-86), `RegisterBool` + `CreateToggle` (L130-131) |
+| E17 | [vam-embody CollapsibleSection.cs](https://github.com/acidbubbles/vam-embody/blob/e09e364f818b0389aa97d84c54ba5c65ad1183d6/src/Screens/CollapsibleSection.cs) (Acid Bubbles) | switching UI pages: `RemoveToggle` (L27), `RemoveSlider` (L30), `RemovePopup` (L36), `RemoveButton` (L40), `RemoveTextField` (L43), `RemoveSpacer` (L46) on controls it created with `CreateToggle/CreateSlider/CreateButton/CreateTextField` (L51-62) |
+| E18 | [VamHeightPlugin UI.cs](https://github.com/lfe999/VamHeightPlugin/blob/dfc7781cb4f4038d503bec3d770cfccfcd1e4625/src/UI.cs) (lfe999) | rebuilding a settings page: `RemoveButton` (L1460), `RemoveToggle` (L1465), `RemoveSpacer` (L1470), `RemoveTextField` (L1473) |
+| E19 | [vam-keybindings KeybindingsStorage.cs](https://github.com/acidbubbles/vam-keybindings/blob/6495ab5b623358c90a066b2faabfa27213f452dd/src/Keybindings/KeybindingsStorage.cs) (Acid Bubbles) | per-plugin data folder `Saves\PluginData\Keybindings` (L12) created with `FileManagerSecure.CreateDirectory` (L162, L206) |
+| E20 | [Official API doc: FileManagerSecure](https://apidoc.virtamate.com/api/MVR.FileManagementSecure.FileManagerSecure.html) (MeshedVR) | `WriteAllText(path, text)`: "file creation is passed to user confirm/deny system for security reasons, so the file may not be immediately created" |
 
 ## Kept
 
@@ -49,6 +53,8 @@ Enforcement:
 | Timeline gestures | `GetStorableIDs()` + suffix match, `CallAction("Play <animation>")` | E8, E9 |
 | Pose presets | `GetStorableByID("PosePresets")`, `GetUrlJSONParam("presetBrowsePath")`, `NormalizePath`, `CallAction("LoadPreset")` | E7 (pattern; the `PosePresets` id itself is `TODO(verify)`) |
 | Generic trigger | `CallAction`, `GetFloatJSONParam`, `GetBoolJSONParam`, `GetStringJSONParam`, `GetStringChooserJSONParam` | E8, E12, E13 |
+| Settings tabs | `RemoveToggle`, `RemoveSlider`, `RemovePopup`, `RemoveButton`, `RemoveTextField` on the controls of the old tab, then `Create*` for the new one (`UiPage` in `UiHelper.cs`) | E17, E18 |
+| Shared settings file `Saves/PluginData/AIBody/config.json` | `FileExists`, `ReadAllText`, `CreateDirectory`, `WriteAllText` in the plugin's own folder below `Saves/PluginData` | E10, E11, E19, E20 (see "Config file location") |
 | Plugin UI and storables | `CreateToggle`, `CreateSlider`, `CreatePopup`, `CreateButton`, `CreateTextField` (+ `InputField` for editing), `Register*`, `JSONStorableAction`, `chooser.choices` | E1, E9, E12, E14, E16 |
 | Logging, Person check | `SuperController.LogMessage` / `LogError`, `containingAtom.type`, `containingAtom.uid` | E9, E12 |
 
@@ -73,7 +79,7 @@ Enforcement:
 
 These use evidenced APIs but in a combination nobody has shown publicly, or depend on scene content:
 
-1. The plugin loads from `d0n.AIBody.5.var` in the sandbox (flat `.cslist`).
+1. The plugin loads from `d0n.AIBody.6.var` in the sandbox (flat `.cslist`).
 2. `FileManagerSecure.GetFiles(dir)` returns paths that `ReadAllText` / `DeleteFile` accept for
    `Saves/PluginData/AIBody/<channel>/inbox` (`FileTransport.cs`).
 3. `NormalizeMediaPath` + `QueueClip` with a `Saves/PluginData/...` relative path (evidence uses
@@ -84,6 +90,9 @@ These use evidenced APIs but in a combination nobody has shown publicly, or depe
 6. The `PosePresets` storable id and its `presetBrowsePath` / `LoadPreset` (`PoseController.cs`).
 7. Morph names of the built-in expressions and the breath morph (`ExpressionController.cs`,
    `BreathingController.cs`, `Body.cs`).
+8. Tabs: `Remove*` + `Create*` switch the right column cleanly, also for editable text fields.
+9. `Saves/PluginData/AIBody/config.json` is written without a confirm dialog; the scene's saved
+   values are restored within 1.5 s after Init (seeding check in `AIBody.cs`).
 
 ## 0.6.2: no new VaM APIs
 
@@ -92,3 +101,22 @@ retried lookups of `HeadAudioSource`, `geometry` and `headControl`, a guarded `I
 PluginData write test with the already audited `FileManagerSecure` calls). Exception details come
 from `Exception.ToString()`, not from reflection. The only additions outside the VaM API are plain
 `UnityEngine.Time.time` reads for the retry timers.
+
+## 0.6.3: tabs and the shared config file
+
+- **Tabs** use only `Remove*` + `Create*` (E17, E18). `RemoveSpacer` is not needed (no spacers).
+  The InputField of an editable text field is unbound (`storable.inputField = null`) before its
+  field is removed.
+- **Config file location: `Saves/PluginData/AIBody/config.json`, one global file.** Evidence for
+  the convention "one folder per plugin below `Saves/PluginData`, settings as JSON in it":
+  Timeline keeps its global defaults in `Saves\PluginData\Timeline\settings.json`
+  ([TimelineDefaults.cs L9-10](https://github.com/acidbubbles/vam-timeline/blob/54e294256d7b73ec7d00d4216fcc7f01bc9d8133/src/AtomAnimations/Editing/TimelineDefaults.cs)),
+  Keybindings uses `Saves\PluginData\Keybindings` (E19), Scripter writes with
+  `FileManagerSecure.WriteAllText` into `Saves\PluginData\Scripter\...`
+  ([Scripter.cs L87, L334](https://github.com/acidbubbles/vam-scripter/blob/96674ce01a3ca1e8d5eaebceccf047f14de69394/Scripter.Plugin/src/Scripter.cs)).
+  The official notes name `FileManagerSecure` as the plugin file API (E15) and say that file
+  creation may go through VaM's user confirm/deny system (E20); the per-plugin `Saves/PluginData`
+  folder is the place established plugins write to. Global (not per channel) like Timeline's
+  `settings.json`, because the settings describe the one AI character; the channel is a value in
+  the file. TODO(verify): VaM 1.22 creates the file without asking (as for the channel files).
+- New UnityEngine use: none beyond `Time.time` (retry timers, 0.6.2).

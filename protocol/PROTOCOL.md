@@ -12,7 +12,7 @@ companion app  <-- files in Saves/PluginData/AIBody/<channel>/ -->  AIBody plugi
                                                                       AppLink --in-process--> Body
 ```
 
-The VaM side is **one plugin**: `Custom/Scripts/d0n/AIBody/AIBody.cslist` in `d0n.AIBody.5.var`,
+The VaM side is **one plugin**: `Custom/Scripts/d0n/AIBody/AIBody.cslist` in `d0n.AIBody.6.var`,
 one MVRScript (`AIBody.AIBodyPlugin`), loaded once on the AI character's Person atom (Plugins
 tab). Inside it, two plain C# components call each other directly:
 
@@ -69,6 +69,21 @@ Saves/PluginData/AIBody/<channel>/audio/    speech audio written by the companio
   `companion_heartbeat` means the companion restarted: the plugin sends `ready` and `config` again.
 - `<channel>` defaults to `default` (AIBody plugin "Channel", companion app `channel`). Both sides
   must use the same value.
+
+### Shared config file
+
+Besides the message files, both sides use `Saves/PluginData/AIBody/config.json` (one global file,
+one object per plugin tab: `connection`, `engines`, `mic`, `body`, `advanced`). The plugin UI
+wins and writes it back; the companion app reads it on start. See `docs/CONFIG.md` and
+`schema/config.schema.json`. Live changes still travel as `config` events.
+
+### Robustness
+
+- The plugin deletes stale `inbox/*.json` when its link starts (no replay of old commands) and,
+  while no `companion_heartbeat` arrives, keeps at most 20 files in `outbox/`.
+- The companion app deletes its own `inbox/*.json` that the plugin did not pick up within 10 s.
+- A `companion_heartbeat` with a new `session` after an earlier one means the app restarted: the
+  plugin cancels its speech queue and sends `ready` + `config` again.
 
 ## Commands (companion -> VaM)
 
