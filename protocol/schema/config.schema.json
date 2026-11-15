@@ -1,0 +1,191 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/d0n/vam_plugin/protocol/schema/config.schema.json",
+  "title": "AIBody shared settings: <VaM>/Saves/PluginData/AIBody/config.json (one object per plugin tab; the 'Status' tab has no settings)",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "written_by": {
+      "type": "string"
+    },
+    "connection": {
+      "type": "object",
+      "description": "Tab 'Verbindung': channel (folder below Saves/PluginData/AIBody), link on/off, data file paths (relative to the VaM folder, below Saves/ or Custom/)",
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "type": "string",
+          "default": "default"
+        },
+        "active": {
+          "type": "boolean",
+          "default": true
+        },
+        "paths": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "expressions": {
+              "type": "string",
+              "pattern": "^(Saves|Custom)/",
+              "default": "Saves/PluginData/AIBody/expressions.json"
+            },
+            "gestures": {
+              "type": "string",
+              "pattern": "^(Saves|Custom)/",
+              "default": "Saves/PluginData/AIBody/gestures.json"
+            }
+          }
+        }
+      }
+    },
+    "engines": {
+      "type": "object",
+      "description": "Tab 'Engines': engine names; the companion app accepts only engines it has",
+      "additionalProperties": false,
+      "properties": {
+        "stt": {
+          "type": "string",
+          "default": "null"
+        },
+        "llm": {
+          "type": "string",
+          "default": "echo"
+        },
+        "tts": {
+          "type": "string",
+          "default": "tone"
+        }
+      }
+    },
+    "mic": {
+      "type": "object",
+      "description": "Tab 'Mikrofon & PTT': captured by the companion app; push-to-talk state itself is never saved",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "mode": {
+          "enum": [
+            "vad",
+            "ptt"
+          ],
+          "default": "vad"
+        },
+        "device": {
+          "type": "string",
+          "default": ""
+        },
+        "vad_threshold": {
+          "type": "number",
+          "minimum": 0.001,
+          "maximum": 0.5,
+          "default": 0.01
+        },
+        "end_silence_ms": {
+          "type": "number",
+          "minimum": 200,
+          "maximum": 5000,
+          "default": 700
+        },
+        "min_utterance_ms": {
+          "type": "number",
+          "minimum": 100,
+          "maximum": 5000,
+          "default": 300
+        },
+        "max_utterance_ms": {
+          "type": "number",
+          "minimum": 1000,
+          "maximum": 60000,
+          "default": 20000
+        },
+        "echo_tail_s": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 3.0,
+          "default": 0.4
+        },
+        "gain": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 8.0,
+          "default": 1.0
+        },
+        "ptt_interrupts": {
+          "type": "boolean",
+          "default": true
+        },
+        "level_meter": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+    "body": {
+      "type": "object",
+      "description": "Tab 'Körper'",
+      "additionalProperties": false,
+      "properties": {
+        "speech_volume": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "default": 1.0
+        },
+        "idle_motion": {
+          "type": "boolean",
+          "default": true
+        },
+        "idle_intensity": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "default": 0.5
+        },
+        "breathing": {
+          "type": "boolean",
+          "default": true
+        },
+        "breaths_per_minute": {
+          "type": "number",
+          "minimum": 4.0,
+          "maximum": 40.0,
+          "default": 14.0
+        },
+        "breath_depth": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "default": 0.35
+        },
+        "breath_morph": {
+          "type": "string",
+          "default": "Breath1"
+        }
+      }
+    },
+    "advanced": {
+      "type": "object",
+      "description": "Tab 'Erweitert'",
+      "additionalProperties": false,
+      "properties": {
+        "file_poll_interval_s": {
+          "type": "number",
+          "minimum": 0.02,
+          "maximum": 2.0,
+          "default": 0.1
+        },
+        "verbose_log": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    }
+  }
+}

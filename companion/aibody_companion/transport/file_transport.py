@@ -24,6 +24,11 @@ log = logging.getLogger(__name__)
 PARTIAL_WRITE_GRACE_S = 2.0
 
 
+# Commands the plugin did not pick up within this time are deleted unread (the plugin is not
+# running): no replay of old speech when it comes back.
+COMMAND_TTL_S = 10.0
+
+
 # The plugin counts as connected over files while it sent something within this window
 # (it sends a heartbeat every 2 s).
 FILE_ALIVE_S = 5.0
@@ -40,6 +45,7 @@ class FileTransport(Transport):
         self._seq = itertools.count(1)
         self._lock = threading.Lock()
         self._last_seen = 0.0
+        self._last_prune = 0.0
 
     def start(self) -> None:
         for d in (self.inbox, self.outbox, self.audio_dir):
@@ -60,7 +66,25 @@ class FileTransport(Transport):
             tmp.write_text(json.dumps(command), encoding="utf-8")
             os.replace(tmp, self.inbox / f"{name}.json")
 
+    def drop_stale_commands(self, now: float | None = None) -> int:
+        """Deletes our own inbox files older than COMMAND_TTL_S. Returns how many."""
+        now = time.time() if now is None else now
+        dropped = 0
+        for path in self.inbox.glob("*.json"):
+            try:
+                if now - path.stat().st_mtime > COMMAND_TTL_S:
+                    path.unlink(missing_ok=True)
+                    dropped += 1
+            except FileNotFoundError:
+                continue  # the plugin took it meanwhile
+        if dropped:
+            log.info("Dropped %d command file(s) the plugin did not pick up (is it running?)", dropped)
+        return dropped
+
     def poll_events(self) -> list[dict[str, Any]]:
+        if time.monotonic() - self._last_prune >= 1.0:
+            self._last_prune = time.monotonic()
+            self.drop_stale_commands()
         events: list[dict[str, Any]] = []
         try:
             files = sorted(self.outbox.glob("*.json"))

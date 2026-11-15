@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "written_by": "AIBody plugin 0.6.3",
+  "connection": {
+    "channel": "default",
+    "active": true,
+    "paths": {
+      "expressions": "Saves/PluginData/AIBody/expressions.json",
+      "gestures": "Saves/PluginData/AIBody/gestures.json"
+    }
+  },
+  "engines": {
+    "stt": "null",
+    "llm": "echo",
+    "tts": "tone"
+  },
+  "mic": {
+    "enabled": true,
+    "mode": "vad",
+    "device": "",
+    "vad_threshold": 0.01,
+    "end_silence_ms": 700,
+    "min_utterance_ms": 300,
+    "max_utterance_ms": 20000,
+    "echo_tail_s": 0.4,
+    "gain": 1.0,
+    "ptt_interrupts": true,
+    "level_meter": true
+  },
+  "body": {
+    "speech_volume": 1.0,
+    "idle_motion": true,
+    "idle_intensity": 0.5,
+    "breathing": true,
+    "breaths_per_minute": 14.0,
+    "breath_depth": 0.35,
+    "breath_morph": "Breath1"
+  },
+  "advanced": {
+    "file_poll_interval_s": 0.1,
+    "verbose_log": false
+  }
+}

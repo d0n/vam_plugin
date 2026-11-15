@@ -8,6 +8,7 @@ import sys
 import threading
 import time
 
+from . import settings_file
 from .audio import EchoGate, MicController
 from .config import Config, load_config
 from .orchestrator import Companion
@@ -21,7 +22,10 @@ def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="aibody_companion", description="Companion app for the VaM AIBody plugin")
     p.add_argument("--config", help="JSON config file (see config.example.json)")
     p.add_argument("--vam-root", dest="vam_root", help="VaM install folder (required)")
-    p.add_argument("--channel", help="AIBody plugin channel (default: default)")
+    p.add_argument(
+        "--channel",
+        help="AIBody plugin channel (default: connection.channel from Saves/PluginData/AIBody/config.json)",
+    )
     p.add_argument("--no-mic", action="store_true", help="never open the microphone (text input only)")
     p.add_argument("--no-stdin", action="store_true", help="do not read typed messages from stdin")
     p.add_argument("--list-devices", action="store_true", help="print input devices and exit")
@@ -92,6 +96,13 @@ def main(argv: list[str] | None = None) -> int:
         "vam_root": args.vam_root, "channel": args.channel,
     })
     errors = cfg.validate()
+    if errors:
+        for e in errors:
+            log.error(e)
+        return 2
+    for problem in settings_file.apply_to_config(cfg, channel_from_cli=args.channel is not None):
+        log.warning("config.json: %s", problem)
+    errors = cfg.validate()  # re-check after config.json (channel, engines)
     if errors:
         for e in errors:
             log.error(e)
