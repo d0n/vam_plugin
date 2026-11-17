@@ -193,3 +193,21 @@ from `Exception.ToString()`, not from reflection. The only additions outside the
   plugin); `QueueClip` below `Saves/PluginData`; `FileExists` on a `Custom/` path in the sandbox.
   T9 (both test tones, then a typed and a spoken question) answers all three.
 
+## 0.7.3: verbose log, realtime toggle
+
+- **No new plugin API.** `[debug]` lines use `SuperController.LogMessage` (already used for every
+  `AIBody:` line); the last 8 are kept in a `List<string>` and shown as text in the existing status
+  box. "Echtzeit (Realtime) verwenden" is an unregistered `JSONStorableBool` shown with
+  `CreateToggle` (same pattern as the other unregistered UI-only storables); it only sets the
+  existing AI mode chooser, so nothing new is saved with the scene. No `valNoCallback` (not
+  evidenced): a guard flag keeps the two in sync.
+- **Tooltip on mouseover (push-to-talk), checked again: not done.** The only sandboxed example
+  found is via5/VUI (commit `5d7aea2de5bd51dc6b3f22f27cf3299282d6c450`, `project/src/VUI/Root.cs`):
+  its own UI framework with a custom `MonoBehaviour` implementing Unity's `IPointer*Handler` and
+  synthesized pointer-enter events. That is not a simple, evidenced pattern for a `UIDynamicToggle`,
+  so the explanation text under the checkbox stays.
+- Companion (outside the sandbox): checked against the real xAI API with a fake key on 17.11.2026:
+  `POST /v1/tts`, `POST /v1/stt` and the realtime WebSocket handshake answer HTTP 400
+  `"Incorrect API key provided"` (not 401), `POST /v1/responses` exists (422 for an empty body),
+  an unknown path gives 404. The key status now shows "abgelehnt" for that 400 too. Still
+  TODO(verify): a full answer with a real key.

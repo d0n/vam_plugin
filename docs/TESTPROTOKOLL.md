@@ -1,4 +1,4 @@
-# AIBody – Testprotokoll für den ersten Test in VaM 1.22 (ab v0.6.3, aktuell v0.7.2; T9 und die neuen Tab-Namen ab v0.7.2)
+# AIBody – Testprotokoll für den ersten Test in VaM 1.22 (ab v0.6.3, aktuell v0.7.3; T9 und die neuen Tab-Namen ab v0.7.2, T10 ab v0.7.3)
 
 Ziel: die offenen „Muss jetzt“-Punkte, die nur in VaM prüfbar sind. Bitte jeden Punkt der Reihe
 nach durchgehen und das Ergebnis eintragen (✅ / ❌ / unklar). Dauer: etwa 20 Minuten.
@@ -13,9 +13,9 @@ nach durchgehen und das Ergebnis eintragen (✅ / ❌ / unklar). Dauer: etwa 20 
 **Vorbereitung**
 
 - VaM schließen. In `<VaM-Hauptordner>/AddonPackages/` alle alten AIBody-Pakete löschen:
-  `d0n.AIBody.1.var` bis `d0n.AIBody.8.var`, `d0n.AIBodySession.*`, `d0n.AIBodyPerson.*`,
+  `d0n.AIBody.1.var` bis `d0n.AIBody.9.var`, `d0n.AIBodySession.*`, `d0n.AIBodyPerson.*`,
   `d0n.AIBodyPerson2.*`. Lose Dateien unter `Custom/Scripts/d0n/AIBody/` ebenfalls entfernen.
-- `d0n.AIBody.9.var` nach `<VaM-Hauptordner>/AddonPackages/` kopieren.
+- `d0n.AIBody.10.var` nach `<VaM-Hauptordner>/AddonPackages/` kopieren.
 - Companion-App bereithalten (noch **nicht** starten):
   `python -m aibody_companion --vam-root "C:/VaM"` (Pfad zum eigenen VaM-Ordner anpassen).
   Für T9 vorher den xAI-Key setzen: `set XAI_API_KEY=xai-...` (cmd) bzw. `$env:XAI_API_KEY="xai-..."` (PowerShell).
@@ -162,4 +162,20 @@ bitte genau abschreiben, dazu die Ausgabe der Companion-Konsole.
 - Steht dort „ohne xAI-Key“: Key nicht gesetzt (gleiches Konsolenfenster wie die App?) oder im Tab
   **AI** eine Key-Datei eintragen.
 
-**Ergebnis zurückschicken:** pro Punkt T1–T9 ✅/❌, die Screenshots und die roten „AIBody:“-Zeilen.
+## T10 – Verbose log und Echtzeit-Schalter (ab v0.7.3)
+
+1. Tab **Erweitert** > **Verbose log** einschalten. In der Companion-Konsole erscheint
+   `Verbose log an (Turn-Trace) - Logdatei <VaM>/Saves/PluginData/AIBody/logs/companion.log`.
+2. Eine Frage tippen oder sprechen. In der Konsole stehen Zeilen wie `[t0001 +0.00s] start: …`,
+   `path: …`, `stt: …`, `llm request: …`, `tts: … wav='Custom/Sounds/AIBody/default/…'`, `speak sent: …`,
+   `plugin: speech_started …` – alle mit derselben Turn-Nummer. Im Statusfeld erscheint
+   *Letzte Ereignisse* mit `Befehl speak …`, `PlayNow …`, `Spricht …`, `Ende …`.
+3. Tab **Voice Mode** > **Echtzeit (Realtime) verwenden** einschalten: im Tab **AI Character** steht
+   AI mode `auto`, die Konsole meldet den Moduswechsel. Wieder aus: AI mode `qa`.
+4. **Verbose log** wieder aus: die Turn-Zeilen hören auf.
+
+Melden: die Datei `companion.log` aus `<VaM>/Saves/PluginData/AIBody/logs/` (enthält keine Keys,
+bitte trotzdem kurz reinschauen) und einen Screenshot des Statusfelds mit *Letzte Ereignisse*.
+
+**Ergebnis zurückschicken:** pro Punkt T1–T10 ✅/❌, die Screenshots, die roten „AIBody:“-Zeilen und
+bei Problemen mit einer Antwort die Datei `companion.log` (mit eingeschaltetem Verbose log).

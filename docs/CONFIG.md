@@ -74,7 +74,7 @@ below. Machine-readable:
 | `breath_morph` | string | `Breath1` | chest morph for breathing |
 | **`advanced`** (tab "Erweitert") | | | |
 | `file_poll_interval_s` | number 0.02-2 | 0.1 | how often the plugin checks its inbox |
-| `verbose_log` | bool | false | debug lines in the VaM log |
+| `verbose_log` | bool | false | **Verbose log**: turn trace in the companion console and log file (`Saves/PluginData/AIBody/logs/companion.log`, 1 MB x 5, keys redacted) and `[debug]` lines in the VaM log; applied live through the `config` event. `-v` keeps it on |
 | **`ai`** (companion app) | | | the plugin sets only `mode`, `proactive.enabled`, `proactive.idle_seconds`, `realtime.send_while_speaking`, `realtime.voice`, `xai.voice` and (when its field is not empty) `xai.key_file` / `elevenlabs.key_file`; it keeps the rest of the section |
 | `mode` | `qa` / `auto` / `realtime` / `chain` | `qa` | tab *AI Character* **AI mode** (*Voice Mode* > **Einfacher Q&A-Modus** sets `qa`). `qa` = simple Q&A: STT -> LLM -> TTS with `xai` instead of the offline test engines when an xAI key exists, speech only, no proactive remarks. `auto` = realtime when an xAI key exists, else chain; with `engines.tts` = `elevenlabs` auto picks chain. `realtime` = Grok Voice speech-to-speech; `chain` = STT -> LLM -> TTS (exactly the engines above). If realtime cannot connect, or gives no answer 12 s after the user spoke, chain runs (reported). Files from 0.7.1 keep their value (`auto`) |
 | `realtime.url` | string | `wss://api.x.ai/v1/realtime` | |

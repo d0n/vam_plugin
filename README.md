@@ -222,13 +222,13 @@ Right column: a row of tab buttons, below it the settings of the active tab:
 
 | tab | settings |
 |-----|----------|
-| **Voice Mode** | **Einfacher Q&A-Modus** (AI mode `qa` + Body control off), **Active** (link on/off), **API Reconnect** (the companion re-reads its keys and reopens the realtime connection; the plugin restarts its link), **Test-Ton über Companion**, **Test-Ton abspielen**, **Stop speaking** |
+| **Voice Mode** | **Einfacher Q&A-Modus** (AI mode `qa` + Body control off), **Active** (link on/off), **Echtzeit (Realtime) verwenden** (on = AI mode `auto`: Grok Voice with the chain as fallback; off = `qa`; shows on while AI mode is `auto` or `realtime`), **API Reconnect** (the companion re-reads its keys and reopens the realtime connection; the plugin restarts its link), **Test-Ton über Companion**, **Test-Ton abspielen**, **Stop speaking** |
 | **AI** | **Speech-to-text**, **Language model**, **Text-to-speech** (incl. `elevenlabs`; lists come from the companion app), **xAI key file** / **ElevenLabs key file** (the PATH of a text file holding the key, never the key itself) with key status per provider (konfiguriert / fehlt / abgelehnt), **Delay (s)** (placeholder, no function yet), **Proactive**, **Proactive idle (s)**; status: active mode, proactive state, selected engine, "bereit" or "nicht konfiguriert", and the fallback that runs instead |
 | **AI Character** | for this Person (this plugin instance): **AI mode** (qa / auto / realtime / chain, with a short explanation), **Voice** (xAI voice for realtime and TTS), **Body control** (off = speech only), **Speech volume**, **Idle head motion**, **Idle intensity**, **Breathing**, **Breaths per minute**, **Breath depth**, **Breath morph**, **Reset expression**, **Reload Expressions**, **Reload Gestures** |
 | **Client Character** | **Microphone**, captured by the companion app, applied live 0.3 s after the last change: **Mic enabled**, **Mic mode** (Voice activation / Push-to-talk), **Mic device** (**Refresh device list**), **Push-to-talk active** (explanation text below it), **Push-to-talk interrupts speech**, mic status, **Show level meter**, **VAD threshold**, **Input gain**, **Silence timeout**, **Min / Max utterance**, **Echo gate tail**; **Voice barge-in (headphones)** |
 | **Post** | **Channel** (default `default`; folder below `Saves/PluginData/AIBody`), paths info (the label is one constant, `AIBodyPlugin.PostTabLabel`) |
 | **Config** | **Reload Config JSON** (applies `config.json` to the UI and sends it to the companion), file info |
-| **Erweitert** | **File poll interval**, **Verbose log** |
+| **Erweitert** | **File poll interval**, **Verbose log** (turn trace in the companion console + log file, `[debug]` lines in the VaM log, last 8 events in the status box; see *Verbose log* below) |
 
 **Sound check (no AI needed):** *Voice Mode* > **Test-Ton abspielen** plays `AIBodyTest.wav` from
 the package on the head audio (no companion app involved); **Test-Ton über Companion** lets the
@@ -270,7 +270,8 @@ python -m aibody_companion --list-devices                 # check the microphone
 python -m aibody_companion --vam-root "C:/VaM"            # channel from config.json ("default")
 ```
 
-Options: `--channel` (default `default`), `--no-mic` (text only), `--no-stdin`,
+Options: `--channel` (default `default`), `--no-mic` (text only), `--no-stdin`, `-v` / `--verbose`
+(DEBUG for every module, turn trace always on),
 `--config config.json` (see `config.example.json`, including initial `mic` settings).
 `--vam-root` is required: the app and the plugin exchange JSON and audio files in
 `<VaM>/Saves/PluginData/AIBody/<channel>/` (speech WAVs: `<VaM>/Custom/Sounds/AIBody/<channel>/`).
@@ -279,10 +280,32 @@ handy for testing without a microphone. With the offline test engines
 (`null` / `echo` / `tone`, no xAI key) the character answers "You said: ..." with a humming tone, enough to
 test lip sync, expressions, gestures, queueing and echo gating.
 
+### Verbose log (debugging a turn)
+
+Switch on **Verbose log** in the plugin tab *Erweitert* (or `"advanced": {"verbose_log": true}` in
+`config.json`, or start the app with `-v`). It is applied live, no restart.
+
+- **Companion app:** console and log file show one line per step of every turn, with a turn id and the
+  seconds since the turn started: what arrived (mic audio length / level, typed text, realtime events),
+  the path taken (mode, chain or realtime, fallback), speech to text (engine, time, transcript),
+  the language model request (engine, model, streaming), tags dropped or sent, every sentence, text to
+  speech (engine, voice, time, WAV path, length), `speak sent`, and the plugin's answer (`plugin:
+  speech_started` / `speech_ended` / `error`). Example:
+  `[t0003 +0.84s] stt: engine='xai' ms=812 text='Wie spät ist es?'`
+- **Log file:** `<VaM>/Saves/PluginData/AIBody/logs/companion.log` (next to `config.json`), always
+  written (INFO; the trace only while Verbose log is on), rotating at 1 MB, 5 old files kept
+  (`companion.log.1` ... `.5`). API keys never appear: keys read from the environment or a key file,
+  `Bearer ...` and anything shaped like `xai-...` / `sk-...` are replaced by `***`.
+- **Plugin:** `[debug]` lines in the VaM log (command received / failed, `PlayNow`, speaking, ended)
+  and the last 8 of them under *Letzte Ereignisse* in the status box.
+
 ### AI modes (companion app)
 
 | `ai.mode` | what runs |
 |-----------|-----------|
+Plugin: tab *AI Character* > **AI mode**, or *Voice Mode* > **Echtzeit (Realtime) verwenden**
+(on = `auto`, off = `qa`).
+
 | `qa` (default) | simple Q&A: the chain below with `xai` instead of the offline test engines when an xAI key exists, speech only (no expressions / gestures), no proactive remarks |
 | `auto` | `realtime` if an xAI key exists (and TTS is not `elevenlabs`), else `chain` |
 | `realtime` | Grok Voice speech-to-speech over one WebSocket (`wss://api.x.ai/v1/realtime`, `grok-voice-latest`): the mic is streamed, the server detects the end of speech, the answer audio is cut into WAV segments and spoken from the first segment on; expressions / gestures via a function tool; interrupting stops the body; reconnects with backoff, chain runs meanwhile |
