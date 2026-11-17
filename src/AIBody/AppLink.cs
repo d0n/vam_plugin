@@ -41,6 +41,9 @@ namespace AIBody
         private float _appAge = 999f;
         private string _appSession;
         private string _appVersion = "";
+        private JSONClass _engineStatus;   // kind -> engine -> "bereit ..." / "nicht konfiguriert: ..."
+        private JSONClass _engineActive;   // kind -> engine that really runs (fallback if not configured)
+        private readonly JSONStorableString _engineInfoJson = new JSONStorableString("Engine status", "Engines: warte auf die Companion-App ...");
 
         /// <summary>Set by the plugin once Init is complete; settings callbacks restart only then.</summary>
         public bool Ready;
@@ -136,6 +139,47 @@ namespace AIBody
             page.Popup(_sttJson);
             page.Popup(_llmJson);
             page.Popup(_ttsJson);
+            UpdateEngineInfo();
+            page.Text(_engineInfoJson, 260f);
+        }
+
+        /// <summary>Engine status from the companion heartbeat: what is selected, what really runs, and why.</summary>
+        private void UpdateEngineInfo()
+        {
+            if (_engineStatus == null)
+            {
+                _engineInfoJson.val = "Engines: warte auf die Companion-App ...";
+                return;
+            }
+            string text = "<b>Engine-Status</b> (von der Companion-App)\n";
+            text += EngineLine("Speech-to-text", "stt", _sttJson);
+            text += EngineLine("Language model", "llm", _llmJson);
+            text += EngineLine("Text-to-speech", "tts", _ttsJson);
+            text += "API-Keys: Umgebungsvariable XAI_API_KEY / ELEVENLABS_API_KEY oder Pfad einer Key-Datei in config.json (ai.xai.key_file / ai.elevenlabs.key_file), nie der Key selbst.";
+            _engineInfoJson.val = text;
+        }
+
+        private string EngineLine(string label, string kind, JSONStorableStringChooser chooser)
+        {
+            string selected = chooser != null ? chooser.val : "";
+            string active = _engineActive != null ? _engineActive[kind].Value : "";
+            JSONClass states = _engineStatus[kind] as JSONClass;
+            string state = states != null ? states[selected].Value : "";
+            string line = label + ": " + selected;
+            if (!string.IsNullOrEmpty(state)) line += " – " + state;
+            if (!string.IsNullOrEmpty(active) && active != selected) line += "\n    läuft stattdessen: " + active + " (Fallback)";
+            return line + "\n";
+        }
+
+        /// <summary>One line for the live status: the engines that really run.</summary>
+        private string EngineSummary()
+        {
+            if (_engineActive == null) return "";
+            string stt = _engineActive["stt"].Value, llm = _engineActive["llm"].Value, tts = _engineActive["tts"].Value;
+            bool fallback = (_sttJson != null && stt != _sttJson.val) || (_llmJson != null && llm != _llmJson.val)
+                || (_ttsJson != null && tts != _ttsJson.val);
+            return "Engines aktiv: STT " + stt + ", LLM " + llm + ", TTS " + tts
+                + (fallback ? " (Fallback – siehe Tab Engines)" : "") + "\n";
         }
 
         public void BuildMicTab(UiPage page)
@@ -170,6 +214,13 @@ namespace AIBody
         /// Reads config.json (if there is one), applies the file-only part
         /// (connection.paths) and returns the parsed file for seeding a new scene, else null.
         /// </summary>
+        /// <summary>Parses config.json; null if it is missing or not a JSON object. Throws on read errors.</summary>
+        public JSONClass ReadSettingsRoot()
+        {
+            if (!FileManagerSecure.FileExists(SettingsPath)) return null;
+            return JSON.Parse(FileManagerSecure.ReadAllText(SettingsPath)) as JSONClass;
+        }
+
         public JSONClass LoadSettingsFile()
         {
             JSONClass root = null;
@@ -178,7 +229,7 @@ namespace AIBody
             {
                 if (FileManagerSecure.FileExists(SettingsPath))
                 {
-                    root = JSON.Parse(FileManagerSecure.ReadAllText(SettingsPath)) as JSONClass;
+                    root = ReadSettingsRoot();
                     note = root != null ? "loaded" : "not valid JSON, using defaults";
                 }
             }
@@ -445,6 +496,11 @@ namespace AIBody
                 SetChoices(_llmJson, available["llm"] as JSONArray);
                 SetChoices(_ttsJson, available["tts"] as JSONArray);
             }
+            JSONClass status = msg["engines_status"] as JSONClass;
+            if (status != null) _engineStatus = status;
+            JSONClass active = msg["engines_active"] as JSONClass;
+            if (active != null) _engineActive = active;
+            UpdateEngineInfo();
         }
 
         private bool _choicesWarned;
@@ -516,7 +572,7 @@ namespace AIBody
             string text = "Link: " + _transport.Name + " - " + _transport.State + "\n";
             if (!string.IsNullOrEmpty(_transport.LastError)) text += "Last error: " + _transport.LastError + "\n";
             text += "Folder: " + ChannelDir + "\n";
-            if (_appAlive) text += "Companion app: verbunden, " + _appVersion + " (Heartbeat vor " + _appAge.ToString("0.0") + " s)\n";
+            if (_appAlive) text += "Companion app: verbunden, " + _appVersion + " (Heartbeat vor " + _appAge.ToString("0.0") + " s)\n" + EngineSummary();
             else if (_lastSession != null) text += "Companion app: GETRENNT – verbindet automatisch neu, sobald die App wieder läuft\n";
             else text += "Companion app: noch nicht gesehen – starten: python -m aibody_companion --vam-root \"<VaM>\" --channel " + Channel + "\n";
             return text;

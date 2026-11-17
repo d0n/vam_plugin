@@ -34,7 +34,7 @@ namespace AIBody
 {
     public class AIBodyPlugin : MVRScript
     {
-        public const string PluginVersion = "0.6.3";
+        public const string PluginVersion = "0.7.0";
 
         private AppLink _link;
         private Body _body;
@@ -257,8 +257,16 @@ namespace AIBody
                 string text = root.ToString();
                 string path = _link.SettingsPath;
                 if (text == _lastSettingsText && path == _lastSettingsPath) return;
-                FileManagerSecure.CreateDirectory(_link.ChannelDir);
-                FileManagerSecure.WriteAllText(path, text);
+                // Keep the companion-only section ("ai": persona, engine settings, key FILE paths)
+                // that the companion app and the user maintain; the plugin has no UI for it.
+                JSONClass existing = _link.ReadSettingsRoot();
+                if (existing != null)
+                {
+                    JSONClass ai = existing["ai"] as JSONClass;
+                    if (ai != null) root["ai"] = ai;
+                }
+                FileManagerSecure.CreateDirectory(AppLink.DataRoot);
+                FileManagerSecure.WriteAllText(path, root.ToString());
                 _lastSettingsText = text;
                 _lastSettingsPath = path;
                 Log.Debug("settings written: " + path);
