@@ -40,6 +40,12 @@ NOT_CONFIGURED = "nicht konfiguriert"
 
 # engine name -> (environment variable, settings section) for engines that need a key
 KEYED = {"xai": (xai.ENV_KEY, "xai"), "elevenlabs": (elevenlabs.ENV_KEY, "elevenlabs")}
+# What kind of key works. xAI: an API key from console.x.ai (pay-as-you-go API credit); the login /
+# subscription of grok.com or the X app (SuperGrok, Premium) is no API key and is refused by api.x.ai.
+KEY_HINT = {
+    "xai": "nötig: API-Key von console.x.ai (beginnt mit xai-) - ein Grok-Abo / grok.com-Token funktioniert nicht",
+    "elevenlabs": "nötig: API-Key von elevenlabs.io (Profil -> API Keys)",
+}
 
 
 def ai_settings(ai: Mapping[str, Any] | None) -> dict[str, Any]:
@@ -92,7 +98,7 @@ class EngineSet:
         provider = str(getattr(error, "service", "")).lower()
         if provider in KEYED:
             self.rejected[provider] = f"vom Server abgelehnt (HTTP {status})"
-            log.warning("%s API key rejected (HTTP %s)", provider, status)
+            log.warning("%s API key rejected (HTTP %s) - %s", provider, status, KEY_HINT[provider])
 
     def key_info(self) -> dict[str, dict[str, str]]:
         """Per provider: state configured / missing / rejected and where the key comes from (never the key)."""
@@ -100,11 +106,11 @@ class EngineSet:
         for name in KEYED:
             key, where = self._keys.get(name, (None, ""))
             if name in self.rejected:
-                info[name] = {"state": "rejected", "detail": f"{self.rejected[name]}; {where}"}
+                info[name] = {"state": "rejected", "detail": f"{self.rejected[name]}; {where}", "hint": KEY_HINT[name]}
             elif key:
                 info[name] = {"state": "configured", "detail": where}
             else:
-                info[name] = {"state": "missing", "detail": where}
+                info[name] = {"state": "missing", "detail": where, "hint": KEY_HINT[name]}
         return info
 
     def rebuild(self, kind: str) -> None:

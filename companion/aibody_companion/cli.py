@@ -12,7 +12,7 @@ from . import __version__, logsetup, settings_file
 from .audio import EchoGate, MicController
 from .config import Config, load_config
 from .orchestrator import Companion
-from .pipeline.engines import EngineSet
+from .pipeline.engines import KEY_HINT, EngineSet
 from .transport import FileTransport, Transport
 
 log = logging.getLogger("aibody_companion")
@@ -128,6 +128,9 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     companion = build_stack(cfg, use_mic=not args.no_mic)
+    if not companion.engine_set.key("xai"):
+        log.warning("Kein xAI-Key: nur Test-Engines (Echo + Ton). %s; XAI_API_KEY setzen oder Key-Datei im Tab AI.",
+                    KEY_HINT["xai"])
     companion.transport.start()
     try:
         run(companion, read_stdin=not args.no_stdin, poll_interval=cfg.poll_interval_s)

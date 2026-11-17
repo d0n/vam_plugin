@@ -236,7 +236,7 @@ class Companion:
             if has_key:
                 return False, "Einfacher Q&A: Spracherkennung xAI -> Grok -> Stimme xAI, nur Sprache"
             return False, ("Einfacher Q&A ohne xAI-Key: nur Test-Engines (Echo + Ton) - "
-                           "XAI_API_KEY setzen oder Key-Datei im Tab AI")
+                           "API-Key von console.x.ai (kein Grok-Abo-Token) als XAI_API_KEY oder Key-Datei im Tab AI")
         if mode == "chain":
             return False, "Chain gewählt (Spracherkennung -> Sprachmodell -> Sprachausgabe)"
         if self.realtime_off:

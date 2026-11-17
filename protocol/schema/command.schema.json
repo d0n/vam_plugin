@@ -289,7 +289,7 @@
     },
     "keys": {
       "type": "object",
-      "description": "companion_heartbeat: API key status per provider (xai, elevenlabs): state configured | missing | rejected, detail = where the key comes from / why it is missing (never the key)",
+      "description": "companion_heartbeat: API key status per provider (xai, elevenlabs): state configured | missing | rejected, detail = where the key comes from / why it is missing, hint = which kind of key works (never the key)",
       "additionalProperties": {
         "type": "object",
         "properties": {
@@ -302,6 +302,10 @@
           },
           "detail": {
             "type": "string"
+          },
+          "hint": {
+            "type": "string",
+            "description": "when missing / rejected: which key works (xAI: an API key from console.x.ai; a Grok subscription / grok.com token does not)"
           }
         }
       }

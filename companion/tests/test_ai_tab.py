@@ -53,6 +53,22 @@ class AiTabTests(unittest.TestCase):
         self.assertEqual(raw["ai"]["xai"]["model"], "grok-4.7", "the rest of ai.xai is kept")
         self.assertNotIn(KEY, json.dumps(raw))
 
+    def test_key_status_says_a_console_key_is_needed_not_a_grok_subscription(self):
+        hint = self.beat()["keys"]["xai"]["hint"]
+        self.assertIn("console.x.ai", hint)
+        self.assertIn("Grok-Abo", hint)
+        key_file = self.root / "xai.txt"
+        key_file.write_text(KEY)
+        self.plugin.key_files["xai"] = str(key_file)
+        self.push()
+        self.assertNotIn("hint", self.beat()["keys"]["xai"], "no hint once a key is there")
+        from aibody_companion.pipeline.http import ApiError
+        self.app.engine_set.note_api_error(ApiError("xAI", 400, "Incorrect API key provided"))
+        self.sim.run(self.plugin, 2.5)
+        keys = self.beat()["keys"]["xai"]
+        self.assertEqual(keys["state"], "rejected")
+        self.assertIn("console.x.ai", keys["hint"])
+
     def test_a_pasted_key_is_refused_and_the_old_path_stays(self):
         key_file = self.root / "xai.txt"
         key_file.write_text(KEY)

@@ -408,7 +408,11 @@ namespace AIBody
             string state = k["state"].Value;
             string shown = state == "configured" ? "konfiguriert" : state == "rejected" ? "<color=red>abgelehnt</color>" : "fehlt";
             string detail = k["detail"].Value;
-            return label + "-Key: " + shown + (detail.Length > 0 ? " – " + detail : "") + "\n";
+            string line = label + "-Key: " + shown + (detail.Length > 0 ? " – " + detail : "") + "\n";
+            // e.g. "nötig: API-Key von console.x.ai ... ein Grok-Abo / grok.com-Token funktioniert nicht"
+            string hint = k["hint"].Value;
+            if (state != "configured" && hint.Length > 0) line += "  " + (state == "rejected" ? "<color=red>" + hint + "</color>" : hint) + "\n";
+            return line;
         }
 
         /// <summary>Engine status from the companion heartbeat: what is selected, what really runs, and why.</summary>
