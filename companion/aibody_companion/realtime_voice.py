@@ -21,7 +21,7 @@ import logging
 import time
 from typing import TYPE_CHECKING, Any
 
-from . import protocol
+from . import body_tools, protocol
 from .logsetup import Turn
 from .pipeline.context import is_silent, time_rules
 from .pipeline.realtime import (
@@ -29,9 +29,9 @@ from .pipeline.realtime import (
     DISCONNECTED,
     PCM_RATES,
     REALTIME_RULES,
+    REALTIME_SPEECH_ONLY_RULES,
     RealtimeClient,
     SegmentAssembler,
-    express_tool,
     resample_pcm16,
 )
 from .pipeline.sentences import StreamParser
@@ -97,6 +97,10 @@ class RealtimeVoice:
         expressions, gestures = self._lists()
         persona = str(self.c.engine_set.ai.get("persona") or "").strip()
         rules = REALTIME_RULES.format(expressions=", ".join(expressions), gestures=", ".join(gestures) or "none")
+        if self.c.offered_tools():
+            rules += "\n" + body_tools.rules(self.c.body_lists())
+        else:
+            rules = REALTIME_SPEECH_ONLY_RULES
         return "\n\n".join(p for p in (persona, rules, time_rules(self.c.now(), self.c.since_last_exchange())) if p)
 
     def session_config(self) -> dict[str, Any]:
@@ -106,7 +110,7 @@ class RealtimeVoice:
             "instructions": self.instructions(),
             "voice": str(s["voice"]),
             "turn_detection": {"type": "server_vad"},
-            "tools": [express_tool(expressions, gestures)],
+            "tools": self.c.offered_tools(),
             "audio": {
                 "input": {"format": {"type": "audio/pcm", "rate": self.in_rate}},
                 "output": {"format": {"type": "audio/pcm", "rate": self.out_rate}},
@@ -127,7 +131,8 @@ class RealtimeVoice:
         """Sends the current time (and expression lists) with fresh instructions."""
         # TODO(verify): instructions can be replaced mid-session with session.update (the docs say
         # so for replace / language_hint / keyterms; instructions are assumed to work the same).
-        if self.client.send({"type": "session.update", "session": {"instructions": self.instructions()}}):
+        if self.client.send({"type": "session.update", "session": {"instructions": self.instructions(),
+                                                                   "tools": self.c.offered_tools()}}):
             self._last_instructions = time.monotonic()
 
     # -- lifecycle -------------------------------------------------------------------------
@@ -302,14 +307,12 @@ class RealtimeVoice:
             args = json.loads(event.get("arguments") or "{}")
         except json.JSONDecodeError:
             args = {}
-        result: dict[str, Any] = {"ok": False, "error": f"unknown function {name!r}"}
-        if name == "express" and isinstance(args, dict):
-            from .pipeline.sentences import Directive
-            expressions, gestures = self._lists()
-            expression = next((e for e in expressions if e.lower() == str(args.get("expression", "")).lower()), None)
-            gesture = next((g for g in gestures if g.lower() == str(args.get("gesture", "")).lower()), None)
-            self.c.send_directive(Directive(expression, gesture))
-            result = {"ok": bool(expression or gesture)}
+        commands, result = self.c.tool_commands(str(name or ""), args)
+        for cmd in commands:
+            self.c.send(cmd)
+        if self.turn is not None:
+            self.turn.step("realtime tool call", name=name, arguments=json.dumps(args, ensure_ascii=False),
+                           result=json.dumps(result, ensure_ascii=False))
         if call_id:
             # The result goes back without response.create: the model must not start a second
             # answer (docs: "Avoid Audio Overlap During Tool Calls").

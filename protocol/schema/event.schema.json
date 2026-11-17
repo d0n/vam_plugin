@@ -215,6 +215,20 @@
           ]
         }
       }
+    },
+    "poses": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "ready/heartbeat: gestures.json entries of kind pose (the AI's pose tool)"
+    },
+    "body_control": {
+      "type": [
+        "boolean",
+        "string"
+      ],
+      "description": "ready/heartbeat: Body control on (false = speech only, no body tools for the AI)"
     }
   },
   "allOf": [

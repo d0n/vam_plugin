@@ -85,6 +85,11 @@ expression names, gestures or tags aloud. Expressions: {expressions}. Gestures: 
 Messages that start with [App context or [App note come from the app, not from the user; never read
 them aloud."""
 
+REALTIME_SPEECH_ONLY_RULES = """Your voice comes out of a 3D character standing in front of the user. Talk in short,
+natural spoken sentences. Your body is not under your control right now: never describe gestures or
+expressions. Messages that start with [App context or [App note come from the app, not from the
+user; never read them aloud."""
+
 
 class SegmentAssembler:
     """Collects one answer's PCM and transcript; returns (pcm, text) segments to play.

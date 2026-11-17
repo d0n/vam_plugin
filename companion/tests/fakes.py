@@ -133,6 +133,8 @@ class FakePlugin:
         self.clock = clock
         self.channel = channel
         # Engines tab ai controls (AppLink.BuildAiJson): sent in the config event, merged into config.json "ai"
+        self.poses: list[str] = []      # Body.AddStatus "poses" (gestures.json poses + preset files)
+        self.body_control = True        # Body.AddStatus "body_control"
         self.ai_ui: dict[str, Any] = {"mode": mode, "proactive": {"enabled": True, "idle_seconds": 90.0},
                                       "realtime": {"send_while_speaking": False}}
         self.voice = "eve"  # AI Character tab "Voice" -> ai.realtime.voice + ai.xai.voice
@@ -211,7 +213,8 @@ class FakePlugin:
     def status_fields(self) -> dict:
         return {"atom": "Person", "speaking": bool(self.playing), "speech_queue": len(self.playing),
                 "expression": "neutral", "expressions": ["neutral", "happy", "sad", "thinking"],
-                "gestures": ["nod", "shake", "tilt"], "channel": self.channel, "plugin_version": PLUGIN_VERSION}
+                "gestures": ["nod", "shake", "tilt", *self.poses], "poses": list(self.poses),
+                "body_control": self.body_control, "channel": self.channel, "plugin_version": PLUGIN_VERSION}
 
     def send_config(self) -> None:
         self.send("config", mic=dict(self.ui["mic"]), engines=dict(self.ui["engines"]),

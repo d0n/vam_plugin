@@ -30,6 +30,73 @@ namespace AIBody
 
         public IEnumerable<string> GestureNames { get { return _gestures.Keys; } }
 
+        /// <summary>VaM's pose preset folders that are listed (top level only, .vap / .json).</summary>
+        public static readonly string[] PoseFolders = { "Custom/Atom/Person/Pose", "Custom/Atom/Person/Pose/AIBody" };
+        public const int MaxPoseFiles = 200;
+
+        private readonly Dictionary<string, string> _poseFiles =
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        public string PoseScanNote { get; private set; }
+
+        /// <summary>
+        /// Pose presets by name: gestures.json entries of kind "pose" first, then the preset files in
+        /// PoseFolders (name = file name without "Preset_" and extension). Used by the pose menu in
+        /// the tab AI Character and by the AI's pose tool (the plugin reports them as "poses").
+        /// </summary>
+        public List<string> PoseNames
+        {
+            get
+            {
+                List<string> names = new List<string>();
+                foreach (KeyValuePair<string, JSONClass> kv in _gestures)
+                    if (kv.Value["kind"].Value == "pose") names.Add(kv.Key);
+                foreach (string n in _poseFiles.Keys)
+                    if (!names.Contains(n)) names.Add(n);
+                return names;
+            }
+        }
+
+        /// <summary>Lists the pose preset files (FileManagerSecure.GetFiles, E11).</summary>
+        public void ScanPoseFiles()
+        {
+            _poseFiles.Clear();
+            int folders = 0;
+            foreach (string folder in PoseFolders)
+            {
+                string[] files = null;
+                // TODO(verify): GetFiles on a Custom/ folder in the sandbox (E11 lists Saves/PluginData).
+                try { files = FileManagerSecure.GetFiles(folder); }
+                catch (Exception) { files = null; }   // folder missing or not readable
+                if (files == null) continue;
+                folders++;
+                foreach (string f in files)
+                {
+                    if (_poseFiles.Count >= MaxPoseFiles) break;
+                    string lower = f.ToLowerInvariant();
+                    if (!lower.EndsWith(".vap") && !lower.EndsWith(".json")) continue;
+                    string name = f.Replace('\\', '/');
+                    name = name.Substring(name.LastIndexOf('/') + 1);
+                    name = name.Substring(0, name.LastIndexOf('.'));
+                    if (name.StartsWith("Preset_")) name = name.Substring(7);
+                    if (name.Length > 0 && !_poseFiles.ContainsKey(name)) _poseFiles[name] = f.Replace('\\', '/');
+                }
+            }
+            PoseScanNote = _poseFiles.Count + " Pose-Dateien in " + string.Join(", ", PoseFolders)
+                + (folders == 0 ? " (Ordner nicht lesbar oder leer)" : "");
+        }
+
+        /// <summary>Applies a pose by name (gestures.json pose, else a listed preset file).</summary>
+        public string ApplyPose(string name)
+        {
+            if (string.IsNullOrEmpty(name)) return "Keine Pose gewählt";
+            JSONClass def;
+            if (_gestures.TryGetValue(name, out def) && def["kind"].Value == "pose")
+                return LoadPose(Protocol.GetString(def, "path", ""));
+            string path;
+            if (_poseFiles.TryGetValue(name, out path)) return LoadPose(path);
+            return "Unbekannte Pose '" + name + "'";
+        }
+
         public void LoadGestureFile(string path)
         {
             try

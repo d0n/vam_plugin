@@ -5,6 +5,7 @@
 //     idle head motion and breathing
 //   - per-character settings (volume, idle, breathing, ...) saved with the Person atom
 using System;
+using System.Collections.Generic;
 using SimpleJSON;
 
 namespace AIBody
@@ -40,6 +41,11 @@ namespace AIBody
         private BreathingController _breathing;
         private IdleController _idle;
         private PoseController _poses;
+        private JSONStorableStringChooser _poseChoiceJson;
+        private JSONStorableStringChooser _expressionChoiceJson;
+        private JSONStorableStringChooser _gestureChoiceJson;
+        /// <summary>Last manual pose / expression / gesture result, shown in the status box (Live).</summary>
+        public string CharacterNote = "";
         private CommandRouter _router;
 
         private float _lastCommandAge = 999f;
@@ -84,6 +90,14 @@ namespace AIBody
             _breathMorphJson = new JSONStorableString("Breath morph", "Breath1", (string v) => { if (_breathing != null) _breathing.SetMorph(v); });
             _plugin.RegisterString(_breathMorphJson);
 
+            // Manual pose / expression / gesture menu (tab AI Character). Not registered: only the
+            // choice in the menu, nothing new is saved with the scene. Lists refill on opening (E25).
+            _poseChoiceJson = new JSONStorableStringChooser("Pose", new List<string>(), "", "Pose", (string v) => { });
+            _poseChoiceJson.popupOpenCallback = RefreshCharacterChoices;
+            _expressionChoiceJson = new JSONStorableStringChooser("Expression", new List<string>(), "", "Expression", (string v) => { });
+            _expressionChoiceJson.popupOpenCallback = RefreshCharacterChoices;
+            _gestureChoiceJson = new JSONStorableStringChooser("Gesture", new List<string>(), "", "Gesture", (string v) => { });
+            _gestureChoiceJson.popupOpenCallback = RefreshCharacterChoices;
             _plugin.RegisterAction(new JSONStorableAction("Stop speaking", StopSpeaking));
             _plugin.RegisterAction(new JSONStorableAction("Reset expression", () => { if (_expressions != null) _expressions.Reset(0.4f); }));
             _plugin.RegisterAction(new JSONStorableAction("Reload config files", ReloadConfigFiles));
@@ -154,6 +168,17 @@ namespace AIBody
         /// <summary>Body part of the tab "AI Character" (this Person, i.e. this plugin instance).</summary>
         public void BuildCharacterTab(UiPage page)
         {
+            RefreshCharacterChoices();
+            page.Header("<b>Pose</b> (per Sprache über die KI, oder hier)");
+            page.ScrollablePopup(_poseChoiceJson);
+            page.Button("Pose anwenden", ApplyChosenPose);
+            page.Button("Posen neu laden", () => { ReloadGestures(); RefreshCharacterChoices(); });
+            page.Header("<b>Ausdruck und Geste</b>");
+            page.Popup(_expressionChoiceJson);
+            page.Button("Ausdruck zeigen", ShowChosenExpression);
+            page.Button("Reset expression", () => { if (_expressions != null) _expressions.Reset(0.4f); });
+            page.Popup(_gestureChoiceJson);
+            page.Button("Geste abspielen", PlayChosenGesture);
             page.Header("<b>Körper</b> (nur diese Person)");
             page.Toggle(_bodyControlJson);
             page.Slider(_volumeJson);
@@ -164,9 +189,53 @@ namespace AIBody
             page.Slider(_breathDepthJson);
             if (!page.TextInput(_breathMorphJson))
                 _diag.Warn("Feld 'Breath morph' ist nur lesbar (InputField ging nicht).");
-            page.Button("Reset expression", () => { if (_expressions != null) _expressions.Reset(0.4f); });
             page.Button("Reload Expressions", ReloadExpressions);
-            page.Button("Reload Gestures", ReloadGestures);
+        }
+
+        /// <summary>Fills the pose / expression / gesture menus from what this body really has.</summary>
+        public void RefreshCharacterChoices()
+        {
+            if (_poseChoiceJson == null) return;
+            List<string> poses = _poses != null ? _poses.PoseNames : new List<string>();
+            SetMenu(_poseChoiceJson, poses);
+            List<string> expressions = new List<string>();
+            if (_expressions != null) foreach (string n in _expressions.PresetNames) expressions.Add(n);
+            SetMenu(_expressionChoiceJson, expressions);
+            List<string> gestures = new List<string>();
+            if (_poses != null) foreach (string n in _poses.GestureNames) if (!poses.Contains(n)) gestures.Add(n);
+            foreach (string n in new[] { "nod", "shake", "tilt" }) if (!gestures.Contains(n)) gestures.Add(n);
+            SetMenu(_gestureChoiceJson, gestures);
+        }
+
+        private static void SetMenu(JSONStorableStringChooser chooser, List<string> names)
+        {
+            chooser.choices = names;   // E9, E24, E25
+            if (names.Count > 0 && !names.Contains(chooser.val)) chooser.val = names[0];
+        }
+
+        private void ApplyChosenPose()
+        {
+            if (_poses == null) { CharacterNote = "Pose: PoseController fehlt"; return; }
+            string name = _poseChoiceJson.val;
+            string error = _poses.ApplyPose(name);
+            CharacterNote = error == null ? "Pose angewendet: " + name : "<color=red>Pose '" + name + "': " + error + "</color>";
+            Log.Debug(CharacterNote);
+        }
+
+        private void ShowChosenExpression()
+        {
+            if (_expressions == null) { CharacterNote = "Ausdruck: keine Morphs auf dieser Figur"; return; }
+            string name = _expressionChoiceJson.val;
+            CharacterNote = _expressions.SetExpression(name, 1f, 0.4f, -1f)
+                ? "Ausdruck: " + name : "<color=red>Ausdruck '" + name + "' unbekannt</color>";
+        }
+
+        private void PlayChosenGesture()
+        {
+            if (_poses == null) { CharacterNote = "Geste: PoseController fehlt"; return; }
+            string name = _gestureChoiceJson.val;
+            string error = _poses.PlayGesture(name, 0f, 0f);
+            CharacterNote = error == null ? "Geste: " + name : "<color=red>Geste '" + name + "': " + error + "</color>";
         }
 
         // ---------------------------------------------------------------- config.json "body"
@@ -217,7 +286,10 @@ namespace AIBody
 
         public void ReloadGestures()
         {
-            if (_poses != null) _poses.LoadGestureFile(GesturesPath);
+            if (_poses == null) return;
+            _poses.LoadGestureFile(GesturesPath);
+            _poses.ScanPoseFiles();
+            Log.Info(_poses.PoseScanNote + "; " + _poses.PoseNames.Count + " Posen im Menü / für die KI");
         }
 
         /// <summary>
@@ -272,6 +344,10 @@ namespace AIBody
             gestures.Add(new JSONData("shake"));
             gestures.Add(new JSONData("tilt"));
             s["gestures"] = gestures;
+            JSONArray poses = new JSONArray();
+            if (_poses != null) foreach (string n in _poses.PoseNames) poses.Add(new JSONData(n));
+            s["poses"] = poses;
+            s["body_control"].AsBool = BodyControl;   // off: the companion offers the AI no body tools
         }
 
         private void OnSpeechStarted(string id, float duration)
@@ -326,6 +402,7 @@ namespace AIBody
             }
             if (!BodyControl) text += "Body control: aus (nur Sprache)\n";
             if (_testStatus != null) text += _testStatus + "\n";
+            if (CharacterNote.Length > 0) text += CharacterNote + "\n";
             if (_expressions != null) text += "Expression: " + _expressions.Current + "\n";
             if (_breathing != null && _morphs != null)
                 text += "Breath morph: " + (_breathing.HasMorph ? _breathing.MorphName : "'" + _breathing.MorphName + "' not found") + "\n";

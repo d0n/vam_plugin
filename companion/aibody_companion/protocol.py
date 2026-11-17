@@ -28,7 +28,7 @@ COMMANDS: dict[str, tuple[set[str], set[str]]] = {
     "set_morphs": ({"morphs"}, {"blend", "release_others"}),
     "reset_morphs": (set(), {"blend"}),
     "gesture": ({"name"}, {"duration", "amplitude"}),
-    "pose": ({"path"}, set()),
+    "pose": (set(), {"path", "name"}),  # path of a preset, or name: gestures.json pose / preset file
     "trigger": ({"storable"}, {"action", "param", "value", "value_type"}),
     "idle": (set(), {"enabled", "intensity"}),
     "breathing": (set(), {"enabled", "rate", "depth"}),
@@ -44,7 +44,8 @@ COMMANDS: dict[str, tuple[set[str], set[str]]] = {
     # proactive: {enabled, idle_seconds, status?}; audio_out: {folder, auto, note?} (speech WAV folder);
     # turn: last question / answer step or problem as text (status box)
     "companion_heartbeat": ({"session"}, {"version", "engines_available", "engines_status", "engines_active",
-                                          "mic_capturing", "mode", "proactive", "keys", "audio_out", "turn"}),
+                                          "mic_capturing", "mode", "proactive", "keys", "audio_out", "turn",
+                                          "latency"}),
 }
 
 # Commands for the plugin's body (everything else is handled by its app link).
@@ -121,6 +122,8 @@ def validate_command(msg: Any) -> list[str]:
             errors.append(f"speak: queue must be one of {SPEAK_QUEUE_MODES}")
     if type_ == "devices" and not isinstance(msg.get("devices"), list):
         errors.append("devices: 'devices' must be a list")
+    if type_ == "pose" and not (msg.get("path") or msg.get("name")):
+        errors.append("pose: needs 'path' or 'name'")
     if type_ == "trigger" and not (msg.get("action") or msg.get("param")):
         errors.append("trigger: needs 'action' or 'param'")
     return errors

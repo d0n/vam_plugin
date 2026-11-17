@@ -324,6 +324,10 @@
     "turn": {
       "type": "string",
       "description": "companion_heartbeat: last question / answer step or problem (\"Gehört: ...\", \"Antwort ...\", \"Sprachmodell-Fehler: ...\"), shown in the plugin's status box"
+    },
+    "latency": {
+      "type": "object",
+      "description": "companion_heartbeat: time from the end of the user's speech to the first sound {last_s, avg_s, n, parts}"
     }
   },
   "allOf": [
@@ -392,8 +396,17 @@
         }
       },
       "then": {
-        "required": [
-          "path"
+        "anyOf": [
+          {
+            "required": [
+              "path"
+            ]
+          },
+          {
+            "required": [
+              "name"
+            ]
+          }
         ]
       }
     },

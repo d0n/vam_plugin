@@ -311,7 +311,6 @@ namespace AIBody
         {
             if (!page.TextInput(_channelJson))
                 _diag.Warn("Feld 'Channel' ist nur lesbar (InputField ging nicht); Standard 'default' bleibt.");
-            page.Text(_pathsInfo, 150f);
         }
 
         /// <summary>Tab "AI": engines (incl. ElevenLabs), API key files + status, Delay placeholder, proactive.</summary>
@@ -477,8 +476,7 @@ namespace AIBody
         public void BuildConfigTab(UiPage page, UnityEngine.Events.UnityAction reload, JSONStorableString status)
         {
             page.Button("Reload Config JSON", reload);
-            page.Text(status, 120f);
-            page.Text(_pathsInfo, 150f);
+            page.Text(status, 80f);   // result of the button only (no pure path display)
         }
 
         public void BuildAdvancedTab(UiPage page)
@@ -505,7 +503,7 @@ namespace AIBody
         /// <summary>Called when the paths from config.json changed (the Body reloads its files).</summary>
         public Action OnPathsChanged;
 
-        private readonly JSONStorableString _pathsInfo = new JSONStorableString("Paths info", "");
+        private string _pathsText = "";
 
         /// <summary>
         /// Reads config.json (if there is one), applies the file-only part
@@ -554,10 +552,16 @@ namespace AIBody
             bool changed = expressions != ExpressionsPath || gestures != GesturesPath;
             ExpressionsPath = expressions;
             GesturesPath = gestures;
-            _pathsInfo.val = "Settings file: " + SettingsPath + " (" + note + ")\nExpressions: " + ExpressionsPath
+            // No path display in the menu (it only shows what can be set); the paths go to the log once.
+            string pathsText = "Settings file: " + SettingsPath + " (" + note + ")\nExpressions: " + ExpressionsPath
                 + "\nGestures: " + GesturesPath + "\nAudio (von der Companion-App geschrieben): "
                 + (AudioFolder.Length > 0 ? AudioFolder : "Custom/Sounds/AIBody/" + Channel + " (automatisch; falls VaM dort nicht laden kann: "
                    + ChannelDir + "/audio)");
+            if (pathsText != _pathsText)
+            {
+                _pathsText = pathsText;
+                Log.Info(pathsText.Replace("\n", " | "));
+            }
             if (changed && OnPathsChanged != null) OnPathsChanged();
             return root;
         }

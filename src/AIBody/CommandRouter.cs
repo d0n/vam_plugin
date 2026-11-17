@@ -164,6 +164,7 @@ namespace AIBody
                         Protocol.GetFloat(msg, "duration", 0f), Protocol.GetFloat(msg, "amplitude", 0f));
 
                 case Protocol.CmdPose:
+                    if (Protocol.Has(msg, "name")) return _poses.ApplyPose(Protocol.GetString(msg, "name", ""));
                     return _poses.LoadPose(Protocol.GetString(msg, "path", ""));
 
                 case Protocol.CmdTrigger:

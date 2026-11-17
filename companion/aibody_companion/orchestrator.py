@@ -27,6 +27,7 @@ body. The body's state comes with ready / heartbeat / pong.
 """
 from __future__ import annotations
 
+import json
 import logging
 import queue
 import shutil
@@ -38,7 +39,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from . import __version__, logsetup, protocol
+from . import __version__, body_tools, logsetup, protocol
 from .audio import (
     EchoGate,
     InputProcessor,
@@ -54,6 +55,7 @@ from .pipeline.context import is_silent, nudge_text, time_context
 from .pipeline.engines import EngineSet
 from .pipeline.http import ApiError
 from .pipeline.tts import test_tone_pcm, write_pcm_wav
+from .pipeline.xai import ToolCall
 from .proactive import ProactiveTimer
 from .realtime_voice import RealtimeVoice
 from .settings_file import CHOICES, DEFAULTS, RANGES, _check_value
@@ -316,6 +318,29 @@ class Companion:
 
     def on_exchange(self) -> None:
         self._last_exchange = self._clock()
+
+    # -- body tools (function calls) -------------------------------------------------------
+
+    def body_lists(self) -> body_tools.BodyLists:
+        return body_tools.BodyLists.from_body_info(self.body_info, DEFAULT_EXPRESSIONS, DEFAULT_GESTURES)
+
+    def tools_allowed(self) -> tuple[bool, str]:
+        """Body tools only outside the simple Q&A mode and while Body control is on."""
+        if self.speech_only:
+            return False, "simple Q&A mode: speech only, no body control"
+        if as_bool(self.body_info.get("body_control", True)) is False:
+            return False, "body control is off in the plugin"
+        return True, ""
+
+    def offered_tools(self) -> list[dict[str, Any]]:
+        allowed, _ = self.tools_allowed()
+        return body_tools.tools(self.body_lists()) if allowed else []
+
+    def tool_commands(self, name: str, arguments: Any) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+        """A function call from the model -> (plugin commands, result for the model)."""
+        allowed, why = self.tools_allowed()
+        commands, result = body_tools.resolve(name, arguments, self.body_lists(), allowed, why)
+        return [self.body_command(t, **f) for t, f in commands], result
 
     def send_directive(self, item: Directive) -> None:
         if item.expression:
@@ -746,6 +771,14 @@ class Companion:
                       time_context=prompt != text)
             for item in self._answer(text, prompt, nudge, problems):
                 self._check(generation)
+                if isinstance(item, ToolCall):
+                    commands, result = self.tool_commands(item.name, item.arguments)
+                    item.reply(result)
+                    turn.step("llm tool call", name=item.name, arguments=item.arguments,
+                              result=json.dumps(result, ensure_ascii=False))
+                    for cmd in commands:
+                        yield ("command", cmd)
+                    continue
                 if isinstance(item, Directive):
                     turn.step("llm tag", expression=item.expression, gesture=item.gesture,
                               action="dropped (speech only)" if self.speech_only else "sent as commands")
@@ -836,7 +869,11 @@ class Companion:
         produced = False
         try:
             if hasattr(llm, "stream"):
-                for item in llm.stream(text, self.history, expressions, gestures):
+                kwargs = {}
+                if getattr(llm, "supports_tools", False):
+                    kwargs["tools"] = self.offered_tools()
+                    kwargs["tool_rules"] = body_tools.rules(self.body_lists()) if kwargs["tools"] else ""
+                for item in llm.stream(text, self.history, expressions, gestures, **kwargs):
                     produced = True
                     yield item
             else:
