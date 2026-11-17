@@ -1,6 +1,6 @@
 # AIBody
 
-Virt-A-Mate-Plugin (VaM 1.22) mit Python-Begleit-App, das einer KI einen Körper in einer VaM-Szene gibt. Stand: Version 14, Paket `d0n.AIBody.14.var`, Release `v14`. Noch nicht in VaM getestet.
+Virt-A-Mate-Plugin (VaM 1.22) mit Python-Begleit-App, das einer KI einen Körper in einer VaM-Szene gibt. Stand: Version 15, Paket `d0n.AIBody.15.var`, Release `v15`. Version 14 lädt in VaM 1.22 ohne Fehler (Init fertig, 200 Posen); die Funktionen sind in VaM noch nicht vollständig geprüft.
 
 Versionsschema seit Version 12: Version = Paketnummer der `.var` (Plugin-Anzeige, Begleit-App, Git-Tag `v<N>`). Version 12 folgt auf 0.7.4 (= Paket 11); ältere Tags bleiben unverändert.
 
@@ -14,11 +14,11 @@ Weitere Dokumente: [SPEC](docs/SPEC.md) (vereinbarter Umfang) · [ANFORDERUNGEN]
   - Begleit-App `aibody_companion` (Python, läuft neben VaM auf demselben PC): Mikrofon, Spracherkennung, Sprachmodell, Sprachausgabe, Verbindung zu xAI (optional ElevenLabs).
 - Verbindung: Dateien unter `<VaM>/Saves/PluginData/AIBody/<Kanal>/`; Sprache als WAV unter `<VaM>/Custom/Sounds/AIBody/<Kanal>/`.
 - Ablauf: Plugin auf die KI-Figur laden → Begleit-App starten (`python -m aibody_companion --vam-root "<VaM>"`, mit xAI-Key) → sprechen (oder in der Konsole tippen) → die Figur antwortet.
-- Kurzinstallation: `d0n.AIBody.14.var` nach `<VaM>/AddonPackages/`, ältere `d0n.AIBody.*`, `d0n.AIBodySession.*`, `d0n.AIBodyPerson.*`, `d0n.AIBodyPerson2.*` löschen; Person auswählen > Tab Plugins > Add Plugin > `AddonPackages > d0n.AIBody.14:/Custom/Scripts/d0n/AIBody/AIBody.cslist`; Begleit-App: `cd companion`, `pip install sounddevice`, dann starten wie oben. Details und Schritt-für-Schritt: Release-Notes.
+- Kurzinstallation: `d0n.AIBody.15.var` nach `<VaM>/AddonPackages/`, ältere `d0n.AIBody.*`, `d0n.AIBodySession.*`, `d0n.AIBodyPerson.*`, `d0n.AIBodyPerson2.*` löschen; Person auswählen > Tab Plugins > Add Plugin > `AddonPackages > d0n.AIBody.15:/Custom/Scripts/d0n/AIBody/AIBody.cslist`; Begleit-App: `cd companion`, `pip install sounddevice`, dann starten wie oben. Details und Schritt-für-Schritt: Release-Notes.
 
 ## 2. Wofür ausgelegt / Spezifikation
 
-- Mitgelieferte Szene: [`examples/scenes/AIBody_GreenScreen.json`](examples/scenes/AIBody_GreenScreen.json), Anleitung [`docs/SZENE_GREENSCREEN.md`](docs/SZENE_GREENSCREEN.md). Inhalt: zwei Personen, die sich in 1,2 m Abstand ansehen: `AI Character` (weiblich, VaM-Standardfigur `Female 3`) mit AIBody (`d0n.AIBody.14`) im Plugins-Tab, und `Client Character` (männlich, `Male 1`) mit Sallys *Camera Background Color* (`Sally.CameraBackgroundColor.7`, Farbe #00FF00, Skybox aus) direkt im Plugins-Tab dieser Person; zwei unsichtbare Lichter, kein Raum, kein Szenen-Plugin. Abhängigkeit: `Sally.CameraBackgroundColor.7.var` vom VaM Hub. Gedacht für Passthrough per Chroma-Key in Brille/Streaming-Programm; VaM selbst zeigt nur Grün. Nicht in VaM getestet.
+- Mitgelieferte Szene: [`examples/scenes/AIBody_GreenScreen.json`](examples/scenes/AIBody_GreenScreen.json), Anleitung [`docs/SZENE_GREENSCREEN.md`](docs/SZENE_GREENSCREEN.md). Inhalt: zwei Personen, die sich in 1,2 m Abstand ansehen: `AI Character` (weiblich, VaM-Standardfigur `Female 3`) mit AIBody (`d0n.AIBody.15`) im Plugins-Tab, und `Client Character` (männlich, `Male 1`) mit Sallys *Camera Background Color* (`Sally.CameraBackgroundColor.7`, Farbe #00FF00, Skybox aus) direkt im Plugins-Tab dieser Person; zwei unsichtbare Lichter, kein Raum, kein Szenen-Plugin. Abhängigkeit: `Sally.CameraBackgroundColor.7.var` vom VaM Hub. Gedacht für Passthrough per Chroma-Key in Brille/Streaming-Programm; VaM selbst zeigt nur Grün. Nicht in VaM getestet.
 - AIBody funktioniert auch in anderen Szenen, solange es auf der Person der KI liegt.
 - Kurzfassung der Spezifikation (vollständig: [SPEC.md](docs/SPEC.md)):
   - VaM-Sandbox: kein Netzwerk-, `System.IO`-, Reflection-, Mikrofon-Code im Plugin; nur belegte APIs; Dateizugriff nur über `FileManagerSecure`; „Allow Plugins Network Access“ bleibt aus.
@@ -183,7 +183,7 @@ Aufbau seit Version 15 (Leon, 17.11.2026): links ein großes Infofeld, rechts vi
 - API-Keys liegen nur lokal (Umgebungsvariable oder Key-Datei) und werden nicht in Szene, `.var` oder `config.json` gespeichert und im Log geschwärzt.
 - Ohne Key läuft nur ein Offline-Testbetrieb (Echo und Summton).
 - KI-erzeugte Sprache und KI-gesteuertes Verhalten können falsch, unpassend oder unerwartet sein. Die KI ist kein Mensch und hat kein Bewusstsein.
-- Experimentell: bisher nur gegen API-Stubs kompiliert und gegen nachgebaute Server getestet, noch nicht in VaM und nicht mit einem echten Key geprüft.
+- Experimentell: lädt in VaM 1.22 (Version 14), Funktionen dort noch nicht vollständig geprüft; Begleit-App bisher nur gegen nachgebaute Server getestet, nicht mit einem echten Key.
 - Kein offizielles Produkt von und nicht verbunden mit xAI, ElevenLabs oder Meshed VR.
 
 ## 6. Quellen und Dank
