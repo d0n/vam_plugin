@@ -9,6 +9,8 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, fields, replace
 from typing import Any
 
+from ..vamjson import as_bool, as_number
+
 MODES = ("vad", "ptt")
 
 # field -> (min, max) for numeric settings
@@ -53,14 +55,17 @@ def apply_mic_config(current: MicSettings, data: Any) -> tuple[MicSettings, list
             continue
         default = getattr(MicSettings(), key)
         if isinstance(default, bool):
-            if not isinstance(value, bool):
+            flag = as_bool(value)  # the plugin (VaM SimpleJSON) sends "true"/"false"
+            if flag is None:
                 errors.append(f"{key} must be true/false")
                 continue
-            changes[key] = value
+            changes[key] = flag
         elif isinstance(default, (int, float)):
-            if isinstance(value, bool) or not isinstance(value, (int, float)):
+            number = as_number(value)  # ... and numbers as strings
+            if number is None:
                 errors.append(f"{key} must be a number")
                 continue
+            value = number
             lo, hi = LIMITS[key]
             value = min(max(value, lo), hi)
             changes[key] = int(round(value)) if isinstance(default, int) else float(value)

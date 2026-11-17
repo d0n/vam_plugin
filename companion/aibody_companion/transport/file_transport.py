@@ -13,6 +13,7 @@ import logging
 import os
 import threading
 import time
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -37,7 +38,8 @@ FILE_ALIVE_S = 5.0
 class FileTransport(Transport):
     name = "file"
 
-    def __init__(self, channel_dir: Path):
+    def __init__(self, channel_dir: Path, clock: Callable[[], float] = time.monotonic):
+        self._clock = clock  # monotonic seconds; injectable for tests
         self.channel_dir = Path(channel_dir)
         self.inbox = self.channel_dir / "inbox"
         self.outbox = self.channel_dir / "outbox"
@@ -82,8 +84,8 @@ class FileTransport(Transport):
         return dropped
 
     def poll_events(self) -> list[dict[str, Any]]:
-        if time.monotonic() - self._last_prune >= 1.0:
-            self._last_prune = time.monotonic()
+        if self._clock() - self._last_prune >= 1.0:
+            self._last_prune = self._clock()
             self.drop_stale_commands()
         events: list[dict[str, Any]] = []
         try:
@@ -105,7 +107,7 @@ class FileTransport(Transport):
                 path.unlink(missing_ok=True)
                 continue
             path.unlink(missing_ok=True)
-            self._last_seen = time.monotonic()
+            self._last_seen = self._clock()
             if isinstance(data, list):
                 events.extend(d for d in data if isinstance(d, dict))
             elif isinstance(data, dict):
@@ -114,4 +116,4 @@ class FileTransport(Transport):
 
     @property
     def connected(self) -> bool:
-        return self._last_seen > 0 and time.monotonic() - self._last_seen < FILE_ALIVE_S
+        return self._last_seen > 0 and self._clock() - self._last_seen < FILE_ALIVE_S

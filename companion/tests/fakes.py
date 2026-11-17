@@ -1,0 +1,330 @@
+"""Test doubles: a fake HTTP server for the cloud engines and a fake AIBody plugin that talks to
+the companion over the real file channel, the way src/AIBody/*.cs does (a Python model of the
+C# code paths: FileTransport.cs, AppLink.cs, MicConfig.cs, AIBody.cs settings, SpeechPlayer)."""
+from __future__ import annotations
+
+import io
+import json
+import queue
+import time
+from email.message import Message
+from pathlib import Path
+from typing import Any
+
+
+class FakeClock:
+    def __init__(self, start: float = 1000.0):
+        self.now = start
+
+    def __call__(self) -> float:
+        return self.now
+
+    def advance(self, seconds: float) -> None:
+        self.now += seconds
+
+
+# ---------------------------------------------------------------------------------- HTTP
+
+
+class FakeResponse:
+    def __init__(self, body: bytes = b"", content_type: str = "application/json", status: int = 200,
+                 lines: queue.Queue | None = None):
+        self.status = status
+        self.headers = Message()
+        self.headers["Content-Type"] = content_type
+        self._buf = io.BytesIO(body)
+        self._lines = lines  # streaming: lines arrive while the test feeds them (None = end)
+
+    def read(self) -> bytes:
+        return self._buf.read()
+
+    def readline(self) -> bytes:
+        if self._lines is not None:
+            line = self._lines.get(timeout=5)
+            return b"" if line is None else line
+        return self._buf.readline()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+
+def sse(*events: dict, done: bool = True) -> bytes:
+    out = b""
+    for e in events:
+        out += f"event: {e.get('type', '')}\ndata: {json.dumps(e)}\n\n".encode()
+    if done:
+        out += b"data: [DONE]\n\n"
+    return out
+
+
+def text_stream(text_parts: list[str], response_id: str = "resp-1") -> bytes:
+    events: list[dict] = [{"type": "response.created", "response": {"id": response_id}}]
+    events += [{"type": "response.output_text.delta", "delta": p} for p in text_parts]
+    events.append({"type": "response.completed", "response": {"id": response_id, "output": []}})
+    return sse(*events)
+
+
+class FakeHttp:
+    """Opener for HttpClient: routes by URL substring; records every request."""
+
+    def __init__(self):
+        self.requests: list[Any] = []
+        self.routes: list[tuple[str, Any]] = []
+
+    def route(self, url_part: str, handler) -> None:
+        """handler(request) -> FakeResponse, or an Exception instance to raise."""
+        self.routes.insert(0, (url_part, handler))
+
+    def __call__(self, request, timeout):
+        self.requests.append(request)
+        for part, handler in self.routes:
+            if part in request.full_url:
+                result = handler(request)
+                if isinstance(result, Exception):
+                    raise result
+                return result
+        raise AssertionError(f"unexpected request {request.full_url}")
+
+    def json_body(self, i: int = -1) -> dict:
+        return json.loads(self.requests[i].data.decode())
+
+
+def http_error(url: str, status: int, body: dict):
+    import urllib.error
+
+    return urllib.error.HTTPError(url, status, "error", Message(), io.BytesIO(json.dumps(body).encode()))
+
+
+# ---------------------------------------------------------------------------------- plugin
+
+
+def vam_json(value: Any) -> Any:
+    """What VaM's SimpleJSON writes: every number / boolean becomes a string."""
+    if isinstance(value, dict):
+        return {k: vam_json(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [vam_json(v) for v in value]
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, (int, float)):
+        return str(value)
+    return value
+
+
+class FakePlugin:
+    """The plugin side of the file channel. Mirrors the C# logic:
+    - FileTransport.Start: create inbox/outbox, delete stale inbox files, keep 20 outbox files
+    - outbox file names "<20-digit ticks>_<6-digit seq>.json", written in place, VaM-style JSON
+    - AppLink: heartbeat event every 2 s; companion_heartbeat with a new session -> ready + config;
+      no companion_heartbeat for 6 s -> GETRENNT (logged once), prune outbox to 20 per heartbeat;
+      a session different from the last one -> app restarted -> stop speaking
+    - AIBody settings: config.json written from the UI values, the "ai" section kept
+    - SpeechPlayer: speak -> speech_started (duration) -> speech_ended after the duration
+    """
+
+    HEARTBEAT_INTERVAL = 2.0
+    APP_TIMEOUT = 6.0
+
+    def __init__(self, vam_root: Path, clock: FakeClock, channel: str = "default"):
+        self.root = Path(vam_root)
+        self.clock = clock
+        self.channel = channel
+        self.ui = {
+            "connection": {"channel": channel, "active": True,
+                           "paths": {"expressions": "Saves/PluginData/AIBody/expressions.json",
+                                     "gestures": "Saves/PluginData/AIBody/gestures.json"}},
+            "engines": {"stt": "null", "llm": "echo", "tts": "tone"},
+            "mic": {"enabled": True, "mode": "vad", "device": "", "vad_threshold": 0.01, "end_silence_ms": 700,
+                    "min_utterance_ms": 300, "max_utterance_ms": 20000, "echo_tail_s": 0.4, "gain": 1.0,
+                    "ptt_interrupts": True, "level_meter": True},
+            "body": {"speech_volume": 1.0, "idle_motion": True, "idle_intensity": 0.5, "breathing": True,
+                     "breaths_per_minute": 14.0, "breath_depth": 0.35, "breath_morph": "Breath1"},
+            "advanced": {"file_poll_interval_s": 0.1, "verbose_log": False},
+        }
+        self.settings_initialized = False  # the registered "Settings initialized" bool
+        self.seq = 0
+        self.app_session: str | None = None
+        self.last_session: str | None = None
+        self.app_age = 999.0
+        self.app_alive = False
+        self.seen_epoch = 0
+        self.epoch = 0
+        self.hb_timer = 0.0
+        self.log: list[str] = []
+        self.received: list[dict] = []
+        self.playing: list[dict] = []  # speak commands, first = playing
+        self.play_started_at = 0.0
+        self.speech_events: list[tuple[str, str]] = []
+
+    # -- folders ---------------------------------------------------------------------------
+
+    @property
+    def data_root(self) -> Path:
+        return self.root / "Saves/PluginData/AIBody"
+
+    @property
+    def inbox(self) -> Path:
+        return self.data_root / self.channel / "inbox"
+
+    @property
+    def outbox(self) -> Path:
+        return self.data_root / self.channel / "outbox"
+
+    def start(self) -> None:
+        self.inbox.mkdir(parents=True, exist_ok=True)
+        self.outbox.mkdir(parents=True, exist_ok=True)
+        for f in self.inbox.glob("*.json"):  # ClearStaleInbox
+            f.unlink()
+        self.prune_outbox(20)
+        self.epoch += 1
+        self.app_session = None
+        self.app_alive = False
+        self.app_age = 999.0
+
+    def prune_outbox(self, keep: int) -> None:
+        files = sorted(self.outbox.glob("*.json"))
+        for f in files[: max(0, len(files) - keep)]:
+            f.unlink()
+
+    # -- sending ---------------------------------------------------------------------------
+
+    def send(self, type_: str, **fields: Any) -> None:
+        self.seq += 1
+        evt = {"v": 3, "type": type_, "id": f"evt-{self.seq}", "ts": self.clock(), **fields}
+        ticks = int(time.time() * 1e7)
+        (self.outbox / f"{ticks:020d}_{self.seq:06d}.json").write_text(json.dumps(vam_json(evt)), encoding="utf-8")
+
+    def status_fields(self) -> dict:
+        return {"atom": "Person", "speaking": bool(self.playing), "speech_queue": len(self.playing),
+                "expression": "neutral", "expressions": ["neutral", "happy", "sad", "thinking"],
+                "gestures": ["nod", "shake", "tilt"], "channel": self.channel, "plugin_version": "0.7.0"}
+
+    def send_config(self) -> None:
+        self.send("config", mic=dict(self.ui["mic"]), engines=dict(self.ui["engines"]))
+
+    def press_ptt(self, active: bool) -> None:
+        self.send("ptt", active=active)
+
+    # -- config.json (AIBody.cs UpdateSettings / WriteSettings) ----------------------------
+
+    @property
+    def settings_path(self) -> Path:
+        return self.data_root / "config.json"
+
+    def seed_from_file(self) -> None:
+        """1.5 s after Init: a scene without saved AIBody settings takes the file's values."""
+        if not self.settings_initialized and self.settings_path.exists():
+            data = json.loads(self.settings_path.read_text(encoding="utf-8"))
+            for cat in self.ui:
+                for key, value in (data.get(cat) or {}).items():
+                    if key in self.ui[cat]:
+                        self.ui[cat][key] = _from_vam(value, self.ui[cat][key])
+        self.settings_initialized = True
+
+    def write_settings(self) -> None:
+        root: dict[str, Any] = {"version": 1, "written_by": "AIBody plugin 0.7.0", **json.loads(json.dumps(self.ui))}
+        if self.settings_path.exists():
+            existing = json.loads(self.settings_path.read_text(encoding="utf-8"))
+            if isinstance(existing.get("ai"), dict):
+                root["ai"] = existing["ai"]
+        self.settings_path.parent.mkdir(parents=True, exist_ok=True)
+        self.settings_path.write_text(json.dumps(vam_json(root)), encoding="utf-8")
+
+    # -- frame loop ------------------------------------------------------------------------
+
+    def tick(self, dt: float = 0.1) -> None:
+        connected = True
+        self.app_age += dt
+        for f in sorted(self.inbox.glob("*.json")):
+            try:
+                msg = json.loads(f.read_text(encoding="utf-8"))
+            except json.JSONDecodeError:
+                continue
+            f.unlink()
+            self.received.append(msg)
+            self.handle(msg)
+        if connected and self.epoch != self.seen_epoch:
+            self.seen_epoch = self.epoch
+            self.send("ready", **self.status_fields())
+            self.send_config()  # MicConfig.OnConnected
+            self.hb_timer = 0.0
+        alive = self.app_session is not None and self.app_age < self.APP_TIMEOUT
+        if self.app_alive and not alive:
+            self.log.append("Companion app disconnected")
+            self.app_session = None
+        self.app_alive = alive
+        self.hb_timer += dt
+        if self.hb_timer >= self.HEARTBEAT_INTERVAL:
+            self.hb_timer = 0.0
+            self.send("heartbeat", **self.status_fields())
+            if not alive:
+                self.prune_outbox(20)
+        self._play(dt)
+
+    def handle(self, msg: dict) -> None:
+        t = msg.get("type")
+        if t == "companion_heartbeat":
+            self.app_age = 0.0
+            session = msg.get("session")
+            if session != self.app_session:
+                restarted = self.last_session is not None and session != self.last_session
+                self.app_session = session
+                self.last_session = session
+                self.seen_epoch = -1
+                if restarted:
+                    self.log.append("app restarted")
+                    self.stop_speaking("cancelled")
+        elif t == "speak":
+            self.playing.append(msg)
+            if len(self.playing) == 1:
+                self._start_current()
+        elif t == "stop_speaking":
+            self.stop_speaking("cancelled")
+
+    def _start_current(self) -> None:
+        cur = self.playing[0]
+        audio = self.root / cur["audio"]
+        assert audio.is_file(), f"speak points to a missing file: {cur['audio']}"
+        self.play_started_at = self.clock()
+        self.send("speech_started", utterance_id=cur["id"], duration=float(cur.get("duration", 1.0)))
+        self.speech_events.append(("started", cur["id"]))
+
+    def _play(self, dt: float) -> None:
+        if not self.playing:
+            return
+        cur = self.playing[0]
+        if self.clock() - self.play_started_at >= float(cur.get("duration", 1.0)):
+            self.playing.pop(0)
+            self.send("speech_ended", utterance_id=cur["id"], reason="finished")
+            self.speech_events.append(("ended", cur["id"]))
+            if self.playing:
+                self._start_current()
+
+    def stop_speaking(self, reason: str) -> None:
+        if self.playing:
+            cur = self.playing[0]
+            self.send("speech_ended", utterance_id=cur["id"], reason=reason)
+            self.speech_events.append(("ended", cur["id"]))
+        self.playing = []
+
+    @property
+    def status(self) -> str:
+        if self.app_alive:
+            return "verbunden"
+        return "GETRENNT" if self.last_session else "noch nicht gesehen"
+
+
+def _from_vam(value: Any, like: Any) -> Any:
+    """How the C# accessors read a value back (AsBool / AsFloat / Value)."""
+    if isinstance(value, dict):
+        return value
+    if isinstance(like, bool):
+        return str(value).lower() == "true"
+    if isinstance(like, int):
+        return int(float(value))
+    if isinstance(like, float):
+        return float(value)
+    return str(value)

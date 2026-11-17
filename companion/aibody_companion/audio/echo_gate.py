@@ -24,6 +24,8 @@ import time
 from collections.abc import Callable
 from typing import Any
 
+from ..vamjson import as_number
+
 NO_TAIL_REASONS = {"cancelled", "failed"}
 # Errors replying to a speak: the clip was not played (no speech_started will follow).
 NO_PLAYBACK_ERRORS = {"audio_failed", "command_failed"}
@@ -63,8 +65,8 @@ class EchoGate:
         if type_ == "speech_started":
             self._speaking = True
             self._speaking_since = now
-            duration = event.get("duration")
-            if isinstance(duration, (int, float)) and duration > 0:
+            duration = as_number(event.get("duration"))  # VaM sends numbers as strings
+            if duration is not None and duration > 0:
                 self._pending[uid] = now + duration + self.max_extra_s
         elif type_ == "speech_ended":
             self._speaking = False

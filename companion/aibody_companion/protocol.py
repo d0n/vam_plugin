@@ -15,6 +15,7 @@ import uuid
 from typing import Any
 
 from . import PROTOCOL_VERSION
+from .vamjson import as_bool
 
 # Messages companion -> plugin ("commands").
 # command type -> (required fields, optional fields)
@@ -37,7 +38,10 @@ COMMANDS: dict[str, tuple[set[str], set[str]]] = {
     "mic_state": ({"enabled", "capturing"}, {"device", "mode", "ptt_active", "error"}),
     "mic_level": ({"rms"}, {"speech", "gate_open"}),
     # liveness + identity of the companion app (lets the plugin detect restarts over files)
-    "companion_heartbeat": ({"session"}, {"version", "engines_available", "mic_capturing"}),
+    # engines_status: kind -> engine -> "bereit" / "nicht konfiguriert: ..."; engines_active: kind -> engine
+    # that really runs (the fallback when the selected one is not configured).
+    "companion_heartbeat": ({"session"}, {"version", "engines_available", "engines_status", "engines_active",
+                                          "mic_capturing"}),
 }
 
 # Commands for the plugin's body (everything else is handled by its app link).
@@ -131,6 +135,6 @@ def validate_event(msg: Any) -> list[str]:
     errors: list[str] = []
     if type_ == "config" and not isinstance(msg.get("mic"), dict):
         errors.append("config: 'mic' must be an object")
-    if type_ == "ptt" and not isinstance(msg.get("active"), bool):
+    if type_ == "ptt" and as_bool(msg.get("active")) is None:  # VaM writes "true"/"false"
         errors.append("ptt: 'active' must be true/false")
     return errors
