@@ -4,7 +4,7 @@ Stand 17.11.2026 · Wunsch von Leon vom 17.11.2026 · Datei: [`examples/scenes/A
 
 Eine leere Szene ohne Raum mit:
 
-1. einer Figur (Person-Atom), auf der **AIBody** im Plugins-Tab der Person geladen ist (`d0n.AIBody.7`),
+1. einer Figur (Person-Atom), auf der **AIBody** im Plugins-Tab der Person geladen ist (`d0n.AIBody.11`),
 2. dem Szenen-Plugin **Camera Background Color** von Sally, Farbe **#00FF00 (RGB 0, 255, 0)**,
 3. zwei unsichtbaren Lichtern (InvisibleLight). Kein Boden, keine Wände, keine Objekte hinter der Figur.
 
@@ -14,7 +14,7 @@ Eine leere Szene ohne Raum mit:
 
 | Paket | Wo |
 |---|---|
-| `d0n.AIBody.7.var` | [Release v0.7.0](https://github.com/d0n/vam_plugin/releases/tag/v0.7.0) |
+| `d0n.AIBody.11.var` | [Release v0.7.4](https://github.com/d0n/vam_plugin/releases/tag/v0.7.4) |
 | `Sally.CameraBackgroundColor.7.var` (Version 7, 6 KB, Lizenz FC, VaM 1.22.0.3, keine Abhängigkeiten) | Hub: [Camera Background Color](https://hub.virtamate.com/resources/camera-background-color.24185/) von Sally (Sally Whitemane) |
 
 Beide Dateien nach `<VaM-Hauptordner>/AddonPackages/`. Die Szene verlangt genau Version 7 von Sallys Paket (das Paket ist auf „Exact“ gestellt).
@@ -25,7 +25,7 @@ Beide Dateien nach `<VaM-Hauptordner>/AddonPackages/`. Die Szene verlangt genau 
    `<VaM-Hauptordner>/Saves/scene/AIBody/AIBody_GreenScreen.json`
    (Ordner `AIBody` ggf. anlegen.)
 2. VaM starten > **Open Scene** (Szene öffnen) > `Saves/scene/AIBody/AIBody_GreenScreen.json`.
-3. **AIBody prüfen:** Figur (Person) auswählen > Tab **Plugins**. Dort muss `d0n.AIBody.7:/Custom/Scripts/d0n/AIBody/AIBody.cslist` stehen. Nicht unter *Session Plugins*.
+3. **AIBody prüfen:** Figur (Person) auswählen > Tab **Plugins**. Dort muss `d0n.AIBody.11:/Custom/Scripts/d0n/AIBody/AIBody.cslist` stehen. Nicht unter *Session Plugins*.
 4. **Camera Background Color prüfen:** Menü **Scene Plugins**. Dort steht `Sally.CameraBackgroundColor.7:/Custom/Scripts/Sally/CameraBackgroundColor/CameraBackgroundColor.cs`. Im Plugin-Fenster: Farbwähler „Color“ auf Grün (R 0, G 255, B 0), Schalter „Show Skybox“ aus. Beides ist in der Szene schon so eingestellt.
 5. **Skybox:** schaltet das Plugin beim Laden selbst aus (Schalter „Show Skybox“, aus = Skybox aus). Wird das Plugin deaktiviert oder entfernt, stellt es die Skybox auf den vorherigen Zustand zurück und den Hintergrund auf Schwarz.
 6. Nicht zusätzlich als *Session Plugin* laden. Zwei Instanzen stören sich; das Plugin warnt dann selbst („multiple CameraBackgroundColor-Plugins loaded“).
