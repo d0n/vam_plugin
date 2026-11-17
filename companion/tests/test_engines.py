@@ -241,7 +241,7 @@ class FallbackTests(unittest.TestCase):
 
         self.transport = FakeTransport()
         self.cfg = Config(vam_root=self.tmp.name, llm="xai", tts="xai")
-        self.engines = EngineSet({}, http=HttpClient(self.http), env={"XAI_API_KEY": KEY})
+        self.engines = EngineSet({"mode": "chain"}, http=HttpClient(self.http), env={"XAI_API_KEY": KEY})
         self.c = Companion(self.cfg, self.transport, engines=self.engines)
 
     def tearDown(self):

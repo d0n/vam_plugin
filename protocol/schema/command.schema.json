@@ -191,10 +191,26 @@
       "type": "string"
     },
     "mode": {
-      "enum": [
-        "vad",
-        "ptt"
-      ]
+      "type": "object",
+      "description": "companion_heartbeat: pipeline mode",
+      "properties": {
+        "requested": {
+          "enum": [
+            "auto",
+            "realtime",
+            "chain"
+          ]
+        },
+        "active": {
+          "enum": [
+            "realtime",
+            "chain"
+          ]
+        },
+        "status": {
+          "type": "string"
+        }
+      }
     },
     "ptt_active": {
       "type": "boolean"
@@ -246,6 +262,29 @@
     "mic_capturing": {
       "type": "boolean",
       "description": "companion_heartbeat: microphone open"
+    },
+    "engines_status": {
+      "type": "object",
+      "description": "companion_heartbeat: kind -> engine -> status text (\"bereit (...)\" / \"nicht konfiguriert: ...\")"
+    },
+    "engines_active": {
+      "type": "object",
+      "description": "companion_heartbeat: kind -> engine that really runs (a fallback if the selected one is not configured)"
+    },
+    "proactive": {
+      "type": "object",
+      "description": "companion_heartbeat: proactive timer",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "idle_seconds": {
+          "type": "number"
+        },
+        "status": {
+          "type": "string"
+        }
+      }
     }
   },
   "allOf": [

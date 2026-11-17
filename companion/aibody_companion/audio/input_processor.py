@@ -72,6 +72,15 @@ class InputProcessor:
 
     # -- frames ----------------------------------------------------------------------
 
+    def meter(self, frame: bytes) -> bytes:
+        """Gain + level statistics only (realtime mode: the server does turn detection).
+        Returns the frame with gain applied."""
+        frame = apply_gain(frame, self.settings.gain)
+        rms = frame_rms(frame)
+        self._level_peak = max(self._level_peak, rms)
+        self._level_speech = self._level_speech or self.vad.is_speech_rms(rms)
+        return frame
+
     def process(self, frame: bytes) -> bytes | None:
         """Feeds one raw mic frame. Returns a finished utterance or None."""
         frame = apply_gain(frame, self.settings.gain)

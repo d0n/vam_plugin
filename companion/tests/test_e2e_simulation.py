@@ -26,8 +26,11 @@ class Sim:
     """Companion app + fake plugin on one fake clock."""
 
     def __init__(self, root: str, clock: FakeClock, http: FakeHttp | None = None, env: dict | None = None,
-                 background: bool = False):
+                 background: bool = False, mode: str = "chain", connector=None, wall=None):
         self.root = root
+        self.mode = mode
+        self.connector = connector
+        self.wall = wall
         self.clock = clock
         self.http = http
         self.env = env or {}
@@ -41,9 +44,11 @@ class Sim:
         self.cfg_problems = problems
         transport = FileTransport(cfg.channel_dir, clock=self.clock)
         transport.start()
-        engines = EngineSet(cfg.ai, http=HttpClient(self.http) if self.http else None, env=self.env)
+        engines = EngineSet({**cfg.ai, "mode": self.mode}, http=HttpClient(self.http) if self.http else None,
+                            env=self.env)
         self.app = Companion(cfg, transport, gate=EchoGate(clock=self.clock), clock=self.clock,
-                             engines=engines, background_turns=self.background)
+                             engines=engines, background_turns=self.background,
+                             realtime_connector=self.connector, wall=self.wall)
         return self.app
 
     def run(self, plugin: FakePlugin, seconds: float, dt: float = 0.1, app: bool = True) -> None:

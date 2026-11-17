@@ -47,7 +47,12 @@ def build_stack(cfg: Config, use_mic: bool = True) -> Companion:
     for kind, states in engines.status().items():
         for name, state in states.items():
             log.info("Engine %s/%s: %s", kind, name, state)
-    return Companion(cfg, build_transport(cfg), gate=EchoGate(), mic=mic, engines=engines, background_turns=True)
+    companion = Companion(cfg, build_transport(cfg), gate=EchoGate(), mic=mic, engines=engines,
+                          background_turns=True)
+    log.info("Modus: %s -> %s (%s)", companion.mode_requested, companion.active_mode, companion.mode_note)
+    p = companion.proactive
+    log.info("Proaktiv: %s, nach %.0f s Stille", "an" if p.enabled else "aus", p.idle_seconds)
+    return companion
 
 
 def start_stdin_reader() -> queue.Queue[str | None]:

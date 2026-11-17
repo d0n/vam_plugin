@@ -378,6 +378,15 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
+        "mode": {
+          "type": "string",
+          "default": "auto",
+          "enum": [
+            "auto",
+            "realtime",
+            "chain"
+          ]
+        },
         "persona": {
           "type": "string",
           "default": "You are a friendly, curious character living in a 3D scene. You talk with the user face to face. Answer briefly and naturally, in the language the user speaks.",
@@ -419,6 +428,167 @@
             }
           },
           "description": "Engines used when the selected one has no API key or a request fails"
+        },
+        "realtime": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "url": {
+              "type": "string",
+              "default": "wss://api.x.ai/v1/realtime"
+            },
+            "model": {
+              "type": "string",
+              "default": "grok-voice-latest"
+            },
+            "voice": {
+              "type": "string",
+              "default": "eve"
+            },
+            "sample_rate": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "enum": [
+                    8000,
+                    16000,
+                    22050,
+                    24000,
+                    32000,
+                    44100,
+                    48000
+                  ]
+                },
+                {
+                  "type": "string",
+                  "pattern": "^\\s*-?[0-9]+(\\.[0-9]+)?([eE][-+]?[0-9]+)?\\s*$"
+                }
+              ],
+              "default": 24000
+            },
+            "speed": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.7,
+                  "maximum": 1.5
+                },
+                {
+                  "type": "string",
+                  "pattern": "^\\s*-?[0-9]+(\\.[0-9]+)?([eE][-+]?[0-9]+)?\\s*$"
+                }
+              ],
+              "default": 1.0
+            },
+            "reasoning_effort": {
+              "type": "string",
+              "default": "none",
+              "enum": [
+                "none",
+                "high"
+              ]
+            },
+            "send_while_speaking": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "true",
+                    "false",
+                    "True",
+                    "False"
+                  ]
+                }
+              ],
+              "default": false
+            },
+            "first_segment_s": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.3,
+                  "maximum": 5.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^\\s*-?[0-9]+(\\.[0-9]+)?([eE][-+]?[0-9]+)?\\s*$"
+                }
+              ],
+              "default": 1.2
+            },
+            "max_segment_s": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 1.0,
+                  "maximum": 20.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^\\s*-?[0-9]+(\\.[0-9]+)?([eE][-+]?[0-9]+)?\\s*$"
+                }
+              ],
+              "default": 6.0
+            },
+            "connect_timeout_s": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 3.0,
+                  "maximum": 60.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^\\s*-?[0-9]+(\\.[0-9]+)?([eE][-+]?[0-9]+)?\\s*$"
+                }
+              ],
+              "default": 15.0
+            }
+          }
+        },
+        "proactive": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "true",
+                    "false",
+                    "True",
+                    "False"
+                  ]
+                }
+              ],
+              "default": true
+            },
+            "idle_seconds": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 15.0,
+                  "maximum": 3600.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^\\s*-?[0-9]+(\\.[0-9]+)?([eE][-+]?[0-9]+)?\\s*$"
+                }
+              ],
+              "default": 90.0
+            },
+            "prompt": {
+              "type": "string",
+              "default": "The user has been quiet for a while. You may say something short and spontaneous that fits the moment and your character (a remark, a thought, a question), or you may stay silent. If you prefer to stay silent, answer with exactly [silent] and nothing else."
+            }
+          }
         },
         "xai": {
           "type": "object",

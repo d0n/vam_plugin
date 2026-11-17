@@ -3,6 +3,13 @@
 Call tick() regularly (every ~20 ms) from one thread: it handles plugin events, pulls
 microphone frames, finishes utterances and streams level / state feedback to the plugin.
 
+Two pipeline modes (config ai.mode, see docs/CONFIG.md):
+  * chain    = speech to text -> language model -> text to speech (the engines below)
+  * realtime = Grok Voice speech-to-speech over one WebSocket (realtime_voice.py); used by "auto"
+               when an xAI key is there. If it cannot connect, chain runs until it can.
+Proactive timer (proactive.py): after a silence the AI is nudged and may say something. Every
+user turn and nudge carries the local date / time (pipeline/context.py): the AI has no clock.
+
 One answer ("turn") = speech to text -> language model -> text to speech. With
 background_turns=True (the app) a worker thread runs the turns, so heartbeats and events keep
 flowing during slow network engines; tick() sends what the worker produced. A streaming model
@@ -21,6 +28,7 @@ import threading
 import time
 import uuid
 from collections.abc import Callable
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -35,8 +43,12 @@ from .audio import (
 )
 from .config import ENGINES_AVAILABLE, Config
 from .pipeline import Directive, LanguageModel, SpeechToText, TextToSpeech
+from .pipeline.context import is_silent, nudge_text, time_context
 from .pipeline.engines import EngineSet
 from .pipeline.http import ApiError
+from .proactive import ProactiveTimer
+from .realtime_voice import RealtimeVoice
+from .settings_file import CHOICES, DEFAULTS, RANGES, _check_value
 from .transport import Transport
 from .vamjson import as_bool
 
@@ -67,6 +79,8 @@ class Companion:
         clock: Callable[[], float] = time.monotonic,
         engines: EngineSet | None = None,
         background_turns: bool = False,
+        realtime_connector: Callable[..., Any] | None = None,
+        wall: Callable[[], datetime] | None = None,
     ):
         self.cfg = config
         self.transport = transport
@@ -104,6 +118,16 @@ class Companion:
         self._worker: threading.Thread | None = None
         if self.mic:
             self.mic.apply(self.mic_settings)
+        # modes, proactive timer, time context
+        self._wall = wall or (lambda: datetime.now().astimezone())
+        self._realtime_connector = realtime_connector
+        self.realtime: RealtimeVoice | None = None
+        self._realtime_key: str | None = None
+        self.mode_note = ""
+        self._last_exchange: float | None = None
+        proactive = self.engine_set.ai["proactive"]
+        self.proactive = ProactiveTimer(bool(proactive["enabled"]), float(proactive["idle_seconds"]), clock)
+        self._update_mode()
 
     # -- engines -------------------------------------------------------------------------
 
@@ -129,20 +153,129 @@ class Companion:
     def tick(self) -> None:
         self.process_events()
         self._watch_connection()
+        self._update_mode()
+        if self.realtime:
+            self.realtime.tick()
         self._send_heartbeat()
         if self.mic:
             for frame in self.mic.frames():
-                utterance = self.input.process(frame)
-                if utterance:
-                    self.handle_utterance(utterance)
+                self.handle_audio_frame(frame)
             self._send_level()
         self._send_mic_state_if_changed()
         self._drain_results()
+        self._maybe_nudge()
         now = self._clock()
         if now - self._last_key_check >= KEY_REFRESH_S:
             self._last_key_check = now
             if self.engine_set.refresh():
                 self._last_heartbeat = -HEARTBEAT_INTERVAL_S  # tell the plugin right away
+
+    # -- modes -----------------------------------------------------------------------------
+
+    @property
+    def mode_requested(self) -> str:
+        return str(self.engine_set.ai.get("mode") or "auto")
+
+    @property
+    def active_mode(self) -> str:
+        return "realtime" if self.realtime is not None and self.realtime.ready else "chain"
+
+    def _want_realtime(self) -> tuple[bool, str]:
+        mode = self.mode_requested
+        has_key = bool(self.engine_set.key("xai"))
+        if mode == "chain":
+            return False, "Chain gewählt (Spracherkennung -> Sprachmodell -> Sprachausgabe)"
+        if mode == "realtime":
+            return (True, "") if has_key else (False, "Realtime nicht konfiguriert (kein xAI-Key) - Chain läuft")
+        if self.engine_set.requested.get("tts") == "elevenlabs":
+            return False, "Auto: Chain, weil Text-to-speech = elevenlabs gewählt ist"
+        if not has_key:
+            return False, "Auto: Chain (kein xAI-Key für Realtime)"
+        return True, ""
+
+    def _update_mode(self) -> None:
+        want, note = self._want_realtime()
+        key = self.engine_set.key("xai")
+        if self.realtime is not None and (not want or key != self._realtime_key):
+            self.realtime.stop()
+            self.realtime = None
+            log.info("Realtime beendet (%s)", note or "Key geändert")
+        if want and self.realtime is None:
+            self.realtime = RealtimeVoice(self, key, connector=self._realtime_connector)
+            self._realtime_key = key
+            self.realtime.start()
+        if not want:
+            self.mode_note = note
+            return
+        client = self.realtime.client
+        settings = self.realtime.settings
+        if client.ready:
+            self.mode_note = f"Realtime verbunden ({client.model}, Stimme {settings['voice']})"
+        elif client.failures == 0 and not client.last_error:
+            self.mode_note = "Realtime verbindet ... (solange läuft Chain)"
+        else:
+            self.mode_note = (f"Realtime nicht verbunden: {client.last_error or 'getrennt'} - Fallback Chain, "
+                              f"neuer Versuch in {client.retry_in():.0f} s")
+
+    def mode_info(self) -> dict[str, Any]:
+        return {"requested": self.mode_requested, "active": self.active_mode, "status": self.mode_note}
+
+    def proactive_info(self) -> dict[str, Any]:
+        info: dict[str, Any] = {"enabled": self.proactive.enabled, "idle_seconds": self.proactive.idle_seconds}
+        if self.proactive.enabled and not self._can_nudge_engine():
+            info["status"] = "wartet: braucht Realtime oder Sprachmodell xai"
+        return info
+
+    # -- time / activity -------------------------------------------------------------------
+
+    def now(self) -> datetime:
+        return self._wall()
+
+    def since_last_exchange(self) -> float | None:
+        return None if self._last_exchange is None else self._clock() - self._last_exchange
+
+    def on_user_activity(self) -> None:
+        self.proactive.user_activity()
+
+    def on_exchange(self) -> None:
+        self._last_exchange = self._clock()
+
+    def send_directive(self, item: Directive) -> None:
+        if item.expression:
+            self.send(self.body_command("expression", name=item.expression, intensity=1.0, blend=0.4))
+        if item.gesture:
+            self.send(self.body_command("gesture", name=item.gesture))
+
+    # -- proactive -------------------------------------------------------------------------
+
+    def _can_nudge_engine(self) -> bool:
+        return self.active_mode == "realtime" or bool(getattr(self.llm, "accepts_context", False))
+
+    def _can_speak_now(self) -> bool:
+        if not self.transport.connected or not self.gate.is_open:
+            return False
+        if self._busy.is_set() or not self._jobs.empty() or not self._results.empty():
+            return False
+        if self.input.ptt_active or self.input.segmenter.in_speech:
+            return False
+        if self.active_mode == "realtime" and (self.realtime.responding or self.realtime.user_speaking):
+            return False
+        return True
+
+    def _maybe_nudge(self) -> None:
+        if not self.proactive.due(self._can_speak_now()) or not self._can_nudge_engine():
+            return
+        prompt = str(self.engine_set.ai["proactive"].get("prompt") or "")
+        text = nudge_text(prompt, self.now(), self.since_last_exchange())
+        self.proactive.fired()
+        log.info("Proactive: %.0f s Stille - die KI darf etwas sagen", self.proactive.idle_seconds)
+        if self.active_mode == "realtime":
+            self.realtime.nudge(text)
+        elif self.background_turns:
+            self._submit("nudge", text)
+        else:
+            for step in self._turn("nudge", text, self._generation):
+                self._apply(step)
 
     def _watch_connection(self) -> None:
         connected = self.transport.connected
@@ -164,6 +297,8 @@ class Companion:
                 continue
             self.gate.on_event(event)
             type_ = event.get("type")
+            if type_ in ("speech_started", "speech_ended"):
+                self.proactive.ai_activity()
             if type_ in ("ready", "heartbeat"):
                 if type_ == "ready":
                     log.info("AIBody plugin ready on %r: plugin=%s channel=%s", event.get("atom"),
@@ -195,6 +330,7 @@ class Companion:
             engines_available=ENGINES_AVAILABLE, engines_status=self.engine_set.status(),
             engines_active=dict(self.engine_set.active_names),
             mic_capturing=bool(self.mic and self.mic.capturing),
+            mode=self.mode_info(), proactive=self.proactive_info(),
         ))
 
     def apply_engines(self, requested: Any) -> list[str]:
@@ -214,9 +350,39 @@ class Companion:
                 errors += self.engine_set.select(kind, name)
         return errors
 
+    # ai keys the plugin's Engines tab may change live
+    AI_LIVE_KEYS = {("mode",), ("proactive", "enabled"), ("proactive", "idle_seconds"),
+                    ("realtime", "send_while_speaking")}
+
+    def apply_ai(self, data: Any) -> list[str]:
+        """Applies the plugin's ai controls (mode, proactive on/off + idle seconds, voice
+        barge-in). Other ai settings live in config.json only."""
+        if data is None:
+            return []
+        if not isinstance(data, dict):
+            return ["ai: must be an object"]
+        _ = (CHOICES, RANGES)  # validation tables used by _check_value
+        errors: list[str] = []
+        ai = self.engine_set.ai
+        for path in sorted(self.AI_LIVE_KEYS):
+            value: Any = data
+            for part in path:
+                value = value.get(part) if isinstance(value, dict) else None
+            if value is None:
+                continue
+            default: Any = DEFAULTS["ai"]
+            target = ai
+            for part in path[:-1]:
+                default, target = default[part], target[part]
+            target[path[-1]] = _check_value(("ai", *path), default[path[-1]], value, errors)
+        p = ai["proactive"]
+        self.proactive.configure(bool(p["enabled"]), float(p["idle_seconds"]))
+        self._update_mode()
+        return errors
+
     def handle_config(self, event: dict[str, Any]) -> None:
         settings, errors = apply_mic_config(self.mic_settings, event.get("mic"))
-        errors = errors + self.apply_engines(event.get("engines"))
+        errors = errors + self.apply_engines(event.get("engines")) + self.apply_ai(event.get("ai"))
         self.mic_settings = settings
         self.input.apply(settings)
         if self.mic:
@@ -228,13 +394,25 @@ class Companion:
         self._last_mic_state = state
         self.send(protocol.make_command(
             "config_ack", reply_to=event.get("id", ""),
-            applied={"mic": settings.to_dict(), "engines": dict(self.engines)},
+            applied={"mic": settings.to_dict(), "engines": dict(self.engines),
+                     "ai": {"mode": self.mode_requested,
+                            "proactive": {"enabled": self.proactive.enabled,
+                                          "idle_seconds": self.proactive.idle_seconds},
+                            "realtime": {"send_while_speaking":
+                                         bool(self.engine_set.ai["realtime"]["send_while_speaking"])}}},
             errors=errors, mic_state=state,
         ))
 
     def handle_ptt(self, active: bool) -> None:
         if self.mic_settings.mode != "ptt":
             log.debug("ptt ignored: mic mode is %s", self.mic_settings.mode)
+            return
+        if active:
+            self.on_user_activity()
+        if self.active_mode == "realtime":
+            if active and self.mic_settings.ptt_interrupts:
+                self.realtime.barge_in(manual=True)
+            self.input.set_ptt(active)  # frames stream to the server while held; no local utterance
             return
         if active and self.mic_settings.ptt_interrupts and (not self.gate.is_open or self._busy.is_set()):
             self.cancel_turns()  # the user talks: the answer being prepared is dropped ...
@@ -281,12 +459,17 @@ class Companion:
     # -- input ---------------------------------------------------------------------------
 
     def handle_audio_frame(self, frame: bytes) -> str | None:
-        """Feeds one microphone frame (for tests / custom capture). Returns text if an utterance finished."""
+        """Feeds one microphone frame: to the realtime server in realtime mode, else to the local
+        VAD. Returns text if an utterance finished (chain mode, inline turns)."""
+        if self.active_mode == "realtime":
+            self.realtime.feed_mic(frame)
+            return None
         utterance = self.input.process(frame)
         return self.handle_utterance(utterance) if utterance else None
 
     def handle_utterance(self, utterance: bytes) -> str:
         """Transcribes and answers an utterance. Returns the text (inline) or "" (queued)."""
+        self.on_user_activity()
         if self.background_turns:
             self._submit("audio", utterance)
             return ""
@@ -373,29 +556,48 @@ class Companion:
             else:
                 text = str(data)
             self._check(generation)
-            self.history.append({"role": "user", "content": text})
+            nudge = kind == "nudge"
+            prompt = text
+            if not nudge:
+                self.history.append({"role": "user", "content": text})
+                if getattr(self.llm, "accepts_context", False):  # the echo test model would read it out
+                    prompt = time_context(self.now(), self.since_last_exchange()) + "\n" + text
             said: list[str] = []
-            for item in self._answer(text):
+            held: list[Directive] = []  # a nudge's tag waits until its first sentence is not "[silent]"
+            for item in self._answer(text, prompt, nudge):
                 self._check(generation)
                 if isinstance(item, Directive):
-                    if item.expression:
-                        yield ("command", self.body_command("expression", name=item.expression, intensity=1.0,
-                                                            blend=0.4))
-                    if item.gesture:
-                        yield ("command", self.body_command("gesture", name=item.gesture))
+                    if nudge and not said:
+                        held.append(item)
+                        continue
+                    yield from self._directive_steps(item)
                     continue
                 sentence = str(item).strip()
                 if not sentence:
                     continue
+                if nudge and not said:
+                    if is_silent(sentence):
+                        log.info("Proactive: the AI chose to stay silent")
+                        return
+                    for d in held:
+                        yield from self._directive_steps(d)
                 utterance_id = protocol.new_id("utt")
                 path = self.cfg.audio_abs_path(f"{utterance_id}.wav")
                 duration = self._synthesize(sentence, path)
                 self._check(generation)
                 said.append(sentence)
                 yield ("speak", utterance_id, sentence, path, duration)
-            self.history.append({"role": "assistant", "content": " ".join(said)})
+            if said:
+                self.history.append({"role": "assistant", "content": " ".join(said)})
+                self.on_exchange()
         except _CancelledError:
             log.info("Answer cancelled")
+
+    def _directive_steps(self, item: Directive):
+        if item.expression:
+            yield ("command", self.body_command("expression", name=item.expression, intensity=1.0, blend=0.4))
+        if item.gesture:
+            yield ("command", self.body_command("gesture", name=item.gesture))
 
     def _transcribe(self, utterance: bytes) -> str:
         try:
@@ -408,10 +610,13 @@ class Companion:
             except ApiError:
                 return ""
 
-    def _answer(self, text: str):
-        """Directive / sentence items from the active model; the fallback model if it fails
-        before saying anything."""
+    def _answer(self, text: str, prompt: str | None = None, nudge: bool = False):
+        """Directive / sentence items from the active model (it gets `prompt`, the text with the
+        time context); the fallback model gets the plain text if it fails before saying anything
+        (a nudge has no fallback: the echo test model would read the note aloud)."""
         llm = self.llm
+        user_text = text
+        text = prompt or text
         expressions = list(self.body_info.get("expressions") or DEFAULT_EXPRESSIONS)
         gestures = list(self.body_info.get("gestures") or DEFAULT_GESTURES)
         produced = False
@@ -426,9 +631,9 @@ class Companion:
         except ApiError as e:
             name, fallback = self.engine_set.fallback("llm")
             log.warning("Language model failed (%s)%s", e, "" if produced else f"; fallback {name}")
-            if produced:
+            if produced or nudge:
                 return
-        yield from self._reply_items(fallback, text)
+        yield from self._reply_items(fallback, user_text)
 
     def _reply_items(self, llm: Any, text: str):
         reply = llm.reply(text, self.history)
@@ -497,6 +702,8 @@ class Companion:
                 pass  # still loaded by VaM; not worth retrying
 
     def shutdown(self) -> None:
+        if self.realtime:
+            self.realtime.stop()
         self.cancel_turns()
         self._jobs.put(None)
         if self.mic:

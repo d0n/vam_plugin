@@ -179,14 +179,15 @@ class FakeRealtimeServer:
         c = self.conn
         c.send({"type": "response.created", "response": {"id": response_id, "status": "in_progress"}})
         audio_chunks = [pcm[i:i + chunk] for i in range(0, len(pcm), chunk)] or [b""]
-        n = max(len(audio_chunks), len(transcript_parts))
-        for i in range(n):
-            if i < len(transcript_parts):
+        # transcript deltas spread evenly over the audio (roughly when they are spoken)
+        at = {int(k * len(audio_chunks) / max(1, len(transcript_parts))): k for k in range(len(transcript_parts))}
+        for i, audio in enumerate(audio_chunks):
+            if i in at:
                 c.send({"type": "response.output_audio_transcript.delta", "response_id": response_id,
-                        "delta": transcript_parts[i]})
-            if i < len(audio_chunks) and audio_chunks[i]:
+                        "delta": transcript_parts[at[i]]})
+            if audio:
                 c.send({"type": "response.output_audio.delta", "response_id": response_id,
-                        "delta": base64.b64encode(audio_chunks[i]).decode("ascii")})
+                        "delta": base64.b64encode(audio).decode("ascii")})
         c.send({"type": "response.output_audio.done", "response_id": response_id})
         c.send({"type": "response.output_audio_transcript.done", "response_id": response_id,
                 "transcript": "".join(transcript_parts)})

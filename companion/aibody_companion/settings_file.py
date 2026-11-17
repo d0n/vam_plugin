@@ -13,7 +13,10 @@ One object per category, the same categories as the plugin's tabs:
 
 plus one category only this app uses (no tab; the plugin keeps it unchanged when it writes):
 
-  ai          persona, language, fallback {stt, llm, tts}, xai {...}, elevenlabs {...}
+  ai          mode, persona, language, fallback {stt, llm, tts}, realtime {...}, proactive {...},
+              xai {...}, elevenlabs {...}
+              (mode, proactive.enabled / idle_seconds and realtime.send_while_speaking also have
+              controls in the plugin's Engines tab; the plugin writes just those keys)
 
 The plugin UI wins: the plugin writes its values back after every change. This app reads the
 file on start (channel, initial mic and engine settings before the plugin connects) and creates
@@ -37,6 +40,8 @@ from typing import Any
 
 from .audio.mic_settings import MicSettings, apply_mic_config
 from .config import ENGINES_AVAILABLE, PLUGIN_DATA_SUBDIR
+from .pipeline.context import DEFAULT_NUDGE_PROMPT
+from .pipeline.realtime import PCM_RATES
 from .vamjson import as_bool, as_number
 
 log = logging.getLogger(__name__)
@@ -68,11 +73,31 @@ DEFAULTS: dict[str, dict[str, Any]] = {
     "advanced": {"file_poll_interval_s": 0.1, "verbose_log": False},
     # Companion app only (no tab in the plugin; the plugin preserves this section).
     "ai": {
+        # auto = realtime when an xAI key is there (and TTS is not elevenlabs), else chain;
+        # realtime = Grok Voice speech-to-speech; chain = STT -> LLM -> TTS (engines above)
+        "mode": "auto",
         "persona": "You are a friendly, curious character living in a 3D scene. You talk with the user "
                    "face to face. Answer briefly and naturally, in the language the user speaks.",
         "language": "auto",  # "auto" or a language code such as "de" / "en" (STT bias, TTS language)
         # Used when the selected engine is not configured (no API key) or a request fails.
         "fallback": {"stt": "null", "llm": "echo", "tts": "tone"},
+        "realtime": {
+            "url": "wss://api.x.ai/v1/realtime",
+            "model": "grok-voice-latest",
+            "voice": "eve",
+            "sample_rate": 24000,  # answer audio (16-bit PCM, written as WAV for VaM)
+            "speed": 1.0,
+            "reasoning_effort": "none",  # "none" = faster answers, "high" = API default
+            "send_while_speaking": False,  # true = mic stays open while the body talks (headphones!)
+            "first_segment_s": 1.2,  # first audio segment as soon as a sentence ends after this
+            "max_segment_s": 6.0,  # longer stretches without a sentence end are cut
+            "connect_timeout_s": 15.0,
+        },
+        "proactive": {
+            "enabled": True,
+            "idle_seconds": 90.0,  # silence (no user speech, no AI speech) before a nudge
+            "prompt": DEFAULT_NUDGE_PROMPT,
+        },
         "xai": {
             "base_url": "https://api.x.ai/v1",
             "key_file": "",  # path of a file holding the key; XAI_API_KEY (environment) wins
@@ -105,10 +130,18 @@ RANGES: dict[tuple[str, str], tuple[float, float]] = {
     ("ai", "xai", "speed"): (0.7, 1.5),
     ("ai", "xai", "timeout_s"): (5.0, 600.0),
     ("ai", "elevenlabs", "timeout_s"): (5.0, 600.0),
+    ("ai", "realtime", "speed"): (0.7, 1.5),
+    ("ai", "realtime", "first_segment_s"): (0.3, 5.0),
+    ("ai", "realtime", "max_segment_s"): (1.0, 20.0),
+    ("ai", "realtime", "connect_timeout_s"): (3.0, 60.0),
+    ("ai", "proactive", "idle_seconds"): (15.0, 3600.0),
 }
 
 # Allowed values for some strings.
 CHOICES: dict[tuple[str, ...], tuple[str, ...]] = {
+    ("ai", "mode"): ("auto", "realtime", "chain"),
+    ("ai", "realtime", "sample_rate"): tuple(str(r) for r in PCM_RATES),
+    ("ai", "realtime", "reasoning_effort"): ("none", "high"),
     ("ai", "xai", "sample_rate"): ("8000", "16000", "22050", "24000", "44100", "48000"),
     ("ai", "elevenlabs", "output_format"): ("pcm_16000", "pcm_22050", "pcm_24000", "pcm_44100", "pcm_48000"),
     ("ai", "fallback", "stt"): tuple(ENGINES_AVAILABLE["stt"]),
@@ -263,10 +296,20 @@ def write_defaults_if_missing(path: Path, channel: str) -> bool:
     return True
 
 
+def _fill_missing(default: dict[str, Any], data: dict[str, Any], prefix: str, added: list[str]) -> None:
+    for key, value in default.items():
+        if key not in data:
+            data[key] = json.loads(json.dumps(value))
+            added.append(prefix + key)
+        elif isinstance(value, dict) and isinstance(data[key], dict):
+            _fill_missing(value, data[key], prefix + key + ".", added)
+
+
 def add_missing_companion_sections(path: Path) -> list[str]:
-    """Adds the companion-only sections (ai) with their defaults to an existing file that lacks
-    them (e.g. written first by the plugin), so the settings are there to edit. The rest of the
-    file is kept as it is. Returns the names of the added sections."""
+    """Adds the companion-only settings (ai, and keys a newer version introduced inside it) with
+    their defaults to an existing file that lacks them (e.g. written first by the plugin, which
+    only writes ai.mode / ai.proactive / ...), so the settings are there to edit. Everything
+    else is kept as it is. Returns the added keys."""
     path = Path(path)
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
@@ -274,11 +317,15 @@ def add_missing_companion_sections(path: Path) -> list[str]:
         return []
     if not isinstance(data, dict):
         return []
-    added = [cat for cat in COMPANION_CATEGORIES if cat not in data]
+    added: list[str] = []
+    for cat in COMPANION_CATEGORIES:
+        if not isinstance(data.get(cat), dict):
+            data[cat] = json.loads(json.dumps(DEFAULTS[cat]))
+            added.append(cat)
+        else:
+            _fill_missing(DEFAULTS[cat], data[cat], cat + ".", added)
     if not added:
         return []
-    for cat in added:
-        data[cat] = json.loads(json.dumps(DEFAULTS[cat]))
     tmp = path.with_suffix(".tmp")
     tmp.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     os.replace(tmp, path)
@@ -292,8 +339,10 @@ def apply_to_config(cfg: Any, channel_from_cli: bool = False) -> list[str]:
     path = settings_path(cfg.vam_root)
     if write_defaults_if_missing(path, cfg.channel):
         log.info("Created %s with default settings", path)
-    elif add_missing_companion_sections(path):
-        log.info("Added the 'ai' section with default settings to %s", path)
+    else:
+        added = add_missing_companion_sections(path)
+        if added:
+            log.info("Added default settings to %s: %s", path, ", ".join(added))
     data, errors = load(path)
     if data is None:
         return errors

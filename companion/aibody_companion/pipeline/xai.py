@@ -12,9 +12,8 @@ Documented endpoints (docs.x.ai, checked 17.11.2026):
          https://docs.x.ai/developers/model-capabilities/audio/text-to-speech
 Authentication: "Authorization: Bearer <key>", key from XAI_API_KEY or ai.xai.key_file.
 
-Not used: the realtime speech-to-speech WebSocket (wss://api.x.ai/v1/realtime) and the
-streaming STT/TTS WebSockets; they would bypass this STT -> LLM -> TTS pipeline and the file
-transport, and the standard library has no WebSocket client.
+The realtime speech-to-speech WebSocket (wss://api.x.ai/v1/realtime) is the other pipeline mode,
+see pipeline/realtime.py. Not used: the streaming STT/TTS WebSockets.
 
 Everything here is tested against a fake server only (no key was available).
 TODO(verify): run once against the real API (see docs/CONFIG.md, "Real API check").
@@ -101,6 +100,8 @@ class XaiLlm(_XaiBase):
     """Grok over the Responses API with streaming. The persona goes into `instructions` on the
     first request; later requests continue with `previous_response_id` (the docs say
     `instructions` cannot be combined with it - the stored system prompt is reused)."""
+
+    accepts_context = True  # the companion may prefix user turns with the time context
 
     def __init__(self, settings: dict[str, Any], key: str | None, http: HttpClient | None = None,
                  persona: str = ""):

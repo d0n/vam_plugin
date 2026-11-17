@@ -41,12 +41,30 @@
     "verbose_log": false
   },
   "ai": {
+    "mode": "auto",
     "persona": "You are a friendly, curious character living in a 3D scene. You talk with the user face to face. Answer briefly and naturally, in the language the user speaks.",
     "language": "auto",
     "fallback": {
       "stt": "null",
       "llm": "echo",
       "tts": "tone"
+    },
+    "realtime": {
+      "url": "wss://api.x.ai/v1/realtime",
+      "model": "grok-voice-latest",
+      "voice": "eve",
+      "sample_rate": 24000,
+      "speed": 1.0,
+      "reasoning_effort": "none",
+      "send_while_speaking": false,
+      "first_segment_s": 1.2,
+      "max_segment_s": 6.0,
+      "connect_timeout_s": 15.0
+    },
+    "proactive": {
+      "enabled": true,
+      "idle_seconds": 90.0,
+      "prompt": "The user has been quiet for a while. You may say something short and spontaneous that fits the moment and your character (a remark, a thought, a question), or you may stay silent. If you prefer to stay silent, answer with exactly [silent] and nothing else."
     },
     "xai": {
       "base_url": "https://api.x.ai/v1",

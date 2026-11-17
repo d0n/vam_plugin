@@ -40,8 +40,10 @@ COMMANDS: dict[str, tuple[set[str], set[str]]] = {
     # liveness + identity of the companion app (lets the plugin detect restarts over files)
     # engines_status: kind -> engine -> "bereit" / "nicht konfiguriert: ..."; engines_active: kind -> engine
     # that really runs (the fallback when the selected one is not configured).
+    # mode: {requested: auto|realtime|chain, active: realtime|chain, status: text};
+    # proactive: {enabled, idle_seconds, status?}
     "companion_heartbeat": ({"session"}, {"version", "engines_available", "engines_status", "engines_active",
-                                          "mic_capturing"}),
+                                          "mic_capturing", "mode", "proactive"}),
 }
 
 # Commands for the plugin's body (everything else is handled by its app link).
