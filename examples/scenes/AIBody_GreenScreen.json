@@ -1,0 +1,194 @@
+{
+   "playerHeightAdjust": "0",
+   "monitorCameraRotation": {
+      "x": "0",
+      "y": "0",
+      "z": "0"
+   },
+   "useSceneLoadPosition": "false",
+   "atoms": [
+      {
+         "id": "CoreControl",
+         "on": "true",
+         "type": "CoreControl",
+         "storables": [
+            {
+               "id": "MotionAnimationMaster",
+               "triggers": []
+            },
+            {
+               "id": "PluginManager",
+               "plugins": {
+                  "plugin#0": "Sally.CameraBackgroundColor.7:/Custom/Scripts/Sally/TODO_VERIFY_CameraBackgroundColor.cs"
+               }
+            },
+            {
+               "id": "plugin#0_TODO_VERIFY_ClassName",
+               "TODO_VERIFY_Background Color": {
+                  "h": "0.3333333",
+                  "s": "1",
+                  "v": "1"
+               }
+            }
+         ]
+      },
+      {
+         "id": "InvisibleLight#Main",
+         "on": "true",
+         "type": "InvisibleLight",
+         "position": {
+            "x": "1.2",
+            "y": "2.2",
+            "z": "1.6"
+         },
+         "rotation": {
+            "x": "40",
+            "y": "215",
+            "z": "0"
+         },
+         "containerPosition": {
+            "x": "1.2",
+            "y": "2.2",
+            "z": "1.6"
+         },
+         "containerRotation": {
+            "x": "40",
+            "y": "215",
+            "z": "0"
+         },
+         "storables": [
+            {
+               "id": "Light",
+               "type": "Spot",
+               "shadowsOn": "false",
+               "intensity": "1.6",
+               "range": "10",
+               "color": {
+                  "h": "0.1",
+                  "s": "0.1",
+                  "v": "1"
+               }
+            },
+            {
+               "id": "PluginManager",
+               "plugins": {}
+            },
+            {
+               "id": "control",
+               "position": {
+                  "x": "1.2",
+                  "y": "2.2",
+                  "z": "1.6"
+               },
+               "rotation": {
+                  "x": "40",
+                  "y": "215",
+                  "z": "0"
+               }
+            }
+         ]
+      },
+      {
+         "id": "InvisibleLight#Fill",
+         "on": "true",
+         "type": "InvisibleLight",
+         "position": {
+            "x": "-1.4",
+            "y": "1.6",
+            "z": "1.4"
+         },
+         "rotation": {
+            "x": "20",
+            "y": "135",
+            "z": "0"
+         },
+         "containerPosition": {
+            "x": "-1.4",
+            "y": "1.6",
+            "z": "1.4"
+         },
+         "containerRotation": {
+            "x": "20",
+            "y": "135",
+            "z": "0"
+         },
+         "storables": [
+            {
+               "id": "Light",
+               "type": "Spot",
+               "shadowsOn": "false",
+               "intensity": "0.8",
+               "range": "10",
+               "color": {
+                  "h": "0",
+                  "s": "0",
+                  "v": "1"
+               }
+            },
+            {
+               "id": "PluginManager",
+               "plugins": {}
+            },
+            {
+               "id": "control",
+               "position": {
+                  "x": "-1.4",
+                  "y": "1.6",
+                  "z": "1.4"
+               },
+               "rotation": {
+                  "x": "20",
+                  "y": "135",
+                  "z": "0"
+               }
+            }
+         ]
+      },
+      {
+         "id": "Person",
+         "on": "true",
+         "type": "Person",
+         "position": {
+            "x": "0",
+            "y": "0",
+            "z": "0"
+         },
+         "rotation": {
+            "x": "0",
+            "y": "0",
+            "z": "0"
+         },
+         "containerPosition": {
+            "x": "0",
+            "y": "0",
+            "z": "0"
+         },
+         "containerRotation": {
+            "x": "0",
+            "y": "0",
+            "z": "0"
+         },
+         "storables": [
+            {
+               "id": "control",
+               "position": {
+                  "x": "0",
+                  "y": "0",
+                  "z": "0"
+               },
+               "rotation": {
+                  "x": "0",
+                  "y": "0",
+                  "z": "0"
+               }
+            },
+            {
+               "id": "PluginManager",
+               "plugins": {
+                  "plugin#0": "d0n.AIBody.7:/Custom/Scripts/d0n/AIBody/AIBody.cslist"
+               }
+            }
+         ]
+      }
+   ]
+}

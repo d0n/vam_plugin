@@ -274,6 +274,10 @@ python tools/check_plugin.py   # needs the .NET SDK: strict sandbox scan, single
 python tools/build_var.py      # builds dist/d0n.AIBody.<N>.var and scans every file inside it
 ```
 
+## Example scene: green screen / passthrough
+
+`examples/scenes/AIBody_GreenScreen.json` is a VaM scene template: one Person with AIBody on its Plugins tab, Sally's scene plugin [Camera Background Color](https://hub.virtamate.com/resources/camera-background-color.24185/) (`Sally.CameraBackgroundColor.7.var`) set to #00FF00, two invisible lights, no room. The headset (e.g. Virtual Desktop chroma key on #00FF00) makes the green transparent, not VaM. The plugin's script path and colour parameter name are unverified placeholders (`TODO_VERIFY`), and the skybox has to be switched off by hand. Steps (German): [docs/SZENE_GREENSCREEN.md](docs/SZENE_GREENSCREEN.md).
+
 ## Plugin sandbox limits
 
 VaM compiles plugins itself (C# 6, Mono, .NET 3.5 profile) and runs them in a sandbox. A plugin

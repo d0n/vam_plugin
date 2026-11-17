@@ -96,6 +96,7 @@
 - [ ] **Mehrere Figuren gleichzeitig,** über die zweite Instanz hinaus.
 - [ ] **Persönlichkeitsprofile und Gedächtnis** der KI.
 - [ ] **Später Kompatibilität mit VaM2.**
+- [ ] **Szenen-Vorlage Green Screen / Passthrough** (Wunsch des Nutzers vom 17.11.2026): AIBody auf der Person plus Sallys Szenen-Plugin *Camera Background Color* mit #00FF00. Entwurf: `examples/scenes/AIBody_GreenScreen.json`, Anleitung `docs/SZENE_GREENSCREEN.md`. Plugin-Pfad, Farbparameter und Skybox-Eintrag noch nicht belegt; nicht in VaM getestet.
 - [ ] **Optionaler HTTP-Transport.** Aktuell **gestrichen**, weil er gegen die Sandbox-Regel verstößt. Nur wieder aufgreifen, falls VaM das irgendwann offiziell erlaubt.
 
 ---
