@@ -68,7 +68,7 @@ class ConfigRoundTripTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.clock = FakeClock()
         self.sim = Sim(self.tmp.name, self.clock)
-        self.plugin = FakePlugin(Path(self.tmp.name), self.clock)
+        self.plugin = FakePlugin(Path(self.tmp.name), self.clock, mode="chain")
 
     def tearDown(self):
         self.tmp.cleanup()
@@ -133,14 +133,22 @@ class ConfigRoundTripTests(unittest.TestCase):
         self.plugin.seed_from_file()  # no file yet
         self.plugin.write_settings()
         path = settings_file.settings_path(self.tmp.name)
-        self.assertNotIn("ai", json.loads(path.read_text()))
+        self.assertEqual(set(json.loads(path.read_text())["ai"]), {"mode", "proactive", "realtime"},
+                         "only the Engines tab's ai controls")
         self.sim.start_app()
         data = json.loads(path.read_text())
-        self.assertIn("ai", data, "the app adds its section so it can be edited")
+        self.assertIn("persona", data["ai"], "the app fills in the rest of its section so it can be edited")
+        self.assertEqual(data["ai"]["mode"], "chain")
         self.assertEqual(data["mic"]["gain"], "1.0", "the plugin's part stays as it was")
         self.plugin.ui["mic"]["gain"] = 3.0
+        self.plugin.ai_ui["proactive"]["idle_seconds"] = 120.0
         self.plugin.write_settings()
-        self.assertIn("ai", json.loads(path.read_text()))
+        ai = json.loads(path.read_text())["ai"]
+        self.assertIn("persona", ai, "the plugin keeps the app's ai settings")
+        self.assertEqual(ai["proactive"]["idle_seconds"], "120.0", "and merges its controls into them")
+        self.assertIn("prompt", ai["proactive"])
+        app = self.sim.start_app()
+        self.assertEqual(app.proactive.idle_seconds, 120.0)
 
 
 class ReconnectTests(unittest.TestCase):
@@ -148,7 +156,7 @@ class ReconnectTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.clock = FakeClock()
         self.sim = Sim(self.tmp.name, self.clock)
-        self.plugin = FakePlugin(Path(self.tmp.name), self.clock)
+        self.plugin = FakePlugin(Path(self.tmp.name), self.clock, mode="chain")
 
     def tearDown(self):
         self.tmp.cleanup()
@@ -234,7 +242,7 @@ class SpeakCycleTests(unittest.TestCase):
         cfg_path.write_text(json.dumps(data))
         app = sim.start_app()
         self.assertEqual(app.engine_set.active_names, {"stt": "null", "llm": "xai", "tts": "xai"})
-        plugin = FakePlugin(Path(self.tmp.name), self.clock)
+        plugin = FakePlugin(Path(self.tmp.name), self.clock, mode="chain")
         plugin.start()
         plugin.ui["engines"] = {"stt": "null", "llm": "xai", "tts": "xai"}
         sim.run(plugin, 3)
@@ -301,7 +309,7 @@ class SpeakCycleTests(unittest.TestCase):
         data["mic"]["mode"] = "ptt"
         cfg_path.write_text(json.dumps(data))
         app = sim.start_app()
-        plugin = FakePlugin(Path(self.tmp.name), self.clock)
+        plugin = FakePlugin(Path(self.tmp.name), self.clock, mode="chain")
         plugin.start()
         plugin.seed_from_file()
         sim.run(plugin, 3)

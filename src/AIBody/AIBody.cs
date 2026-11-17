@@ -259,11 +259,16 @@ namespace AIBody
                 if (text == _lastSettingsText && path == _lastSettingsPath) return;
                 // Keep the companion-only section ("ai": persona, engine settings, key FILE paths)
                 // that the companion app and the user maintain; the plugin has no UI for it.
+                // The UI's ai keys (mode, proactive, voice barge-in) are merged into it.
                 JSONClass existing = _link.ReadSettingsRoot();
                 if (existing != null)
                 {
                     JSONClass ai = existing["ai"] as JSONClass;
-                    if (ai != null) root["ai"] = ai;
+                    if (ai != null)
+                    {
+                        AppLink.MergeAi(ai, root["ai"] as JSONClass);
+                        root["ai"] = ai;
+                    }
                 }
                 FileManagerSecure.CreateDirectory(AppLink.DataRoot);
                 FileManagerSecure.WriteAllText(path, root.ToString());

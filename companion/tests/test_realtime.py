@@ -151,7 +151,10 @@ class RealtimeSim(unittest.TestCase):
                     data["ai"][k] = v
             path.write_text(json.dumps(data))
         self.app = self.sim.start_app()
-        self.plugin = FakePlugin(Path(self.tmp.name), self.clock)
+        self.plugin = FakePlugin(Path(self.tmp.name), self.clock, mode=mode)
+        for section, values in (ai or {}).items():
+            if section in self.plugin.ai_ui and isinstance(values, dict):
+                self.plugin.ai_ui[section].update(values)
         self.plugin.start()
         return self.app
 

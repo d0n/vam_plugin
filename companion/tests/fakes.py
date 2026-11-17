@@ -128,10 +128,13 @@ class FakePlugin:
     HEARTBEAT_INTERVAL = 2.0
     APP_TIMEOUT = 6.0
 
-    def __init__(self, vam_root: Path, clock: FakeClock, channel: str = "default"):
+    def __init__(self, vam_root: Path, clock: FakeClock, channel: str = "default", mode: str = "auto"):
         self.root = Path(vam_root)
         self.clock = clock
         self.channel = channel
+        # Engines tab ai controls (AppLink.BuildAiJson): sent in the config event, merged into config.json "ai"
+        self.ai_ui: dict[str, Any] = {"mode": mode, "proactive": {"enabled": True, "idle_seconds": 90.0},
+                                      "realtime": {"send_while_speaking": False}}
         self.ui = {
             "connection": {"channel": channel, "active": True,
                            "paths": {"expressions": "Saves/PluginData/AIBody/expressions.json",
@@ -200,10 +203,11 @@ class FakePlugin:
     def status_fields(self) -> dict:
         return {"atom": "Person", "speaking": bool(self.playing), "speech_queue": len(self.playing),
                 "expression": "neutral", "expressions": ["neutral", "happy", "sad", "thinking"],
-                "gestures": ["nod", "shake", "tilt"], "channel": self.channel, "plugin_version": "0.7.0"}
+                "gestures": ["nod", "shake", "tilt"], "channel": self.channel, "plugin_version": PLUGIN_VERSION}
 
     def send_config(self) -> None:
-        self.send("config", mic=dict(self.ui["mic"]), engines=dict(self.ui["engines"]))
+        self.send("config", mic=dict(self.ui["mic"]), engines=dict(self.ui["engines"]),
+                  ai=json.loads(json.dumps(self.ai_ui)))
 
     def press_ptt(self, active: bool) -> None:
         self.send("ptt", active=active)
@@ -222,14 +226,29 @@ class FakePlugin:
                 for key, value in (data.get(cat) or {}).items():
                     if key in self.ui[cat]:
                         self.ui[cat][key] = _from_vam(value, self.ui[cat][key])
+            ai = data.get("ai") or {}
+            if ai.get("mode") in ("auto", "realtime", "chain"):
+                self.ai_ui["mode"] = ai["mode"]
+            for section, keys in (("proactive", ("enabled", "idle_seconds")), ("realtime", ("send_while_speaking",))):
+                for key in keys:
+                    if key in (ai.get(section) or {}):
+                        self.ai_ui[section][key] = _from_vam(ai[section][key], self.ai_ui[section][key])
         self.settings_initialized = True
 
     def write_settings(self) -> None:
-        root: dict[str, Any] = {"version": 1, "written_by": "AIBody plugin 0.7.0", **json.loads(json.dumps(self.ui))}
+        root: dict[str, Any] = {"version": 1, "written_by": f"AIBody plugin {PLUGIN_VERSION}",
+                                **json.loads(json.dumps(self.ui)), "ai": json.loads(json.dumps(self.ai_ui))}
         if self.settings_path.exists():
             existing = json.loads(self.settings_path.read_text(encoding="utf-8"))
-            if isinstance(existing.get("ai"), dict):
-                root["ai"] = existing["ai"]
+            ai = existing.get("ai")
+            if isinstance(ai, dict):
+                # AppLink.MergeAi: the UI keys go into the kept "ai" section (as VaM strings)
+                ai["mode"] = self.ai_ui["mode"]
+                for section in ("proactive", "realtime"):
+                    if not isinstance(ai.get(section), dict):
+                        ai[section] = {}
+                    ai[section].update(vam_json(self.ai_ui[section]))
+                root["ai"] = ai
         self.settings_path.parent.mkdir(parents=True, exist_ok=True)
         self.settings_path.write_text(json.dumps(vam_json(root)), encoding="utf-8")
 
@@ -315,6 +334,9 @@ class FakePlugin:
         if self.app_alive:
             return "verbunden"
         return "GETRENNT" if self.last_session else "noch nicht gesehen"
+
+
+PLUGIN_VERSION = "0.7.0"  # AIBody.cs PluginVersion
 
 
 def _from_vam(value: Any, like: Any) -> Any:

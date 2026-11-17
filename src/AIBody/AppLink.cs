@@ -44,6 +44,14 @@ namespace AIBody
         private JSONClass _engineStatus;   // kind -> engine -> "bereit ..." / "nicht konfiguriert: ..."
         private JSONClass _engineActive;   // kind -> engine that really runs (fallback if not configured)
         private readonly JSONStorableString _engineInfoJson = new JSONStorableString("Engine status", "Engines: warte auf die Companion-App ...");
+        private JSONClass _modeInfo;       // companion heartbeat "mode": requested / active / status
+        private JSONClass _proactiveInfo;  // companion heartbeat "proactive": enabled / idle_seconds / status
+
+        // ai controls (sent in the config event, merged into config.json "ai"; the rest of "ai" is file-only)
+        private JSONStorableStringChooser _aiModeJson;
+        private JSONStorableBool _proactiveJson;
+        private JSONStorableFloat _proactiveIdleJson;
+        private JSONStorableBool _bargeInJson;
 
         /// <summary>Set by the plugin once Init is complete; settings callbacks restart only then.</summary>
         public bool Ready;
@@ -92,6 +100,16 @@ namespace AIBody
             _sttJson = Engine("Speech-to-text", "null");
             _llmJson = Engine("Language model", "echo");
             _ttsJson = Engine("Text-to-speech", "tone");
+            // auto = realtime voice if the companion has an xAI key, else the STT -> LLM -> TTS chain
+            _aiModeJson = new JSONStorableStringChooser("AI mode", new List<string> { "auto", "realtime", "chain" },
+                "auto", "AI mode", (string v) => MarkConfigDirty());
+            _plugin.RegisterStringChooser(_aiModeJson);
+            _proactiveJson = new JSONStorableBool("Proactive", true, (bool v) => MarkConfigDirty());
+            _plugin.RegisterBool(_proactiveJson);
+            _proactiveIdleJson = new JSONStorableFloat("Proactive idle (s)", 90f, (float v) => MarkConfigDirty(), 15f, 900f);
+            _plugin.RegisterFloat(_proactiveIdleJson);
+            _bargeInJson = new JSONStorableBool("Voice barge-in (headphones)", false, (bool v) => MarkConfigDirty());
+            _plugin.RegisterBool(_bargeInJson);
 
             MicConfig mic = new MicConfig(_plugin, Send);
             mic.DecorateConfig = AddEngines;
@@ -101,10 +119,15 @@ namespace AIBody
             _plugin.RegisterAction(new JSONStorableAction("Reconnect", Restart));
         }
 
+        private void MarkConfigDirty()
+        {
+            if (_mic != null) _mic.MarkDirty();
+        }
+
         private JSONStorableStringChooser Engine(string name, string defaultValue)
         {
             JSONStorableStringChooser c = new JSONStorableStringChooser(name, new List<string> { defaultValue },
-                defaultValue, name, (string v) => { if (_mic != null) _mic.MarkDirty(); });
+                defaultValue, name, (string v) => MarkConfigDirty());
             _plugin.RegisterStringChooser(c);
             return c;
         }
@@ -116,6 +139,48 @@ namespace AIBody
             engines["llm"] = _llmJson.val;
             engines["tts"] = _ttsJson.val;
             configEvent["engines"] = engines;
+            configEvent["ai"] = BuildAiJson();
+        }
+
+        /// <summary>The ai keys the plugin UI controls: mode, proactive on/off + idle, voice barge-in.</summary>
+        private JSONClass BuildAiJson()
+        {
+            JSONClass ai = new JSONClass();
+            ai["mode"] = _aiModeJson.val;
+            JSONClass proactive = new JSONClass();
+            proactive["enabled"].AsBool = _proactiveJson.val;
+            proactive["idle_seconds"].AsFloat = (float)Math.Round(_proactiveIdleJson.val);
+            ai["proactive"] = proactive;
+            JSONClass realtime = new JSONClass();
+            realtime["send_while_speaking"].AsBool = _bargeInJson.val;
+            ai["realtime"] = realtime;
+            return ai;
+        }
+
+        /// <summary>
+        /// Copies the UI's ai keys (from BuildAiJson) into the "ai" section read from config.json,
+        /// keeping everything else there (persona, engine settings, key FILE paths, realtime/proactive details).
+        /// </summary>
+        public static void MergeAi(JSONClass target, JSONClass ui)
+        {
+            if (target == null || ui == null) return;
+            target["mode"] = ui["mode"].Value;
+            MergeSection(target, ui, "proactive", "enabled");
+            MergeSection(target, ui, "proactive", "idle_seconds");
+            MergeSection(target, ui, "realtime", "send_while_speaking");
+        }
+
+        private static void MergeSection(JSONClass target, JSONClass ui, string section, string key)
+        {
+            JSONClass from = ui[section] as JSONClass;
+            if (from == null) return;
+            JSONClass to = target[section] as JSONClass;
+            if (to == null)
+            {
+                to = new JSONClass();
+                target[section] = to;
+            }
+            to[key] = from[key].Value;
         }
 
         // ---------------------------------------------------------------- tabs (see AIBodyPlugin)
@@ -139,8 +204,12 @@ namespace AIBody
             page.Popup(_sttJson);
             page.Popup(_llmJson);
             page.Popup(_ttsJson);
+            page.Popup(_aiModeJson);
+            page.Toggle(_proactiveJson);
+            page.Slider(_proactiveIdleJson);
+            page.Toggle(_bargeInJson);
             UpdateEngineInfo();
-            page.Text(_engineInfoJson, 260f);
+            page.Text(_engineInfoJson, 360f);
         }
 
         /// <summary>Engine status from the companion heartbeat: what is selected, what really runs, and why.</summary>
@@ -152,11 +221,34 @@ namespace AIBody
                 return;
             }
             string text = "<b>Engine-Status</b> (von der Companion-App)\n";
+            text += ModeLine() + ProactiveLine();
             text += EngineLine("Speech-to-text", "stt", _sttJson);
             text += EngineLine("Language model", "llm", _llmJson);
             text += EngineLine("Text-to-speech", "tts", _ttsJson);
             text += "API-Keys: Umgebungsvariable XAI_API_KEY / ELEVENLABS_API_KEY oder Pfad einer Key-Datei in config.json (ai.xai.key_file / ai.elevenlabs.key_file), nie der Key selbst.";
             _engineInfoJson.val = text;
+        }
+
+        /// <summary>"Modus: realtime – Realtime verbunden ..." from the heartbeat (empty for an older app).</summary>
+        private string ModeLine()
+        {
+            if (_modeInfo == null) return "";
+            string requested = _modeInfo["requested"].Value, active = _modeInfo["active"].Value;
+            string line = "Modus: " + active;
+            if (!string.IsNullOrEmpty(requested) && requested != active) line += " (gewählt: " + requested + ")";
+            string status = _modeInfo["status"].Value;
+            if (!string.IsNullOrEmpty(status)) line += " – " + status;
+            return line + "\n";
+        }
+
+        private string ProactiveLine()
+        {
+            if (_proactiveInfo == null) return "";
+            bool on = Protocol.GetBool(_proactiveInfo, "enabled", false);
+            string line = "Proaktiv: " + (on ? "an, nach " + Protocol.GetFloat(_proactiveInfo, "idle_seconds", 0f).ToString("0") + " s Stille" : "aus");
+            string status = _proactiveInfo["status"].Value;
+            if (!string.IsNullOrEmpty(status)) line += " – " + status;
+            return line + "\n";
         }
 
         private string EngineLine(string label, string kind, JSONStorableStringChooser chooser)
@@ -175,10 +267,12 @@ namespace AIBody
         private string EngineSummary()
         {
             if (_engineActive == null) return "";
+            string mode = _modeInfo != null ? "Modus: " + _modeInfo["active"].Value + "\n" : "";
+            if (_modeInfo != null && _modeInfo["active"].Value == "realtime") return mode;
             string stt = _engineActive["stt"].Value, llm = _engineActive["llm"].Value, tts = _engineActive["tts"].Value;
             bool fallback = (_sttJson != null && stt != _sttJson.val) || (_llmJson != null && llm != _llmJson.val)
                 || (_ttsJson != null && tts != _ttsJson.val);
-            return "Engines aktiv: STT " + stt + ", LLM " + llm + ", TTS " + tts
+            return mode + "Engines aktiv: STT " + stt + ", LLM " + llm + ", TTS " + tts
                 + (fallback ? " (Fallback – siehe Tab Engines)" : "") + "\n";
         }
 
@@ -283,6 +377,7 @@ namespace AIBody
             engines["llm"] = _llmJson.val;
             engines["tts"] = _ttsJson.val;
             root["engines"] = engines;
+            root["ai"] = BuildAiJson();
             if (_mic != null) root["mic"] = _mic.BuildMicJson();
             JSONClass advanced = new JSONClass();
             advanced["file_poll_interval_s"].AsFloat = _filePollJson.val;
@@ -304,6 +399,20 @@ namespace AIBody
                 _sttJson.val = Protocol.GetString(engines, "stt", _sttJson.val);
                 _llmJson.val = Protocol.GetString(engines, "llm", _llmJson.val);
                 _ttsJson.val = Protocol.GetString(engines, "tts", _ttsJson.val);
+            }
+            JSONClass ai = root["ai"] as JSONClass;
+            if (ai != null)
+            {
+                string mode = Protocol.GetString(ai, "mode", _aiModeJson.val);
+                if (mode == "auto" || mode == "realtime" || mode == "chain") _aiModeJson.val = mode;
+                JSONClass proactive = ai["proactive"] as JSONClass;
+                if (proactive != null)
+                {
+                    _proactiveJson.val = Protocol.GetBool(proactive, "enabled", _proactiveJson.val);
+                    _proactiveIdleJson.val = Protocol.GetFloat(proactive, "idle_seconds", _proactiveIdleJson.val);
+                }
+                JSONClass realtime = ai["realtime"] as JSONClass;
+                if (realtime != null) _bargeInJson.val = Protocol.GetBool(realtime, "send_while_speaking", _bargeInJson.val);
             }
             if (_mic != null) _mic.ApplyMicJson(root["mic"] as JSONClass);
             JSONClass advanced = root["advanced"] as JSONClass;
@@ -500,6 +609,10 @@ namespace AIBody
             if (status != null) _engineStatus = status;
             JSONClass active = msg["engines_active"] as JSONClass;
             if (active != null) _engineActive = active;
+            JSONClass mode = msg["mode"] as JSONClass;
+            if (mode != null) _modeInfo = mode;
+            JSONClass proactive = msg["proactive"] as JSONClass;
+            if (proactive != null) _proactiveInfo = proactive;
             UpdateEngineInfo();
         }
 
