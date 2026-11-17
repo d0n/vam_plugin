@@ -137,22 +137,19 @@ namespace AIBody
 
         private string _testStatus;
 
-        public void BuildStatusTab(UiPage page)
+        /// <summary>Sound test in the tab "Voice Mode".</summary>
+        public void BuildVoiceModeTab(UiPage page)
         {
             page.Button("Test-Ton abspielen", () => { _testStatus = PlayTestTone(); });
             page.Button("Stop speaking", StopSpeaking);
-            page.Button("Reset expression", () => { if (_expressions != null) _expressions.Reset(0.4f); });
-        }
-
-        public void BuildConnectionTab(UiPage page)
-        {
-            page.Button("Reload expressions / gestures", ReloadConfigFiles);
         }
 
         public bool BodyControl { get { return _bodyControlJson == null || _bodyControlJson.val; } }
 
-        public void BuildBodyTab(UiPage page)
+        /// <summary>Body part of the tab "AI Character" (this Person, i.e. this plugin instance).</summary>
+        public void BuildCharacterTab(UiPage page)
         {
+            page.Header("<b>Körper</b> (nur diese Person)");
             page.Toggle(_bodyControlJson);
             page.Slider(_volumeJson);
             page.Toggle(_idleJson);
@@ -162,6 +159,9 @@ namespace AIBody
             page.Slider(_breathDepthJson);
             if (!page.TextInput(_breathMorphJson))
                 _diag.Warn("Feld 'Breath morph' ist nur lesbar (InputField ging nicht).");
+            page.Button("Reset expression", () => { if (_expressions != null) _expressions.Reset(0.4f); });
+            page.Button("Reload Expressions", ReloadExpressions);
+            page.Button("Reload Gestures", ReloadGestures);
         }
 
         // ---------------------------------------------------------------- config.json "body"

@@ -211,7 +211,10 @@ class Companion:
             return
         client = self.realtime.client
         settings = self.realtime.settings
+        if client.last_error and client.last_error.startswith("API-Key abgelehnt"):
+            self.engine_set.rejected["xai"] = f"vom Realtime-Server abgelehnt ({client.last_error})"
         if client.ready:
+            self.engine_set.rejected.pop("xai", None)
             self.mode_note = f"Realtime verbunden ({client.model}, Stimme {settings['voice']})"
         elif client.failures == 0 and not client.last_error:
             self.mode_note = "Realtime verbindet ... (solange läuft Chain)"
@@ -315,6 +318,8 @@ class Companion:
                 self.send_devices(event.get("id"))
             elif type_ == "test_tone":
                 self.play_test_tone()
+            elif type_ == "reconnect":
+                self.reconnect_api()
             elif type_ == "error":
                 log.warning("Body error (%s): %s", event.get("code"), event.get("message"))
             else:
@@ -334,7 +339,7 @@ class Companion:
             engines_available=ENGINES_AVAILABLE, engines_status=self.engine_set.status(),
             engines_active=dict(self.engine_set.active_names),
             mic_capturing=bool(self.mic and self.mic.capturing),
-            mode=self.mode_info(), proactive=self.proactive_info(),
+            mode=self.mode_info(), proactive=self.proactive_info(), keys=self.engine_set.key_info(),
         ))
 
     def apply_engines(self, requested: Any) -> list[str]:
@@ -354,9 +359,20 @@ class Companion:
                 errors += self.engine_set.select(kind, name)
         return errors
 
-    # ai keys the plugin's Engines tab may change live
+    # ai keys the plugin's tabs may change live (AI, AI Character, Client Character)
     AI_LIVE_KEYS = {("mode",), ("proactive", "enabled"), ("proactive", "idle_seconds"),
-                    ("realtime", "send_while_speaking")}
+                    ("realtime", "send_while_speaking"), ("realtime", "voice"), ("xai", "voice"),
+                    ("xai", "key_file"), ("elevenlabs", "key_file")}
+
+    def reconnect_api(self) -> None:
+        """Plugin button "API Reconnect": re-read the keys and open the realtime connection anew."""
+        log.info("API Reconnect requested by the plugin")
+        self.engine_set.refresh()
+        if self.realtime is not None:
+            self.realtime.stop()
+            self.realtime = None
+        self._update_mode()
+        self._last_heartbeat = -HEARTBEAT_INTERVAL_S
 
     def apply_ai(self, data: Any) -> list[str]:
         """Applies the plugin's ai controls (mode, proactive on/off + idle seconds, voice
@@ -367,6 +383,7 @@ class Companion:
             return ["ai: must be an object"]
         _ = (CHOICES, RANGES)  # validation tables used by _check_value
         errors: list[str] = []
+        changed: set[tuple[str, ...]] = set()
         ai = self.engine_set.ai
         for path in sorted(self.AI_LIVE_KEYS):
             value: Any = data
@@ -378,9 +395,22 @@ class Companion:
             target = ai
             for part in path[:-1]:
                 default, target = default[part], target[part]
-            target[path[-1]] = _check_value(("ai", *path), default[path[-1]], value, errors)
+            before = len(errors)
+            checked = _check_value(("ai", *path), default[path[-1]], value, errors)
+            if path[-1] == "key_file" and len(errors) > before:
+                continue  # a pasted key is refused; the old key file path stays
+            if checked != target[path[-1]]:
+                changed.add(path)
+            target[path[-1]] = checked
         p = ai["proactive"]
         self.proactive.configure(bool(p["enabled"]), float(p["idle_seconds"]))
+        if ("xai", "key_file") in changed or ("elevenlabs", "key_file") in changed:
+            self.engine_set.refresh()
+        if ("xai", "voice") in changed:
+            self.engine_set.rebuild("tts")
+        if ("realtime", "voice") in changed and self.realtime is not None:
+            self.realtime.stop()  # the voice is part of the session: reconnect with the new one
+            self.realtime = None
         self._update_mode()
         return errors
 
@@ -403,7 +433,8 @@ class Companion:
                             "proactive": {"enabled": self.proactive.enabled,
                                           "idle_seconds": self.proactive.idle_seconds},
                             "realtime": {"send_while_speaking":
-                                         bool(self.engine_set.ai["realtime"]["send_while_speaking"])}}},
+                                         bool(self.engine_set.ai["realtime"]["send_while_speaking"]),
+                                         "voice": str(self.engine_set.ai["realtime"]["voice"])}}},
             errors=errors, mic_state=state,
         ))
 
@@ -607,6 +638,7 @@ class Companion:
         try:
             return self.stt.transcribe(utterance, self.cfg.sample_rate).strip()
         except ApiError as e:
+            self.engine_set.note_api_error(e)
             name, fallback = self.engine_set.fallback("stt")
             log.warning("Speech to text failed (%s); fallback %s", e, name)
             try:
@@ -633,6 +665,7 @@ class Companion:
                 yield from self._reply_items(llm, text)
             return
         except ApiError as e:
+            self.engine_set.note_api_error(e)
             name, fallback = self.engine_set.fallback("llm")
             log.warning("Language model failed (%s)%s", e, "" if produced else f"; fallback {name}")
             if produced or nudge:
@@ -650,6 +683,7 @@ class Companion:
         try:
             return self.tts.synthesize(text, path)
         except (ApiError, ValueError, OSError) as e:
+            self.engine_set.note_api_error(e)
             name, fallback = self.engine_set.fallback("tts")
             log.warning("Text to speech failed (%s); fallback %s for: %s", e, name, text)
             return fallback.synthesize(text, path)

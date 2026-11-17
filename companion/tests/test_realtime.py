@@ -292,6 +292,7 @@ class RealtimeSessionTests(RealtimeSim):
         self.assertEqual(self.app.active_mode, "chain")
         self.assertIn("API-Key abgelehnt", self.app.mode_note)
         self.assertIn("Fallback Chain", self.app.mode_note)
+        self.assertEqual(self.app.engine_set.key_info()["xai"]["state"], "rejected", "key status in the AI tab")
         # mic frames go to the local VAD meanwhile
         for _ in range(3):
             self.assertIsNone(self.app.handle_audio_frame(speech_frame()))

@@ -43,6 +43,7 @@ namespace AIBody
         public const string EvtPtt = "ptt";
         public const string EvtListDevices = "list_devices";
         public const string EvtTestTone = "test_tone";
+        public const string EvtReconnect = "reconnect";
 
         /// <summary>Command types handled by the body (CommandRouter); the rest is handled by the app link.</summary>
         public static readonly string[] BodyCommands =

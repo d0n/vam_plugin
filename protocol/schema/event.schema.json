@@ -27,7 +27,8 @@
         "config",
         "ptt",
         "list_devices",
-        "test_tone"
+        "test_tone",
+        "reconnect"
       ]
     },
     "id": {

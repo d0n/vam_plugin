@@ -60,6 +60,7 @@ class EngineSet:
         self.instances: dict[str, Any] = {"stt": NullStt(), "llm": EchoLlm(), "tts": ToneTts()}
         self.fallbacks: dict[str, Any] = {}
         self._keys: dict[str, tuple[str | None, str]] = {}
+        self.rejected: dict[str, str] = {}  # provider -> why the server refused its key (401/403)
         self._read_keys()
         for kind in KINDS:
             self.fallbacks[kind] = self._create(kind, self.fallback_name(kind))
@@ -72,8 +73,40 @@ class EngineSet:
         for name, (env_name, section) in KEYED.items():
             keys[name] = resolve_key(env_name, str(self.ai[section].get("key_file") or ""), self.env)
         changed = {n: k[0] for n, k in keys.items()} != {n: k[0] for n, k in self._keys.items()}
+        for name in keys:
+            if keys[name][0] != self._keys.get(name, (None, ""))[0]:
+                self.rejected.pop(name, None)  # a new key gets a new chance
         self._keys = keys
         return changed
+
+    def note_api_error(self, error: Any) -> None:
+        """Remembers a refused key (HTTP 401/403) for the key status in the plugin."""
+        status = getattr(error, "status", 0)
+        if status not in (401, 403):
+            return
+        provider = str(getattr(error, "service", "")).lower()
+        if provider in KEYED:
+            self.rejected[provider] = f"vom Server abgelehnt (HTTP {status})"
+            log.warning("%s API key rejected (HTTP %s)", provider, status)
+
+    def key_info(self) -> dict[str, dict[str, str]]:
+        """Per provider: state configured / missing / rejected and where the key comes from (never the key)."""
+        info = {}
+        for name in KEYED:
+            key, where = self._keys.get(name, (None, ""))
+            if name in self.rejected:
+                info[name] = {"state": "rejected", "detail": f"{self.rejected[name]}; {where}"}
+            elif key:
+                info[name] = {"state": "configured", "detail": where}
+            else:
+                info[name] = {"state": "missing", "detail": where}
+        return info
+
+    def rebuild(self, kind: str) -> None:
+        """Re-creates the running engine of one kind (after a setting such as the voice changed)."""
+        self.fallbacks[kind] = self._create(kind, self.fallback_name(kind))
+        self.active_names[kind] = ""
+        self.select(kind, self.requested[kind])
 
     def key(self, name: str) -> str | None:
         return self._keys.get(name, (None, ""))[0]

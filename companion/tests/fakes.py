@@ -135,6 +135,8 @@ class FakePlugin:
         # Engines tab ai controls (AppLink.BuildAiJson): sent in the config event, merged into config.json "ai"
         self.ai_ui: dict[str, Any] = {"mode": mode, "proactive": {"enabled": True, "idle_seconds": 90.0},
                                       "realtime": {"send_while_speaking": False}}
+        self.voice = "eve"  # AI Character tab "Voice" -> ai.realtime.voice + ai.xai.voice
+        self.key_files = {"xai": "", "elevenlabs": ""}  # AI tab key file fields (paths only)
         self.ui = {
             "connection": {"channel": channel, "active": True,
                            "paths": {"expressions": "Saves/PluginData/AIBody/expressions.json",
@@ -208,7 +210,22 @@ class FakePlugin:
 
     def send_config(self) -> None:
         self.send("config", mic=dict(self.ui["mic"]), engines=dict(self.ui["engines"]),
-                  ai=json.loads(json.dumps(self.ai_ui)))
+                  ai=self.build_ai_json())
+
+    def build_ai_json(self) -> dict:
+        """AppLink.BuildAiJson: the ai keys the tabs control; key file paths only when set."""
+        ai = json.loads(json.dumps(self.ai_ui))
+        ai["realtime"]["voice"] = self.voice
+        ai["xai"] = {"voice": self.voice}
+        if self.key_files["xai"]:
+            ai["xai"]["key_file"] = self.key_files["xai"]
+        if self.key_files["elevenlabs"]:
+            ai["elevenlabs"] = {"key_file": self.key_files["elevenlabs"]}
+        return ai
+
+    def request_reconnect(self) -> None:
+        """AppLink.ApiReconnect (button "API Reconnect")."""
+        self.send("reconnect")
 
     def request_test_tone(self) -> None:
         """AppLink.RequestTestTone (button "Test-Ton über Companion")."""
@@ -238,11 +255,23 @@ class FakePlugin:
                 for key in keys:
                     if key in (ai.get(section) or {}):
                         self.ai_ui[section][key] = _from_vam(ai[section][key], self.ai_ui[section][key])
+            self.voice = str((ai.get("realtime") or {}).get("voice") or self.voice)
+        self.adopt_key_files()
         self.settings_initialized = True
+
+    def adopt_key_files(self) -> None:
+        """AppLink.AdoptKeyFiles: empty key file fields take the paths from config.json (every start)."""
+        if not self.settings_path.exists():
+            return
+        ai = json.loads(self.settings_path.read_text(encoding="utf-8")).get("ai") or {}
+        for provider in self.key_files:
+            path = str((ai.get(provider) or {}).get("key_file") or "")
+            if not self.key_files[provider] and path:
+                self.key_files[provider] = path
 
     def write_settings(self) -> None:
         root: dict[str, Any] = {"version": 1, "written_by": f"AIBody plugin {PLUGIN_VERSION}",
-                                **json.loads(json.dumps(self.ui)), "ai": json.loads(json.dumps(self.ai_ui))}
+                                **json.loads(json.dumps(self.ui)), "ai": self.build_ai_json()}
         if not root["connection"]["paths"].get("audio"):
             root["connection"]["paths"].pop("audio", None)  # AppLink writes paths.audio only when set
         if self.settings_path.exists():
@@ -250,11 +279,14 @@ class FakePlugin:
             ai = existing.get("ai")
             if isinstance(ai, dict):
                 # AppLink.MergeAi: the UI keys go into the kept "ai" section (as VaM strings)
-                ai["mode"] = self.ai_ui["mode"]
-                for section in ("proactive", "realtime"):
+                ui = self.build_ai_json()
+                ai["mode"] = ui["mode"]
+                for section in ("proactive", "realtime", "xai", "elevenlabs"):
+                    if section not in ui:
+                        continue
                     if not isinstance(ai.get(section), dict):
                         ai[section] = {}
-                    ai[section].update(vam_json(self.ai_ui[section]))
+                    ai[section].update(vam_json(ui[section]))
                 root["ai"] = ai
         self.settings_path.parent.mkdir(parents=True, exist_ok=True)
         self.settings_path.write_text(json.dumps(vam_json(root)), encoding="utf-8")

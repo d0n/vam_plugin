@@ -74,8 +74,9 @@ DEFAULTS: dict[str, dict[str, Any]] = {
         "breath_morph": "Breath1",
     },
     "advanced": {"file_poll_interval_s": 0.1, "verbose_log": False},
-    # Companion app; the plugin's Engines tab sets only mode, proactive.enabled / idle_seconds and
-    # realtime.send_while_speaking and keeps the rest of this section.
+    # Companion app; the plugin's tabs set only mode, proactive.enabled / idle_seconds,
+    # realtime.send_while_speaking / voice, xai.voice and the key file paths (xai / elevenlabs
+    # key_file), and keep the rest of this section.
     "ai": {
         # auto = realtime when an xAI key is there (and TTS is not elevenlabs), else chain;
         # realtime = Grok Voice speech-to-speech; chain = STT -> LLM -> TTS (engines above)

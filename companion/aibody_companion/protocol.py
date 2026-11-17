@@ -43,7 +43,7 @@ COMMANDS: dict[str, tuple[set[str], set[str]]] = {
     # mode: {requested: auto|realtime|chain, active: realtime|chain, status: text};
     # proactive: {enabled, idle_seconds, status?}
     "companion_heartbeat": ({"session"}, {"version", "engines_available", "engines_status", "engines_active",
-                                          "mic_capturing", "mode", "proactive"}),
+                                          "mic_capturing", "mode", "proactive", "keys"}),
 }
 
 # Commands for the plugin's body (everything else is handled by its app link).
@@ -62,6 +62,7 @@ EVENTS = {
     "ptt",
     "list_devices",
     "test_tone",
+    "reconnect",
     "ready",
     "heartbeat",
     "pong",

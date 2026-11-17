@@ -36,6 +36,7 @@ namespace AIBody
         // Not registered: push-to-talk state must not be saved with the scene. Scene triggers
         // and key bindings use the registered actions instead.
         private JSONStorableBool _pttActive;
+        private JSONStorableString _pttHelp;
         private JSONStorableString _status;
 
         private bool _dirty;
@@ -77,6 +78,11 @@ namespace AIBody
 
             _pttActive = new JSONStorableBool("Push-to-talk active", false, (bool v) => SendPtt(v));
             _status = new JSONStorableString("Mic status", "");
+            // VaM's plugin UI has no tooltip / hover API with public evidence, so the explanation
+            // is a short text right below the checkbox.
+            _pttHelp = new JSONStorableString("Push-to-talk help",
+                "Push-to-talk active: solange angehakt, hört die Companion-App zu (wie eine gedrückte Funk-Taste). "
+                + "Nur im Mic mode Push-to-talk. Per Trigger/Taste: Aktionen 'Push-to-talk start / stop / toggle'.");
 
             _plugin.RegisterAction(new JSONStorableAction("Push-to-talk start", () => _pttActive.val = true));
             _plugin.RegisterAction(new JSONStorableAction("Push-to-talk stop", () => _pttActive.val = false));
@@ -95,6 +101,7 @@ namespace AIBody
             page.Popup(Device);
             page.Button("Refresh device list", RequestDevices);
             page.Toggle(_pttActive);
+            page.Text(_pttHelp, 110f);
             page.Toggle(PttInterrupts);
             page.Text(_status, 160f);
             page.Toggle(LevelMeter);

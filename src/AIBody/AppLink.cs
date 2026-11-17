@@ -52,6 +52,18 @@ namespace AIBody
         private JSONStorableBool _proactiveJson;
         private JSONStorableFloat _proactiveIdleJson;
         private JSONStorableBool _bargeInJson;
+        private JSONStorableStringChooser _voiceJson;       // ai.realtime.voice + ai.xai.voice
+
+        // API keys: only the PATH of a key file (the key itself would be saved readably in the scene
+        // and in config.json). TODO(user decision): a direct key field was asked about; not built.
+        private JSONStorableString _xaiKeyFileJson;
+        private JSONStorableString _elevenKeyFileJson;
+        private JSONClass _keyInfo;                          // companion heartbeat "keys"
+        private readonly JSONStorableString _keyStatusJson = new JSONStorableString("API key status", "API-Keys: warte auf die Companion-App ...");
+        private string _keyWarning;
+
+        // Placeholder only (requested): no logic yet, not saved.
+        private readonly JSONStorableFloat _delayJson = new JSONStorableFloat("Delay (s) – Platzhalter, ohne Funktion", 0f, (float v) => { }, 0f, 5f);
 
         /// <summary>Set by the plugin once Init is complete; settings callbacks restart only then.</summary>
         public bool Ready;
@@ -110,6 +122,14 @@ namespace AIBody
             _plugin.RegisterFloat(_proactiveIdleJson);
             _bargeInJson = new JSONStorableBool("Voice barge-in (headphones)", false, (bool v) => MarkConfigDirty());
             _plugin.RegisterBool(_bargeInJson);
+            // xAI voices (docs.x.ai: same roster for speech-to-speech and TTS); a custom id from config.json is kept.
+            _voiceJson = new JSONStorableStringChooser("Voice", new List<string> { "eve", "ara", "rex", "sal", "leo" },
+                "eve", "Voice", (string v) => MarkConfigDirty());
+            _plugin.RegisterStringChooser(_voiceJson);
+            _xaiKeyFileJson = new JSONStorableString("xAI key file", "", (string v) => CheckKeyFile(_xaiKeyFileJson, v));
+            _plugin.RegisterString(_xaiKeyFileJson);
+            _elevenKeyFileJson = new JSONStorableString("ElevenLabs key file", "", (string v) => CheckKeyFile(_elevenKeyFileJson, v));
+            _plugin.RegisterString(_elevenKeyFileJson);
 
             MicConfig mic = new MicConfig(_plugin, Send);
             mic.DecorateConfig = AddEngines;
@@ -119,7 +139,32 @@ namespace AIBody
             _plugin.RegisterAction(new JSONStorableAction("Reconnect", Restart));
         }
 
-        private void MarkConfigDirty()
+        /// <summary>Same rule as the companion's looks_like_secret: a pasted key is refused and cleared.</summary>
+        public static bool LooksLikeKey(string value)
+        {
+            string v = (value ?? "").Trim();
+            if (v.Length == 0) return false;
+            if (v.StartsWith("xai-") || v.StartsWith("sk_") || v.StartsWith("sk-")) return true;
+            return v.Length >= 24 && v.IndexOfAny(new char[] { '/', '\\', '.', '~', ' ' }) < 0;
+        }
+
+        private void CheckKeyFile(JSONStorableString field, string value)
+        {
+            if (LooksLikeKey(value))
+            {
+                field.val = "";   // never keep a key in the scene
+                _keyWarning = "Das sah wie ein API-Key aus und wurde NICHT gespeichert. Hier gehört der PFAD einer "
+                    + "Textdatei hin, in der der Key steht (z. B. C:/Users/<du>/keys/xai.txt).";
+                Log.Error(_keyWarning);
+                UpdateKeyStatus();
+                return;
+            }
+            _keyWarning = null;
+            UpdateKeyStatus();
+            MarkConfigDirty();
+        }
+
+        public void MarkConfigDirty()
         {
             if (_mic != null) _mic.MarkDirty();
         }
@@ -153,8 +198,36 @@ namespace AIBody
             ai["proactive"] = proactive;
             JSONClass realtime = new JSONClass();
             realtime["send_while_speaking"].AsBool = _bargeInJson.val;
+            realtime["voice"] = _voiceJson.val;
             ai["realtime"] = realtime;
+            JSONClass xai = new JSONClass();
+            xai["voice"] = _voiceJson.val;
+            // Key file paths only when set, so an empty field never wipes a path entered in config.json.
+            if (_xaiKeyFileJson.val.Length > 0) xai["key_file"] = _xaiKeyFileJson.val;
+            ai["xai"] = xai;
+            if (_elevenKeyFileJson.val.Length > 0)
+            {
+                JSONClass eleven = new JSONClass();
+                eleven["key_file"] = _elevenKeyFileJson.val;
+                ai["elevenlabs"] = eleven;
+            }
             return ai;
+        }
+
+        /// <summary>An empty key file field takes the path from config.json (also for saved scenes).</summary>
+        public void AdoptKeyFiles(JSONClass root)
+        {
+            JSONClass ai = root != null ? root["ai"] as JSONClass : null;
+            if (ai == null) return;
+            AdoptKeyFile(_xaiKeyFileJson, ai["xai"] as JSONClass);
+            AdoptKeyFile(_elevenKeyFileJson, ai["elevenlabs"] as JSONClass);
+        }
+
+        private static void AdoptKeyFile(JSONStorableString field, JSONClass section)
+        {
+            if (field == null || section == null || field.val.Length > 0) return;
+            string path = Protocol.GetString(section, "key_file", "");
+            if (path.Length > 0 && !LooksLikeKey(path)) field.val = path;
         }
 
         /// <summary>
@@ -168,12 +241,16 @@ namespace AIBody
             MergeSection(target, ui, "proactive", "enabled");
             MergeSection(target, ui, "proactive", "idle_seconds");
             MergeSection(target, ui, "realtime", "send_while_speaking");
+            MergeSection(target, ui, "realtime", "voice");
+            MergeSection(target, ui, "xai", "voice");
+            MergeSection(target, ui, "xai", "key_file");
+            MergeSection(target, ui, "elevenlabs", "key_file");
         }
 
         private static void MergeSection(JSONClass target, JSONClass ui, string section, string key)
         {
             JSONClass from = ui[section] as JSONClass;
-            if (from == null) return;
+            if (from == null || !Protocol.Has(from, key)) return;
             JSONClass to = target[section] as JSONClass;
             if (to == null)
             {
@@ -185,11 +262,22 @@ namespace AIBody
 
         // ---------------------------------------------------------------- tabs (see AIBodyPlugin)
 
-        public void BuildStatusTab(UiPage page)
+        /// <summary>Tab "Voice Mode": link on/off, API Reconnect, sound test.</summary>
+        public void BuildVoiceModeTab(UiPage page)
         {
             page.Toggle(_activeJson);
-            page.Button("Reconnect", Restart);
+            page.Button("API Reconnect", ApiReconnect);
             page.Button("Test-Ton über Companion", RequestTestTone);
+        }
+
+        /// <summary>
+        /// "API Reconnect": asks the companion app to re-read its keys and reopen the realtime
+        /// connection, then restarts the plugin's own link to the app.
+        /// </summary>
+        public void ApiReconnect()
+        {
+            if (_appAlive) Send(Protocol.NewEvent(Protocol.EvtReconnect));
+            Restart();
         }
 
         private string _testToneStatus;
@@ -206,25 +294,61 @@ namespace AIBody
             _testToneStatus = "Test-Ton über Companion angefordert (kommt als normales speak)";
         }
 
-        public void BuildConnectionTab(UiPage page)
+        /// <summary>Tab "Post" (label: AIBodyPlugin.PostTabLabel): channel and file paths.</summary>
+        public void BuildPostTab(UiPage page)
         {
             if (!page.TextInput(_channelJson))
                 _diag.Warn("Feld 'Channel' ist nur lesbar (InputField ging nicht); Standard 'default' bleibt.");
             page.Text(_pathsInfo, 150f);
-            page.Button("Reload config.json (paths)", () => { LoadSettingsFile(); });
         }
 
-        public void BuildEnginesTab(UiPage page)
+        /// <summary>Tab "AI": engines (incl. ElevenLabs), API key files + status, Delay placeholder, proactive.</summary>
+        public void BuildAiTab(UiPage page)
         {
             page.Popup(_sttJson);
             page.Popup(_llmJson);
             page.Popup(_ttsJson);
-            page.Popup(_aiModeJson);
+            page.Header("<b>API-Keys</b> (Pfad einer Key-Datei, nie der Key selbst)");
+            if (!page.TextInput(_xaiKeyFileJson)) _diag.Warn("Feld 'xAI key file' ist nur lesbar (InputField ging nicht).");
+            if (!page.TextInput(_elevenKeyFileJson)) _diag.Warn("Feld 'ElevenLabs key file' ist nur lesbar (InputField ging nicht).");
+            UpdateKeyStatus();
+            page.Text(_keyStatusJson, 150f);
+            page.Slider(_delayJson);
             page.Toggle(_proactiveJson);
             page.Slider(_proactiveIdleJson);
-            page.Toggle(_bargeInJson);
             UpdateEngineInfo();
-            page.Text(_engineInfoJson, 360f);
+            page.Text(_engineInfoJson, 300f);
+        }
+
+        /// <summary>Voice part of the tab "AI Character": AI mode and voice.</summary>
+        public void BuildCharacterVoice(UiPage page)
+        {
+            page.Popup(_aiModeJson);
+            page.Popup(_voiceJson);
+        }
+
+        /// <summary>Key status per provider from the companion heartbeat: configured / missing / rejected.</summary>
+        private void UpdateKeyStatus()
+        {
+            string text = "";
+            if (_keyWarning != null) text += "<color=red>" + _keyWarning + "</color>\n";
+            if (_keyInfo == null) text += "API-Keys: warte auf die Companion-App ...\n";
+            else
+            {
+                text += KeyLine("xAI", "xai") + KeyLine("ElevenLabs", "elevenlabs");
+            }
+            text += "Oder Umgebungsvariable XAI_API_KEY / ELEVENLABS_API_KEY vor dem App-Start (gewinnt).";
+            _keyStatusJson.val = text;
+        }
+
+        private string KeyLine(string label, string provider)
+        {
+            JSONClass k = _keyInfo[provider] as JSONClass;
+            if (k == null) return label + ": ?\n";
+            string state = k["state"].Value;
+            string shown = state == "configured" ? "konfiguriert" : state == "rejected" ? "<color=red>abgelehnt</color>" : "fehlt";
+            string detail = k["detail"].Value;
+            return label + "-Key: " + shown + (detail.Length > 0 ? " – " + detail : "") + "\n";
         }
 
         /// <summary>Engine status from the companion heartbeat: what is selected, what really runs, and why.</summary>
@@ -240,7 +364,6 @@ namespace AIBody
             text += EngineLine("Speech-to-text", "stt", _sttJson);
             text += EngineLine("Language model", "llm", _llmJson);
             text += EngineLine("Text-to-speech", "tts", _ttsJson);
-            text += "API-Keys: Umgebungsvariable XAI_API_KEY / ELEVENLABS_API_KEY oder Pfad einer Key-Datei in config.json (ai.xai.key_file / ai.elevenlabs.key_file), nie der Key selbst.";
             _engineInfoJson.val = text;
         }
 
@@ -288,12 +411,23 @@ namespace AIBody
             bool fallback = (_sttJson != null && stt != _sttJson.val) || (_llmJson != null && llm != _llmJson.val)
                 || (_ttsJson != null && tts != _ttsJson.val);
             return mode + "Engines aktiv: STT " + stt + ", LLM " + llm + ", TTS " + tts
-                + (fallback ? " (Fallback – siehe Tab Engines)" : "") + "\n";
+                + (fallback ? " (Fallback – siehe Tab AI)" : "") + "\n";
         }
 
-        public void BuildMicTab(UiPage page)
+        /// <summary>Tab "Client Character": the user's microphone and push-to-talk, voice barge-in.</summary>
+        public void BuildClientCharacterTab(UiPage page)
         {
+            page.Header("<b>Microphone</b>");
             if (_mic != null) _mic.BuildTab(page);
+            page.Toggle(_bargeInJson);
+        }
+
+        /// <summary>Tab "Config": the shared config.json.</summary>
+        public void BuildConfigTab(UiPage page, UnityEngine.Events.UnityAction reload, JSONStorableString status)
+        {
+            page.Button("Reload Config JSON", reload);
+            page.Text(status, 120f);
+            page.Text(_pathsInfo, 150f);
         }
 
         public void BuildAdvancedTab(UiPage page)
@@ -439,11 +573,34 @@ namespace AIBody
                     _proactiveIdleJson.val = Protocol.GetFloat(proactive, "idle_seconds", _proactiveIdleJson.val);
                 }
                 JSONClass realtime = ai["realtime"] as JSONClass;
-                if (realtime != null) _bargeInJson.val = Protocol.GetBool(realtime, "send_while_speaking", _bargeInJson.val);
+                if (realtime != null)
+                {
+                    _bargeInJson.val = Protocol.GetBool(realtime, "send_while_speaking", _bargeInJson.val);
+                    SetVoice(Protocol.GetString(realtime, "voice", _voiceJson.val));
+                }
+                JSONClass xai = ai["xai"] as JSONClass;
+                if (xai != null && Protocol.Has(xai, "key_file") && !LooksLikeKey(xai["key_file"].Value))
+                    _xaiKeyFileJson.val = xai["key_file"].Value;
+                JSONClass eleven = ai["elevenlabs"] as JSONClass;
+                if (eleven != null && Protocol.Has(eleven, "key_file") && !LooksLikeKey(eleven["key_file"].Value))
+                    _elevenKeyFileJson.val = eleven["key_file"].Value;
             }
             if (_mic != null) _mic.ApplyMicJson(root["mic"] as JSONClass);
             JSONClass advanced = root["advanced"] as JSONClass;
             if (advanced != null) _filePollJson.val = Protocol.GetFloat(advanced, "file_poll_interval_s", _filePollJson.val);
+        }
+
+        private void SetVoice(string voice)
+        {
+            if (string.IsNullOrEmpty(voice)) return;
+            if (!_voiceJson.choices.Contains(voice))
+            {
+                List<string> choices = new List<string>(_voiceJson.choices);
+                choices.Add(voice);
+                try { _voiceJson.choices = choices; }   // TODO(verify): choices refresh (E9)
+                catch (Exception e) { _diag.Fail("Stimmen-Liste erweitern", e); }
+            }
+            _voiceJson.val = voice;
         }
 
         /// <summary>
@@ -640,7 +797,10 @@ namespace AIBody
             if (mode != null) _modeInfo = mode;
             JSONClass proactive = msg["proactive"] as JSONClass;
             if (proactive != null) _proactiveInfo = proactive;
+            JSONClass keys = msg["keys"] as JSONClass;
+            if (keys != null) _keyInfo = keys;
             UpdateEngineInfo();
+            UpdateKeyStatus();
         }
 
         private bool _choicesWarned;

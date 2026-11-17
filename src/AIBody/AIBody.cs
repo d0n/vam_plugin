@@ -21,6 +21,9 @@
 // Layout: left column = header + status box (Selbsttest, live state, start log), always visible.
 // Right column = a row of tab buttons and below it the controls of the active tab. Switching tabs
 // removes the old controls with the standard Remove* methods (UiPage, evidence E17/E18).
+// Tabs: Voice Mode (link, API Reconnect, sound test) | AI (engines, key file paths + status, Delay
+// placeholder, proactive) | AI Character (AI mode, voice, body of this Person) | Client Character
+// (microphone, push-to-talk, voice barge-in) | Post (channel, paths) | Config | Erweitert.
 //
 // config.json (Saves/PluginData/AIBody/config.json, one global file) is shared with the companion
 // app, one object per tab category (docs/CONFIG.md). The plugin UI (saved with the scene) wins
@@ -50,7 +53,11 @@ namespace AIBody
         private string _writable = "noch nicht geprüft";
         private string _live = "";
 
-        private static readonly string[] Tabs = { "Status", "Verbindung", "Engines", "Mikrofon & PTT", "Körper", "Erweitert" };
+        /// <summary>Label of the connection tab, as the user said it ("Post"; may be meant as "Port").</summary>
+        public const string PostTabLabel = "Post";
+
+        private static readonly string[] Tabs = { "Voice Mode", "AI", "AI Character", "Client Character", PostTabLabel, "Config", "Erweitert" };
+        private readonly JSONStorableString _configStatusJson = new JSONStorableString("Config status", "");
         private UiPage _page;
         private int _tab = -1;
 
@@ -195,24 +202,27 @@ namespace AIBody
                 _page.Header("<b>" + name + "</b>");
                 switch (index)
                 {
-                    case 0:
-                        if (_link != null) _link.BuildStatusTab(_page);
-                        if (_body != null) _body.BuildStatusTab(_page);
+                    case 0: // Voice Mode
+                        if (_link != null) _link.BuildVoiceModeTab(_page);
+                        if (_body != null) _body.BuildVoiceModeTab(_page);
                         break;
-                    case 1:
-                        if (_link != null) _link.BuildConnectionTab(_page);
-                        if (_body != null) _body.BuildConnectionTab(_page);
+                    case 1: // AI
+                        if (_link != null) _link.BuildAiTab(_page);
                         break;
-                    case 2:
-                        if (_link != null) _link.BuildEnginesTab(_page);
+                    case 2: // AI Character
+                        if (_link != null) _link.BuildCharacterVoice(_page);
+                        if (_body != null) _body.BuildCharacterTab(_page);
                         break;
-                    case 3:
-                        if (_link != null) _link.BuildMicTab(_page);
+                    case 3: // Client Character
+                        if (_link != null) _link.BuildClientCharacterTab(_page);
                         break;
-                    case 4:
-                        if (_body != null) _body.BuildBodyTab(_page);
+                    case 4: // Post
+                        if (_link != null) _link.BuildPostTab(_page);
                         break;
-                    default:
+                    case 5: // Config
+                        if (_link != null) _link.BuildConfigTab(_page, ReloadConfigJson, _configStatusJson);
+                        break;
+                    default: // Erweitert
                         if (_link != null) _link.BuildAdvancedTab(_page);
                         _page.Toggle(_verboseJson);
                         break;
@@ -226,6 +236,37 @@ namespace AIBody
 
         // ---------------------------------------------------------------- config.json
 
+        /// <summary>
+        /// Button "Reload Config JSON": applies config.json to the UI (paths, connection, engines, mic,
+        /// body, ai keys of the tabs) and pushes the result to the companion app.
+        /// </summary>
+        private void ReloadConfigJson()
+        {
+            if (_link == null) return;
+            try
+            {
+                JSONClass file = _link.LoadSettingsFile();
+                if (file == null)
+                {
+                    _configStatusJson.val = "Keine gültige config.json unter " + _link.SettingsPath + " – nichts geändert.";
+                    return;
+                }
+                _link.ApplySettings(file);
+                if (_body != null) _body.ApplySettings(file);
+                JSONClass advanced = file["advanced"] as JSONClass;
+                if (advanced != null && _verboseJson != null)
+                    _verboseJson.val = Protocol.GetBool(advanced, "verbose_log", _verboseJson.val);
+                if (_body != null) _body.ReloadConfigFiles();
+                _link.MarkConfigDirty();
+                _configStatusJson.val = "config.json neu geladen (" + DateTime.Now.ToString("HH:mm:ss") + "): " + _link.SettingsPath;
+            }
+            catch (Exception e)
+            {
+                _configStatusJson.val = "config.json laden fehlgeschlagen: " + Diag.Describe(e);
+                _diag.Fail("Reload Config JSON", e);
+            }
+        }
+
         private void UpdateSettings(float dt)
         {
             if (_link == null || _settingsInitJson == null) return;
@@ -238,6 +279,7 @@ namespace AIBody
                 _settingsChecked = true;
                 JSONClass file = null;
                 _diag.Run("config.json lesen", () => file = _link.LoadSettingsFile());
+                if (file != null) _diag.Run("Key-Datei-Pfade aus config.json", () => _link.AdoptKeyFiles(file));
                 if (file != null && !_settingsInitJson.val)
                 {
                     _diag.Run("Einstellungen aus config.json übernehmen (neue Szene)", () =>
