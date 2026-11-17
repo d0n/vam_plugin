@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "written_by": "AIBody companion app 0.7.1 (example)",
+  "written_by": "AIBody companion app 0.7.2 (example)",
   "connection": {
     "channel": "default",
     "active": true,
