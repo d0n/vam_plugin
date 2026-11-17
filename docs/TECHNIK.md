@@ -25,7 +25,7 @@ sync. Speech only, no expressions or gestures, no proactive remarks. A few secon
 2. Start the companion app with your xAI key in the environment:
    `set XAI_API_KEY=xai-...` (Windows `cmd`; PowerShell: `$env:XAI_API_KEY="xai-..."`), then
    `python -m aibody_companion --vam-root "C:/VaM"`.
-3. Plugin tab *Voice Mode* > **Einfacher Q&A-Modus** (sets AI mode `qa` and Body control off;
+3. Plugin tab *Voice* > section *Voice Mode* > **Einfacher Q&A-Modus** (sets AI mode `qa` and Body control off;
    scenes from 0.7.1 still have `auto`).
 4. **Test-Ton abspielen** (tone from the package) and **Test-Ton über Companion** (tone through the
    app's audio folder): both must be heard.
@@ -182,7 +182,11 @@ Loose files instead of the package (handy while developing): copy `src/AIBody/` 
 ### If the plugin window looks wrong (troubleshooting)
 
 Since 0.6.2 the plugin window always starts with the header and a status box, built before
-anything else. It shows:
+anything else. Since version 15 it is the ONE big info field (the tabs hold only controls). It shows:
+
+- **Info: <tab>**: help and status for the open tab (Voice: Q&A and AI mode help, key and engine
+  status; AI Character: pose count; Client Character: push-to-talk help, microphone status;
+  Config: config.json path, channel, result of Reload Config JSON).
 
 - **Selbsttest**: Person atom yes/no, head audio (`HeadAudioSource`) found, morphs (`geometry`)
   found, pose storage (`PosePresets` with `presetBrowsePath`), pose count (and preset files found
@@ -212,7 +216,7 @@ All settings (menu, `config.json`, command line) are documented in German in the
 report a control (mode help, push-to-talk help, key / engine / mic status) stay. The status box shows
 `Latenz bis zum ersten Ton: X s (Ø Y s, n Runden)` with the breakdown (see *Latency* below).
 
-**Sound check (no AI needed):** *Voice Mode* > **Test-Ton abspielen** plays `AIBodyTest.wav` from
+**Sound check (no AI needed):** *Voice* > **Test-Ton abspielen** plays `AIBodyTest.wav` from
 the package on the head audio (no companion app involved); **Test-Ton über Companion** lets the
 app write a WAV into its audio folder and sends it like an answer. The status box shows
 `Audio: Lade / Spreche: <file> / Fertig` or a red `Audio-Fehler: <reason>` (file missing, could not
@@ -264,7 +268,7 @@ test lip sync, expressions, gestures, queueing and echo gating.
 
 ### Verbose log (debugging a turn)
 
-Switch on **Verbose log** in the plugin tab *Erweitert* (or `"advanced": {"verbose_log": true}` in
+Switch on **Verbose log** in the plugin tab *Config* (or `"advanced": {"verbose_log": true}` in
 `config.json`, or start the app with `-v`). It is applied live, no restart.
 
 - **Companion app:** console and log file show one line per step of every turn, with a turn id and the
@@ -285,20 +289,20 @@ Switch on **Verbose log** in the plugin tab *Erweitert* (or `"advanced": {"verbo
 
 | `ai.mode` | what runs |
 |-----------|-----------|
-Plugin: tab *AI Character* > **AI mode**, or *Voice Mode* > **Echtzeit (Realtime) verwenden**
+Plugin: tab *Voice* > **AI mode**, or *Voice* > section *Voice Mode* > **Echtzeit (Realtime) verwenden**
 (on = `auto`, off = `qa`).
 
 | `qa` (default) | simple Q&A: the chain below with `xai` instead of the offline test engines when an xAI key exists, speech only (no expressions / gestures), no proactive remarks |
 | `auto` | `realtime` if an xAI key exists (and TTS is not `elevenlabs`), else `chain` |
 | `realtime` | Grok Voice speech-to-speech over one WebSocket (`wss://api.x.ai/v1/realtime`, `grok-voice-latest`): the mic is streamed, the server detects the end of speech, the answer audio is cut into WAV segments and spoken from the first segment on; expressions / gestures via a function tool; interrupting stops the body; reconnects with backoff, chain runs meanwhile |
-| `chain` | speech to text -> language model -> text to speech, exactly the engines selected in tab *AI* (below) |
+| `chain` | speech to text -> language model -> text to speech, exactly the engines selected in *Voice > AI Character* (below) |
 
 In every mode but `chain`, an xAI key replaces the offline test engines (`null` / `echo` / `tone`)
 with `xai` on the chain path (typed text, the realtime fallback); the engine menus keep their values.
 If realtime is connected but gives no answer within 12 s after the user spoke, the app gives it up
 until **API Reconnect** (or a mode change) and the chain answers.
 
-- **Proactive:** after 90 s of silence (`ai.proactive.idle_seconds`, tab *AI*) the AI may say
+- **Proactive:** after 90 s of silence (`ai.proactive.idle_seconds`, tab *Voice*) the AI may say
   something by itself, or stay silent (`[silent]`, nothing is played). Needs realtime or `llm: xai`;
   paused in `qa`.
 - **Time context:** the AI has no clock. Each user turn and nudge carries the local date/time and
@@ -313,7 +317,7 @@ until **API Reconnect** (or a mode change) and the chain answers.
 xAI needs an **API key from [console.x.ai](https://console.x.ai)** (starts with `xai-`, API credit).
 A Grok subscription (SuperGrok / X Premium) or a grok.com login token is not an API key and is
 refused by `api.x.ai`. Without a key the companion warns at start and runs the offline test engines;
-the key status in tab *AI* says which key is needed (red when the server refused it).
+the key status in the info field (tab *Voice*) says which key is needed (red when the server refused it).
 
 ### Body tools (the AI moves the body)
 
@@ -351,10 +355,9 @@ One answer = speech to text -> language model -> text to speech, chosen in the p
   existing `expression` / `gesture` commands.
 - Every TTS engine writes 16-bit PCM WAV into the channel's `audio/` folder (VaM's audio loader
   plays WAV; WAV also gives the exact duration for the echo gate).
-- **Keys:** environment variable, or the PATH of a key file (tab *AI* fields **xAI key file** /
-  **ElevenLabs key file**, stored as `ai.xai.key_file`, `ai.elevenlabs.key_file`). Never the key itself in `config.json` or the
+- **Keys:** environment variable, or the PATH of a key file (`ai.xai.key_file`, `ai.elevenlabs.key_file` in `config.json`; no menu field since version 15). Never the key itself in `config.json` or the
   repository. Without a key the engine stays selectable but shows **"nicht konfiguriert"** in the
-  tab *AI* and the fallback (`ai.fallback`, default `null` / `echo` / `tone`) runs. A key file
+  info field and the fallback (`ai.fallback`, default `null` / `echo` / `tone`) runs. A key file
   added later is picked up within 10 s; a new environment variable needs an app restart.
 - If a request fails, that sentence / answer uses the fallback engine; nothing stops.
 - All settings (model, voice, language, persona): [docs/CONFIG.md](CONFIG.md).

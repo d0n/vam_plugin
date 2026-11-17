@@ -20,7 +20,7 @@ is one of the values. Evidence links: [API_AUDIT.md](API_AUDIT.md) ("Config file
 | scene **with** saved AIBody settings | the scene's values win and are written back | - |
 | a value changes in the plugin UI | written back within 1 s (only if something changed) | gets it live as a `config` event (protocol) |
 | app start | - | reads channel, mic, engines and `ai` from the file (`--channel` on the command line wins); adds a missing `ai` section with its defaults |
-| `ai` section | sets only its tab controls (`mode`, `proactive.enabled` / `idle_seconds`, `realtime.send_while_speaking` / `voice`, `xai.voice`, `xai.key_file` / `elevenlabs.key_file` when set), keeps the rest when writing the file; an empty key file field takes the path from the file on every start | reads it (persona, language, fallback, engine settings); the tab controls also arrive live in the `config` event |
+| `ai` section | sets only its tab controls (`mode`, `proactive.enabled` / `idle_seconds`, `realtime.send_while_speaking` / `voice`, `xai.voice`; `xai.key_file` / `elevenlabs.key_file` are passed through from the file - no menu field since version 15, the file wins on every start), keeps the rest when writing the file | reads it (persona, language, fallback, engine settings); the tab controls also arrive live in the `config` event |
 | paths (`connection.paths`) | read from the file (no UI), on start, channel change and **Reload Config JSON** (tab *Config*); `paths.audio` is kept unchanged | `paths.audio`: where it writes the speech WAVs |
 | tab *Config* > **Reload Config JSON** | applies the whole file to the UI (also for a saved scene) and sends it to the app | gets the new values live |
 
@@ -36,9 +36,9 @@ to win.
 ## Schema (version 1)
 
 One object per settings category. Since the menu restructure the categories no longer match
-the tabs one to one (kept for compatibility with existing files): `connection` = tab *Post*
-(+ *Voice Mode* **Active**), `engines` = tab *AI*, `mic` = tab *Client Character*, `body` = tab
-*AI Character*, `advanced` = tab *Erweitert*, `ai` = companion settings plus the tab controls named
+the tabs one to one (kept for compatibility with existing files): `connection` = file only
+(channel; + *Voice > Voice Mode* **Active**), `engines` = tab *Voice > AI Character*, `mic` = tab *Client Character*, `body` = tab
+*AI Character*, `advanced` = tab *Config*, `ai` = companion settings plus the tab controls named
 below. Machine-readable:
 [protocol/schema/config.schema.json](../protocol/schema/config.schema.json), example:
 [examples/config.json](../examples/config.json).
@@ -81,7 +81,7 @@ and drops the rest of that answer (push-to-talk also sends `response.cancel`). T
 re-opened with backoff (1, 2, 4, 8, 15, 30 s); meanwhile chain runs. If the server is connected but
 sends no answer within 12 s after `input_audio_buffer.speech_stopped`, the companion gives realtime
 up ("Realtime aus: keine Antwort …") until **API Reconnect** or a new AI mode, and the chain
-answers (repeat the question). The tab *AI* shows the active mode ("Modus: realtime – Realtime
+answers (repeat the question). The info field (tab *Voice*) shows the active mode ("Modus: realtime – Realtime
 verbunden …").
 
 **Echo:** while the body talks, the companion streams silence instead of the microphone (there is
@@ -89,7 +89,7 @@ no echo cancellation), so interrupting by voice needs **Voice barge-in (headphon
 always interrupts.
 
 **Chain** (`ai.mode` `chain`, or `auto` without xAI key / with ElevenLabs TTS): exactly the engines
-of the tab *AI*, as before.
+of *Voice > AI Character*, as before.
 
 ## Proactive speech and time context
 
@@ -124,12 +124,13 @@ of the tab *AI*, as before.
    `C:\Users\<you>\keys\elevenlabs.txt`, and enter its path in `config.json`:
    `"ai": { "elevenlabs": { "key_file": "C:/Users/<you>/keys/elevenlabs.txt" } }`
    (a relative path counts from your home folder, e.g. `keys/elevenlabs.txt`).
-3. Select **Text-to-speech: elevenlabs** in the plugin's tab *AI*. The status line there
+3. Select **Text-to-speech: elevenlabs** in the plugin's tab *Voice > AI Character*. The engine status in the info field
    changes from "nicht konfiguriert" to "bereit (…)" - a key file within 10 s, an environment
    variable after restarting the app.
 
-Instead of editing `config.json` you can enter the key file path in the tab *AI*
-(**xAI key file**, **ElevenLabs key file**); the status below shows per provider **konfiguriert**,
+Since version 15 the key file path is set only in `config.json` (the menu fields showed as empty,
+unlabeled boxes in VaM and were removed); after editing the file press **Reload Config JSON** (tab
+*Config*) or reload the scene. The key status in the info field (tab *Voice*) shows per provider **konfiguriert**,
 **fehlt** or **abgelehnt** (the server refused the key with HTTP 401/403). Something that looks like
 a pasted key (starts with `xai-` / `sk_`, or a long string without `/ \ .`) is refused by the
 plugin and the app and never stored. A direct key field is not built: it would be saved readably
@@ -137,7 +138,7 @@ in the scene and in `config.json` (open question to the user, TODO hook in `AppL
 
 **Which key:** xAI needs an API key from console.x.ai (starts with `xai-`). A Grok subscription
 (SuperGrok / X Premium) or a grok.com login token is not an API key and is refused by `api.x.ai`.
-The key status (heartbeat `keys.xai.hint`, tab *AI*) says so when the key is missing or refused.
+The key status (heartbeat `keys.xai.hint`, info field of tab *Voice*) says so when the key is missing or refused.
 
 The key itself never goes into `config.json` (a `key_file` value that looks like a key is
 refused) or into the log. Without a key nothing is blocked: the engine is "nicht konfiguriert"

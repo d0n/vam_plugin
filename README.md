@@ -28,7 +28,7 @@ Weitere Dokumente: [SPEC](docs/SPEC.md) (vereinbarter Umfang) · [ANFORDERUNGEN]
   - xAI braucht einen API-Key von console.x.ai; ein Grok-Abo funktioniert nicht.
   - Standardmodus Einfacher Q&A (nur Sprache); Realtime optional.
   - Die KI steuert den Körper per Tool-Aufruf (nicht im Q&A-Modus, nicht bei Body control aus); Posen zusätzlich manuell im Tab AI Character.
-  - Das Menü zeigt nur Einstellbares.
+  - Das Menü zeigt nur Einstellbares (Tabs Voice, AI Character, Client Character, Config); alle Hilfe- und Statustexte stehen in einem großen Infofeld links.
   - Verbose log und Latenzmessung (Sprechende bis erster Ton) im Statusfeld.
 
 ## 3. Zwei Figuren: AI Character und Client Character
@@ -59,7 +59,7 @@ Weitere Dokumente: [SPEC](docs/SPEC.md) (vereinbarter Umfang) · [ANFORDERUNGEN]
   - Unbekannte Schlüssel werden gemeldet und ignoriert; Zahlen außerhalb des Bereichs werden auf den Bereich begrenzt; ungültige Werte fallen auf den Standard zurück (Meldung in der App-Konsole).
   - Abschnitt `ai` gehört der Begleit-App; das Plugin schreibt dort nur die Schlüssel, für die es ein Bedienelement hat (in der Tabelle mit Tab angegeben), und lässt den Rest unverändert.
 - Kommandozeile und `--config`-Datei der Begleit-App (4.4), Umgebungsvariablen (4.5).
-- Erklär- und Statustexte im Menü bleiben dort; reine Pfad-/Info-Anzeigen gibt es nicht (Pfade stehen einmal im VaM-Log: `Settings file: … | Expressions: … | Gestures: … | Audio …`).
+- Das Menü zeigt nur Einstellbares. Alle Erklär-, Status- und Pfadtexte stehen in dem einen großen Infofeld links (seit Version 15); zusätzlich einmal im VaM-Log: `Settings file: … | Expressions: … | Gestures: … | Audio …`.
 
 ### 4.2 config.json
 
@@ -69,14 +69,14 @@ Spalte „Wo“: Tab im Plugin-Menü; „nur Datei“ = kein Bedienelement. Bere
 |---|---|---|---|---|---|
 | `version` | int | 1 | 1 | Schema-Version; andere Werte: Warnung, Kompatibles wird gelesen | nur Datei |
 | `written_by` | string | – | frei | wer die Datei zuletzt schrieb (nur Info) | wird geschrieben |
-| `connection.channel` | string | `default` | Buchstaben, Ziffern, `-`, `_` (anderes wird zu `_`) | Unterordner `Saves/PluginData/AIBody/<Kanal>/` für die Nachrichtendateien und `Custom/Sounds/AIBody/<Kanal>/` für Audio; Plugin und App müssen gleich sein; `--channel` gewinnt in der App; Änderung startet die Verbindung neu | Post: **Channel** |
-| `connection.active` | bool | true | | Verbindung zur Begleit-App an/aus | Voice Mode: **Active** |
+| `connection.channel` | string | `default` | Buchstaben, Ziffern, `-`, `_` (anderes wird zu `_`) | Unterordner `Saves/PluginData/AIBody/<Kanal>/` für die Nachrichtendateien und `Custom/Sounds/AIBody/<Kanal>/` für Audio; Plugin und App müssen gleich sein; `--channel` gewinnt in der App; Änderung startet die Verbindung neu | nur Datei (seit Version 15 kein Menüfeld; Anzeige im Infofeld, Tab Config) |
+| `connection.active` | bool | true | | Verbindung zur Begleit-App an/aus | Voice > Voice Mode: **Active** |
 | `connection.paths.expressions` | string | `Saves/PluginData/AIBody/expressions.json` | relativ, unter `Saves/` oder `Custom/`, ohne `..` und `:` | Datei mit Ausdrucks-Presets (4.6) | nur Datei |
 | `connection.paths.gestures` | string | `Saves/PluginData/AIBody/gestures.json` | wie oben | Datei mit Gesten/Posen (4.6) | nur Datei |
 | `connection.paths.audio` | string | `""` | `""` oder relativ unter `Saves/`/`Custom/` | Ordner für die Sprach-WAVs. `""` = automatisch `Custom/Sounds/AIBody/<Kanal>`; kann VaM eine WAV dort nicht laden, wechselt die App einmal nach `Saves/PluginData/AIBody/<Kanal>/audio` und spielt neu ab (rote Zeile im Statusfeld). Fester Ordner = kein Wechsel | nur Datei |
-| `engines.stt` | string | `null` | `null`, `xai` | Spracherkennung (`null` = offline, hört nichts) | AI: **Speech-to-text** |
-| `engines.llm` | string | `echo` | `echo`, `xai` | Sprachmodell (`echo` = offline, „You said: …“) | AI: **Language model** |
-| `engines.tts` | string | `tone` | `tone`, `xai`, `elevenlabs` | Sprachausgabe (`tone` = offline, Summton) | AI: **Text-to-speech** |
+| `engines.stt` | string | `null` | `null`, `xai` | Spracherkennung (`null` = offline, hört nichts) | Voice > AI Character: **Speech-to-text** |
+| `engines.llm` | string | `echo` | `echo`, `xai` | Sprachmodell (`echo` = offline, „You said: …“) | Voice > AI Character: **Language model** |
+| `engines.tts` | string | `tone` | `tone`, `xai`, `elevenlabs` | Sprachausgabe (`tone` = offline, Summton) | Voice > AI Character: **Text-to-speech** |
 | `mic.enabled` | bool | true | | Mikrofon an | Client Character: **Mic enabled** |
 | `mic.mode` | string | `vad` | `vad`, `ptt` (Menü: „Voice activation“, „Push-to-talk“) | Sprachaktivierung oder Push-to-Talk | Client Character: **Mic mode** |
 | `mic.device` | string | `""` | Gerätename aus der Liste der App; `""` = System-Standard | Eingabegerät; Menüeintrag „Standard (System-Mikrofon)“ = `""` | Client Character: **Mic device** |
@@ -96,15 +96,15 @@ Spalte „Wo“: Tab im Plugin-Menü; „nur Datei“ = kein Bedienelement. Bere
 | `body.breaths_per_minute` | number | 14 | [4–40] | Atemfrequenz | AI Character: **Breaths per minute** |
 | `body.breath_depth` | number | 0.35 | [0–1] | Atemtiefe | AI Character: **Breath depth** |
 | `body.breath_morph` | string | `Breath1` | Morph-Name der Figur | Brust-Morph für die Atmung (kein Standard-Morph in VaM, TODO(verify)) | AI Character: **Breath morph** |
-| `advanced.file_poll_interval_s` | number | 0.1 | [0.02–2] | wie oft das Plugin seinen Eingang prüft; Änderung startet die Verbindung neu | Erweitert: **File poll interval (s)** |
-| `advanced.verbose_log` | bool | false | | Turn-Trace in Konsole und `Saves/PluginData/AIBody/logs/companion.log` (1 MB × 5, Keys geschwärzt), `[debug]`-Zeilen im VaM-Log, *Letzte Ereignisse* im Statusfeld; wirkt sofort | Erweitert: **Verbose log**; CLI `-v` |
-| `ai.mode` | string | `qa` | `qa`, `auto`, `realtime`, `chain` | `qa` = Einfacher Q&A: STT → Grok → TTS, mit xAI-Key `xai` statt der Test-Engines, nur Sprache, keine Körper-Tools, kein proaktives Sprechen. `auto` = Realtime mit xAI-Key (außer bei `engines.tts` = `elevenlabs`), sonst Kette. `realtime` = Grok Voice Sprache-zu-Sprache, Kette als Fallback (auch wenn 12 s nach dem Sprechen keine Antwort kommt). `chain` = genau die Engines aus `engines` | AI Character: **AI mode**; Voice Mode: **Einfacher Q&A-Modus** (setzt `qa` und Body control aus), **Echtzeit (Realtime) verwenden** (an = `auto`, aus = `qa`) |
+| `advanced.file_poll_interval_s` | number | 0.1 | [0.02–2] | wie oft das Plugin seinen Eingang prüft; Änderung startet die Verbindung neu | Config: **File poll interval (s)** |
+| `advanced.verbose_log` | bool | false | | Turn-Trace in Konsole und `Saves/PluginData/AIBody/logs/companion.log` (1 MB × 5, Keys geschwärzt), `[debug]`-Zeilen im VaM-Log, *Letzte Ereignisse* im Statusfeld; wirkt sofort | Config: **Verbose log**; CLI `-v` |
+| `ai.mode` | string | `qa` | `qa`, `auto`, `realtime`, `chain` | `qa` = Einfacher Q&A: STT → Grok → TTS, mit xAI-Key `xai` statt der Test-Engines, nur Sprache, keine Körper-Tools, kein proaktives Sprechen. `auto` = Realtime mit xAI-Key (außer bei `engines.tts` = `elevenlabs`), sonst Kette. `realtime` = Grok Voice Sprache-zu-Sprache, Kette als Fallback (auch wenn 12 s nach dem Sprechen keine Antwort kommt). `chain` = genau die Engines aus `engines` | Voice > AI Character: **AI mode**; Voice > Voice Mode: **Einfacher Q&A-Modus** (setzt `qa` und Body control aus), **Echtzeit (Realtime) verwenden** (an = `auto`, aus = `qa`) |
 | `ai.persona` | string | „You are a friendly, curious character …“ | frei | System-Prompt (xAI: `instructions` der ersten Anfrage einer Unterhaltung; Realtime: Teil der Instructions) | nur Datei |
 | `ai.language` | string | `auto` | `auto` oder Sprachcode (`de`, `en`, …) | Sprachhinweis für STT und TTS | nur Datei |
 | `ai.fallback.stt` / `.llm` / `.tts` | string | `null` / `echo` / `tone` | Engines wie bei `engines` | läuft, wenn die gewählte Engine keinen Key hat oder eine Anfrage scheitert | nur Datei |
 | `ai.realtime.url` | string | `wss://api.x.ai/v1/realtime` | | WebSocket-Adresse | nur Datei |
 | `ai.realtime.model` | string | `grok-voice-latest` | | Sprachmodell (Query-Parameter `model`) | nur Datei |
-| `ai.realtime.voice` | string | `eve` | `eve`, `ara`, `rex`, `sal`, `leo` oder eigene Voice-ID | Stimme in Realtime; Änderung verbindet neu | AI Character: **Voice** (setzt auch `ai.xai.voice`; eine eigene ID aus der Datei wird ins Menü übernommen) |
+| `ai.realtime.voice` | string | `eve` | `eve`, `ara`, `rex`, `sal`, `leo` oder eigene Voice-ID | Stimme in Realtime; Änderung verbindet neu | Voice > AI Character: **Voice** (setzt auch `ai.xai.voice`; eine eigene ID aus der Datei wird ins Menü übernommen) |
 | `ai.realtime.sample_rate` | int | 24000 | 8000, 16000, 22050, 24000, 32000, 44100, 48000 | Abtastrate der Antwort (16-Bit-PCM, als WAV) | nur Datei |
 | `ai.realtime.speed` | number | 1.0 | [0.7–1.5] | Sprechtempo | nur Datei |
 | `ai.realtime.reasoning_effort` | string | `none` | `none`, `high` | `none` antwortet schneller; `high` = API-Standard | nur Datei |
@@ -112,33 +112,40 @@ Spalte „Wo“: Tab im Plugin-Menü; „nur Datei“ = kein Bedienelement. Bere
 | `ai.realtime.first_segment_s` | number | 1.2 | [0.3–5] | erstes Audiostück wird gespielt, sobald nach so viel Audio ein Satz endet | nur Datei |
 | `ai.realtime.max_segment_s` | number | 6.0 | [1–20] | längere Stücke ohne Satzende werden an der leisesten Stelle geschnitten | nur Datei |
 | `ai.realtime.connect_timeout_s` | number | 15 | [3–60] | Verbindungs-Timeout | nur Datei |
-| `ai.proactive.enabled` | bool | true | | KI darf nach Stille von sich aus sprechen (Realtime oder `llm` = `xai`; pausiert in `qa`) | AI: **Proactive** |
-| `ai.proactive.idle_seconds` | number | 90 | [15–3600]; im Plugin auf ganze Sekunden gerundet | Stille bis zum Anstoß; verdoppelt sich bei unbeantworteten Anstößen (bis 8×) | AI: **Proactive idle (s)** |
+| `ai.proactive.enabled` | bool | true | | KI darf nach Stille von sich aus sprechen (Realtime oder `llm` = `xai`; pausiert in `qa`) | Voice > AI Character: **Proactive** |
+| `ai.proactive.idle_seconds` | number | 90 | [15–3600]; im Plugin auf ganze Sekunden gerundet | Stille bis zum Anstoß; verdoppelt sich bei unbeantworteten Anstößen (bis 8×) | Voice > AI Character: **Proactive idle (s)** |
 | `ai.proactive.prompt` | string | „The user has been quiet for a while. … answer with exactly [silent] …“ | frei | Hinweis bei jedem Anstoß; Antwort `[silent]` = nichts abspielen | nur Datei |
 | `ai.xai.base_url` | string | `https://api.x.ai/v1` | | REST-Basis für STT, LLM, TTS | nur Datei |
-| `ai.xai.key_file` | string | `""` | Pfad (absolut oder relativ zum Benutzerordner); kein Key | Datei mit dem xAI-Key; `XAI_API_KEY` gewinnt; ein eingefügter Key wird abgelehnt und nicht gespeichert | AI: **xAI key file** (leeres Feld überschreibt die Datei nicht) |
+| `ai.xai.key_file` | string | `""` | Pfad (absolut oder relativ zum Benutzerordner); kein Key | Datei mit dem xAI-Key; `XAI_API_KEY` gewinnt; ein eingefügter Key wird abgelehnt und nicht gespeichert | nur Datei (seit Version 15 kein Menüfeld; das Plugin behält den gelesenen Pfad) |
 | `ai.xai.model` | string | `grok-4.7` | | Sprachmodell | nur Datei |
 | `ai.xai.max_output_tokens` | int | 400 | [16–8000] | hält Antworten kurz | nur Datei |
 | `ai.xai.stt_model` | string | `grok-voice-transcribe-2.0` | | Spracherkennungsmodell | nur Datei |
-| `ai.xai.voice` | string | `eve` | wie `ai.realtime.voice` | TTS-Stimme | AI Character: **Voice** |
+| `ai.xai.voice` | string | `eve` | wie `ai.realtime.voice` | TTS-Stimme | Voice > AI Character: **Voice** |
 | `ai.xai.speed` | number | 1.0 | [0.7–1.5] | TTS-Tempo | nur Datei |
 | `ai.xai.sample_rate` | int | 24000 | 8000, 16000, 22050, 24000, 44100, 48000 | TTS-Abtastrate (PCM, als WAV) | nur Datei |
 | `ai.xai.timeout_s` | number | 60 | [5–600] | Anfrage-Timeout | nur Datei |
 | `ai.elevenlabs.base_url` | string | `https://api.elevenlabs.io/v1` | | REST-Basis | nur Datei |
-| `ai.elevenlabs.key_file` | string | `""` | wie `ai.xai.key_file` | Datei mit dem ElevenLabs-Key; `ELEVENLABS_API_KEY` gewinnt | AI: **ElevenLabs key file** |
+| `ai.elevenlabs.key_file` | string | `""` | wie `ai.xai.key_file` | Datei mit dem ElevenLabs-Key; `ELEVENLABS_API_KEY` gewinnt | nur Datei (seit Version 15 kein Menüfeld) |
 | `ai.elevenlabs.voice_id` | string | `JBFqnCBsd6RMkjVDRZzb` | | Stimme | nur Datei |
 | `ai.elevenlabs.model_id` | string | `eleven_multilingual_v2` | | TTS-Modell | nur Datei |
 | `ai.elevenlabs.output_format` | string | `pcm_24000` | `pcm_16000`, `pcm_22050`, `pcm_24000`, `pcm_44100`, `pcm_48000` | Ausgabeformat (44,1/48 kHz brauchen einen ElevenLabs-Pro-Plan) | nur Datei |
 | `ai.elevenlabs.timeout_s` | number | 60 | [5–600] | Anfrage-Timeout | nur Datei |
 
-### 4.3 Nur im Plugin-Menü (nicht in config.json)
+### 4.3 Menüaufbau und Bedienelemente ohne config.json-Schlüssel
 
-- Voice Mode: **Einfacher Q&A-Modus** (Knopf, setzt `ai.mode` = `qa` und Body control aus; Hilfetext darunter), **Echtzeit (Realtime) verwenden** (Schalter, nicht gespeichert, Ansicht von AI mode: an = `auto`, aus = `qa`; zeigt an bei `auto`/`realtime`), **API Reconnect** (App liest Keys neu und öffnet Realtime neu; Plugin startet die Verbindung neu), **Test-Ton über Companion**, **Test-Ton abspielen** (Ton aus dem Paket, ohne App), **Stop speaking**.
-- AI: **Delay (s)** (0–5, Platzhalter ohne Funktion, nicht gespeichert); Key-Status je Anbieter (konfiguriert / fehlt / abgelehnt, mit Hinweis „nötig: API-Key von console.x.ai …“); Engine-Status (aktiver Modus, bereit / nicht konfiguriert, Fallback).
-- AI Character: Modus-Hilfetext; **Pose** (Auswahl, nicht gespeichert; Liste = `gestures.json`-Einträge mit `kind` `pose` plus Dateien `.vap`/`.json` in `Custom/Atom/Person/Pose` und `Custom/Atom/Person/Pose/AIBody`, je Ordner oberste Ebene, max. 200, Präfix `Preset_` entfernt), **Pose anwenden**, **Posen neu laden**; **Ausdruck** (Auswahl) + **Ausdruck zeigen**, **Reset expression**; **Geste** (Auswahl) + **Geste abspielen**; **Reload Expressions**.
-- Client Character: **Mikrofone neu laden** (Liste wird zusätzlich beim Öffnen des Menüs angefragt), Statuszeile „Mikrofone: N gefunden (…)“ bzw. roter Grund, Mikrofon-Status/Pegel, **Push-to-talk active** (nicht gespeichert; solange an, hört die App zu; nur im Mic mode Push-to-talk) mit Erklärtext.
-- Config: **Reload Config JSON** und Ergebnis.
-- Statusfeld links (immer sichtbar): Selbsttest (Person, Kopf-Audio, Morphs, Pose-Speicher, Posen, Atem-Morph, Ausdrucks-Morphs, Timeline, PluginData, Companion; die Körper-Prüfungen stehen auch als „Plugin-Selbsttest: …“ in Konsole und `companion.log` der Begleit-App), *Live* (Verbindung, Companion, Audio, „Letzte Runde“, „Latenz bis zum ersten Ton: X s (Ø Y s, n Runden)“ mit Aufschlüsselung), *Letzte Ereignisse* (bei Verbose log), Start-Protokoll.
+Aufbau seit Version 15 (Leon, 17.11.2026): links ein großes Infofeld, rechts vier Tabs; in den Tabs stehen nur Bedienelemente, keine Textfelder.
+
+- Infofeld links (immer sichtbar), von oben:
+  - *Info: <Tab>*: Hilfe und Status zum offenen Tab. Voice: Einfacher-Q&A-Hilfe, AI-mode-Hilfe, Key-Status je Anbieter (konfiguriert / fehlt / abgelehnt, mit Hinweis „nötig: API-Key von console.x.ai …“), Engine-Status (aktiver Modus, bereit / nicht konfiguriert, Fallback; erst nach dem ersten Heartbeat der App). AI Character: Anzahl Posen und Pose-Dateien, Hinweise zu Body control und Atem-Morph. Client Character: Push-to-Talk-Erklärung, „Mikrofone: N gefunden (…)“ bzw. roter Grund, Mikrofon-Status, Pegel. Config: Pfad der `config.json`, Kanal mit Ordner, Ergebnis von **Reload Config JSON**.
+  - Selbsttest (Person, Kopf-Audio, Morphs, Pose-Speicher, Posen, Atem-Morph, Ausdrucks-Morphs, Timeline, PluginData, Companion; die Körper-Prüfungen stehen auch als „Plugin-Selbsttest: …“ in Konsole und `companion.log` der Begleit-App).
+  - *Live* (Verbindung, Companion, Audio, „Letzte Runde“, „Latenz bis zum ersten Ton: X s (Ø Y s, n Runden)“ mit Aufschlüsselung), *Letzte Ereignisse* (bei Verbose log), Start-Protokoll.
+- Tab **Voice**:
+  - Abschnitt *Voice Mode*: **Einfacher Q&A-Modus** (Knopf, setzt `ai.mode` = `qa` und Body control aus), **Active**, **Echtzeit (Realtime) verwenden** (Schalter, nicht gespeichert, Ansicht von AI mode: an = `auto`, aus = `qa`; zeigt an bei `auto`/`realtime`), **API Reconnect** (App liest Keys neu und öffnet Realtime neu; Plugin startet die Verbindung neu), **Test-Ton über Companion**, **Test-Ton abspielen** (Ton aus dem Paket, ohne App), **Stop speaking**.
+  - Abschnitt *Voice > AI Character*: **AI mode**, **Voice**, **Speech-to-text**, **Language model**, **Text-to-speech**, **Proactive**, **Proactive idle (s)**.
+- Tab **AI Character**: *Posen* (per Sprache über die KI oder hier): **Pose** (Auswahl, nicht gespeichert; Liste = `gestures.json`-Einträge mit `kind` `pose` plus Dateien `.vap`/`.json` in `Custom/Atom/Person/Pose` und `Custom/Atom/Person/Pose/AIBody`, je Ordner oberste Ebene, max. 200, Präfix `Preset_` entfernt), **Pose anwenden**, **Posen neu laden**; *Ausdruck und Geste*: **Ausdruck** (Auswahl) + **Ausdruck zeigen**, **Reset expression**, **Geste** (Auswahl) + **Geste abspielen**; *Körper*: **Body control**, **Speech volume**, **Idle head motion**, **Idle intensity**, **Breathing**, **Breaths per minute**, **Breath depth**, Atem-Morph (beschriftetes Textfeld), **Reload Expressions**.
+- Tab **Client Character**: *Mikrofon und Push-to-Talk*: **Mic enabled**, **Mic mode**, **Mic device**, **Mikrofone neu laden** (Liste wird zusätzlich beim Öffnen des Menüs angefragt), **Push-to-talk active** (nicht gespeichert; solange an, hört die App zu; nur im Mic mode Push-to-talk), **Push-to-talk interrupts speech**, **Show level meter**, die Mikrofon-Regler, **Voice barge-in (headphones)**.
+- Tab **Config** (früher *Config* und *Erweitert*): **Reload Config JSON**, **File poll interval (s)**, **Verbose log**.
+- Entfallen in Version 15: Tabs *AI*, *Post*, *Erweitert*; Feld **Channel** (`default`), Felder **xAI key file** / **ElevenLabs key file**, Platzhalter **Delay (s)**, Titelzeile je Tab, alle kleinen Text-/Statusfelder in den Tabs. Absicht und Verbleib: [`docs/BACKLOG.md`](docs/BACKLOG.md), Abschnitt „Entfernte Menüeinträge (Version 15)“. Kanal und Key-Datei-Pfade: in `config.json` (4.2) bzw. per `--channel` und Umgebungsvariable.
 - Aktionen für Trigger (Plugin-Storable): `Reconnect`, `Stop speaking`, `Reset expression`, `Reload config files` (Ausdrücke und Gesten neu laden), `Push-to-talk start`, `Push-to-talk stop`, `Push-to-talk toggle`, `Refresh mic devices`.
 
 ### 4.4 Begleit-App: Kommandozeile und --config-Datei

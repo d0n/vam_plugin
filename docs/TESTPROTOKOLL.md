@@ -1,4 +1,4 @@
-# AIBody – Testprotokoll für den ersten Test in VaM 1.22 (ab v0.6.3, aktuell v0.7.3; T9 und die neuen Tab-Namen ab v0.7.2, T10 ab v0.7.3)
+# AIBody – Testprotokoll für den ersten Test in VaM 1.22 (ab v0.6.3, aktuell v0.7.3; T9 ab v0.7.2, T10 ab v0.7.3, Menü-Aufbau ab Version 15)
 
 Ziel: die offenen „Muss jetzt“-Punkte, die nur in VaM prüfbar sind. Bitte jeden Punkt der Reihe
 nach durchgehen und das Ergebnis eintragen (✅ / ❌ / unklar). Dauer: etwa 20 Minuten.
@@ -58,16 +58,16 @@ Companion-App: erscheinen `speech_started`/`speech_ended` bzw. Fehler wie `audio
 
 ## T4 – Menü-Aktualisierung und Textfeld
 
-Tab-Namen ab v0.7.2 (in v0.7.1 noch: Status, Verbindung, Engines, Mikrofon & PTT, Körper, Erweitert):
+Tabs ab Version 15: Voice, AI Character, Client Character, Config (davor: Voice Mode, AI, AI Character, Client Character, Post, Config, Erweitert). Links ein großes Infofeld, in den Tabs nur Bedienelemente.
 
-1. Tab **Client Character** (früher *Mikrofon & PTT*) öffnen > **Mikrofone neu laden** > Auswahl **Mic device** öffnen.
-2. Tab **AI** (früher *Engines*) öffnen und die drei Auswahllisten öffnen; ins Feld **xAI key file** klicken und tippen.
-3. Tab **Post** (früher *Verbindung*): ins Feld **Channel** klicken, `test` eintippen, Enter. Danach wieder `default`.
-4. Tab **AI Character** (früher *Körper*): ins Feld **Breath morph** klicken und einen Buchstaben ändern, dann zurück.
-5. Alle sieben Tabs einmal durchklicken (Voice Mode, AI, AI Character, Client Character, Post, Config, Erweitert).
+1. Tab **Client Character** öffnen > **Mikrofone neu laden** > Auswahl **Mic device** öffnen. Im Infofeld links oben steht „Info: Client Character“ mit Push-to-Talk-Erklärung und Mikrofon-Status.
+2. Tab **Voice** öffnen: oben Abschnitt *Voice Mode*, darunter *Voice > AI Character*; die Auswahllisten öffnen. Im Infofeld: Q&A-Hilfe, AI-mode-Hilfe, Key-Status, Engine-Status.
+3. Tab **Config**: **Reload Config JSON** drücken; im Infofeld stehen Pfad der config.json, Kanal und das Ergebnis.
+4. Tab **AI Character**: Abschnitt **Posen** vorhanden; ins beschriftete Feld unter „Atem-Morph“ klicken und einen Buchstaben ändern, dann zurück.
+5. Alle vier Tabs einmal durchklicken. Es darf kein leeres Feld und kein Feld nur mit einem Tab-Namen erscheinen.
 
-Melden: Zeigt die Geräteliste die echten Mikrofone? Lässt sich in die Textfelder tippen? Ändert
-sich nach `test` der Ordner unter *Live* auf `Saves/PluginData/AIBody/test`? Wechseln die Tabs
+Melden: Zeigt die Geräteliste die echten Mikrofone? Lässt sich in das Atem-Morph-Feld tippen? Steht
+im Infofeld zu jedem Tab passende Hilfe? Wechseln die Tabs
 sauber (alte Elemente weg, keine doppelten)? Steht eine *WARNUNG „nur lesbar“* im Start-Protokoll?
 
 ## T5 – Pose-Speicher, Morph-Namen, Atem-Morph
@@ -107,10 +107,10 @@ einer Minute ohne App in `Saves/PluginData/AIBody/default/outbox/` (sollten höc
 ## T7 – Engine-Status (ab v0.7.0)
 
 1. Companion-App läuft (ohne API-Keys).
-2. Tab **AI** (v0.7.1: *Engines*) öffnen, bei **Text-to-speech** `elevenlabs` auswählen, 3 Sekunden warten.
+2. Tab **Voice** öffnen, unter *Voice > AI Character* bei **Text-to-speech** `elevenlabs` auswählen, 3 Sekunden warten.
 3. Einen Satz in der Companion-App tippen.
 
-Melden: Steht unter den Auswahllisten „Text-to-speech: elevenlabs – nicht konfiguriert: …“ und
+Melden: Steht im Infofeld links „Text-to-speech: elevenlabs – nicht konfiguriert: …“ und
 „läuft stattdessen: tone (Fallback)“? Spricht die Figur trotzdem (Summton)? Steht unter *Live*
 „Engines aktiv: STT null, LLM echo, TTS tone (Fallback …)“? Danach wieder `tone` auswählen.
 
@@ -123,7 +123,7 @@ und am besten ein Headset.
 
 1. Companion-App mit Key starten. Im Log der App sollte stehen: `Modus: auto -> realtime` und
    `Realtime: verbunden mit wss://api.x.ai/v1/realtime?model=grok-voice-latest`.
-2. Im Plugin Tab **AI Character** (v0.7.1: *Engines*): **AI mode** steht auf `auto`; im Tab **AI** im Status
+2. Im Plugin Tab **Voice**: **AI mode** steht auf `auto`; im Infofeld
    „Modus: realtime – Realtime verbunden …“ und „Proaktiv: an, nach 90 s Stille“.
 3. Etwas sagen (z. B. „Hallo, wie spät ist es?“). Die Figur soll nach kurzer Pause antworten,
    der Mund bewegt sich, die Uhrzeit stimmt ungefähr.
@@ -144,9 +144,9 @@ mit `Realtime` oder `failed` aus dem App-Log.
 Ziel: Es soll einfach eine hörbare Antwort aus dem Kopf der Figur kommen. Körpersteuerung ist dafür
 nicht nötig.
 
-1. Tab **Voice Mode** > **Einfacher Q&A-Modus** (setzt AI mode `qa` und Body control aus; prüfen im
+1. Tab **Voice** > **Einfacher Q&A-Modus** (setzt AI mode `qa` und Body control aus; prüfen im
    Tab **AI Character**). **Speech volume** auf 1.
-2. Tab **Voice Mode** > **Test-Ton abspielen** (spielt die Datei aus dem Paket, ohne Companion-App).
+2. Tab **Voice** > **Test-Ton abspielen** (spielt die Datei aus dem Paket, ohne Companion-App).
    Im Statusfeld unter *Live* steht `Audio: Lade: AIBodyTest.wav`, dann `Spreche: AIBodyTest.wav (1.5 s)`, dann `Fertig: …`.
 3. Companion-App mit xAI-Key starten, dann **Test-Ton über Companion** (Datei aus
    `Custom/Sounds/AIBody/default/`). Unter *Live* steht `Audio-Ordner: …`.
@@ -162,18 +162,18 @@ bitte genau abschreiben, dazu die Ausgabe der Companion-Konsole.
 - Wenn 2 klingt, 3 aber nicht: Die App wechselt nach etwa 15 s von selbst nach
   `Saves/PluginData/AIBody/default/audio/` und spielt den Ton noch einmal (rote Zeile „Audio-Ordner
   gewechselt“). Bitte melden, ob er dann klingt.
-- Steht dort „ohne xAI-Key“: Key nicht gesetzt (gleiches Konsolenfenster wie die App?) oder im Tab
-  **AI** eine Key-Datei eintragen.
+- Steht dort „ohne xAI-Key“: Key nicht gesetzt (gleiches Konsolenfenster wie die App?) oder in `config.json` unter
+  `ai.xai.key_file` eine Key-Datei eintragen und im Tab **Config** **Reload Config JSON** drücken.
 
 ## T10 – Verbose log und Echtzeit-Schalter (ab v0.7.3)
 
-1. Tab **Erweitert** > **Verbose log** einschalten. In der Companion-Konsole erscheint
+1. Tab **Config** > **Verbose log** einschalten. In der Companion-Konsole erscheint
    `Verbose log an (Turn-Trace) - Logdatei <VaM>/Saves/PluginData/AIBody/logs/companion.log`.
 2. Eine Frage tippen oder sprechen. In der Konsole stehen Zeilen wie `[t0001 +0.00s] start: …`,
    `path: …`, `stt: …`, `llm request: …`, `tts: … wav='Custom/Sounds/AIBody/default/…'`, `speak sent: …`,
    `plugin: speech_started …` – alle mit derselben Turn-Nummer. Im Statusfeld erscheint
    *Letzte Ereignisse* mit `Befehl speak …`, `PlayNow …`, `Spricht …`, `Ende …`.
-3. Tab **Voice Mode** > **Echtzeit (Realtime) verwenden** einschalten: im Tab **AI Character** steht
+3. Tab **Voice** > **Echtzeit (Realtime) verwenden** einschalten: darunter unter *Voice > AI Character* steht
    AI mode `auto`, die Konsole meldet den Moduswechsel. Wieder aus: AI mode `qa`.
 4. **Verbose log** wieder aus: die Turn-Zeilen hören auf.
 
@@ -182,22 +182,22 @@ bitte trotzdem kurz reinschauen) und einen Screenshot des Statusfelds mit *Letzt
 
 ## T11 – Mikrofon-Menü, Posen-Menü, KI-Körpersteuerung, Latenz (ab v0.7.4)
 
-1. Tab **Client Character** > **Mikrofone neu laden**. Unter dem Menü steht
+1. Tab **Client Character** > **Mikrofone neu laden**. Im Infofeld links steht
    `Mikrofone: N gefunden (Windows WASAPI o. Ä.), Auswahl: …` oder rot `Mikrofone: 0 gefunden – <Grund>`.
    Die Companion-Konsole zeigt `Mikrofone: N gefunden (…): …`. Menü **Mic device** öffnen: erster
    Eintrag `Standard (System-Mikrofon)`, darunter jedes Mikrofon einmal. Eins wählen, sprechen
    (Pegel bewegt sich), Szene speichern, neu laden: die Wahl ist noch da.
-2. Tab **AI Character** > Abschnitt **Pose**: Menü öffnen (Posen aus `gestures.json` und aus
+2. Tab **AI Character** > Abschnitt **Posen**: Menü öffnen (Posen aus `gestures.json` und aus
    `<VaM>/Custom/Atom/Person/Pose/` bzw. `.../Pose/AIBody/`), eine wählen, **Pose anwenden**.
    Statusfeld: Ergebnis der Aktion. **Posen neu laden** nach dem Ablegen einer neuen Pose-Datei.
 3. Ausdruck wählen > **Ausdruck zeigen**; Geste wählen > **Geste abspielen**.
-4. Tab **Voice Mode** > **Echtzeit (Realtime) verwenden** an, Tab **AI Character** > **Body control** an.
+4. Tab **Voice** > **Echtzeit (Realtime) verwenden** an, Tab **AI Character** > **Body control** an.
    Sagen: „Lächle mal“ bzw. „Nimm eine andere Pose ein“. Konsole: `realtime tool call` bzw.
    `llm tool call` (mit Verbose log), die Figur reagiert. Mit **Einfacher Q&A-Modus** reagiert sie nicht
    (nur Sprache, so gewollt).
 5. Nach jeder Antwort im Statusfeld (*Live*): `Latenz bis zum ersten Ton: X s (Ø Y s, n Runden)` und
    darunter die Aufschlüsselung. In der Konsole: `Latenz t000N bis zum ersten Ton: …`.
-6. Tab **AI** ohne Key: Key-Status `fehlt` mit `nötig: API-Key von console.x.ai … ein Grok-Abo /
+6. Tab **Voice** ohne Key: im Infofeld Key-Status `fehlt` mit `nötig: API-Key von console.x.ai … ein Grok-Abo /
    grok.com-Token funktioniert nicht`.
 
 Melden: Screenshot von Mikrofon-Statuszeile und Menü, Screenshot des Statusfelds mit der Latenz,

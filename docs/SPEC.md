@@ -28,17 +28,17 @@ Vereinbarter Stand, was gilt. Status (umgesetzt/offen): [`ANFORDERUNGEN.md`](ANF
 ## Gemeinsame Konfiguration
 - Eine globale Datei `<VaM>/Saves/PluginData/AIBody/config.json` (Kanal ist ein Wert darin), von Plugin und App gelesen; Schema `protocol/schema/config.schema.json`, Doku `docs/CONFIG.md`.
 - Werte im Plugin-Menü (mit der Szene gespeichert) gewinnen und werden zurückgeschrieben; Szene ohne AIBody-Werte übernimmt die Datei einmal.
-- Abschnitt `ai` gehört der Begleit-App; das Plugin setzt dort nur seine Menüwerte (Modus, Stimme, Proactive, Voice barge-in, Key-Datei-Pfade).
+- Abschnitt `ai` gehört der Begleit-App; das Plugin setzt dort nur seine Menüwerte (Modus, Stimme, Proactive, Voice barge-in) und reicht die Key-Datei-Pfade aus der Datei durch (seit Version 15 kein Menüfeld; die Datei gewinnt bei jedem Start).
 
 ## API-Keys
 - xAI braucht einen API-Key von console.x.ai; ein Grok-Abo / grok.com-Token funktioniert nicht. Statusanzeige und Hinweise sagen das.
-- Key nur über Umgebungsvariable `XAI_API_KEY` / `ELEVENLABS_API_KEY` (gewinnt) oder den Pfad einer Key-Datei; ein ins Pfadfeld eingefügter Key wird abgelehnt und nicht gespeichert.
+- Key nur über Umgebungsvariable `XAI_API_KEY` / `ELEVENLABS_API_KEY` (gewinnt) oder den Pfad einer Key-Datei (`ai.xai.key_file` / `ai.elevenlabs.key_file` in config.json); ein dort eingetragener Key wird abgelehnt und nicht gespeichert.
 - Key-Status je Anbieter: konfiguriert / fehlt / abgelehnt (mit Grund).
 
 ## KI-Modi
 - Standard `qa` (Einfacher Q&A): Spracherkennung xAI → Grok → Stimme xAI, nur Sprache, keine Körpersteuerung durch die KI, kein proaktives Sprechen.
 - Realtime optional (Schalter „Echtzeit (Realtime) verwenden“ = `auto`): Grok Voice über `wss://api.x.ai/v1/realtime`, Kette als Fallback.
-- `chain`: genau die im Tab AI gewählten Engines.
+- `chain`: genau die unter Voice > AI Character gewählten Engines.
 - Test-Engines `null` / `echo` / `tone` als Offline-Betrieb und Fallback ohne Key.
 - Proaktives Sprechen nach einstellbarer Stille; die KI bekommt Uhrzeit und Zeit seit dem letzten Austausch mit.
 
@@ -66,20 +66,22 @@ Vereinbarter Stand, was gilt. Status (umgesetzt/offen): [`ANFORDERUNGEN.md`](ANF
 - AIBody kennt kein Client-Atom; Nutzereingabe über Begleit-App (Mikrofon, Push-to-Talk, Konsole) und Tab Client Character im AIBody-Plugin.
 
 ## Menü
-- Das Menü zeigt nur, was sich einstellen lässt. Reine Info-/Pfadanzeigen gibt es nicht; eine Pfadanzeige nur im Tab Erweitert, wenn es dort etwas Sinnvolles einzustellen gibt.
-- Erklär- und Statustexte, die zu einem Bedienelement gehören (Modus-Hilfe, PTT-Erklärung, Key-/Engine-Status, Mikrofon-Status), bleiben.
-- Links immer sichtbar: Statusfeld (Selbsttest, Live-Status, Start-Log).
+- Das Menü zeigt nur, was sich einstellen lässt. In den Tabs stehen nur Bedienelemente (Knöpfe, Schalter, Regler, Auswahlen, beschriftete Eingabefelder), keine Text- oder Statusfelder (Leon, 17.11.2026, Version 15).
+- Alle Erklär-, Hilfe-, Status- und Pfadtexte stehen in EINEM großen Infofeld links (immer sichtbar): oben „Info: <Tab>“ mit Hilfe und Status zum offenen Tab, darunter Selbsttest, Live-Status, Letzte Ereignisse (Verbose log), Start-Protokoll.
+- Namen sind selbsterklärend: „AI Character“ und „Client Character“, nie nur „AI“ oder „Client“.
+- Keine leeren Platzhalter-Felder. Ein Eingabefeld zeigt in VaM nur seinen Wert, deshalb steht darüber eine Beschriftung.
+- „Posen“ statt „Post“: der frühere Tab „Post“ ist entfallen (die offene Frage „Post oder Port“ ist damit erledigt); Posen liegen im Tab AI Character.
 - Tabs:
-  - Voice Mode: Einfacher Q&A-Modus, Active, Echtzeit (Realtime) verwenden, API Reconnect, Test-Ton über Companion, Test-Ton abspielen, Stop speaking.
-  - AI: Engines (Speech-to-text, Language model, Text-to-speech inkl. ElevenLabs), Key-Datei-Pfade + Key-Status, Delay (Platzhalter), Proactive, Proactive idle; Engine-Status (aktiver Modus, bereit / nicht konfiguriert, Fallback).
-  - AI Character: AI mode, Voice; Pose (Auswahl, Pose anwenden, Posen neu laden); Ausdruck und Geste (Auswahl, Ausdruck zeigen, Reset expression, Geste abspielen); Körper (Body control, Lautstärke, Idle, Atmung, Atem-Morph, Reload Expressions).
-  - Client Character: Mikrofon-Einstellungen inkl. Gerätemenü, Push-to-Talk mit Erklärtext, Voice barge-in (headphones).
-  - Post: Channel. (Bezeichnung als Konstante `AIBodyPlugin.PostTabLabel`.)
-  - Config: Reload Config JSON + Ergebnis.
-  - Erweitert: File poll interval, Verbose log.
+  - Voice:
+    - Voice Mode: Einfacher Q&A-Modus, Active, Echtzeit (Realtime) verwenden, API Reconnect, Test-Ton über Companion, Test-Ton abspielen, Stop speaking.
+    - Voice > AI Character: AI mode, Voice, Speech-to-text, Language model, Text-to-speech, Proactive, Proactive idle.
+  - AI Character: Posen (Auswahl, Pose anwenden, Posen neu laden; per Sprache über die KI oder hier); Ausdruck und Geste (Auswahl, Ausdruck zeigen, Reset expression, Geste abspielen); Körper (Body control, Lautstärke, Idle, Atmung, Atem-Morph mit Beschriftung, Reload Expressions).
+  - Client Character: Mikrofon und Push-to-Talk (Mic enabled, Mic mode, Mic device, Mikrofone neu laden, Push-to-talk active, Push-to-talk interrupts speech, Show level meter, Mikrofon-Regler), Voice barge-in (headphones).
+  - Config (früher Config und Erweitert): Reload Config JSON, File poll interval, Verbose log.
+- Nur in config.json bzw. Begleit-App (kein Menüfeld): Kanal (`connection.channel`, `--channel`), Key-Datei-Pfade. Entfernte Einträge und ihre ursprüngliche Absicht: `docs/BACKLOG.md`, „Entfernte Menüeinträge (Version 15)“.
 
 ## Protokollierung
-- Verbose log (Tab Erweitert / `advanced.verbose_log` / `-v`): pro Runde Trace mit Runden-Nummer und Zeit in Konsole und `<VaM>/Saves/PluginData/AIBody/logs/companion.log` (1 MB × 5); im Plugin `[debug]`-Zeilen und *Letzte Ereignisse*.
+- Verbose log (Tab Config / `advanced.verbose_log` / `-v`): pro Runde Trace mit Runden-Nummer und Zeit in Konsole und `<VaM>/Saves/PluginData/AIBody/logs/companion.log` (1 MB × 5); im Plugin `[debug]`-Zeilen und *Letzte Ereignisse*.
 
 - Selbsttest im Statusfeld (seit Version 13): Person-Atom, Kopf-Audio, Morphs, Pose-Speicher (`PosePresets` mit `presetBrowsePath`), Anzahl Posen und Pose-Dateien, Atem-Morph gefunden, Ausdrucks-Morphs x von y (fehlende Namen), Timeline-Storable für `timeline`-Gesten, PluginData beschreibbar, Companion-Heartbeat.
 - Die Körper-Prüfungen werden höchstens alle 5 s neu berechnet und als `selftest` in `ready`/`heartbeat` gesendet; die Begleit-App schreibt sie bei jeder Änderung einmal als „Plugin-Selbsttest: …“ in Konsole und `companion.log` (Warnung, wenn etwas fehlt). Keine neue Einstellung, keine neue VaM-Schnittstelle.
@@ -94,3 +96,4 @@ Vereinbarter Stand, was gilt. Status (umgesetzt/offen): [`ANFORDERUNGEN.md`](ANF
 - 17.11.2026: README auf Deutsch (Zweck, Szene, zwei Figuren, vollständige Einstellungsreferenz, Hinweise für den Hub); bisheriger README-Inhalt nach `docs/TECHNIK.md`.
 - 17.11.2026 (Version 12): Versionsschema Version = Paketnummer; Szene mit zwei Personen (AI Character weiblich mit AIBody, Client Character männlich mit Camera Background Color); Regler im Plugin decken die vollen config.json-Bereiche ab.
 - 17.11.2026 (Version 13): Erweiterter Selbsttest (Pose-Speicher, Posen, Atem-Morph, Ausdrucks-Morphs, Timeline) im Statusfeld und als „Plugin-Selbsttest“ im Log der Begleit-App; Quellennennung im README (Abschnitt 6).
+- 17.11.2026 (Version 15): Menü neu nach Leons Rückmeldung aus dem VaM-Test: Tabs Voice (Voice Mode, Voice > AI Character), AI Character (mit Posen), Client Character, Config (Config + Erweitert zusammengelegt). Ein großes Infofeld links für alle Hilfe- und Statustexte; keine Textfelder in den Tabs. Beschriftung „Posen“ statt „Post“ (Frage „Post oder Port“ erledigt, Tab Post entfällt). Entfernt: Tabs AI, Post, Erweitert, Feld Channel, Key-Datei-Felder, Platzhalter Delay, Titelzeile je Tab. Key-Datei-Pfade und Kanal nur noch in config.json; die Datei gewinnt bei den Key-Datei-Pfaden.

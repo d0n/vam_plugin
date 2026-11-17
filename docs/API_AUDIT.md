@@ -263,3 +263,12 @@ from `Exception.ToString()`, not from reflection. The only additions outside the
   on `.Keys` / `.Values` and the `KeyCollection` / `ValueCollection` types (scan of `src/`, the
   assembled plugin and the `.var`).
 - TODO(verify): version 14 compiles in VaM 1.22.
+
+## Version 15: menu restructure
+
+- **No new VaM API.** Tabs, sections and the info field use the same `CreateButton` /
+  `CreateToggle` / `CreateSlider` / `CreatePopup` / `CreateScrollablePopup` / `CreateTextField`
+  and `Remove*` calls as before (E17/E18/E24); the tabs simply create no `CreateTextField` any more
+  except section headers and the label above the breath morph field. The big info field is the
+  existing status `CreateTextField`, taller (1200). No `foreach` over Dictionary `.Keys`/`.Values`
+  (CS584 rule, version 14).

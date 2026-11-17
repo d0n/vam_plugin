@@ -24,14 +24,14 @@ Stand: 17.11.2026, Version 12. Übersicht, was umgesetzt ist und was offen ist; 
 - Datei-Transport über `Saves/PluginData/AIBody/<Kanal>/`, Protokoll v3, Heartbeat, Status – v0.5.0/v0.6.3.
 - Robuste Verbindung: Timeout 6 s → „GETRENNT“, automatischer Neuaufbau, alte Befehle verworfen, Outbox ≤ 20 – v0.6.3, End-to-End-Simulation v0.7.0.
 - Gemeinsame `config.json` unter `<VaM>/Saves/PluginData/AIBody/` (Ort entschieden 15.11.2026), Schema, Menüwerte gewinnen; VaM-Werte als Text (`"2.5"`, `"true"`) werden gelesen (E21) – v0.6.3/v0.7.0.
-- Menü in Tabs (Tab-Buttons, `Create*`/`Remove*`, E17/E18) – v0.6.3; neu geordnet nach Leons Wunsch (Voice Mode, AI, AI Character, Client Character, Post, Config, Erweitert) – v0.7.2.
+- Menü in Tabs (Tab-Buttons, `Create*`/`Remove*`, E17/E18) – v0.6.3; neu geordnet nach Leons Wunsch (Voice Mode, AI, AI Character, Client Character, Post, Config, Erweitert) – v0.7.2; neu nach dem VaM-Test: Voice (Voice Mode, Voice > AI Character), AI Character, Client Character, Config – Version 15 (Leon, 17.11.2026).
 
 ### KI und Sprache
 - Test-Engines `null`/`echo`/`tone` als Offline-Betrieb und Fallback – v0.5.0.
 - Engines xAI (STT `POST /v1/stt`, LLM `POST /v1/responses` gestreamt, TTS `POST /v1/tts`) und ElevenLabs (TTS); Keys über `XAI_API_KEY`/`ELEVENLABS_API_KEY` oder Pfad einer Key-Datei; Key-Status konfiguriert/fehlt/abgelehnt – v0.7.0.
 - Realtime-Modus (Grok Voice, `wss://api.x.ai/v1/realtime`), Neuverbindung mit Backoff, Kette als Fallback – v0.7.1.
 - Proaktives Sprechen nach Stille, Uhrzeit und Zeit seit letztem Austausch im Kontext – v0.7.1.
-- Einfacher Q&A-Modus `qa` als Standard (nur Sprache, Body control aus), Knopf im Tab Voice Mode, Statuszeile „Letzte Runde“, Realtime ohne Antwort nach 12 s → Kette – v0.7.2 (von Leon freigegeben 17.11.2026).
+- Einfacher Q&A-Modus `qa` als Standard (nur Sprache, Body control aus), Knopf im Tab Voice Mode (seit Version 15: Voice > Voice Mode), Statuszeile „Letzte Runde“, Realtime ohne Antwort nach 12 s → Kette – v0.7.2 (von Leon freigegeben 17.11.2026).
 - Schalter „Echtzeit (Realtime) verwenden“ (an = `auto`, aus = `qa`, Standard bleibt `qa`) – v0.7.3.
 - Abgelehnter xAI-Key (HTTP 400 „Incorrect API key“) wird als „abgelehnt“ erkannt – v0.7.3.
 - Hinweis, welcher Key funktioniert: API-Key von console.x.ai, kein Grok-Abo/grok.com-Token (Key-Status, Startwarnung der App) – v0.7.4.
@@ -56,7 +56,9 @@ Stand: 17.11.2026, Version 12. Übersicht, was umgesetzt ist und was offen ist; 
 
 ### Menü-Grundsatz
 - Das Menü zeigt nur Einstellbares (Leon, 17.11.2026 21:43): reine Pfad-/Info-Anzeigen in Post, Config und AI Character entfernt, nicht verschoben; Pfade stehen einmal im VaM-Log; Erklär-/Statustexte zu Bedienelementen bleiben – v0.7.4.
-- Push-to-Talk-Erklärtext unter dem Schalter statt Tooltip (kein belegter Weg) – v0.7.2, erneut geprüft v0.7.3.
+- Push-to-Talk-Erklärtext unter dem Schalter statt Tooltip (kein belegter Weg) – v0.7.2, erneut geprüft v0.7.3; seit Version 15 im Infofeld links.
+- Ein großes Infofeld links für alle Hilfe-, Status- und Pfadtexte („Info: <Tab>“, Selbsttest, Live, Start-Protokoll); in den Tabs nur Bedienelemente; keine leeren Platzhalter; Eingabefelder beschriftet; Namen selbsterklärend (AI Character, Client Character) – Version 15 (Leon, 17.11.2026).
+- „Posen“ statt „Post“: Tab Post entfernt, Posen im Tab AI Character; Erweitert in Config aufgegangen – Version 15. Ursprüngliche Absicht der entfernten Einträge: `docs/BACKLOG.md`.
 
 ### Version und Konfiguration
 - Versionsschema Version = Paketnummer (`d0n.AIBody.12.var` = Version 12, Tag `v12`; Test prüft Gleichheit) – Version 12 (Leon, 17.11.2026 22:31).
@@ -104,9 +106,9 @@ Stand: 17.11.2026, Version 12. Übersicht, was umgesetzt ist und was offen ist; 
 - Ursache des leeren Mikrofon-Menüs bei Leon: aus dem Code abgeleitet, Bestätigung über Statuszeile/Konsole steht aus.
 
 ### Offene Fragen an Leon
-- Tab „Post“ oder „Port“ gemeint? (Bezeichnung ist eine Konstante.)
 - Direktes API-Key-Feld im Plugin (Klartext in Szene/config.json)? Nicht gebaut, siehe Backlog.
-- „Delay“: was soll verzögert werden? Platzhalter ohne Funktion, siehe Backlog.
+- Key-Datei-Pfad wieder im Menü (beschriftet)? Seit Version 15 nur in config.json, weil die Felder als leere Kästen erschienen; siehe Backlog.
+- „Delay“: was soll verzögert werden? Platzhalter seit Version 15 aus dem Menü entfernt, siehe Backlog.
 - Session-Config vs. Person-Config: zurückgestellt bis nach den Tests, siehe Backlog.
 
 ### Noch nicht umgesetzt (vereinbart)

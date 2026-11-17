@@ -209,10 +209,10 @@ barge-in sends `stop_speaking`. The protocol itself is unchanged (still version 
 
 ### Verbose log (`config.advanced`)
 
-`advanced.verbose_log` (true/false; VaM sends it as a string) is the plugin's Erweitert > "Verbose log"
+`advanced.verbose_log` (true/false; VaM sends it as a string) is the plugin's Config > "Verbose log"
 toggle. The companion applies it live (turn trace in its console and log file, see docs/CONFIG.md) and
 echoes it in `config_ack.applied.advanced`. The plugin writes its own side ([debug] lines) to the VaM log.
-The Voice Mode toggle "Echtzeit (Realtime) verwenden" is not a protocol field: it only sets `ai.mode`
+The Voice > Voice Mode toggle "Echtzeit (Realtime) verwenden" is not a protocol field: it only sets `ai.mode`
 (on = `auto`, off = `qa`).
 
 ## Audio delivery
