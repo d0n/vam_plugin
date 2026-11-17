@@ -64,7 +64,10 @@ Stand: 17.11.2026, Version 12. Übersicht, was umgesetzt ist und was offen ist; 
 ### Protokollierung
 - Verbose log (Tab Erweitert, `advanced.verbose_log`, `-v`): Trace pro Runde in Konsole und `<VaM>/Saves/PluginData/AIBody/logs/companion.log` (1 MB × 5), Keys geschwärzt; im Plugin `[debug]`-Zeilen und *Letzte Ereignisse* – v0.7.3; Tool-Aufrufe und Latenz im Trace – v0.7.4.
 
+- Erweiterter Selbsttest für die nur in VaM prüfbaren Punkte (T5): Pose-Speicher, Posen und Pose-Dateien, Atem-Morph, Ausdrucks-Morphs mit fehlenden Namen, Timeline-Storable; im Statusfeld und als „Plugin-Selbsttest: …“ in Konsole und `companion.log` – Version 13.
+
 ### Szene, Doku
+- Quellennennung im README, Abschnitt 6 (MacGruber als Hauptquelle, Acid Bubbles, VamDeluxe, Sally, weitere Belegquellen) – Version 13.
 - Szenen-Vorlage Green Screen / Passthrough (Sallys *Camera Background Color* #00FF00): `examples/scenes/AIBody_GreenScreen.json`, `docs/SZENE_GREENSCREEN.md` – v0.7.x (Wunsch 17.11.2026); Paketverweis auf das aktuelle Paket korrigiert – nach v0.7.4.
 - Szene mit zwei Personen: `AI Character` (weiblich, `Female 3`, AIBody) und `Client Character` (männlich, `Male 1`, Camera Background Color direkt auf der Person), 1,2 m, einander zugewandt – Version 12 (Leon, 17.11.2026 22:30).
 - README auf Deutsch neu: Zweck, mitgelieferte Szene, zwei Figuren, vollständige Einstellungsreferenz, Hinweise für den Hub; Technik nach `docs/TECHNIK.md` – nach v0.7.4 (Leon, 17.11.2026 22:11).
@@ -77,7 +80,7 @@ Stand: 17.11.2026, Version 12. Übersicht, was umgesetzt ist und was offen ist; 
 - T2: `ReadAllText`/`DeleteFile` akzeptieren die Pfade aus `GetFiles`.
 - T3: Kopf-Audio mit Lippensync, `PlayNow`-Retry, Start/Ende-Erkennung.
 - T4: Menü-Aktualisierung, Textfeld, Tabs.
-- T5: Pose-Speicher-Name, Morph-Namen, Atem-Morph.
+- T5: Pose-Speicher-Name, Morph-Namen, Atem-Morph (seit Version 13 direkt im Selbsttest und im Log der Begleit-App ablesbar).
 - T6: Hinzufügen/Entfernen/Speichern/Neuladen ohne Exceptions und FPS-Einbruch; „GETRENNT“ und Neuaufbau; config.json ohne Rückfrage.
 - T7: Engine-Status.
 - T8: Realtime mit echtem xAI-Key, Unterbrechen, proaktives Sprechen.
@@ -106,7 +109,6 @@ Stand: 17.11.2026, Version 12. Übersicht, was umgesetzt ist und was offen ist; 
 
 ### Noch nicht umgesetzt (vereinbart)
 - Bessere Sprachaktivitätserkennung (aktuell Energie-VAD).
-- Quellennennung bei Veröffentlichung (MacGruber als Hauptquelle, ebenso AcidBubbles, VamDeluxe).
 - Blicksteuerung (bis dahin Glance; kein Look-at-Tool für die KI, weil das Plugin keine Blicksteuerung hat).
 - Demo- bzw. Anleitungsszene.
 - Doku und Veröffentlichung auf dem VaM Hub („Plugins + Scripts“, mit Tags).

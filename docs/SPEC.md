@@ -81,6 +81,9 @@ Vereinbarter Stand, was gilt. Status (umgesetzt/offen): [`ANFORDERUNGEN.md`](ANF
 ## Protokollierung
 - Verbose log (Tab Erweitert / `advanced.verbose_log` / `-v`): pro Runde Trace mit Runden-Nummer und Zeit in Konsole und `<VaM>/Saves/PluginData/AIBody/logs/companion.log` (1 MB × 5); im Plugin `[debug]`-Zeilen und *Letzte Ereignisse*.
 
+- Selbsttest im Statusfeld (seit Version 13): Person-Atom, Kopf-Audio, Morphs, Pose-Speicher (`PosePresets` mit `presetBrowsePath`), Anzahl Posen und Pose-Dateien, Atem-Morph gefunden, Ausdrucks-Morphs x von y (fehlende Namen), Timeline-Storable für `timeline`-Gesten, PluginData beschreibbar, Companion-Heartbeat.
+- Die Körper-Prüfungen werden höchstens alle 5 s neu berechnet und als `selftest` in `ready`/`heartbeat` gesendet; die Begleit-App schreibt sie bei jeder Änderung einmal als „Plugin-Selbsttest: …“ in Konsole und `companion.log` (Warnung, wenn etwas fehlt). Keine neue Einstellung, keine neue VaM-Schnittstelle.
+
 ## Latenz
 - Gemessen vom Ende der Nutzersprache (VAD-Ende, PTT loslassen, Enter; Realtime: speech_stopped) bis zum ersten Ton (speech_started des Plugins).
 - Aufschlüsselung: STT, LLM erstes Token, erster Satz, TTS, Datei, an Plugin, Plugin-Start (Realtime: Server erstes Audio, Segment, an Plugin, Plugin-Start).
@@ -90,3 +93,4 @@ Vereinbarter Stand, was gilt. Status (umgesetzt/offen): [`ANFORDERUNGEN.md`](ANF
 - 17.11.2026 (v0.7.4): Erste Fassung des Spec-Logs.
 - 17.11.2026: README auf Deutsch (Zweck, Szene, zwei Figuren, vollständige Einstellungsreferenz, Hinweise für den Hub); bisheriger README-Inhalt nach `docs/TECHNIK.md`.
 - 17.11.2026 (Version 12): Versionsschema Version = Paketnummer; Szene mit zwei Personen (AI Character weiblich mit AIBody, Client Character männlich mit Camera Background Color); Regler im Plugin decken die vollen config.json-Bereiche ab.
+- 17.11.2026 (Version 13): Erweiterter Selbsttest (Pose-Speicher, Posen, Atem-Morph, Ausdrucks-Morphs, Timeline) im Statusfeld und als „Plugin-Selbsttest“ im Log der Begleit-App; Quellennennung im README (Abschnitt 6).

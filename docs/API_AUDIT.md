@@ -235,3 +235,11 @@ from `Exception.ToString()`, not from reflection. The only additions outside the
   (`function_call` -> `conversation.item.create` `function_call_output` + `response.create`).
   Tested against a fake server only; TODO(verify) with a real key.
 
+
+## Version 13: extended self test
+
+- **No new VaM API.** The body checks reuse what the code already calls: `GetStorableByID("PosePresets")`
+  and `GetUrlJSONParam("presetBrowsePath")` (E7, as in `LoadPose`), `MorphHelper.Find` (unchanged
+  lookup), `FindStorable` over `GetStorableIDs` (E8) and
+  the `GetFiles` result of the pose scan (E11, still TODO(verify) for `Custom/`). The result is
+  plain SimpleJSON in the existing `heartbeat`. Checked by `tools/check_plugin.py` (stubs compile).

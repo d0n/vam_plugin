@@ -7,7 +7,7 @@ Grundregel seit v0.6.0: erst Lauffähigkeit (eine `.cslist`, ein MVRScript, ein 
 
 ## Menü und Bedienung
 - **Info-/Pfadanzeige im Menü** (Kanal-, Audio-, config.json-Ordner) – Leon, 17.11.2026 – In v0.7.4 entfernt (Menü zeigt nur Einstellbares). Leon versteht die Absicht, will sie erst, wenn es dort etwas Sinnvolles einzustellen gibt (dann im Tab Erweitert). Bis dahin stehen die Pfade einmal im VaM-Log.
-- **In-Game-Testplugin à la Timeline** – Leon, 17.11.2026 – Noch keine Spezifikation.
+- **In-Game-Testplugin à la Timeline** – Leon, 17.11.2026 – Noch keine Spezifikation. Teilweise abgedeckt: erweiterter Selbsttest im Statusfeld mit Ausgabe im Log der Begleit-App (Version 13); ein eigenes Testplugin bleibt ohne Spezifikation.
 - **Direktes API-Key-Textfeld im Plugin** – Leon, 17.11.2026 – Key läge im Klartext in Szene und config.json. Unentschieden, nicht gebaut; bis dahin Pfad einer Key-Datei oder `XAI_API_KEY`.
 - **Delay-Einstellung** – Leon, 17.11.2026 – Platzhalter „Delay (s)“ im Tab AI ohne Funktion; keine Spezifikation, was verzögert werden soll.
 - **Aufteilung Session-Config vs. Person-Config** – Leon, 17.11.2026 – Welche Einstellung gilt pro Sitzung, welche pro Person; zurückgestellt bis nach den Tests in VaM.

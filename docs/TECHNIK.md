@@ -185,7 +185,12 @@ Since 0.6.2 the plugin window always starts with the header and a status box, bu
 anything else. It shows:
 
 - **Selbsttest**: Person atom yes/no, head audio (`HeadAudioSource`) found, morphs (`geometry`)
-  found, `Saves/PluginData/AIBody/<channel>` writable, companion app heartbeat seen.
+  found, pose storage (`PosePresets` with `presetBrowsePath`), pose count (and preset files found
+  with `GetFiles` on `Custom/Atom/Person/Pose`), breath morph found, expression morphs x of y found
+  (missing names listed), Timeline storable present for `timeline` gestures (version 13),
+  `Saves/PluginData/AIBody/<channel>` writable, companion app heartbeat seen. The body checks are
+  recomputed at most every 5 s and sent as `selftest` in `ready`/`heartbeat`; the companion logs
+  them as `Plugin-Selbsttest: …` once per change (warning when something is missing).
 - **Live**: link state, folder, companion app, speech, expression, breath morph.
 - **Start-Protokoll**: every Init step (`ok: ...`) and every failure as
   `FEHLER in <phase>: <exception type>: <message> | at <first stack line>`.

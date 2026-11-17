@@ -82,7 +82,10 @@ sauber (alte Elemente weg, keine doppelten)? Steht eine *WARNUNG „nur lesbar�
    `{ "v": 3, "type": "pose", "id": "p-1", "path": "Custom/Atom/Person/Pose/test.json" }`
    (Pfad an die eigene Pose anpassen). Die Figur vorher etwas anders hinstellen.
 
-Melden: Hebt und senkt sich die Brust? Steht unter *Live* „Breath morph: Breath1“ oder „not found“?
+Melden (seit Version 13): die Zeilen im *Selbsttest* „Pose-Speicher (PosePresets)“, „Posen“,
+„Atem-Morph“, „Ausdrucks-Morphs: x von y gefunden – fehlen: …“ und ggf. „Timeline“; dieselben Werte
+stehen in der Konsole der Companion-App und in `companion.log` als „Plugin-Selbsttest: …“.
+Hebt und senkt sich die Brust? Steht unter *Live* „Breath morph: Breath1“ oder „not found“?
 Ändert sich das Gesicht beim Sprechen (Lächeln, Augenbrauen)? Rote Zeilen mit „Morph not found“
 bitte vollständig kopieren. Kommen Nicken/Kopfschütteln/Kopfneigen an? Springt die Figur in die gespeicherte Pose? Was
 steht unter *Live* beim letzten Befehl, und was steht in der neuesten Datei in

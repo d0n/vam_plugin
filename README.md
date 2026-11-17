@@ -138,7 +138,7 @@ Spalte „Wo“: Tab im Plugin-Menü; „nur Datei“ = kein Bedienelement. Bere
 - AI Character: Modus-Hilfetext; **Pose** (Auswahl, nicht gespeichert; Liste = `gestures.json`-Einträge mit `kind` `pose` plus Dateien `.vap`/`.json` in `Custom/Atom/Person/Pose` und `Custom/Atom/Person/Pose/AIBody`, je Ordner oberste Ebene, max. 200, Präfix `Preset_` entfernt), **Pose anwenden**, **Posen neu laden**; **Ausdruck** (Auswahl) + **Ausdruck zeigen**, **Reset expression**; **Geste** (Auswahl) + **Geste abspielen**; **Reload Expressions**.
 - Client Character: **Mikrofone neu laden** (Liste wird zusätzlich beim Öffnen des Menüs angefragt), Statuszeile „Mikrofone: N gefunden (…)“ bzw. roter Grund, Mikrofon-Status/Pegel, **Push-to-talk active** (nicht gespeichert; solange an, hört die App zu; nur im Mic mode Push-to-talk) mit Erklärtext.
 - Config: **Reload Config JSON** und Ergebnis.
-- Statusfeld links (immer sichtbar): Selbsttest, *Live* (Verbindung, Companion, Audio, „Letzte Runde“, „Latenz bis zum ersten Ton: X s (Ø Y s, n Runden)“ mit Aufschlüsselung), *Letzte Ereignisse* (bei Verbose log), Start-Protokoll.
+- Statusfeld links (immer sichtbar): Selbsttest (Person, Kopf-Audio, Morphs, Pose-Speicher, Posen, Atem-Morph, Ausdrucks-Morphs, Timeline, PluginData, Companion; die Körper-Prüfungen stehen auch als „Plugin-Selbsttest: …“ in Konsole und `companion.log` der Begleit-App), *Live* (Verbindung, Companion, Audio, „Letzte Runde“, „Latenz bis zum ersten Ton: X s (Ø Y s, n Runden)“ mit Aufschlüsselung), *Letzte Ereignisse* (bei Verbose log), Start-Protokoll.
 - Aktionen für Trigger (Plugin-Storable): `Reconnect`, `Stop speaking`, `Reset expression`, `Reload config files` (Ausdrücke und Gesten neu laden), `Push-to-talk start`, `Push-to-talk stop`, `Push-to-talk toggle`, `Refresh mic devices`.
 
 ### 4.4 Begleit-App: Kommandozeile und --config-Datei
@@ -178,6 +178,15 @@ Spalte „Wo“: Tab im Plugin-Menü; „nur Datei“ = kein Bedienelement. Bere
 - KI-erzeugte Sprache und KI-gesteuertes Verhalten können falsch, unpassend oder unerwartet sein. Die KI ist kein Mensch und hat kein Bewusstsein.
 - Experimentell: bisher nur gegen API-Stubs kompiliert und gegen nachgebaute Server getestet, noch nicht in VaM und nicht mit einem echten Key geprüft.
 - Kein offizielles Produkt von und nicht verbunden mit xAI, ElevenLabs oder Meshed VR.
+
+## 6. Quellen und Dank
+
+- MacGruber (Hauptquelle): Vorbild für Aufbau, Bedienung und Lebendigkeit einer Figur – [LogicBricks](https://hub.virtamate.com/resources/logicbricks.1975/), [Life](https://hub.virtamate.com/resources/life.165/), [Benchmark](https://hub.virtamate.com/resources/benchmark.11336/), [Utils](https://hub.virtamate.com/resources/macgruber-utils.40744/). Life kann auf derselben Figur laufen und über `gestures.json` (Typ `trigger`) angesteuert werden.
+- Acid Bubbles: [Timeline](https://github.com/acidbubbles/vam-timeline) (Gesten über `Play <Animation>`), [Glance](https://github.com/acidbubbles/vam-glance), [Embody](https://github.com/acidbubbles/vam-embody), [Scripter](https://github.com/acidbubbles/vam-scripter), [Keybindings](https://github.com/acidbubbles/vam-keybindings), [Collider Editor](https://github.com/acidbubbles/vam-collider-editor), [Improved PoV](https://github.com/acidbubbles/vam-improved-pov): Belege für Storables, Dateizugriff, Menüaufbau und Szenenformat.
+- VamDeluxe: [DeluxePlugin](https://github.com/vamdeluxe/DeluxePlugin) (Dollmaster, Qualia, HeadIdle, PresetRandomizer): Kopf-Audio, Atmung, Kopf-Leerlauf, Presets, Personas als Daten.
+- Sally: *Camera Background Color* (VaM Hub), in der mitgelieferten Szene verwendet.
+- Weitere Belege für verwendete Schnittstellen: everlaster (TittyMagic), lfe999 (VamFreeMMD, VamHeightPlugin), Yoooi (ToySerialController), emptyngton (FootstepsExtended); Szenenformat: OnePunchVAM (vam-story-builder), foto2vam; offizielle Dokumentation und Patch-Notes von Meshed VR.
+- Jede verwendete VaM-Schnittstelle ist mit Quelle und festem Commit in [`docs/API_AUDIT.md`](docs/API_AUDIT.md) belegt.
 
 ## License
 
