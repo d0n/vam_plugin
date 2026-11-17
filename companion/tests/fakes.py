@@ -421,7 +421,7 @@ class FakePlugin:
         return "GETRENNT" if self.last_session else "noch nicht gesehen"
 
 
-PLUGIN_VERSION = "12"  # AIBody.cs PluginVersion
+PLUGIN_VERSION = "13"  # AIBody.cs PluginVersion
 
 
 def _from_vam(value: Any, like: Any) -> Any:
