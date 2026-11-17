@@ -17,6 +17,7 @@ Stand: 17.11.2026, Version 12. Übersicht, was umgesetzt ist und was offen ist; 
 - Dateizugriff nur über `FileManagerSecure`; „Allow Plugins Network Access“ bleibt aus – v0.6.1.
 - Diagnose im Plugin-Fenster: Statusfeld, Selbsttest, jede Init-Phase einzeln abgesichert – v0.6.2.
 - Eine `.var` nach `<VaM>/AddonPackages/`; Liste alter Pakete zum Löschen in README und Release-Notes – seit v0.6.0.
+- Hotfix: Version 13 kompilierte in VaM nicht (CS584, `foreach` über `Dictionary.Values` in `ExpressionController.cs`); kein `foreach`/LINQ über `.Keys`/`.Values` mehr, der Build-Scan verbietet das Muster – Version 14 (Leon, 17.11.2026 23:16).
 
 ### Verbindung und Konfiguration
 - Begleit-App (Python) `python -m aibody_companion --vam-root "<VaM>"` – v0.5.0.
@@ -99,6 +100,7 @@ Stand: 17.11.2026, Version 12. Übersicht, was umgesetzt ist und was offen ist; 
 - Storable „PosePresets“ folgt dem belegten Muster (1.22).
 - Morph-Namen für Ausdrücke an Standard-Figuren (weiblich/männlich).
 - Szene: Personen in Blickrichtung +Z (0°/180° = einander zugewandt), Aussehen ohne festgelegte Kleidung, Camera Background Color auf einem Person-Atom.
+- Version 14 kompiliert in VaM (der Stub-Compiler bildet VaMs Mono-Compiler nicht vollständig ab).
 - Ursache des leeren Mikrofon-Menüs bei Leon: aus dem Code abgeleitet, Bestätigung über Statuszeile/Konsole steht aus.
 
 ### Offene Fragen an Leon

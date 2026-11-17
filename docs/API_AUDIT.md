@@ -243,3 +243,23 @@ from `Exception.ToString()`, not from reflection. The only additions outside the
   lookup), `FindStorable` over `GetStorableIDs` (E8) and
   the `GetFiles` result of the pose scan (E11, still TODO(verify) for `Custom/`). The result is
   plain SimpleJSON in the existing `heartbeat`. Checked by `tools/check_plugin.py` (stubs compile).
+
+## Version 14: VaM compiler hotfix (CS584)
+
+- Version 13 did not compile in VaM: `[CS584]: Internal compiler error: Unexpected error when
+  loading type 'System.Collections.Generic.Dictionary<TKey,TValue>.ValueCollection.Enumerator' ...
+  at [40, 13]` = `ExpressionController.cs`, `MorphNames` getter (line 40), `foreach` over
+  `_presets.Values` (added in commit 2be56ff). The Roslyn stub compile in `tools/check_plugin.py`
+  accepts this, VaM's Mono `mcs` does not: **the stub compile proves API use, not that VaM's
+  compiler accepts the syntax.**
+- Fix: no `foreach` / LINQ over `.Keys` / `.Values` anywhere (also removed in `PoseController`:
+  `PoseNames` over `_poseFiles.Keys` since 0.7.4, `TimelineGestureCount` / `HasTimeline` over
+  `_gestures.Values`). Iteration over the dictionary itself (`KeyValuePair`) is kept: used by
+  `MorphHelper` since the first version, and by Timeline (`foreach (var kvp in
+  triggersTarget.triggersMap)`, a `SortedDictionary`, [AdvancedKeyframeToolsScreen.cs
+  L90](https://github.com/acidbubbles/vam-timeline/blob/54e294256d7b73ec7d00d4216fcc7f01bc9d8133/src/UI/Screens/AdvancedKeyframeToolsScreen.cs)).
+  Key lists for callers are copies (`new List<string>(dict.Keys)`, no enumerator in our code).
+- Enforcement: `tools/sandbox_rules.py` bans `in <expr>.Keys)` / `in <expr>.Values)`, member access
+  on `.Keys` / `.Values` and the `KeyCollection` / `ValueCollection` types (scan of `src/`, the
+  assembled plugin and the `.var`).
+- TODO(verify): version 14 compiles in VaM 1.22.

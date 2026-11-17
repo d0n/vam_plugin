@@ -385,6 +385,16 @@ sockets, `Process`, `System.Diagnostics`, reflection, `Assembly.Load`, `DllImpor
 microphone API and `OpenURL`. The compile stubs in `tools/stubs` declare only the evidenced VaM
 members, so using anything else fails the compile.
 
+- **The stub compile is not VaM's compiler.** It uses Roslyn; VaM uses an old Mono `mcs`. Version 13
+  passed the stub compile but failed in VaM with `CS584: Internal compiler error: Unexpected error
+  when loading type 'System.Collections.Generic.Dictionary<TKey,TValue>.ValueCollection.Enumerator'`
+  for a `foreach` over a dictionary's values (`ExpressionController.cs`, getter at line 40).
+  Rule since version 14: never `foreach` or LINQ over `dict.Keys` / `dict.Values`; iterate the
+  dictionary itself with `KeyValuePair` (as `MorphHelper` has done since the first version) or copy
+  with `new List<T>(dict.Keys)`. The strict scan (`tools/sandbox_rules.py`) rejects these constructs
+  and the `KeyCollection` / `ValueCollection` types; `companion/tests/test_vam_compiler_rules.py`
+  pins the rule.
+
 - **No `System.IO`.** File access goes through `MVR.FileManagementSecure.FileManagerSecure`.
   Writing is limited to `Saves/PluginData`. There is no reliable rename, so the plugin writes
   event files in place and the companion app tolerates partial files.
