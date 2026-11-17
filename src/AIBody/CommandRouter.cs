@@ -1,5 +1,10 @@
 // Dispatches body commands (speak, expression, gesture, pose, ...) to the body controllers and
 // answers with ack / error events. Called in-process by the plugin's Body component.
+//
+// Speech never depends on the body: a speak is queued first, its optional expression is applied
+// afterwards and may fail on its own. With "Body control" off, expression / morph / gesture / pose /
+// trigger commands are ignored (no error), so a plain question-and-answer flow only needs the head
+// audio. A controller that could not be created gives a clear error instead of an exception.
 using System;
 using System.Collections.Generic;
 using SimpleJSON;
@@ -15,12 +20,15 @@ namespace AIBody
         private readonly IdleController _idle;
         private readonly BreathingController _breathing;
 
+        private readonly Func<bool> _bodyControl;
+
         /// <summary>Send an "ack" for every successful command (useful while debugging).</summary>
         public bool AckAll = false;
 
         public CommandRouter(Action<JSONClass> send, SpeechPlayer speech, ExpressionController expressions,
-            PoseController poses, IdleController idle, BreathingController breathing)
+            PoseController poses, IdleController idle, BreathingController breathing, Func<bool> bodyControl)
         {
+            _bodyControl = bodyControl;
             _send = send;
             _speech = speech;
             _expressions = expressions;
@@ -74,25 +82,55 @@ namespace AIBody
             }
         }
 
+        private bool BodyOn { get { return _bodyControl == null || _bodyControl(); } }
+
+        private static bool IsBodyCommand(string type)
+        {
+            return type == Protocol.CmdExpression || type == Protocol.CmdSetMorphs || type == Protocol.CmdResetMorphs
+                || type == Protocol.CmdGesture || type == Protocol.CmdPose || type == Protocol.CmdTrigger;
+        }
+
         // Returns null on success, else an error message.
         private string Dispatch(string type, string id, JSONClass msg)
         {
+            if (IsBodyCommand(type))
+            {
+                if (!BodyOn)
+                {
+                    Log.Debug("Body control off: ignoring '" + type + "'");
+                    return null;
+                }
+                if (type == Protocol.CmdGesture || type == Protocol.CmdPose || type == Protocol.CmdTrigger)
+                {
+                    if (_poses == null) return "Posen/Gesten nicht verfügbar (PoseController fehlt)";
+                }
+                else if (_expressions == null) return "Ausdrücke nicht verfügbar (keine Morphs auf dieser Figur)";
+            }
             switch (type)
             {
                 case Protocol.CmdSpeak:
                 {
+                    if (_speech == null) return "Sprachausgabe nicht verfügbar (SpeechPlayer fehlt)";
                     string utteranceId = id.Length > 0 ? id : "utt-" + DateTime.UtcNow.Ticks;
-                    if (Protocol.Has(msg, "expression"))
-                    {
-                        _expressions.SetExpression(Protocol.GetString(msg, "expression", ""),
-                            Protocol.GetFloat(msg, "intensity", 1f), 0.4f, -1f);
-                    }
                     bool interrupt = Protocol.GetString(msg, "queue", "append") == "interrupt";
-                    return _speech.Enqueue(utteranceId, Protocol.GetString(msg, "audio", ""), interrupt);
+                    string error = _speech.Enqueue(utteranceId, Protocol.GetString(msg, "audio", ""), interrupt);
+                    if (error == null && Protocol.Has(msg, "expression") && BodyOn && _expressions != null)
+                    {
+                        try
+                        {
+                            _expressions.SetExpression(Protocol.GetString(msg, "expression", ""),
+                                Protocol.GetFloat(msg, "intensity", 1f), 0.4f, -1f);
+                        }
+                        catch (Exception e)
+                        {
+                            Log.Error("speak: expression failed (speech continues)", e);
+                        }
+                    }
+                    return error;
                 }
 
                 case Protocol.CmdStopSpeaking:
-                    _speech.StopAll("stopped");
+                    if (_speech != null) _speech.StopAll("stopped");
                     return null;
 
                 case Protocol.CmdExpression:
@@ -129,11 +167,13 @@ namespace AIBody
                     return _poses.Trigger(msg);
 
                 case Protocol.CmdIdle:
+                    if (_idle == null) return "Kopfbewegung nicht verfügbar";
                     _idle.Enabled = Protocol.GetBool(msg, "enabled", _idle.Enabled);
                     _idle.Intensity = Protocol.GetFloat(msg, "intensity", _idle.Intensity);
                     return null;
 
                 case Protocol.CmdBreathing:
+                    if (_breathing == null) return "Atmung nicht verfügbar (keine Morphs)";
                     _breathing.Enabled = Protocol.GetBool(msg, "enabled", _breathing.Enabled);
                     _breathing.Rate = Protocol.GetFloat(msg, "rate", _breathing.Rate);
                     _breathing.Depth = Protocol.GetFloat(msg, "depth", _breathing.Depth);

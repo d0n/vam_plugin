@@ -6,7 +6,8 @@
     "active": true,
     "paths": {
       "expressions": "Saves/PluginData/AIBody/expressions.json",
-      "gestures": "Saves/PluginData/AIBody/gestures.json"
+      "gestures": "Saves/PluginData/AIBody/gestures.json",
+      "audio": ""
     }
   },
   "engines": {
@@ -29,6 +30,7 @@
   },
   "body": {
     "speech_volume": 1.0,
+    "body_control": true,
     "idle_motion": true,
     "idle_intensity": 0.5,
     "breathing": true,

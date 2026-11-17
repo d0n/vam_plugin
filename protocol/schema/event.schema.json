@@ -26,7 +26,8 @@
         "shutdown",
         "config",
         "ptt",
-        "list_devices"
+        "list_devices",
+        "test_tone"
       ]
     },
     "id": {

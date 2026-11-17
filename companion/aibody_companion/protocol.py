@@ -61,6 +61,7 @@ EVENTS = {
     "config",
     "ptt",
     "list_devices",
+    "test_tone",
     "ready",
     "heartbeat",
     "pong",

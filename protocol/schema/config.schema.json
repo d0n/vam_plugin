@@ -56,6 +56,11 @@
               "type": "string",
               "default": "Saves/PluginData/AIBody/gestures.json",
               "pattern": "^(Saves|Custom)/"
+            },
+            "audio": {
+              "type": "string",
+              "default": "",
+              "pattern": "^$|^(Saves|Custom)/"
             }
           }
         }
@@ -252,6 +257,23 @@
             }
           ],
           "default": 1.0
+        },
+        "body_control": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "true",
+                "false",
+                "True",
+                "False"
+              ]
+            }
+          ],
+          "default": true
         },
         "idle_motion": {
           "anyOf": [

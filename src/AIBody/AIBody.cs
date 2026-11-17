@@ -115,6 +115,7 @@ namespace AIBody
                     _body.StopSpeaking();
                     _diag.Step("Companion-App neu gestartet: alte Sprachausgabe abgebrochen.");
                 };
+                _body.PluginFolder = FindPluginFolder;
                 _link.OnPathsChanged = () =>
                 {
                     _body.ExpressionsPath = _link.ExpressionsPath;
@@ -164,6 +165,20 @@ namespace AIBody
             _diag.Step(_diag.FailureCount == 0
                 ? "Init fertig, keine Fehler."
                 : "Init fertig mit " + _diag.FailureCount + " Fehler(n): " + string.Join(", ", ToArray(_diag.FailedPhases)));
+        }
+
+        /// <summary>
+        /// Folder of the loaded AIBody.cslist, e.g. "d0n.AIBody.8:/Custom/Scripts/d0n/AIBody", read from
+        /// the atom's PluginManager like Dollmaster's GetPluginPath (evidence E1, L283-290).
+        /// </summary>
+        private string FindPluginFolder()
+        {
+            string pluginId = storeId.Split('_')[0];
+            MVRPluginManager manager = containingAtom.GetStorableByID("PluginManager") as MVRPluginManager;
+            if (manager == null) return null;
+            string script = manager.GetJSON(true, true)["plugins"][pluginId].Value;
+            int cut = script.LastIndexOfAny(new char[] { '/', '\\' });
+            return cut > 0 ? script.Substring(0, cut) : null;
         }
 
         // ---------------------------------------------------------------- tabs

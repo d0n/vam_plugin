@@ -138,12 +138,13 @@ class FakePlugin:
         self.ui = {
             "connection": {"channel": channel, "active": True,
                            "paths": {"expressions": "Saves/PluginData/AIBody/expressions.json",
-                                     "gestures": "Saves/PluginData/AIBody/gestures.json"}},
+                                     "gestures": "Saves/PluginData/AIBody/gestures.json", "audio": ""}},
             "engines": {"stt": "null", "llm": "echo", "tts": "tone"},
             "mic": {"enabled": True, "mode": "vad", "device": "", "vad_threshold": 0.01, "end_silence_ms": 700,
                     "min_utterance_ms": 300, "max_utterance_ms": 20000, "echo_tail_s": 0.4, "gain": 1.0,
                     "ptt_interrupts": True, "level_meter": True},
-            "body": {"speech_volume": 1.0, "idle_motion": True, "idle_intensity": 0.5, "breathing": True,
+            "body": {"speech_volume": 1.0, "body_control": True, "idle_motion": True, "idle_intensity": 0.5,
+                     "breathing": True,
                      "breaths_per_minute": 14.0, "breath_depth": 0.35, "breath_morph": "Breath1"},
             "advanced": {"file_poll_interval_s": 0.1, "verbose_log": False},
         }
@@ -209,6 +210,10 @@ class FakePlugin:
         self.send("config", mic=dict(self.ui["mic"]), engines=dict(self.ui["engines"]),
                   ai=json.loads(json.dumps(self.ai_ui)))
 
+    def request_test_tone(self) -> None:
+        """AppLink.RequestTestTone (button "Test-Ton über Companion")."""
+        self.send("test_tone")
+
     def press_ptt(self, active: bool) -> None:
         self.send("ptt", active=active)
 
@@ -238,6 +243,8 @@ class FakePlugin:
     def write_settings(self) -> None:
         root: dict[str, Any] = {"version": 1, "written_by": f"AIBody plugin {PLUGIN_VERSION}",
                                 **json.loads(json.dumps(self.ui)), "ai": json.loads(json.dumps(self.ai_ui))}
+        if not root["connection"]["paths"].get("audio"):
+            root["connection"]["paths"].pop("audio", None)  # AppLink writes paths.audio only when set
         if self.settings_path.exists():
             existing = json.loads(self.settings_path.read_text(encoding="utf-8"))
             ai = existing.get("ai")

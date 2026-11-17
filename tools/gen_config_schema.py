@@ -65,7 +65,7 @@ def leaf(path: tuple[str, ...], default):
     if path == ("mic", "mode"):
         node["enum"] = list(MODES)
     if path[:2] == ("connection", "paths"):
-        node["pattern"] = "^(Saves|Custom)/"
+        node["pattern"] = "^$|^(Saves|Custom)/" if path[-1] == "audio" else "^(Saves|Custom)/"
     return node
 
 

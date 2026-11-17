@@ -189,6 +189,21 @@ namespace AIBody
         {
             page.Toggle(_activeJson);
             page.Button("Reconnect", Restart);
+            page.Button("Test-Ton über Companion", RequestTestTone);
+        }
+
+        private string _testToneStatus;
+
+        /// <summary>Asks the companion app for a test WAV in the channel's audio folder (tests that path).</summary>
+        public void RequestTestTone()
+        {
+            if (!_appAlive)
+            {
+                _testToneStatus = "Test-Ton über Companion: App nicht verbunden";
+                return;
+            }
+            Send(Protocol.NewEvent(Protocol.EvtTestTone));
+            _testToneStatus = "Test-Ton über Companion angefordert (kommt als normales speak)";
         }
 
         public void BuildConnectionTab(UiPage page)
@@ -299,6 +314,9 @@ namespace AIBody
         public string ExpressionsPath = DataRoot + "/expressions.json";
         public string GesturesPath = DataRoot + "/gestures.json";
 
+        /// <summary>connection.paths.audio: the companion's speech WAV folder ("" = default); kept, not used here.</summary>
+        public string AudioFolder = "";
+
         /// <summary>Called when the paths from config.json changed (the Body reloads its files).</summary>
         public Action OnPathsChanged;
 
@@ -341,11 +359,19 @@ namespace AIBody
                 expressions = CheckPath(Protocol.GetString(paths, "expressions", expressions), expressions);
                 gestures = CheckPath(Protocol.GetString(paths, "gestures", gestures), gestures);
             }
+            string audio = "";
+            if (paths != null)
+            {
+                string a = Protocol.GetString(paths, "audio", "");
+                if (!string.IsNullOrEmpty(a)) audio = CheckPath(a, "");
+            }
+            AudioFolder = audio;
             bool changed = expressions != ExpressionsPath || gestures != GesturesPath;
             ExpressionsPath = expressions;
             GesturesPath = gestures;
             _pathsInfo.val = "Settings file: " + SettingsPath + " (" + note + ")\nExpressions: " + ExpressionsPath
-                + "\nGestures: " + GesturesPath + "\nAudio: " + ChannelDir + "/audio";
+                + "\nGestures: " + GesturesPath + "\nAudio (von der Companion-App geschrieben): "
+                + (AudioFolder.Length > 0 ? AudioFolder : ChannelDir + "/audio");
             if (changed && OnPathsChanged != null) OnPathsChanged();
             return root;
         }
@@ -370,6 +396,7 @@ namespace AIBody
             JSONClass paths = new JSONClass();
             paths["expressions"] = ExpressionsPath;
             paths["gestures"] = GesturesPath;
+            if (AudioFolder.Length > 0) paths["audio"] = AudioFolder;
             connection["paths"] = paths;
             root["connection"] = connection;
             JSONClass engines = new JSONClass();
@@ -685,6 +712,7 @@ namespace AIBody
             string text = "Link: " + _transport.Name + " - " + _transport.State + "\n";
             if (!string.IsNullOrEmpty(_transport.LastError)) text += "Last error: " + _transport.LastError + "\n";
             text += "Folder: " + ChannelDir + "\n";
+            if (_testToneStatus != null) text += _testToneStatus + "\n";
             if (_appAlive) text += "Companion app: verbunden, " + _appVersion + " (Heartbeat vor " + _appAge.ToString("0.0") + " s)\n" + EngineSummary();
             else if (_lastSession != null) text += "Companion app: GETRENNT – verbindet automatisch neu, sobald die App wieder läuft\n";
             else text += "Companion app: noch nicht gesehen – starten: python -m aibody_companion --vam-root \"<VaM>\" --channel " + Channel + "\n";

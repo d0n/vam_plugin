@@ -33,6 +33,9 @@ class Config:
     mic: dict[str, Any] = field(default_factory=dict)
 
     keep_audio_files: int = 20
+    # connection.paths.audio from config.json: folder below the VaM folder for the speech WAVs;
+    # "" = Saves/PluginData/AIBody/<channel>/audio
+    audio_folder: str = ""
 
     stt: str = "null"  # see ENGINES_AVAILABLE
     llm: str = "echo"
@@ -51,12 +54,16 @@ class Config:
         return bool(self.vam_root)
 
     @property
+    def audio_rel_dir(self) -> str:
+        return self.audio_folder or f"{PLUGIN_DATA_SUBDIR}/{self.channel}/audio"
+
+    @property
     def audio_dir(self) -> Path:
-        return self.channel_dir / "audio"
+        return Path(self.vam_root) / self.audio_rel_dir
 
     def audio_rel_path(self, name: str) -> str:
         """Path the AIBody plugin loads with VaM's URLAudioClipManager (relative to the VaM folder)."""
-        return f"{PLUGIN_DATA_SUBDIR}/{self.channel}/audio/{name}"
+        return f"{self.audio_rel_dir}/{name}"
 
     def audio_abs_path(self, name: str) -> Path:
         return self.audio_dir / name

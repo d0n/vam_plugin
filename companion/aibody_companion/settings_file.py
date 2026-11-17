@@ -57,12 +57,15 @@ DEFAULTS: dict[str, dict[str, Any]] = {
         "paths": {
             "expressions": "Saves/PluginData/AIBody/expressions.json",
             "gestures": "Saves/PluginData/AIBody/gestures.json",
+            # where the companion writes the speech WAVs; "" = Saves/PluginData/AIBody/<channel>/audio
+            "audio": "",
         },
     },
     "engines": {"stt": "null", "llm": "echo", "tts": "tone"},
     "mic": MicSettings().to_dict(),
     "body": {
         "speech_volume": 1.0,
+        "body_control": True,  # false = speech only, expressions / gestures / poses are ignored
         "idle_motion": True,
         "idle_intensity": 0.5,
         "breathing": True,
@@ -232,6 +235,8 @@ def _merge(path: tuple[str, ...], default: dict[str, Any], data: dict[str, Any],
             for name, p in value.items():
                 if name not in default[key]:
                     errors.append(f"connection.paths: unknown key {name!r}")
+                elif name == "audio" and p == "":
+                    result[key][name] = ""
                 elif not _check_path(p):
                     errors.append(f"connection.paths.{name}: must be relative, below Saves/ or Custom/")
                 else:
@@ -354,6 +359,7 @@ def apply_to_config(cfg: Any, channel_from_cli: bool = False) -> list[str]:
     elif channel != cfg.channel:
         errors.append(f"connection.channel is {channel!r}, --channel {cfg.channel!r} wins")
     cfg.mic = dict(data["mic"])
+    cfg.audio_folder = data["connection"]["paths"]["audio"].strip("/")
     for kind in ("stt", "llm", "tts"):
         name = data["engines"][kind]
         if name in ENGINES_AVAILABLE[kind]:

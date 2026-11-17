@@ -23,6 +23,16 @@ namespace AIBody
         private JSONStorableFloat _breathRateJson;
         private JSONStorableFloat _breathDepthJson;
         private JSONStorableString _breathMorphJson;
+        private JSONStorableBool _bodyControlJson;
+
+        /// <summary>The test WAV shipped next to the .cslist (written by tools/build_var.py).</summary>
+        public const string TestToneFile = "AIBodyTest.wav";
+
+        /// <summary>Folder of AIBody.cslist ("d0n.AIBody.8:/Custom/Scripts/d0n/AIBody"); set by the plugin.</summary>
+        public Func<string> PluginFolder;
+
+        /// <summary>Utterances started inside the plugin (test tone) are not reported to the companion.</summary>
+        private const string LocalPrefix = "local-";
 
         private MorphHelper _morphs;
         private SpeechPlayer _speech;
@@ -52,6 +62,12 @@ namespace AIBody
 
         public void CreateStorables()
         {
+            // Off = speech only: expression / morph / gesture / pose / trigger commands are ignored.
+            _bodyControlJson = new JSONStorableBool("Body control", true, (bool v) =>
+            {
+                if (!v && _expressions != null) _expressions.Reset(0.4f);
+            });
+            _plugin.RegisterBool(_bodyControlJson);
             _volumeJson = new JSONStorableFloat("Speech volume", 1f, (float v) => { if (_speech != null) _speech.Volume = v; }, 0f, 1f);
             _plugin.RegisterFloat(_volumeJson);
             _idleJson = new JSONStorableBool("Idle head motion", true, (bool v) => { if (_idle != null) _idle.Enabled = v; });
@@ -83,7 +99,10 @@ namespace AIBody
                 SpeechPlayer speech = new SpeechPlayer(_atom);
                 speech.OnStarted = OnSpeechStarted;
                 speech.OnEnded = OnSpeechEnded;
-                speech.OnError = (id, message) => _send(Protocol.NewError(id, "audio_failed", message));
+                speech.OnError = (id, message) =>
+                {
+                    if (!IsLocal(id)) _send(Protocol.NewError(id, "audio_failed", message));
+                };
                 speech.Volume = _volumeJson != null ? _volumeJson.val : 1f;
                 _speech = speech;
             });
@@ -108,15 +127,19 @@ namespace AIBody
             });
             _diag.Run("Posen/Gesten (PoseController)", () => _poses = new PoseController(_atom, _idle));
             _diag.Run("Befehle (CommandRouter)", () =>
-                _router = new CommandRouter(_send, _speech, _expressions, _poses, _idle, _breathing));
+                _router = new CommandRouter(_send, _speech, _expressions, _poses, _idle, _breathing,
+                    () => BodyControl));
             _diag.Run("Config-Dateien laden", ReloadConfigFiles);
         }
 
         /// <summary>Speech controls on the left, body settings on the right (below the mic menu).</summary>
         // ---------------------------------------------------------------- tabs (see AIBodyPlugin)
 
+        private string _testStatus;
+
         public void BuildStatusTab(UiPage page)
         {
+            page.Button("Test-Ton abspielen", () => { _testStatus = PlayTestTone(); });
             page.Button("Stop speaking", StopSpeaking);
             page.Button("Reset expression", () => { if (_expressions != null) _expressions.Reset(0.4f); });
         }
@@ -126,8 +149,11 @@ namespace AIBody
             page.Button("Reload expressions / gestures", ReloadConfigFiles);
         }
 
+        public bool BodyControl { get { return _bodyControlJson == null || _bodyControlJson.val; } }
+
         public void BuildBodyTab(UiPage page)
         {
+            page.Toggle(_bodyControlJson);
             page.Slider(_volumeJson);
             page.Toggle(_idleJson);
             page.Slider(_idleIntensityJson);
@@ -145,6 +171,7 @@ namespace AIBody
             if (_volumeJson == null) return;
             JSONClass body = new JSONClass();
             body["speech_volume"].AsFloat = _volumeJson.val;
+            body["body_control"].AsBool = BodyControl;
             body["idle_motion"].AsBool = _idleJson.val;
             body["idle_intensity"].AsFloat = _idleIntensityJson.val;
             body["breathing"].AsBool = _breathingJson.val;
@@ -159,6 +186,7 @@ namespace AIBody
             JSONClass body = root["body"] as JSONClass;
             if (body == null || _volumeJson == null) return;
             _volumeJson.val = Protocol.GetFloat(body, "speech_volume", _volumeJson.val);
+            if (_bodyControlJson != null) _bodyControlJson.val = Protocol.GetBool(body, "body_control", _bodyControlJson.val);
             _idleJson.val = Protocol.GetBool(body, "idle_motion", _idleJson.val);
             _idleIntensityJson.val = Protocol.GetFloat(body, "idle_intensity", _idleIntensityJson.val);
             _breathingJson.val = Protocol.GetBool(body, "breathing", _breathingJson.val);
@@ -173,8 +201,39 @@ namespace AIBody
 
         public void ReloadConfigFiles()
         {
+            ReloadExpressions();
+            ReloadGestures();
+        }
+
+        public void ReloadExpressions()
+        {
             if (_expressions != null) _expressions.LoadPresetFile(ExpressionsPath);
+        }
+
+        public void ReloadGestures()
+        {
             if (_poses != null) _poses.LoadGestureFile(GesturesPath);
+        }
+
+        /// <summary>
+        /// Plays the WAV shipped in the package on the head audio: checks the sound path without the
+        /// companion app (and without Saves/PluginData). Returns a status line.
+        /// </summary>
+        public string PlayTestTone()
+        {
+            if (_speech == null) return "Test-Ton: Sprachausgabe fehlt";
+            string folder = null;
+            try { folder = PluginFolder != null ? PluginFolder() : null; }
+            catch (Exception e) { return "Test-Ton: Plugin-Ordner nicht gefunden (" + Diag.Describe(e) + ")"; }
+            if (string.IsNullOrEmpty(folder)) return "Test-Ton: Plugin-Ordner nicht gefunden";
+            string path = folder + "/" + TestToneFile;
+            string error = _speech.Enqueue(LocalPrefix + "test-" + DateTime.UtcNow.Ticks, path, true);
+            return error == null ? "Test-Ton: " + path : "Test-Ton: " + error;
+        }
+
+        private static bool IsLocal(string id)
+        {
+            return id != null && id.StartsWith(LocalPrefix);
         }
 
         public void StopSpeaking()
@@ -212,6 +271,7 @@ namespace AIBody
 
         private void OnSpeechStarted(string id, float duration)
         {
+            if (IsLocal(id)) return;
             JSONClass evt = Protocol.NewEvent(Protocol.EvtSpeechStarted);
             evt["utterance_id"] = id ?? "";
             evt["duration"].AsFloat = duration;
@@ -220,6 +280,7 @@ namespace AIBody
 
         private void OnSpeechEnded(string id, string reason)
         {
+            if (IsLocal(id)) return;
             JSONClass evt = Protocol.NewEvent(Protocol.EvtSpeechEnded);
             evt["utterance_id"] = id ?? "";
             evt["reason"] = reason;
@@ -250,7 +311,16 @@ namespace AIBody
         public string StatusText()
         {
             string text = "Last command: " + (_lastCommandAge < 999f ? _lastCommandAge.ToString("0") + "s ago" : "none yet") + "\n";
-            if (_speech != null) text += "Speaking: " + (_speech.IsSpeaking ? "yes" : "no") + ", queued: " + _speech.QueueLength + "\n";
+            if (_speech != null)
+            {
+                text += "Speaking: " + (_speech.IsSpeaking ? "yes" : "no") + ", queued: " + _speech.QueueLength
+                    + (_volumeJson != null && _volumeJson.val < 0.01f ? " – Speech volume ist 0!" : "") + "\n";
+                text += "Audio: " + (_speech.Status ?? "noch nichts abgespielt") + "\n";
+                if (_speech.LastError != null && _speech.LastError != _speech.Status && _speech.LastErrorAge < 300f)
+                    text += "<color=red>" + _speech.LastError + "</color> (vor " + _speech.LastErrorAge.ToString("0") + " s)\n";
+            }
+            if (!BodyControl) text += "Body control: aus (nur Sprache)\n";
+            if (_testStatus != null) text += _testStatus + "\n";
             if (_expressions != null) text += "Expression: " + _expressions.Current + "\n";
             if (_breathing != null && _morphs != null)
                 text += "Breath morph: " + (_breathing.HasMorph ? _breathing.MorphName : "'" + _breathing.MorphName + "' not found") + "\n";

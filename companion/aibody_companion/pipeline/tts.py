@@ -26,6 +26,19 @@ def wav_duration(path: Path) -> float:
         return w.getnframes() / float(w.getframerate())
 
 
+def test_tone_pcm(seconds: float = 1.5, rate: int = 22050) -> bytes:
+    """A two-note chime (16-bit mono PCM) for the plugin's "Test-Ton über Companion" button;
+    4 "syllables" per second so VaM's lip sync moves the jaw. Same sound as the bundled test WAV."""
+    frames = bytearray()
+    for i in range(int(seconds * rate)):
+        t = i / rate
+        freq = 440.0 if t < seconds / 2 else 660.0
+        fade = min(1.0, t / 0.02, (seconds - t) / 0.05)
+        envelope = 0.55 + 0.45 * math.sin(2 * math.pi * 4 * t)
+        frames += struct.pack("<h", int(0.35 * fade * envelope * math.sin(2 * math.pi * freq * t) * 32767))
+    return bytes(frames)
+
+
 def write_pcm_wav(pcm16: bytes, sample_rate: int, out_path: Path, channels: int = 1) -> float:
     """Wraps raw signed 16-bit little-endian PCM in a WAV file; returns its duration."""
     if len(pcm16) % (2 * channels):

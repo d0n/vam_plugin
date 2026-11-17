@@ -4,6 +4,7 @@
   dist/d0n.AIBody.<N>.var
     meta.json
     Custom/Scripts/d0n/AIBody/AIBody.cslist   (+ the .cs files it lists, same folder)
+    Custom/Scripts/d0n/AIBody/AIBodyTest.wav  (test tone for the plugin's "Test-Ton abspielen")
 
 meta.json is packaging/meta.json (unchanged, incl. licenseType) with the overrides from
 packaging/AIBody.json, which also sets the package version <N>. The script folder is assembled by
@@ -17,13 +18,36 @@ from __future__ import annotations
 
 import argparse
 import importlib.util
+import io
 import json
+import math
+import struct
+import wave
 import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 STAGE = ROOT / "build" / "var" / "AIBody"
 SCRIPT_FOLDER = "AIBody"
+TEST_TONE = "AIBodyTest.wav"  # Body.TestToneFile
+
+
+def test_tone_wav(seconds: float = 1.5, rate: int = 22050) -> bytes:
+    """16-bit mono PCM WAV: a two-note chime with 4 "syllables" per second (the jaw moves)."""
+    frames = bytearray()
+    for i in range(int(seconds * rate)):
+        t = i / rate
+        freq = 440.0 if t < seconds / 2 else 660.0
+        fade = min(1.0, t / 0.02, (seconds - t) / 0.05)
+        envelope = 0.55 + 0.45 * math.sin(2 * math.pi * 4 * t)
+        frames += struct.pack("<h", int(0.35 * fade * envelope * math.sin(2 * math.pi * freq * t) * 32767))
+    buf = io.BytesIO()
+    with wave.open(buf, "wb") as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(rate)
+        w.writeframes(bytes(frames))
+    return buf.getvalue()
 
 
 def assemble() -> list[str]:
@@ -54,6 +78,8 @@ def build(version_override: int | None = None) -> Path:
     script_dir = f"Custom/Scripts/{creator}/{SCRIPT_FOLDER}"
 
     files = assemble()
+    (STAGE / TEST_TONE).write_bytes(test_tone_wav())
+    files.append(TEST_TONE)
     meta["contentList"] = [f"{script_dir}/{f}" for f in files]
     out = ROOT / "dist" / f"{creator}.{meta['packageName']}.{version}.var"
     out.parent.mkdir(exist_ok=True)

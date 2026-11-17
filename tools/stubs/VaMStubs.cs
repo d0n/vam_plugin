@@ -44,7 +44,10 @@ public class JSONStorable : MonoBehaviour
     public JSONStorableStringChooser GetStringChooserJSONParam(string n) { return null; } // E13
     public JSONStorableUrl GetUrlJSONParam(string n) { return null; }                     // E7
     public void CallAction(string n) { }                                                  // E7, E8
+    public SimpleJSON.JSONClass GetJSON(bool includePhysical = true, bool includeAppearance = true, bool forceStore = false) { return null; } // E1 (L288, PluginManager)
 }
+
+public class MVRPluginManager : JSONStorable { }                       // E1 (L287, GetStorableByID("PluginManager"))
 
 public class JSONStorableParam { public string name; }
 public class JSONStorableBool : JSONStorableParam

@@ -46,6 +46,7 @@ from .pipeline import Directive, LanguageModel, SpeechToText, TextToSpeech
 from .pipeline.context import is_silent, nudge_text, time_context
 from .pipeline.engines import EngineSet
 from .pipeline.http import ApiError
+from .pipeline.tts import test_tone_pcm, write_pcm_wav
 from .proactive import ProactiveTimer
 from .realtime_voice import RealtimeVoice
 from .settings_file import CHOICES, DEFAULTS, RANGES, _check_value
@@ -124,6 +125,7 @@ class Companion:
         self.realtime: RealtimeVoice | None = None
         self._realtime_key: str | None = None
         self.mode_note = ""
+        self._null_stt_warned = False
         self._last_exchange: float | None = None
         proactive = self.engine_set.ai["proactive"]
         self.proactive = ProactiveTimer(bool(proactive["enabled"]), float(proactive["idle_seconds"]), clock)
@@ -311,6 +313,8 @@ class Companion:
                 self.handle_ptt(bool(as_bool(event.get("active"))))
             elif type_ == "list_devices":
                 self.send_devices(event.get("id"))
+            elif type_ == "test_tone":
+                self.play_test_tone()
             elif type_ == "error":
                 log.warning("Body error (%s): %s", event.get("code"), event.get("message"))
             else:
@@ -655,6 +659,10 @@ class Companion:
         kind = step[0]
         if kind == "heard":
             log.info("Heard: %r (%.1fs)", step[1], step[2])
+            if not step[1] and self.engine_set.active_names.get("stt") == "null" and not self._null_stt_warned:
+                self._null_stt_warned = True
+                log.warning("Speech-to-text 'null' understands nothing, so there is no answer. For a spoken "
+                            "conversation choose Speech-to-text 'xai' or use realtime mode (xAI key).")
         elif kind == "command":
             self.send(step[1])
         elif kind == "speak":
@@ -681,6 +689,15 @@ class Companion:
         ))
         log.info("Say (%.1fs): %s", duration, text)
         return utterance_id
+
+    def play_test_tone(self) -> str:
+        """Plugin button "Test-Ton über Companion": a chime WAV in the audio folder, sent as a normal
+        speak (interrupting), so the path companion -> audio file -> VaM head audio is tested alone."""
+        utterance_id = protocol.new_id("utt-test")
+        path = self.cfg.audio_abs_path(f"{utterance_id}.wav")
+        duration = write_pcm_wav(test_tone_pcm(), 22050, path)
+        log.info("Test tone requested by the plugin: %s", self.cfg.audio_rel_path(path.name))
+        return self._queue_speech(utterance_id, "Test-Ton", path, duration, interrupt=True)
 
     def stop_speaking(self) -> None:
         self.send(self.body_command("stop_speaking"))
