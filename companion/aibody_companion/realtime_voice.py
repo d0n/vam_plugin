@@ -22,6 +22,7 @@ import time
 from typing import TYPE_CHECKING, Any
 
 from . import body_tools, protocol
+from .latency import LatencyTrace
 from .logsetup import Turn
 from .pipeline.context import is_silent, time_rules
 from .pipeline.realtime import (
@@ -214,6 +215,8 @@ class RealtimeVoice:
         elif type_ == "input_audio_buffer.speech_stopped":
             self.user_speaking = False
             self.c.on_user_activity()
+            if self.turn is not None and self.turn.latency is None:
+                self.turn.latency = LatencyTrace(self.c._clock(), "realtime")
             if not self.responding:
                 self._waiting_since = self.c._clock()
         elif type_ == "input_audio_buffer.timeout_triggered":
@@ -233,6 +236,8 @@ class RealtimeVoice:
             except (binascii.Error, ValueError):
                 return
             self._audio_bytes += len(pcm)
+            if self.turn is not None and self.turn.latency is not None:
+                self.turn.latency.mark("first_audio", self.c._clock())
             self._emit(self.assembler.feed_audio(pcm))
         elif type_ == "response.output_audio_transcript.delta":
             if not self._current(rid):
@@ -344,6 +349,8 @@ class RealtimeVoice:
             if self.turn is not None:
                 self.turn.step("realtime segment", text=text, seconds=round(duration, 2))
                 self.c._utt_turn[uid] = self.turn
+                if self.turn.latency is not None:
+                    self.turn.latency.mark("segment", self.c._clock())
             self.c._queue_speech(uid, text or "…", path, duration)
             self._sent_any = True
 

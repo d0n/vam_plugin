@@ -49,8 +49,10 @@ from .audio import (
     list_input_devices,
 )
 from .config import ENGINES_AVAILABLE, Config
+from .latency import LatencyStats, LatencyTrace, describe
 from .logsetup import Turn
 from .pipeline import Directive, LanguageModel, SpeechToText, TextToSpeech
+from .pipeline import tts as tts_module
 from .pipeline.context import is_silent, nudge_text, time_context
 from .pipeline.engines import EngineSet
 from .pipeline.http import ApiError
@@ -134,6 +136,7 @@ class Companion:
         self.input = InputProcessor(settings, self.gate, config.sample_rate, config.frame_ms)
         self.mic = mic  # None = no microphone (text only)
         self._list_devices = device_lister
+        self.latency = LatencyStats()  # end of speech -> first sound, last value + rolling average
         self.history: list[dict[str, str]] = []
         self.body_info: dict[str, Any] = {}  # last ready/heartbeat from the AIBody plugin
         self.session_id = uuid.uuid4().hex[:12]  # changes on every companion start
@@ -438,6 +441,14 @@ class Companion:
             return
         turn.step(f"plugin: {type_}", utterance=uid, duration=event.get("duration"), reason=event.get("reason"),
                   code=event.get("code"), message=event.get("message"))
+        if type_ == "speech_started" and getattr(turn, "latency", None):
+            result = turn.latency.finish(self._clock())
+            if result:
+                self.latency.add(result)
+                log.info("Latenz %s bis zum ersten Ton: %s", turn.id, describe(result))
+                turn.step("latency", total_s=result["total_s"],
+                          parts=" ".join(f"{k}={v}" for k, v in result["parts"].items()))
+                self._last_heartbeat = -HEARTBEAT_INTERVAL_S  # show it right away
 
     def _send_heartbeat(self) -> None:
         # Only while the AIBody plugin is alive: over files, unread heartbeats would pile up.
@@ -453,7 +464,7 @@ class Companion:
             engines_active=dict(self.engine_set.active_names),
             mic_capturing=bool(self.mic and self.mic.capturing),
             mode=self.mode_info(), proactive=self.proactive_info(), keys=self.engine_set.key_info(),
-            audio_out=self.audio_info(), turn=self.turn_status,
+            audio_out=self.audio_info(), turn=self.turn_status, latency=self.latency.info(),
         ))
 
     def audio_info(self) -> dict[str, Any]:
@@ -654,11 +665,12 @@ class Companion:
     def handle_utterance(self, utterance: bytes) -> str:
         """Transcribes and answers an utterance. Returns the text (inline) or "" (queued)."""
         self.on_user_activity()
+        t0 = self._clock()  # VAD end / push-to-talk release: the utterance is complete
         if self.background_turns:
-            self._submit("audio", utterance)
+            self._submit("audio", utterance, t0)
             return ""
         text = ""
-        for step in self._turn("audio", utterance, self._generation):
+        for step in self._turn("audio", utterance, self._generation, t0):
             if step[0] == "heard":
                 text = step[1]
             self._apply(step)
@@ -667,31 +679,32 @@ class Companion:
     def handle_user_text(self, text: str) -> None:
         """Typed text (console): the same answer path as speech, without speech to text."""
         self.on_user_activity()
+        t0 = self._clock()  # Enter
         if self.background_turns:
-            self._submit("text", text)
+            self._submit("text", text, t0)
             return
-        for step in self._turn("text", text, self._generation):
+        for step in self._turn("text", text, self._generation, t0):
             self._apply(step)
 
     # -- turns: STT -> LLM -> TTS ----------------------------------------------------------
 
-    def _submit(self, kind: str, data: Any) -> None:
+    def _submit(self, kind: str, data: Any, t0: float | None = None) -> None:
         if self._worker is None or not self._worker.is_alive():
             self._worker = threading.Thread(target=self._work, name="aibody-turns", daemon=True)
             self._worker.start()
-        self._jobs.put((kind, data, self._generation))
+        self._jobs.put((kind, data, self._generation, t0))
 
     def _work(self) -> None:
         while True:
             job = self._jobs.get()
             if job is None:
                 return
-            kind, data, generation = job
+            kind, data, generation, t0 = job
             if generation != self._generation:
                 continue  # cancelled before it started
             self._busy.set()
             try:
-                for step in self._turn(kind, data, generation):
+                for step in self._turn(kind, data, generation, t0):
                     self._results.put((generation, *step))
             except Exception:  # noqa: BLE001 - a broken turn must not kill the worker
                 log.exception("Turn failed")
@@ -731,11 +744,13 @@ class Companion:
         if generation != self._generation:
             raise _CancelledError()
 
-    def _turn(self, kind: str, data: Any, generation: int):
+    def _turn(self, kind: str, data: Any, generation: int, t0: float | None = None):
         """Yields steps: ("heard", text), ("command", cmd), ("speak", id, text, path, duration),
         ("status", text) for the plugin's status box."""
         turn = Turn(kind, **(_pcm_stats(data, self.cfg.sample_rate) if kind == "audio" and logsetup.is_verbose()
                              else {"text": str(data)} if kind == "text" else {}))
+        if t0 is not None:
+            turn.latency = LatencyTrace(t0, "chain")
         names = self.engine_set.active_names
         turn.step("path", mode=self.mode_requested, active=self.active_mode, chain=f"{names['stt']} -> "
                   f"{names['llm']} -> {names['tts']}", selected="/".join(self.engine_set.requested.values()),
@@ -744,6 +759,8 @@ class Companion:
             if kind == "audio":
                 t = turn.elapsed()
                 text = self._transcribe(data)
+                if turn.latency:
+                    turn.latency.mark("stt", self._clock())
                 turn.step("stt", engine=self.engine_set.active_names["stt"],
                           ms=round((turn.elapsed() - t) * 1000), text=text, error=self._stt_error or None)
                 yield ("heard", text, len(data) / 2 / self.cfg.sample_rate)
@@ -798,12 +815,20 @@ class Companion:
                         return
                     for d in held:
                         yield from self._directive_steps(d)
+                if turn.latency and not said:
+                    first = getattr(self.llm, "first_delta_at", None)
+                    turn.latency.mark("llm_first_token", first if first is not None else self._clock())
+                    turn.latency.mark("first_sentence", self._clock())
                 turn.step(f"llm sentence {len(said) + 1}", text=sentence)
                 utterance_id = protocol.new_id("utt")
                 path = self.cfg.audio_abs_path(f"{utterance_id}.wav")
                 t = turn.elapsed()
                 tts_before = len(problems)
                 duration = self._synthesize(sentence, path, problems)
+                if turn.latency and not said:
+                    done, write_s = self._clock(), tts_module.LAST_WRITE_S["s"]
+                    turn.latency.mark("tts", done - write_s)
+                    turn.latency.mark("write", done)
                 tts_name = self.engine_set.active_names["tts"]
                 turn.step("tts", engine=tts_name if len(problems) == tts_before else f"{tts_name} failed -> fallback",
                           voice=self._voice_of(tts_name), ms=round((turn.elapsed() - t) * 1000),
@@ -862,6 +887,8 @@ class Companion:
         (a nudge has no fallback: the echo test model would read the note aloud). In the simple
         Q&A mode a short spoken error notice replaces the fallback model."""
         llm = self.llm
+        if hasattr(llm, "first_delta_at"):
+            llm.clock = self._clock
         user_text = text
         text = prompt or text
         expressions = list(self.body_info.get("expressions") or DEFAULT_EXPRESSIONS)
@@ -1008,6 +1035,8 @@ class Companion:
         rel = self._rel(path)
         turn = self._utt_turn.get(utterance_id)
         if turn is not None:
+            if getattr(turn, "latency", None):
+                turn.latency.mark("speak_sent", self._clock())
             turn.step("speak sent", utterance=utterance_id, audio=rel, seconds=round(duration, 2),
                       queue="interrupt" if interrupt else "append")
         self.gate.on_speak_sent(utterance_id, duration, interrupt=interrupt)

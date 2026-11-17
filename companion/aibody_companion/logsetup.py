@@ -146,6 +146,7 @@ class Turn:
     """One turn's trace: trace lines carry the turn id and the seconds since the turn started."""
 
     _counter = 0
+    latency = None  # latency.LatencyTrace of a user turn (set by the companion)
 
     def __init__(self, kind: str, prefix: str = "t", **fields: Any):
         Turn._counter += 1

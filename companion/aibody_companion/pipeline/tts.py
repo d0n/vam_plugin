@@ -10,6 +10,7 @@ from __future__ import annotations
 import io
 import math
 import struct
+import time
 import wave
 from pathlib import Path
 from typing import Protocol
@@ -39,8 +40,12 @@ def test_tone_pcm(seconds: float = 1.5, rate: int = 22050) -> bytes:
     return bytes(frames)
 
 
+LAST_WRITE_S = {"s": 0.0}  # how long the last WAV write took (latency breakdown "Datei")
+
+
 def write_pcm_wav(pcm16: bytes, sample_rate: int, out_path: Path, channels: int = 1) -> float:
     """Wraps raw signed 16-bit little-endian PCM in a WAV file; returns its duration."""
+    started = time.perf_counter()
     if len(pcm16) % (2 * channels):
         pcm16 = pcm16[: len(pcm16) - len(pcm16) % (2 * channels)]
     if not pcm16:
@@ -53,16 +58,19 @@ def write_pcm_wav(pcm16: bytes, sample_rate: int, out_path: Path, channels: int 
         w.setframerate(sample_rate)
         w.writeframes(pcm16)
     tmp.replace(out_path)
+    LAST_WRITE_S["s"] = time.perf_counter() - started
     return len(pcm16) / (2 * channels) / float(sample_rate)
 
 
 def write_audio(data: bytes, sample_rate: int, out_path: Path) -> float:
     """Writes a TTS answer: a complete WAV (starts with RIFF) as is, else raw 16-bit PCM."""
     if data[:4] == b"RIFF":
+        started = time.perf_counter()
         out_path.parent.mkdir(parents=True, exist_ok=True)
         tmp = out_path.with_suffix(".part")
         tmp.write_bytes(data)
         tmp.replace(out_path)
+        LAST_WRITE_S["s"] = time.perf_counter() - started
         return wav_duration(out_path)
     return write_pcm_wav(data, sample_rate, out_path)
 

@@ -48,6 +48,7 @@ namespace AIBody
         private JSONClass _proactiveInfo;  // companion heartbeat "proactive": enabled / idle_seconds / status
         private JSONClass _audioOut;       // companion heartbeat "audio_out": folder / auto / note
         private string _turn = "";         // companion heartbeat "turn": last question / answer step
+        private JSONClass _latency;        // companion heartbeat "latency": last_s, avg_s, n, parts
 
         // ai controls (sent in the config event, merged into config.json "ai"; the rest of "ai" is file-only)
         private JSONStorableStringChooser _aiModeJson;
@@ -273,6 +274,19 @@ namespace AIBody
         // ---------------------------------------------------------------- tabs (see AIBodyPlugin)
 
         /// <summary>Tab "Voice Mode": link on/off, API Reconnect, sound test.</summary>
+        /// <summary>"Latenz: 2.4 s (Ø 2.6 s, 5 Runden) – STT 0.80 · …": end of speech -> first sound.</summary>
+        private string LatencyLine()
+        {
+            string text = "Latenz bis zum ersten Ton: " + Protocol.GetFloat(_latency, "last_s", 0f).ToString("0.0") + " s (Ø "
+                + Protocol.GetFloat(_latency, "avg_s", 0f).ToString("0.0") + " s, " + _latency["n"].Value + " Runden)";
+            JSONClass parts = _latency["parts"] as JSONClass;
+            if (parts == null) return text;
+            List<string> items = new List<string>();
+            foreach (KeyValuePair<string, JSONNode> kv in parts)
+                items.Add(kv.Key + " " + kv.Value.AsFloat.ToString("0.00"));
+            return text + "\n  " + string.Join(" · ", items.ToArray());
+        }
+
         public void BuildVoiceModeTab(UiPage page)
         {
             page.Toggle(_activeJson);
@@ -858,6 +872,8 @@ namespace AIBody
             JSONClass audioOut = msg["audio_out"] as JSONClass;
             if (audioOut != null) _audioOut = audioOut;
             if (Protocol.Has(msg, "turn")) _turn = msg["turn"].Value;
+            JSONClass latency = msg["latency"] as JSONClass;
+            if (latency != null) _latency = latency;
             UpdateEngineInfo();
             UpdateKeyStatus();
         }
@@ -948,6 +964,7 @@ namespace AIBody
                     bool bad = _turn.Contains("Fehler") || _turn.StartsWith("Nichts") || _turn.StartsWith("Realtime") || _turn.StartsWith("Keine");
                     text += "Letzte Runde: " + (bad ? "<color=red>" + _turn + "</color>" : _turn) + "\n";
                 }
+                if (_latency != null) text += LatencyLine() + "\n";
             }
             else if (_lastSession != null) text += "Companion app: GETRENNT – verbindet automatisch neu, sobald die App wieder läuft\n";
             else text += "Companion app: noch nicht gesehen – starten: python -m aibody_companion --vam-root \"<VaM>\" --channel " + Channel + "\n";
