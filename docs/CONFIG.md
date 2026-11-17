@@ -197,6 +197,10 @@ a pasted key (starts with `xai-` / `sk_`, or a long string without `/ \ .`) is r
 plugin and the app and never stored. A direct key field is not built: it would be saved readably
 in the scene and in `config.json` (open question to the user, TODO hook in `AppLink.cs`).
 
+**Which key:** xAI needs an API key from console.x.ai (starts with `xai-`). A Grok subscription
+(SuperGrok / X Premium) or a grok.com login token is not an API key and is refused by `api.x.ai`.
+The key status (heartbeat `keys.xai.hint`, tab *AI*) says so when the key is missing or refused.
+
 The key itself never goes into `config.json` (a `key_file` value that looks like a key is
 refused) or into the log. Without a key nothing is blocked: the engine is "nicht konfiguriert"
 and the fallback runs.

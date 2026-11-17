@@ -213,3 +213,25 @@ from `Exception.ToString()`, not from reflection. The only additions outside the
   `"Incorrect API key provided"` (not 401), `POST /v1/responses` exists (422 for an empty body),
   an unknown path gives 404. The key status now shows "abgelehnt" for that 400 too. Still
   TODO(verify): a full answer with a real key.
+
+## 0.7.4: mic menu, pose menu, body tools, latency
+
+- **Chooser refresh (E24, E25):** `choices` and `displayChoices` set together on a shown popup
+  (vam-collider-editor `ColliderEditor.cs` @00d54b06 L414-415, L448-449), `CreateScrollablePopup`
+  (L359), `popupOpenCallback` refilling `choices` when the menu opens (vam-embody `Embody.cs`
+  @e09e364f L77, L950; vam-timeline `SequencingScreen.cs` @54e29425 L257-264, L500). Used for
+  the mic menu and the pose / expression / gesture menus in tab AI Character. Item 4 of the
+  TODO(verify) list (chooser updates) is covered by this evidence; still checked in VaM in T11.
+- **Pose files:** `FileManagerSecure.GetFiles` on `Custom/Atom/Person/Pose` and
+  `Custom/Atom/Person/Pose/AIBody`, at most 200 files. TODO(verify): E11 shows `GetFiles` on
+  `Saves/PluginData`, not on `Custom/`. Applying uses the existing `LoadPose` path (PosePresets,
+  still TODO(verify) T5).
+- **No gaze tool:** AIBody has no gaze control, so the AI gets no look-at tool.
+- **Path display removed** from tabs Post and Config (the menu shows only what can be set); the
+  paths go once to the log via `SuperController.LogMessage`. No new API.
+- **Latency / key hint:** text in the existing status box from the companion heartbeat; no new API.
+- Companion (outside the sandbox): xAI function calling in `/v1/responses` (`tools` with
+  `type: function`, results as `function_call_output` with `previous_response_id`) and realtime
+  (`function_call` -> `conversation.item.create` `function_call_output` + `response.create`).
+  Tested against a fake server only; TODO(verify) with a real key.
+

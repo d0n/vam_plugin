@@ -104,7 +104,7 @@ the companion app reads it on start. See `docs/CONFIG.md` and
 | `set_morphs`    | `morphs` {name: value} (required), `blend` s, `release_others` bool    | sets raw morph values |
 | `reset_morphs`  | `blend` s                                                               | returns all touched morphs to their original values |
 | `gesture`       | `name` (required), `duration` s, `amplitude`                           | gesture from `gestures.json`, or built-in head gestures `nod`, `shake`, `tilt` |
-| `pose`          | `path` (required)                                                      | loads a pose preset (`.vap`/`.json`, may be inside a `.var`) |
+| `pose`          | `path` or `name` (one required)                                        | `path`: loads a pose preset (`.vap`/`.json`, may be inside a `.var`); `name`: a pose from the plugin's pose list (`gestures.json` kind `pose` or a preset file in `Custom/Atom/Person/Pose[/AIBody]`) |
 | `trigger`       | `storable` (required) + `action`, or `param` + `value` (+ `value_type`) | calls an action / sets a parameter on any storable of the target atom, e.g. another plugin |
 | `idle`          | `enabled`, `intensity` 0..1                                            | procedural idle head motion |
 | `breathing`     | `enabled`, `rate` breaths/min, `depth`                                 | procedural breathing |
@@ -118,7 +118,7 @@ not detected by the plugin; a missing storable or parameter is reported as `comm
 | type                  | fields | effect |
 |-----------------------|--------|--------|
 | `ping`                | -      | answers `pong` with its status |
-| `companion_heartbeat` | `session` (required), `version`, `engines_available` (`{"stt": [...], "llm": [...], "tts": [...]}`), `engines_status` (`{"tts": {"elevenlabs": "nicht konfiguriert: ..."}, ...}`: "bereit (...)" or "nicht konfiguriert: <why>" per engine), `engines_active` (`{"stt": "null", ...}`: what really runs, the fallback if the selected engine is not configured), `mic_capturing`, `mode` (`{"requested": "qa" \| "auto" \| "realtime" \| "chain", "active": "realtime", "status": "Realtime verbunden …"}`), `proactive` (`{"enabled": true, "idle_seconds": 90, "status": …}`), `keys` (`{"xai": {"state": "configured" \| "missing" \| "rejected", "detail": "Key-Datei …"}, "elevenlabs": {…}}`, never the key), `audio_out` (`{"folder": "Custom/Sounds/AIBody/default", "auto": true, "note"?: "VaM konnte … nicht laden - Audio-Ordner gewechselt auf …"}`), `turn` (last question / answer step or problem as text: `Gehört: …`, `Antwort (…): …`, `Nichts verstanden …`, `Sprachmodell-Fehler: …`) | companion liveness; fills the engine menus and the engine status in the Engines tab |
+| `companion_heartbeat` | `session` (required), `version`, `engines_available` (`{"stt": [...], "llm": [...], "tts": [...]}`), `engines_status` (`{"tts": {"elevenlabs": "nicht konfiguriert: ..."}, ...}`: "bereit (...)" or "nicht konfiguriert: <why>" per engine), `engines_active` (`{"stt": "null", ...}`: what really runs, the fallback if the selected engine is not configured), `mic_capturing`, `mode` (`{"requested": "qa" \| "auto" \| "realtime" \| "chain", "active": "realtime", "status": "Realtime verbunden …"}`), `proactive` (`{"enabled": true, "idle_seconds": 90, "status": …}`), `keys` (`{"xai": {"state": "configured" \| "missing" \| "rejected", "detail": "Key-Datei …", "hint"?: "nötig: API-Key von console.x.ai …"}, "elevenlabs": {…}}`, never the key; `hint` when missing / rejected), `audio_out` (`{"folder": "Custom/Sounds/AIBody/default", "auto": true, "note"?: "VaM konnte … nicht laden - Audio-Ordner gewechselt auf …"}`), `turn` (last question / answer step or problem as text: `Gehört: …`, `Antwort (…): …`, `Nichts verstanden …`, `Sprachmodell-Fehler: …`), `latency` (`{"last_s": 2.41, "avg_s": 2.6, "n": 5, "kind": "chain" \| "realtime", "parts": {"STT": 0.8, "LLM erstes Token": 0.5, …}}`: end of the user's speech to the plugin's `speech_started`, average of the last 10 turns) | companion liveness; fills the engine menus and the engine status in the Engines tab |
 
 ### Microphone feedback (app link)
 
@@ -258,3 +258,12 @@ records regardless of the gate. See `companion/aibody_companion/audio/echo_gate.
 
 Additive changes (new optional fields, new types) keep the version. Receivers ignore unknown
 fields in events and report unknown command types as errors.
+
+## Body tools (companion <-> xAI, v0.7.4)
+
+The plugin's `status` event lists `expressions`, `gestures`, `poses` and `body_control`. From these
+the companion offers the language model the tools `express` (`expression`, `gesture`, enums of the
+loaded names) and `pose` (`name`, only when poses exist). A call becomes `expression` / `gesture` /
+`pose` commands on this channel; every call is answered (`{"ok": true}` / `{"ok": false, "error"}`).
+No tools in `ai.mode` `qa` or with `body_control` false.
+

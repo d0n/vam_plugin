@@ -13,9 +13,9 @@ nach durchgehen und das Ergebnis eintragen (✅ / ❌ / unklar). Dauer: etwa 20 
 **Vorbereitung**
 
 - VaM schließen. In `<VaM-Hauptordner>/AddonPackages/` alle alten AIBody-Pakete löschen:
-  `d0n.AIBody.1.var` bis `d0n.AIBody.9.var`, `d0n.AIBodySession.*`, `d0n.AIBodyPerson.*`,
+  `d0n.AIBody.1.var` bis `d0n.AIBody.10.var`, `d0n.AIBodySession.*`, `d0n.AIBodyPerson.*`,
   `d0n.AIBodyPerson2.*`. Lose Dateien unter `Custom/Scripts/d0n/AIBody/` ebenfalls entfernen.
-- `d0n.AIBody.10.var` nach `<VaM-Hauptordner>/AddonPackages/` kopieren.
+- `d0n.AIBody.11.var` nach `<VaM-Hauptordner>/AddonPackages/` kopieren.
 - Companion-App bereithalten (noch **nicht** starten):
   `python -m aibody_companion --vam-root "C:/VaM"` (Pfad zum eigenen VaM-Ordner anpassen).
   Für T9 vorher den xAI-Key setzen: `set XAI_API_KEY=xai-...` (cmd) bzw. `$env:XAI_API_KEY="xai-..."` (PowerShell).
@@ -60,7 +60,7 @@ Companion-App: erscheinen `speech_started`/`speech_ended` bzw. Fehler wie `audio
 
 Tab-Namen ab v0.7.2 (in v0.7.1 noch: Status, Verbindung, Engines, Mikrofon & PTT, Körper, Erweitert):
 
-1. Tab **Client Character** (früher *Mikrofon & PTT*) öffnen > **Refresh device list** > Auswahl **Mic device** öffnen.
+1. Tab **Client Character** (früher *Mikrofon & PTT*) öffnen > **Mikrofone neu laden** > Auswahl **Mic device** öffnen.
 2. Tab **AI** (früher *Engines*) öffnen und die drei Auswahllisten öffnen; ins Feld **xAI key file** klicken und tippen.
 3. Tab **Post** (früher *Verbindung*): ins Feld **Channel** klicken, `test` eintippen, Enter. Danach wieder `default`.
 4. Tab **AI Character** (früher *Körper*): ins Feld **Breath morph** klicken und einen Buchstaben ändern, dann zurück.
@@ -177,5 +177,28 @@ bitte genau abschreiben, dazu die Ausgabe der Companion-Konsole.
 Melden: die Datei `companion.log` aus `<VaM>/Saves/PluginData/AIBody/logs/` (enthält keine Keys,
 bitte trotzdem kurz reinschauen) und einen Screenshot des Statusfelds mit *Letzte Ereignisse*.
 
-**Ergebnis zurückschicken:** pro Punkt T1–T10 ✅/❌, die Screenshots, die roten „AIBody:“-Zeilen und
+## T11 – Mikrofon-Menü, Posen-Menü, KI-Körpersteuerung, Latenz (ab v0.7.4)
+
+1. Tab **Client Character** > **Mikrofone neu laden**. Unter dem Menü steht
+   `Mikrofone: N gefunden (Windows WASAPI o. Ä.), Auswahl: …` oder rot `Mikrofone: 0 gefunden – <Grund>`.
+   Die Companion-Konsole zeigt `Mikrofone: N gefunden (…): …`. Menü **Mic device** öffnen: erster
+   Eintrag `Standard (System-Mikrofon)`, darunter jedes Mikrofon einmal. Eins wählen, sprechen
+   (Pegel bewegt sich), Szene speichern, neu laden: die Wahl ist noch da.
+2. Tab **AI Character** > Abschnitt **Pose**: Menü öffnen (Posen aus `gestures.json` und aus
+   `<VaM>/Custom/Atom/Person/Pose/` bzw. `.../Pose/AIBody/`), eine wählen, **Pose anwenden**.
+   Statusfeld: Ergebnis der Aktion. **Posen neu laden** nach dem Ablegen einer neuen Pose-Datei.
+3. Ausdruck wählen > **Ausdruck zeigen**; Geste wählen > **Geste abspielen**.
+4. Tab **Voice Mode** > **Echtzeit (Realtime) verwenden** an, Tab **AI Character** > **Body control** an.
+   Sagen: „Lächle mal“ bzw. „Nimm eine andere Pose ein“. Konsole: `realtime tool call` bzw.
+   `llm tool call` (mit Verbose log), die Figur reagiert. Mit **Einfacher Q&A-Modus** reagiert sie nicht
+   (nur Sprache, so gewollt).
+5. Nach jeder Antwort im Statusfeld (*Live*): `Latenz bis zum ersten Ton: X s (Ø Y s, n Runden)` und
+   darunter die Aufschlüsselung. In der Konsole: `Latenz t000N bis zum ersten Ton: …`.
+6. Tab **AI** ohne Key: Key-Status `fehlt` mit `nötig: API-Key von console.x.ai … ein Grok-Abo /
+   grok.com-Token funktioniert nicht`.
+
+Melden: Screenshot von Mikrofon-Statuszeile und Menü, Screenshot des Statusfelds mit der Latenz,
+Konsolenausgabe.
+
+**Ergebnis zurückschicken:** pro Punkt T1–T11 ✅/❌, die Screenshots, die roten „AIBody:“-Zeilen und
 bei Problemen mit einer Antwort die Datei `companion.log` (mit eingeschaltetem Verbose log).
