@@ -132,6 +132,20 @@ class CompanionFilePluginTests(unittest.TestCase):
         msg = [m for m in self.plugin.poll() if m["type"] == "devices"][0]
         self.assertEqual(msg["devices"][0]["name"], "USB Mic")
 
+    def test_device_list_error_reaches_the_plugin_and_choice_is_applied(self):
+        self.devices = []
+        self.c._list_devices = lambda: ([], "sounddevice is not installed (pip install sounddevice)")
+        self.plugin.send({"type": "list_devices"})
+        self.c.tick()
+        msg = [m for m in self.plugin.poll() if m["type"] == "devices"][0]
+        self.assertEqual(msg["devices"], [])
+        self.assertIn("sounddevice", msg["error"], "the plugin shows why the list is empty")
+        self.plugin.send({"type": "config", "mic": {"device": "USB Mic"}})
+        self.c.tick()
+        self.assertEqual(self.c.mic_settings.device, "USB Mic")
+        ack = [m for m in self.plugin.poll() if m["type"] == "config_ack"][0]
+        self.assertEqual(ack["applied"]["mic"]["device"], "USB Mic")
+
     def test_ptt_press_interrupts_speech(self):
         self.plugin.send({"type": "config", "mic": {"mode": "ptt", "ptt_interrupts": True}})
         self.c.tick()

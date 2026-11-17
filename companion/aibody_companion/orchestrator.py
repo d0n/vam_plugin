@@ -576,6 +576,12 @@ class Companion:
 
     def send_devices(self, reply_to: str | None = None) -> None:
         devices, error = self._list_devices()
+        if error:
+            log.warning("Mikrofone: keine Liste für das Plugin - %s", error)
+        else:
+            log.info("Mikrofone: %d gefunden%s: %s", len(devices),
+                     f" ({devices[0].get('hostapi')})" if devices and devices[0].get("hostapi") else "",
+                     ", ".join(str(d.get("name")) for d in devices))
         self.send(protocol.make_command("devices", devices=devices, error=error, reply_to=reply_to))
 
     def mic_state(self) -> dict[str, Any]:

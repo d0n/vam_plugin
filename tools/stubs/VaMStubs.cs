@@ -75,7 +75,10 @@ public class JSONStorableStringChooser : JSONStorableParam
     public delegate void SetStringCallback(string v);
     public JSONStorableStringChooser(string name, List<string> choices, string startingValue, string displayName, SetStringCallback callback) { }
     public string val;
-    public List<string> choices { get; set; }                         // E9 (choices = ...)
+    public List<string> choices { get; set; }                         // E9 (choices = ...), E25 (on a shown popup)
+    public List<string> displayChoices { get; set; }                  // E24 (set together with choices)
+    public delegate void PopupOpenCallback();
+    public PopupOpenCallback popupOpenCallback;                       // E25 (Embody, Timeline)
 }
 public class JSONStorableUrl : JSONStorableParam { public string val; } // E7
 public class JSONStorableAction
@@ -97,6 +100,7 @@ public class MVRScript : JSONStorable
     public UIDynamicToggle CreateToggle(JSONStorableBool p, bool rightSide = false) { return null; }        // E12
     public UIDynamicSlider CreateSlider(JSONStorableFloat p, bool rightSide = false) { return null; }       // E12
     public UIDynamicPopup CreatePopup(JSONStorableStringChooser p, bool rightSide = false) { return null; }  // E16
+    public UIDynamicPopup CreateScrollablePopup(JSONStorableStringChooser p, bool rightSide = false) { return null; }  // E24
     public UIDynamicTextField CreateTextField(JSONStorableString p, bool rightSide = false) { return null; } // E12
     public UIDynamicButton CreateButton(string label, bool rightSide = false) { return null; }        // E1, E3
     // Tabs: remove the controls of the old tab, create the new ones.                     E17, E18

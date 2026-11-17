@@ -649,7 +649,7 @@ namespace AIBody
             {
                 List<string> choices = new List<string>(_voiceJson.choices);
                 choices.Add(voice);
-                try { _voiceJson.choices = choices; }   // TODO(verify): choices refresh (E9)
+                try { _voiceJson.choices = choices; }   // choices refresh: E9, E24, E25
                 catch (Exception e) { _diag.Fail("Stimmen-Liste erweitern", e); }
             }
             _voiceJson.val = voice;
@@ -868,7 +868,7 @@ namespace AIBody
             if (!choices.Contains(chooser.val)) choices.Add(chooser.val);
             try
             {
-                // TODO(verify): JSONStorableStringChooser.choices is settable and refreshes the popup.
+                // choices = ... refreshes a shown popup (E24, E25).
                 chooser.choices = choices;
             }
             catch (Exception e)

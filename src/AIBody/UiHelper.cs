@@ -68,6 +68,9 @@ namespace AIBody
         public void Slider(JSONStorableFloat p) { if (p != null) _sliders.Add(_plugin.CreateSlider(p, _right)); }
         public void Popup(JSONStorableStringChooser p) { if (p != null) _popups.Add(_plugin.CreatePopup(p, _right)); }
 
+        /// <summary>Popup with a scrolling list (long device lists), as Collider Editor uses it.</summary>
+        public void ScrollablePopup(JSONStorableStringChooser p) { if (p != null) _popups.Add(_plugin.CreateScrollablePopup(p, _right)); }
+
         public void Button(string label, UnityEngine.Events.UnityAction onClick)
         {
             UIDynamicButton b = _plugin.CreateButton(label, _right);

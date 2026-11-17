@@ -43,6 +43,8 @@ Enforcement:
 | E21 | [vam-improved-pov scenes/Empty.json](https://github.com/acidbubbles/vam-improved-pov/blob/dea857067da496e7e19ae5af31088fdc5fa6fb53/scenes/Empty.json) (Acid Bubbles, a scene saved by VaM) | VaM's SimpleJSON writes numbers and booleans as strings: `"x" : "355.9811"` (L4), `"useSceneLoadPosition" : "true"` (L8), `"on" : "true"` (L12). The companion app therefore accepts `"0.5"` / `"true"` for numbers / booleans in everything the plugin writes |
 | E22 | [FootstepsExtended Footsteps.Audio.cs](https://github.com/emptyngton/FootstepsExtended/blob/cd38ce35546a9fa89d8b7b271a97ff652fff52b7/src/Footsteps.Audio.cs) (emptyngton) | audio below `Custom/Sounds/FootstepsSFX/` (L13); sandboxed `FileManagerSecure.GetFiles(dir, "*.wav")` (L98) and `ReadAllBytes` (L143) on those paths; it decodes with VaM's `NAudioPlayer` / `WAV` helpers instead of `URLAudioClipManager` |
 | E23 | [VaM Japan glossary: Scene Audio](https://vamjapan.com/glossary/scene-audio/) (user documentation) | VaM's Scene Audio atom: **Browse** opens `Custom\Sounds` in the file browser; audio files to play are placed below that folder |
+| E24 | [vam-collider-editor ColliderEditor.cs](https://github.com/acidbubbles/vam-collider-editor/blob/00d54b06d5aa579d42404684244aad821d35060f/src/ColliderEditor.cs) (Acid Bubbles) | `CreateScrollablePopup(jssc, rightSide)` (L359), `chooser.choices = ...` together with `chooser.displayChoices = ...` on a shown popup (L414-415, L448-449), `popupPanelHeight` (L283) |
+| E25 | [vam-embody Embody.cs](https://github.com/acidbubbles/vam-embody/blob/e09e364f818b0389aa97d84c54ba5c65ad1183d6/src/Embody.cs) (L77, L950) and [vam-timeline SequencingScreen.cs](https://github.com/acidbubbles/vam-timeline/blob/54e294256d7b73ec7d00d4216fcc7f01bc9d8133/src/UI/Screens/SequencingScreen.cs) (L257-264, L500) (Acid Bubbles) | `chooser.popupOpenCallback = ...` refills `choices` when the menu opens; `choices = ...` on a popup that is on screen |
 
 ## Kept
 
@@ -88,7 +90,7 @@ These use evidenced APIs but in a combination nobody has shown publicly, or depe
 3. `NormalizeMediaPath` + `QueueClip` with a `Saves/PluginData/...` relative path (evidence uses
    file-browser paths), and `PlayNow` on a still loading clip being retried safely; start/end
    detection via `AudioSource.isPlaying` / `clip`; lip sync follows (`SpeechPlayer.cs`).
-4. `JSONStorableStringChooser.choices` refreshes an open popup (`AppLink.cs`, `MicConfig.cs`).
+4. ~~`JSONStorableStringChooser.choices` refreshes an open popup~~: now evidenced (E24, E25: set on popups that are on screen, refilled from `popupOpenCallback`). Still to see in VaM: the mic list after **Mikrofone neu laden** (T11).
 5. The `InputField` text field pattern on `CreateTextField` (`UiHelper.cs`).
 6. The `PosePresets` storable id and its `presetBrowsePath` / `LoadPreset` (`PoseController.cs`).
 7. Morph names of the built-in expressions and the breath morph (`ExpressionController.cs`,

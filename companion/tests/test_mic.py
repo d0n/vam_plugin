@@ -183,3 +183,83 @@ class MicControllerTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class FakeSd:
+    """sounddevice as on Windows: every mic once per host API, MME names cut to 31 characters."""
+
+    class default:  # noqa: N801 - mirrors sounddevice.default
+        device = (3, 5)
+        hostapi = 0
+
+    def __init__(self):
+        self.opened = []
+
+    def query_hostapis(self):
+        return [{"name": "MME"}, {"name": "Windows WASAPI"}]
+
+    def query_devices(self):
+        return [
+            {"name": "Microsoft Sound Mapper - Input", "hostapi": 0, "max_input_channels": 2},
+            {"name": "Mikrofon (USB Audio Device With", "hostapi": 0, "max_input_channels": 1},
+            {"name": "Headset (Bluetooth)", "hostapi": 0, "max_input_channels": 1},
+            {"name": "Mikrofon (USB Audio Device With A Long Name)", "hostapi": 1, "max_input_channels": 1,
+             "default_samplerate": 48000.0},
+            {"name": "Lautsprecher", "hostapi": 1, "max_input_channels": 0},
+            {"name": "Headset (Bluetooth)", "hostapi": 1, "max_input_channels": 1},
+            {"name": "Headset (Bluetooth)", "hostapi": 1, "max_input_channels": 1},
+        ]
+
+    def RawInputStream(self, **kw):  # noqa: N802 - sounddevice name
+        self.opened.append(kw["device"])
+
+        class S:
+            def start(self):
+                pass
+
+            def stop(self):
+                pass
+
+            def close(self):
+                pass
+
+        return S()
+
+
+class DeviceListTests(unittest.TestCase):
+    def setUp(self):
+        from unittest import mock
+
+        from aibody_companion.audio import capture
+
+        self.sd = FakeSd()
+        patcher = mock.patch.object(capture, "_sounddevice", lambda: self.sd)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.capture = capture
+
+    def test_one_entry_per_mic_from_the_default_host_api(self):
+        devices, error = self.capture.list_input_devices()
+        self.assertIsNone(error)
+        self.assertEqual([d["name"] for d in devices],
+                         ["Mikrofon (USB Audio Device With A Long Name)", "Headset (Bluetooth)"])
+        self.assertEqual(devices[0]["index"], 3)
+        self.assertTrue(devices[0]["default"])
+        self.assertEqual(devices[0]["hostapi"], "Windows WASAPI")
+
+    def test_chosen_name_opens_by_index(self):
+        mic = self.capture.MicCapture(device="Headset (Bluetooth)")
+        mic.start()
+        self.assertEqual(self.sd.opened, [5], "a name listed under several host APIs opens by index")
+        self.capture.MicCapture(device=None).start()
+        self.assertEqual(self.sd.opened[-1], None, "system default")
+        self.capture.MicCapture(device="USB Audio").start()
+        self.assertEqual(self.sd.opened[-1], "USB Audio", "unknown names go to sounddevice as they are")
+
+    def test_errors_are_reported(self):
+        self.sd.query_devices = lambda: []
+        devices, error = self.capture.list_input_devices()
+        self.assertEqual(devices, [])
+        self.assertIn("no input device", error)
+        with unittest.mock.patch.object(self.capture, "_sounddevice", lambda: None):
+            self.assertIn("sounddevice is not installed", self.capture.list_input_devices()[1])
