@@ -134,7 +134,7 @@ class ConfigRoundTripTests(unittest.TestCase):
         self.plugin.write_settings()
         path = settings_file.settings_path(self.tmp.name)
         self.assertEqual(set(json.loads(path.read_text())["ai"]), {"mode", "proactive", "realtime", "xai"},
-                         "only the Engines tab's ai controls")
+                         "only the plugin's ai controls")
         self.sim.start_app()
         data = json.loads(path.read_text())
         self.assertIn("persona", data["ai"], "the app fills in the rest of its section so it can be edited")

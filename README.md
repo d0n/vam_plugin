@@ -59,7 +59,7 @@ Weitere Dokumente: [SPEC](docs/SPEC.md) (vereinbarter Umfang) · [ANFORDERUNGEN]
 
 ### 4.2 config.json
 
-Spalte „Wo“: Tab im Plugin-Menü; „nur Datei“ = kein Bedienelement. Bereich in eckigen Klammern; „Plugin-Regler“ nennt abweichende Reglergrenzen im Menü.
+Spalte „Wo“: Tab im Plugin-Menü; „nur Datei“ = kein Bedienelement. Bereich in eckigen Klammern; die Regler im Plugin haben dieselben Grenzen.
 
 | Schlüssel | Typ | Standard | Werte | Wirkung | Wo |
 |---|---|---|---|---|---|
@@ -76,7 +76,7 @@ Spalte „Wo“: Tab im Plugin-Menü; „nur Datei“ = kein Bedienelement. Bere
 | `mic.enabled` | bool | true | | Mikrofon an | Client Character: **Mic enabled** |
 | `mic.mode` | string | `vad` | `vad`, `ptt` (Menü: „Voice activation“, „Push-to-talk“) | Sprachaktivierung oder Push-to-Talk | Client Character: **Mic mode** |
 | `mic.device` | string | `""` | Gerätename aus der Liste der App; `""` = System-Standard | Eingabegerät; Menüeintrag „Standard (System-Mikrofon)“ = `""` | Client Character: **Mic device** |
-| `mic.vad_threshold` | number | 0.01 | [0.001–0.5]; Plugin-Regler 0.001–0.2 | Pegel (RMS 0–1), ab dem ein Block als Sprache zählt | Client Character: **VAD threshold** |
+| `mic.vad_threshold` | number | 0.01 | [0.001–0.5] | Pegel (RMS 0–1), ab dem ein Block als Sprache zählt | Client Character: **VAD threshold** |
 | `mic.end_silence_ms` | int | 700 | [200–5000] | Stille, die eine Äußerung beendet | Client Character: **Silence timeout (ms)** |
 | `mic.min_utterance_ms` | int | 300 | [100–5000], kleiner als max | kürzere Äußerungen werden verworfen | Client Character: **Min utterance (ms)** |
 | `mic.max_utterance_ms` | int | 20000 | [1000–60000] | längere Äußerungen werden abgeschnitten | Client Character: **Max utterance (ms)** |
@@ -109,7 +109,7 @@ Spalte „Wo“: Tab im Plugin-Menü; „nur Datei“ = kein Bedienelement. Bere
 | `ai.realtime.max_segment_s` | number | 6.0 | [1–20] | längere Stücke ohne Satzende werden an der leisesten Stelle geschnitten | nur Datei |
 | `ai.realtime.connect_timeout_s` | number | 15 | [3–60] | Verbindungs-Timeout | nur Datei |
 | `ai.proactive.enabled` | bool | true | | KI darf nach Stille von sich aus sprechen (Realtime oder `llm` = `xai`; pausiert in `qa`) | AI: **Proactive** |
-| `ai.proactive.idle_seconds` | number | 90 | [15–3600]; Plugin-Regler 15–900 | Stille bis zum Anstoß; verdoppelt sich bei unbeantworteten Anstößen (bis 8×) | AI: **Proactive idle (s)** |
+| `ai.proactive.idle_seconds` | number | 90 | [15–3600]; im Plugin auf ganze Sekunden gerundet | Stille bis zum Anstoß; verdoppelt sich bei unbeantworteten Anstößen (bis 8×) | AI: **Proactive idle (s)** |
 | `ai.proactive.prompt` | string | „The user has been quiet for a while. … answer with exactly [silent] …“ | frei | Hinweis bei jedem Anstoß; Antwort `[silent]` = nichts abspielen | nur Datei |
 | `ai.xai.base_url` | string | `https://api.x.ai/v1` | | REST-Basis für STT, LLM, TTS | nur Datei |
 | `ai.xai.key_file` | string | `""` | Pfad (absolut oder relativ zum Benutzerordner); kein Key | Datei mit dem xAI-Key; `XAI_API_KEY` gewinnt; ein eingefügter Key wird abgelehnt und nicht gespeichert | AI: **xAI key file** (leeres Feld überschreibt die Datei nicht) |

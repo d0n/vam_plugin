@@ -172,7 +172,7 @@ d0n.AIBody.11.var
 Then follow the [load flow](#load-flow-the-whole-setup). If VaM asks whether to enable plugins
 from this package, allow it. Keep the character's **Auto Behaviors > Lip Sync** enabled. Optional:
 copy `examples/expressions.json` and `examples/gestures.json` to `<VaM>/Saves/PluginData/AIBody/`
-and press **Reload Expressions** / **Reload Gestures** (tab *AI Character*).
+and press **Reload Expressions** / **Posen neu laden** (tab *AI Character*).
 
 Loose files instead of the package (handy while developing): copy `src/AIBody/` to
 `<VaM>/Custom/Scripts/d0n/AIBody/` (or run

@@ -132,7 +132,7 @@ class FakePlugin:
         self.root = Path(vam_root)
         self.clock = clock
         self.channel = channel
-        # Engines tab ai controls (AppLink.BuildAiJson): sent in the config event, merged into config.json "ai"
+        # ai controls of the plugin tabs (AppLink.BuildAiJson): sent in the config event, merged into config.json "ai"
         self.poses: list[str] = []      # Body.AddStatus "poses" (gestures.json poses + preset files)
         self.body_control = True        # Body.AddStatus "body_control"
         self.ai_ui: dict[str, Any] = {"mode": mode, "proactive": {"enabled": True, "idle_seconds": 90.0},

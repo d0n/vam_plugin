@@ -1,27 +1,33 @@
 """config.json: the input parameters shared by the AIBody plugin and this app.
 
-Location: <vam_root>/Saves/PluginData/AIBody/config.json, ONE global file (see docs/CONFIG.md),
-in the per-plugin folder below Saves/PluginData that established plugins use for their settings.
-One object per category, the same categories as the plugin's tabs:
+Location: <vam_root>/Saves/PluginData/AIBody/config.json, ONE global file, in the per-plugin folder
+below Saves/PluginData that established plugins use for their settings. Key reference (German):
+README.md section 4. Categories (kept from the first schema; they no longer match the tabs 1:1):
 
-  connection  channel, active, paths {expressions, gestures}
-  engines     stt, llm, tts
-  mic         microphone + push-to-talk settings (audio/mic_settings.py)
-  body        speech_volume, idle_motion, idle_intensity, breathing, breaths_per_minute,
-              breath_depth, breath_morph
-  advanced    file_poll_interval_s, verbose_log
+  connection  channel (tab Post), active (tab Voice Mode), paths {expressions, gestures, audio}
+              (file only)
+  engines     stt, llm, tts (tab AI)
+  mic         microphone + push-to-talk settings (tab Client Character; audio/mic_settings.py)
+  body        speech_volume, body_control, idle_motion, idle_intensity, breathing,
+              breaths_per_minute, breath_depth, breath_morph (tab AI Character)
+  advanced    file_poll_interval_s, verbose_log (tab Erweitert)
 
-plus one category only this app uses (no tab; the plugin keeps it unchanged when it writes):
+plus one category this app owns (the plugin keeps it unchanged when it writes, except the keys
+it has controls for):
 
   ai          mode, persona, language, fallback {stt, llm, tts}, realtime {...}, proactive {...},
               xai {...}, elevenlabs {...}
-              (mode, proactive.enabled / idle_seconds and realtime.send_while_speaking also have
-              controls in the plugin's Engines tab; the plugin writes just those keys)
+              plugin controls: mode (tab AI Character / Voice Mode), proactive.enabled /
+              idle_seconds (tab AI), realtime.send_while_speaking (tab Client Character),
+              realtime.voice + xai.voice (tab AI Character), xai.key_file /
+              elevenlabs.key_file (tab AI, only when the field is not empty)
 
 The plugin UI wins: the plugin writes its values back after every change. This app reads the
 file on start (channel, initial mic and engine settings before the plugin connects) and creates
-it with the defaults if it does not exist yet (or adds a missing "ai" section); live changes
+it with the defaults if it does not exist yet (or adds missing "ai" keys); live changes
 still arrive as `config` events. Only `--channel` on the command line overrides the channel.
+The plugin's sliders cover exactly RANGES / mic LIMITS (tests/test_plugin_ranges.py), so a value
+from the file is not clamped and written back changed.
 
 The plugin writes with VaM's SimpleJSON, which stores numbers and booleans as strings
 ("0.5", "true"); validate() accepts both (vamjson.py).

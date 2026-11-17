@@ -126,7 +126,7 @@ namespace AIBody
             _realtimeJson = new JSONStorableBool("Echtzeit (Realtime) verwenden", false, SetRealtime);
             _proactiveJson = new JSONStorableBool("Proactive", true, (bool v) => MarkConfigDirty());
             _plugin.RegisterBool(_proactiveJson);
-            _proactiveIdleJson = new JSONStorableFloat("Proactive idle (s)", 90f, (float v) => MarkConfigDirty(), 15f, 900f);
+            _proactiveIdleJson = new JSONStorableFloat("Proactive idle (s)", 90f, (float v) => MarkConfigDirty(), 15f, 3600f);
             _plugin.RegisterFloat(_proactiveIdleJson);
             _bargeInJson = new JSONStorableBool("Voice barge-in (headphones)", false, (bool v) => MarkConfigDirty());
             _plugin.RegisterBool(_bargeInJson);
