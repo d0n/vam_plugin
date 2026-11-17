@@ -43,6 +43,9 @@ log = logging.getLogger(__name__)
 
 INSTRUCTIONS_REFRESH_S = 60.0  # the time line in the instructions is refreshed this often
 NUDGE_HOLD_CHARS = 12  # a nudge answer is held until this much transcript shows it is not "[silent]"
+# Connected but no answer this long after the user stopped talking: the companion gives realtime up
+# (until "API Reconnect" / a mode change) and answers with the chain, see Companion.realtime_unresponsive.
+ANSWER_TIMEOUT_S = 12.0
 
 
 class RealtimeVoice:
@@ -73,6 +76,7 @@ class RealtimeVoice:
         self._held: list[tuple[bytes, str]] = []  # nudge segments held until it is clearly not silent
         self._last_instructions = 0.0
         self._sent_any = False
+        self._waiting_since: float | None = None  # user stopped talking, no answer yet
 
     # -- session ---------------------------------------------------------------------------
 
@@ -157,6 +161,11 @@ class RealtimeVoice:
                 self.handle(event)
             except Exception:  # noqa: BLE001 - one bad event must not stop the companion
                 log.exception("Realtime event failed: %.200s", event)
+        if self._waiting_since is not None and not self.responding and self.client.ready \
+                and self.c._clock() - self._waiting_since > ANSWER_TIMEOUT_S:
+            self._waiting_since = None
+            self.c.realtime_unresponsive(f"keine Antwort {ANSWER_TIMEOUT_S:.0f} s nach dem Sprechen")
+            return
         if self.client.ready and not self.responding and not self.user_speaking \
                 and time.monotonic() - self._last_instructions >= INSTRUCTIONS_REFRESH_S:
             self.refresh_instructions()
@@ -167,6 +176,7 @@ class RealtimeVoice:
         if type_ == DISCONNECTED:
             self._reset_response()
             self.user_speaking = False
+            self._waiting_since = None
         elif type_ == "session.updated":
             log.debug("Realtime session configured")
         elif type_ == "input_audio_buffer.speech_started":
@@ -177,6 +187,8 @@ class RealtimeVoice:
         elif type_ == "input_audio_buffer.speech_stopped":
             self.user_speaking = False
             self.c.on_user_activity()
+            if not self.responding:
+                self._waiting_since = self.c._clock()
         elif type_ == "input_audio_buffer.timeout_triggered":
             log.info("Realtime: server idle timeout (proactive check-in by the server)")
         elif type_ == "conversation.item.input_audio_transcription.completed":
@@ -223,6 +235,7 @@ class RealtimeVoice:
     def _start_response(self, rid: str | None) -> None:
         if rid and rid in self.cancelled:
             return
+        self._waiting_since = None
         self.response_id = rid or protocol.new_id("rt")
         self.assembler.reset()
         self._held = []

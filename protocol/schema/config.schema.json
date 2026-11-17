@@ -402,8 +402,9 @@
       "properties": {
         "mode": {
           "type": "string",
-          "default": "auto",
+          "default": "qa",
           "enum": [
+            "qa",
             "auto",
             "realtime",
             "chain"

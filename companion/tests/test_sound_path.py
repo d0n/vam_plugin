@@ -40,7 +40,7 @@ class SoundPathTests(unittest.TestCase):
         speak = self.speaks(plugin)[-1]
         self.assertEqual(speak["text"], "Test-Ton")
         self.assertEqual(speak["queue"], "interrupt")
-        self.assertTrue(speak["audio"].startswith("Saves/PluginData/AIBody/default/audio/"), speak["audio"])
+        self.assertTrue(speak["audio"].startswith("Custom/Sounds/AIBody/default/"), speak["audio"])
         with wave.open(str(Path(self.tmp.name) / speak["audio"]), "rb") as w:
             self.assertEqual((w.getnchannels(), w.getsampwidth(), w.getframerate()), (1, 2, 22050))
             self.assertAlmostEqual(w.getnframes() / 22050, 1.5, places=2)
@@ -87,7 +87,7 @@ class SoundPathTests(unittest.TestCase):
         path.write_text(json.dumps(data))
         self.sim.start_app()
         self.assertTrue(any("connection.paths.audio" in p for p in self.sim.cfg_problems), self.sim.cfg_problems)
-        self.assertEqual(self.sim.cfg.audio_rel_path("x.wav"), "Saves/PluginData/AIBody/default/audio/x.wav")
+        self.assertEqual(self.sim.cfg.audio_rel_path("x.wav"), "Custom/Sounds/AIBody/default/x.wav")
 
     def test_null_speech_to_text_warns_once(self):
         app, plugin = self.connect()

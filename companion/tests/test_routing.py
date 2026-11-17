@@ -84,7 +84,7 @@ class RoutingTests(unittest.TestCase):
         self.assertIn("speak", [x["type"] for x in cmds])
         self.assertTrue(all("atom" not in x for x in cmds))
         speak = [x for x in cmds if x["type"] == "speak"][-1]
-        self.assertTrue(speak["audio"].startswith("Saves/PluginData/AIBody/default/audio/"))
+        self.assertTrue(speak["audio"].startswith("Custom/Sounds/AIBody/default/"))
 
     def test_body_state_comes_with_heartbeat(self):
         self.feed(evt("heartbeat", atom="AI", speaking=True, expressions=["happy"]))
@@ -141,6 +141,11 @@ class RoutingTests(unittest.TestCase):
             uid = self.c.say("hi")
             self.assertFalse(self.c.gate.is_open, code)
             self.feed(evt("error", reply_to=uid, code=code, message="not played"))
+            if code == "audio_failed":  # sent once more from the other audio folder; that fails too
+                resent = self.t.sent[-1]
+                self.assertEqual((resent["type"], resent["text"]), ("speak", "hi"))
+                self.assertFalse(self.c.gate.is_open, code)
+                self.feed(evt("error", reply_to=resent["id"], code=code, message="not played"))
             self.assertTrue(self.c.gate.is_open, code)
 
 

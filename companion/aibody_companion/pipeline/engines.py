@@ -11,6 +11,10 @@ can keep the choice until the key arrives), but the configured fallback (ai.fall
 null / echo / tone) runs instead, and the status says so. Keys come from the environment
 (XAI_API_KEY, ELEVENLABS_API_KEY) or from a key file named in config.json; refresh() re-reads
 key files, so a key file added later is picked up without restarting.
+
+set_override() runs other engines than the selected ones without touching the selection: with an
+xAI key the simple Q&A mode (and typed text / the realtime fallback) uses xai instead of the
+offline test engines, while the plugin's menus keep showing what the user chose.
 """
 from __future__ import annotations
 
@@ -61,6 +65,7 @@ class EngineSet:
         self.fallbacks: dict[str, Any] = {}
         self._keys: dict[str, tuple[str | None, str]] = {}
         self.rejected: dict[str, str] = {}  # provider -> why the server refused its key (401/403)
+        self.override: dict[str, str] | None = None  # kind -> engine run instead of the selection
         self._read_keys()
         for kind in KINDS:
             self.fallbacks[kind] = self._create(kind, self.fallback_name(kind))
@@ -106,7 +111,7 @@ class EngineSet:
         """Re-creates the running engine of one kind (after a setting such as the voice changed)."""
         self.fallbacks[kind] = self._create(kind, self.fallback_name(kind))
         self.active_names[kind] = ""
-        self.select(kind, self.requested[kind])
+        self._activate(kind)
 
     def key(self, name: str) -> str | None:
         return self._keys.get(name, (None, ""))[0]
@@ -152,6 +157,25 @@ class EngineSet:
         if name not in ENGINES_AVAILABLE[kind]:
             return [f"{kind}: {name!r} gibt es nicht (verfügbar: {', '.join(ENGINES_AVAILABLE[kind])})"]
         self.requested[kind] = name
+        return self._activate(kind)
+
+    def effective(self, kind: str) -> str:
+        """The engine that should run: the override (simple Q&A / realtime fallback) or the selection."""
+        return (self.override or {}).get(kind) or self.requested[kind]
+
+    def set_override(self, names: Mapping[str, str] | None) -> bool:
+        """Runs other engines than the selected ones without changing the selection (the simple
+        Q&A mode uses xai instead of the offline test engines). None = the selection again."""
+        names = {k: v for k, v in (names or {}).items() if k in KINDS and v in ENGINES_AVAILABLE[k]} or None
+        if names == self.override:
+            return False
+        self.override = names
+        for kind in KINDS:
+            self._activate(kind)
+        return True
+
+    def _activate(self, kind: str) -> list[str]:
+        name = self.effective(kind)
         notes = []
         run = name
         if not self.configured(name):
@@ -174,7 +198,7 @@ class EngineSet:
         for kind in KINDS:
             self.fallbacks[kind] = self._create(kind, self.fallback_name(kind))
             self.active_names[kind] = ""  # force rebuild
-            self.select(kind, self.requested[kind])
+            self._activate(kind)
         return True
 
     def fallback(self, kind: str) -> tuple[str, Any]:

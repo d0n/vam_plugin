@@ -57,7 +57,8 @@ DEFAULTS: dict[str, dict[str, Any]] = {
         "paths": {
             "expressions": "Saves/PluginData/AIBody/expressions.json",
             "gestures": "Saves/PluginData/AIBody/gestures.json",
-            # where the companion writes the speech WAVs; "" = Saves/PluginData/AIBody/<channel>/audio
+            # where the companion writes the speech WAVs; "" = automatic: Custom/Sounds/AIBody/<channel>,
+            # once switched to Saves/PluginData/AIBody/<channel>/audio if VaM cannot load them there
             "audio": "",
         },
     },
@@ -78,9 +79,11 @@ DEFAULTS: dict[str, dict[str, Any]] = {
     # realtime.send_while_speaking / voice, xai.voice and the key file paths (xai / elevenlabs
     # key_file), and keep the rest of this section.
     "ai": {
+        # qa = simple questions and answers: STT -> LLM -> TTS with xai instead of the offline test
+        # engines (with an xAI key), speech only, no proactive nudges (the default);
         # auto = realtime when an xAI key is there (and TTS is not elevenlabs), else chain;
-        # realtime = Grok Voice speech-to-speech; chain = STT -> LLM -> TTS (engines above)
-        "mode": "auto",
+        # realtime = Grok Voice speech-to-speech; chain = STT -> LLM -> TTS (exactly the engines above)
+        "mode": "qa",
         "persona": "You are a friendly, curious character living in a 3D scene. You talk with the user "
                    "face to face. Answer briefly and naturally, in the language the user speaks.",
         "language": "auto",  # "auto" or a language code such as "de" / "en" (STT bias, TTS language)
@@ -144,7 +147,7 @@ RANGES: dict[tuple[str, str], tuple[float, float]] = {
 
 # Allowed values for some strings.
 CHOICES: dict[tuple[str, ...], tuple[str, ...]] = {
-    ("ai", "mode"): ("auto", "realtime", "chain"),
+    ("ai", "mode"): ("qa", "auto", "realtime", "chain"),
     ("ai", "realtime", "sample_rate"): tuple(str(r) for r in PCM_RATES),
     ("ai", "realtime", "reasoning_effort"): ("none", "high"),
     ("ai", "xai", "sample_rate"): ("8000", "16000", "22050", "24000", "44100", "48000"),

@@ -3,10 +3,15 @@
 Call tick() regularly (every ~20 ms) from one thread: it handles plugin events, pulls
 microphone frames, finishes utterances and streams level / state feedback to the plugin.
 
-Two pipeline modes (config ai.mode, see docs/CONFIG.md):
-  * chain    = speech to text -> language model -> text to speech (the engines below)
+Pipeline modes (config ai.mode, see docs/CONFIG.md):
+  * qa       = simple questions and answers (default): speech to text -> language model -> text
+               to speech, with xai instead of the offline test engines (null / echo / tone) when
+               an xAI key is there, speech only (no expressions / gestures), no proactive nudges
+  * chain    = speech to text -> language model -> text to speech (exactly the engines selected)
   * realtime = Grok Voice speech-to-speech over one WebSocket (realtime_voice.py); used by "auto"
-               when an xAI key is there. If it cannot connect, chain runs until it can.
+               when an xAI key is there. While it is not connected, or after it did not answer,
+               the chain runs (with xai instead of the test engines) and the status says so.
+Typed text (console) always takes the chain, so the answer path can be tested without a mic.
 Proactive timer (proactive.py): after a silence the AI is nudged and may say something. Every
 user turn and nudge carries the local date / time (pipeline/context.py): the AI has no clock.
 
@@ -24,6 +29,7 @@ from __future__ import annotations
 
 import logging
 import queue
+import shutil
 import threading
 import time
 import uuid
@@ -60,10 +66,20 @@ HEARTBEAT_INTERVAL_S = 2.0  # companion_heartbeat rate
 KEY_REFRESH_S = 10.0  # how often key files are re-read (a key added later is picked up)
 DEFAULT_EXPRESSIONS = ["neutral", "happy", "sad", "angry", "surprised", "thinking"]
 DEFAULT_GESTURES = ["nod", "shake", "tilt"]
+XAI_ALL = {"stt": "xai", "llm": "xai", "tts": "xai"}
+OFFLINE_ENGINES = {"stt": "null", "llm": "echo", "tts": "tone"}
+# said instead of an answer when the language model fails in the simple Q&A mode
+LLM_ERROR_SAY = {"de": "Entschuldigung, ich kann gerade nicht antworten. Das Sprachmodell meldet einen Fehler.",
+                 "en": "Sorry, I cannot answer right now. The language model reported an error."}
 
 
 class _CancelledError(Exception):
     pass
+
+
+def _short(text: str, limit: int = 80) -> str:
+    text = " ".join(str(text).split())
+    return text if len(text) <= limit else text[: limit - 1] + "…"
 
 
 class Companion:
@@ -125,7 +141,12 @@ class Companion:
         self.realtime: RealtimeVoice | None = None
         self._realtime_key: str | None = None
         self.mode_note = ""
+        self.realtime_off = ""  # why realtime was given up until "API Reconnect" (it did not answer)
+        self.turn_status = ""  # last question / answer step, shown in the plugin's status box
+        self.audio_note = ""  # audio folder problems / switch, shown in the plugin's status box
+        self._recent_speech: dict[str, tuple[str, Path, float]] = {}  # id -> (text, path, duration)
         self._null_stt_warned = False
+        self._stt_error = ""
         self._last_exchange: float | None = None
         proactive = self.engine_set.ai["proactive"]
         self.proactive = ProactiveTimer(bool(proactive["enabled"]), float(proactive["idle_seconds"]), clock)
@@ -182,11 +203,24 @@ class Companion:
     def active_mode(self) -> str:
         return "realtime" if self.realtime is not None and self.realtime.ready else "chain"
 
+    @property
+    def speech_only(self) -> bool:
+        """Simple Q&A mode: no expressions / gestures from the answers."""
+        return self.mode_requested == "qa"
+
     def _want_realtime(self) -> tuple[bool, str]:
         mode = self.mode_requested
         has_key = bool(self.engine_set.key("xai"))
+        if mode == "qa":
+            if has_key:
+                return False, "Einfacher Q&A: Spracherkennung xAI -> Grok -> Stimme xAI, nur Sprache"
+            return False, ("Einfacher Q&A ohne xAI-Key: nur Test-Engines (Echo + Ton) - "
+                           "XAI_API_KEY setzen oder Key-Datei im Tab AI")
         if mode == "chain":
             return False, "Chain gewählt (Spracherkennung -> Sprachmodell -> Sprachausgabe)"
+        if self.realtime_off:
+            return False, (f"Realtime aus: {self.realtime_off} - Fallback Chain"
+                           f"{' mit xAI' if has_key else ''}; 'API Reconnect' versucht es neu")
         if mode == "realtime":
             return (True, "") if has_key else (False, "Realtime nicht konfiguriert (kein xAI-Key) - Chain läuft")
         if self.engine_set.requested.get("tts") == "elevenlabs":
@@ -195,8 +229,26 @@ class Companion:
             return False, "Auto: Chain (kein xAI-Key für Realtime)"
         return True, ""
 
+    def _chain_override(self) -> dict[str, str] | None:
+        """With an xAI key, every mode but chain runs xai instead of the offline test engines
+        (null / echo / tone) on the chain path: the simple Q&A mode, typed text and the fallback
+        while realtime is not running. chain mode runs exactly the selection."""
+        if not self.engine_set.key("xai") or self.mode_requested == "chain":
+            return None
+        requested = self.engine_set.requested
+        return {k: v for k, v in XAI_ALL.items() if requested[k] == OFFLINE_ENGINES[k]} or None
+
+    def realtime_unresponsive(self, reason: str) -> None:
+        """Realtime connected but did not answer: give it up until "API Reconnect" / a mode change."""
+        log.warning("Realtime antwortet nicht (%s) - ab jetzt Chain; 'API Reconnect' versucht es neu", reason)
+        self.realtime_off = reason
+        self.turn_status = f"Realtime antwortete nicht ({reason}) - ab jetzt Chain, bitte Frage wiederholen"
+        self._update_mode()
+        self._last_heartbeat = -HEARTBEAT_INTERVAL_S
+
     def _update_mode(self) -> None:
         want, note = self._want_realtime()
+        self.engine_set.set_override(self._chain_override())
         key = self.engine_set.key("xai")
         if self.realtime is not None and (not want or key != self._realtime_key):
             self.realtime.stop()
@@ -227,7 +279,9 @@ class Companion:
 
     def proactive_info(self) -> dict[str, Any]:
         info: dict[str, Any] = {"enabled": self.proactive.enabled, "idle_seconds": self.proactive.idle_seconds}
-        if self.proactive.enabled and not self._can_nudge_engine():
+        if self.proactive.enabled and self.speech_only:
+            info["status"] = "pausiert im Einfachen Q&A-Modus"
+        elif self.proactive.enabled and not self._can_nudge_engine():
             info["status"] = "wartet: braucht Realtime oder Sprachmodell xai"
         return info
 
@@ -254,6 +308,8 @@ class Companion:
     # -- proactive -------------------------------------------------------------------------
 
     def _can_nudge_engine(self) -> bool:
+        if self.speech_only:
+            return False  # simple Q&A: the AI speaks only when asked
         return self.active_mode == "realtime" or bool(getattr(self.llm, "accepts_context", False))
 
     def _can_speak_now(self) -> bool:
@@ -322,6 +378,8 @@ class Companion:
                 self.reconnect_api()
             elif type_ == "error":
                 log.warning("Body error (%s): %s", event.get("code"), event.get("message"))
+                if event.get("code") == "audio_failed":
+                    self._audio_failed(str(event.get("reply_to") or ""), str(event.get("message") or ""))
             else:
                 log.debug("event: %s", event)
         return events
@@ -340,7 +398,18 @@ class Companion:
             engines_active=dict(self.engine_set.active_names),
             mic_capturing=bool(self.mic and self.mic.capturing),
             mode=self.mode_info(), proactive=self.proactive_info(), keys=self.engine_set.key_info(),
+            audio_out=self.audio_info(), turn=self.turn_status,
         ))
+
+    def audio_info(self) -> dict[str, Any]:
+        info: dict[str, Any] = {"folder": self.cfg.audio_rel_dir, "auto": self.cfg.audio_auto}
+        if self.audio_note:
+            info["note"] = self.audio_note
+        return info
+
+    def _set_turn(self, text: str) -> None:
+        self.turn_status = text
+        self._last_heartbeat = -HEARTBEAT_INTERVAL_S  # the plugin shows it right away
 
     def apply_engines(self, requested: Any) -> list[str]:
         """Applies the AIBody plugin's engine menu (switches engines live). Returns problems, incl.
@@ -367,6 +436,7 @@ class Companion:
     def reconnect_api(self) -> None:
         """Plugin button "API Reconnect": re-read the keys and open the realtime connection anew."""
         log.info("API Reconnect requested by the plugin")
+        self.realtime_off = ""
         self.engine_set.refresh()
         if self.realtime is not None:
             self.realtime.stop()
@@ -402,6 +472,8 @@ class Companion:
             if checked != target[path[-1]]:
                 changed.add(path)
             target[path[-1]] = checked
+        if ("mode",) in changed:
+            self.realtime_off = ""  # a new mode choice gives realtime a new chance
         p = ai["proactive"]
         self.proactive.configure(bool(p["enabled"]), float(p["idle_seconds"]))
         if ("xai", "key_file") in changed or ("elevenlabs", "key_file") in changed:
@@ -516,6 +588,8 @@ class Companion:
         return text
 
     def handle_user_text(self, text: str) -> None:
+        """Typed text (console): the same answer path as speech, without speech to text."""
+        self.on_user_activity()
         if self.background_turns:
             self._submit("text", text)
             return
@@ -581,7 +655,8 @@ class Companion:
             raise _CancelledError()
 
     def _turn(self, kind: str, data: Any, generation: int):
-        """Yields steps: ("heard", text), ("command", cmd), ("speak", id, text, path, duration)."""
+        """Yields steps: ("heard", text), ("command", cmd), ("speak", id, text, path, duration),
+        ("status", text) for the plugin's status box."""
         try:
             if kind == "audio":
                 text = self._transcribe(data)
@@ -590,6 +665,8 @@ class Companion:
                     return
             else:
                 text = str(data)
+                if kind == "text":
+                    yield ("status", f"Frage (getippt): {_short(text)}")
             self._check(generation)
             nudge = kind == "nudge"
             prompt = text
@@ -598,10 +675,13 @@ class Companion:
                 if getattr(self.llm, "accepts_context", False):  # the echo test model would read it out
                     prompt = time_context(self.now(), self.since_last_exchange()) + "\n" + text
             said: list[str] = []
+            problems: list[str] = []
             held: list[Directive] = []  # a nudge's tag waits until its first sentence is not "[silent]"
-            for item in self._answer(text, prompt, nudge):
+            for item in self._answer(text, prompt, nudge, problems):
                 self._check(generation)
                 if isinstance(item, Directive):
+                    if self.speech_only:
+                        continue  # simple Q&A: speech only
                     if nudge and not said:
                         held.append(item)
                         continue
@@ -618,13 +698,21 @@ class Companion:
                         yield from self._directive_steps(d)
                 utterance_id = protocol.new_id("utt")
                 path = self.cfg.audio_abs_path(f"{utterance_id}.wav")
-                duration = self._synthesize(sentence, path)
+                duration = self._synthesize(sentence, path, problems)
                 self._check(generation)
                 said.append(sentence)
                 yield ("speak", utterance_id, sentence, path, duration)
             if said:
                 self.history.append({"role": "assistant", "content": " ".join(said)})
                 self.on_exchange()
+            if not nudge:
+                if problems:
+                    yield ("status", " | ".join(dict.fromkeys(problems)))
+                elif said:
+                    yield ("status", f"Antwort ({len(said)} Satz/Sätze, {self.engine_set.active_names['llm']} -> "
+                                     f"{self.engine_set.active_names['tts']}): {_short(' '.join(said))}")
+                else:
+                    yield ("status", "Keine Antwort: das Sprachmodell lieferte keinen Text")
         except _CancelledError:
             log.info("Answer cancelled")
 
@@ -637,19 +725,23 @@ class Companion:
     def _transcribe(self, utterance: bytes) -> str:
         try:
             return self.stt.transcribe(utterance, self.cfg.sample_rate).strip()
-        except ApiError as e:
-            self.engine_set.note_api_error(e)
+        except Exception as e:  # noqa: BLE001 - a failed request must not end the turn silently
+            if isinstance(e, ApiError):
+                self.engine_set.note_api_error(e)
+            self._stt_error = f"Spracherkennung-Fehler: {_short(str(e), 120)}"
             name, fallback = self.engine_set.fallback("stt")
             log.warning("Speech to text failed (%s); fallback %s", e, name)
             try:
                 return fallback.transcribe(utterance, self.cfg.sample_rate).strip()
-            except ApiError:
+            except Exception:  # noqa: BLE001
                 return ""
 
-    def _answer(self, text: str, prompt: str | None = None, nudge: bool = False):
+    def _answer(self, text: str, prompt: str | None = None, nudge: bool = False,
+                problems: list[str] | None = None):
         """Directive / sentence items from the active model (it gets `prompt`, the text with the
         time context); the fallback model gets the plain text if it fails before saying anything
-        (a nudge has no fallback: the echo test model would read the note aloud)."""
+        (a nudge has no fallback: the echo test model would read the note aloud). In the simple
+        Q&A mode a short spoken error notice replaces the fallback model."""
         llm = self.llm
         user_text = text
         text = prompt or text
@@ -664,12 +756,20 @@ class Companion:
             else:
                 yield from self._reply_items(llm, text)
             return
-        except ApiError as e:
-            self.engine_set.note_api_error(e)
+        except Exception as e:  # noqa: BLE001 - network / parse errors included
+            if isinstance(e, ApiError):
+                self.engine_set.note_api_error(e)
             name, fallback = self.engine_set.fallback("llm")
             log.warning("Language model failed (%s)%s", e, "" if produced else f"; fallback {name}")
+            if problems is not None:
+                problems.append(f"Sprachmodell-Fehler: {_short(str(e), 120)}"
+                                + ("" if produced or nudge else " - Ersatzantwort"))
             if produced or nudge:
                 return
+        if self.speech_only:
+            language = str(self.engine_set.ai.get("language") or "auto")
+            yield LLM_ERROR_SAY["en" if language.startswith("en") else "de"]
+            return
         yield from self._reply_items(fallback, user_text)
 
     def _reply_items(self, llm: Any, text: str):
@@ -679,13 +779,16 @@ class Companion:
         if reply.say:
             yield reply.say
 
-    def _synthesize(self, text: str, path: Path) -> float:
+    def _synthesize(self, text: str, path: Path, problems: list[str] | None = None) -> float:
         try:
             return self.tts.synthesize(text, path)
-        except (ApiError, ValueError, OSError) as e:
-            self.engine_set.note_api_error(e)
+        except Exception as e:  # noqa: BLE001 - network errors included; the fallback tone is heard
+            if isinstance(e, ApiError):
+                self.engine_set.note_api_error(e)
             name, fallback = self.engine_set.fallback("tts")
             log.warning("Text to speech failed (%s); fallback %s for: %s", e, name, text)
+            if problems is not None:
+                problems.append(f"Sprachausgabe-Fehler: {_short(str(e), 120)} - Ersatzton ({name})")
             return fallback.synthesize(text, path)
 
     def _apply(self, step: tuple[Any, ...]) -> None:
@@ -693,15 +796,72 @@ class Companion:
         kind = step[0]
         if kind == "heard":
             log.info("Heard: %r (%.1fs)", step[1], step[2])
+            stt_error, self._stt_error = self._stt_error, ""
+            if step[1]:
+                self._set_turn(f"Gehört: {_short(step[1])}")
+            elif stt_error:
+                self._set_turn(f"{stt_error} - keine Antwort")
+            elif self.engine_set.active_names.get("stt") == "null":
+                self._set_turn("Nichts verstanden: Spracherkennung 'null' (Test) erkennt nichts - xAI-Key nötig")
+            else:
+                self._set_turn(f"Nichts verstanden ({step[2]:.1f} s Ton, Spracherkennung lieferte keinen Text)")
             if not step[1] and self.engine_set.active_names.get("stt") == "null" and not self._null_stt_warned:
                 self._null_stt_warned = True
                 log.warning("Speech-to-text 'null' understands nothing, so there is no answer. For a spoken "
                             "conversation choose Speech-to-text 'xai' or use realtime mode (xAI key).")
+        elif kind == "status":
+            log.info("Status: %s", step[1])
+            self._set_turn(step[1])
         elif kind == "command":
             self.send(step[1])
         elif kind == "speak":
             _, utterance_id, text, path, duration = step
             self._queue_speech(utterance_id, text, path, duration)
+
+    # -- audio folder --------------------------------------------------------------------
+
+    def _audio_failed(self, utterance_id: str, message: str) -> None:
+        """The plugin could not load / start one of our WAVs (code audio_failed). With the automatic
+        audio folder the app switches once from Custom/Sounds to Saves/PluginData (or back) and
+        sends the same speech again from there."""
+        entry = self._recent_speech.get(utterance_id)
+        if entry is None:
+            return
+        text, path, duration = entry
+        current = self.cfg.audio_rel_dir
+        failed_dir = self._rel(path.parent)
+        if not self.cfg.audio_auto:
+            self.audio_note = (f"VaM konnte {path.name} nicht laden ({_short(message, 100)}); "
+                               f"Audio-Ordner fest eingestellt: {current} (connection.paths.audio)")
+        elif failed_dir == current and self.cfg.audio_dir_index == 0:
+            self.cfg.audio_dir_index = 1
+            new = self.cfg.audio_rel_dir
+            self.audio_note = f"VaM konnte {failed_dir} nicht laden - Audio-Ordner gewechselt auf {new}"
+            log.warning("Audio: %s", self.audio_note)
+        elif failed_dir == current:
+            self.audio_note = (f"VaM konnte die WAVs weder aus {self.cfg.audio_default_dirs[0]} noch aus "
+                               f"{current} laden ({_short(message, 100)}) - siehe TESTPROTOKOLL T9")
+            log.warning("Audio: %s", self.audio_note)
+        self._last_heartbeat = -HEARTBEAT_INTERVAL_S
+        if failed_dir == self.cfg.audio_rel_dir or not path.exists():
+            return  # nothing better to try
+        new_id = protocol.new_id("utt")
+        new_path = self.cfg.audio_abs_path(f"{new_id}.wav")
+        try:
+            new_path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(path, new_path)
+        except OSError as e:
+            log.warning("Audio: could not copy %s to %s: %s", path, new_path, e)
+            return
+        log.info("Audio: sending %s again from %s", utterance_id, self.cfg.audio_rel_dir)
+        self._queue_speech(new_id, text, new_path, duration)
+
+    def _rel(self, path: Path) -> str:
+        """Path below the VaM folder with forward slashes (as the plugin loads it)."""
+        try:
+            return path.relative_to(Path(self.cfg.vam_root)).as_posix()
+        except ValueError:
+            return path.as_posix()
 
     # -- output --------------------------------------------------------------------------
 
@@ -715,7 +875,10 @@ class Companion:
     def _queue_speech(self, utterance_id: str, text: str, path: Path, duration: float,
                       interrupt: bool = False) -> str:
         self._track_audio_file(path)
-        rel = self.cfg.audio_rel_path(path.name)
+        self._recent_speech[utterance_id] = (text, path, duration)
+        while len(self._recent_speech) > self.cfg.keep_audio_files:
+            self._recent_speech.pop(next(iter(self._recent_speech)))
+        rel = self._rel(path)
         self.gate.on_speak_sent(utterance_id, duration, interrupt=interrupt)
         self.send(self.body_command(
             "speak", id_=utterance_id, audio=rel, text=text, duration=round(duration, 3),

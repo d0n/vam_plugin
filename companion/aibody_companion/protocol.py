@@ -21,7 +21,7 @@ from .vamjson import as_bool
 # command type -> (required fields, optional fields)
 COMMANDS: dict[str, tuple[set[str], set[str]]] = {
     "ping": (set(), set()),
-    # audio: WAV/OGG path relative to the VaM folder (Saves/PluginData/AIBody/<channel>/audio/...)
+    # audio: WAV/OGG path relative to the VaM folder (default Custom/Sounds/AIBody/<channel>/...)
     "speak": ({"audio"}, {"text", "expression", "intensity", "queue", "duration"}),
     "stop_speaking": (set(), set()),
     "expression": ({"name"}, {"intensity", "blend", "hold"}),
@@ -40,10 +40,11 @@ COMMANDS: dict[str, tuple[set[str], set[str]]] = {
     # liveness + identity of the companion app (lets the plugin detect restarts over files)
     # engines_status: kind -> engine -> "bereit" / "nicht konfiguriert: ..."; engines_active: kind -> engine
     # that really runs (the fallback when the selected one is not configured).
-    # mode: {requested: auto|realtime|chain, active: realtime|chain, status: text};
-    # proactive: {enabled, idle_seconds, status?}
+    # mode: {requested: qa|auto|realtime|chain, active: realtime|chain, status: text};
+    # proactive: {enabled, idle_seconds, status?}; audio_out: {folder, auto, note?} (speech WAV folder);
+    # turn: last question / answer step or problem as text (status box)
     "companion_heartbeat": ({"session"}, {"version", "engines_available", "engines_status", "engines_active",
-                                          "mic_capturing", "mode", "proactive", "keys"}),
+                                          "mic_capturing", "mode", "proactive", "keys", "audio_out", "turn"}),
 }
 
 # Commands for the plugin's body (everything else is handled by its app link).

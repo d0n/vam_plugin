@@ -319,7 +319,7 @@ class ModeSelectionTests(RealtimeSim):
         self.assertIsNone(app.realtime)
         self.assertEqual(app.apply_ai({"mode": "realtime"}), [])
         self.assertIsNotNone(app.realtime, "switched live from the plugin")
-        self.assertEqual(app.apply_ai({"mode": "bogus"})[0], "ai.mode: must be one of auto, realtime, chain")
+        self.assertEqual(app.apply_ai({"mode": "bogus"})[0], "ai.mode: must be one of qa, auto, realtime, chain")
         app.shutdown()
         self.app = self.start(mode="realtime", env={})
         self.assertIn("Realtime nicht konfiguriert", self.app.mode_note)

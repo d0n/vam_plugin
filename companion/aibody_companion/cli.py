@@ -50,8 +50,14 @@ def build_stack(cfg: Config, use_mic: bool = True) -> Companion:
     companion = Companion(cfg, build_transport(cfg), gate=EchoGate(), mic=mic, engines=engines,
                           background_turns=True)
     log.info("Modus: %s -> %s (%s)", companion.mode_requested, companion.active_mode, companion.mode_note)
+    log.info("Audio-Ordner: %s%s", cfg.audio_rel_dir,
+             " (automatisch; wechselt einmal nach Saves/PluginData, falls VaM dort nicht laden kann)"
+             if cfg.audio_auto else " (connection.paths.audio)")
     p = companion.proactive
-    log.info("Proaktiv: %s, nach %.0f s Stille", "an" if p.enabled else "aus", p.idle_seconds)
+    if p.enabled and companion.speech_only:
+        log.info("Proaktiv: pausiert im Einfachen Q&A-Modus (die KI spricht nur, wenn sie gefragt wird)")
+    else:
+        log.info("Proaktiv: %s, nach %.0f s Stille", "an" if p.enabled else "aus", p.idle_seconds)
     return companion
 
 
@@ -70,7 +76,8 @@ def start_stdin_reader() -> queue.Queue[str | None]:
 def run(companion: Companion, read_stdin: bool, poll_interval: float) -> None:
     lines = start_stdin_reader() if read_stdin else None
     if lines:
-        print("Type a message and press Enter to make the body speak (Ctrl+D / Ctrl+Z to stop typing).")
+        print("Type a question and press Enter: it is answered like a spoken one (language model -> "
+              "text to speech -> VaM). Ctrl+D / Ctrl+Z stops typing.")
     while True:
         companion.tick()
         if lines is not None:

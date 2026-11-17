@@ -9,6 +9,11 @@ from pathlib import Path
 from typing import Any
 
 PLUGIN_DATA_SUBDIR = "Saves/PluginData/AIBody"
+# Default folder for the speech WAVs: below Custom/Sounds, VaM's own folder for audio files (its
+# Scene Audio browser opens there). Evidenced plugins load audio from Custom/ and package folders,
+# none from Saves/PluginData (docs/API_AUDIT.md). If VaM cannot load a WAV there, the app switches
+# to the PluginData folder once (orchestrator: audio folder auto-switch).
+SOUNDS_SUBDIR = "Custom/Sounds/AIBody"
 
 # Engines this companion version can run (reported to the AIBody plugin's engine menus).
 # null / echo / tone are offline test engines and the default fallbacks; xai and elevenlabs need
@@ -34,8 +39,10 @@ class Config:
 
     keep_audio_files: int = 20
     # connection.paths.audio from config.json: folder below the VaM folder for the speech WAVs;
-    # "" = Saves/PluginData/AIBody/<channel>/audio
+    # "" = automatic: Custom/Sounds/AIBody/<channel>, switching once to
+    # Saves/PluginData/AIBody/<channel>/audio if VaM cannot load the files
     audio_folder: str = ""
+    audio_dir_index: int = 0  # automatic folder in use (0 = Custom/Sounds, 1 = Saves/PluginData)
 
     stt: str = "null"  # see ENGINES_AVAILABLE
     llm: str = "echo"
@@ -54,8 +61,18 @@ class Config:
         return bool(self.vam_root)
 
     @property
+    def audio_auto(self) -> bool:
+        """True if the audio folder is chosen automatically (connection.paths.audio is "")."""
+        return not self.audio_folder
+
+    @property
+    def audio_default_dirs(self) -> list[str]:
+        """Automatic audio folders in the order they are tried."""
+        return [f"{SOUNDS_SUBDIR}/{self.channel}", f"{PLUGIN_DATA_SUBDIR}/{self.channel}/audio"]
+
+    @property
     def audio_rel_dir(self) -> str:
-        return self.audio_folder or f"{PLUGIN_DATA_SUBDIR}/{self.channel}/audio"
+        return self.audio_folder or self.audio_default_dirs[min(self.audio_dir_index, 1)]
 
     @property
     def audio_dir(self) -> Path:

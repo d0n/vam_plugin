@@ -40,7 +40,7 @@ class FileTransportTests(unittest.TestCase):
 class CompanionFileTests(unittest.TestCase):
     def test_text_turn_produces_commands_and_wav(self):
         with tempfile.TemporaryDirectory() as tmp:
-            cfg = Config(vam_root=tmp, channel="Person")
+            cfg = Config(vam_root=tmp, channel="Person", ai={"mode": "chain"})
             t = FileTransport(cfg.channel_dir)
             t.start()
             c = Companion(cfg, t, NullStt(), EchoLlm(), ToneTts())
@@ -49,7 +49,7 @@ class CompanionFileTests(unittest.TestCase):
             self.assertEqual([x["type"] for x in cmds], ["expression", "gesture", "speak"])
             speak = cmds[-1]
             self.assertNotIn("url", speak)
-            self.assertTrue(speak["audio"].startswith("Saves/PluginData/AIBody/Person/audio/"))
+            self.assertTrue(speak["audio"].startswith("Custom/Sounds/AIBody/Person/"))
             wav = Path(tmp) / speak["audio"]
             self.assertGreater(wav_duration(wav), 0.4)
             self.assertFalse(c.gate.is_open, "mic must be gated right after speak")

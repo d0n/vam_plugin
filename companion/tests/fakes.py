@@ -164,6 +164,11 @@ class FakePlugin:
         self.playing: list[dict] = []  # speak commands, first = playing
         self.play_started_at = 0.0
         self.speech_events: list[tuple[str, str]] = []
+        # folder prefixes VaM cannot load audio from (SpeechPlayer: clip does not start -> error
+        # "audio_failed" + speech_ended "failed"); the real plugin reports it after 15 s
+        self.unloadable: tuple[str, ...] = ()
+        self.turn = ""  # companion_heartbeat "turn" (status box line)
+        self.audio_out: dict = {}  # companion_heartbeat "audio_out"
 
     # -- folders ---------------------------------------------------------------------------
 
@@ -227,6 +232,13 @@ class FakePlugin:
         """AppLink.ApiReconnect (button "API Reconnect")."""
         self.send("reconnect")
 
+    def simple_qa(self) -> None:
+        """Button "Einfacher Q&A-Modus" (Voice Mode tab): AI mode qa, body control off, saved + sent."""
+        self.ai_ui["mode"] = "qa"
+        self.ui["body"]["body_control"] = False
+        self.write_settings()
+        self.send_config()
+
     def request_test_tone(self) -> None:
         """AppLink.RequestTestTone (button "Test-Ton über Companion")."""
         self.send("test_tone")
@@ -249,7 +261,7 @@ class FakePlugin:
                     if key in self.ui[cat]:
                         self.ui[cat][key] = _from_vam(value, self.ui[cat][key])
             ai = data.get("ai") or {}
-            if ai.get("mode") in ("auto", "realtime", "chain"):
+            if ai.get("mode") in ("qa", "auto", "realtime", "chain"):
                 self.ai_ui["mode"] = ai["mode"]
             for section, keys in (("proactive", ("enabled", "idle_seconds")), ("realtime", ("send_while_speaking",))):
                 for key in keys:
@@ -326,6 +338,8 @@ class FakePlugin:
         t = msg.get("type")
         if t == "companion_heartbeat":
             self.app_age = 0.0
+            self.turn = msg.get("turn", self.turn)
+            self.audio_out = msg.get("audio_out", self.audio_out)
             session = msg.get("session")
             if session != self.app_session:
                 restarted = self.last_session is not None and session != self.last_session
@@ -346,6 +360,15 @@ class FakePlugin:
         cur = self.playing[0]
         audio = self.root / cur["audio"]
         assert audio.is_file(), f"speak points to a missing file: {cur['audio']}"
+        if cur["audio"].startswith(self.unloadable):
+            self.playing.pop(0)
+            self.send("error", reply_to=cur["id"], code="audio_failed",
+                      message="did not start playing within 15 s: " + cur["audio"])
+            self.send("speech_ended", utterance_id=cur["id"], reason="failed")
+            self.speech_events.append(("failed", cur["id"]))
+            if self.playing:
+                self._start_current()
+            return
         self.play_started_at = self.clock()
         self.send("speech_started", utterance_id=cur["id"], duration=float(cur.get("duration", 1.0)))
         self.speech_events.append(("started", cur["id"]))
