@@ -30,6 +30,14 @@ FORBIDDEN: list[tuple[str, str]] = [
     ("UnityEngine.Microphone", r"UnityEngine\s*\.\s*Microphone|\bMicrophone\s*\."),
     ("Application.OpenURL", r"\bOpenURL\b"),
     ("optional HTTP build flag", r"AIBODY_HTTP"),
+    # VaM's own C# compiler (old Mono mcs), not the sandbox: version 13 failed in VaM with
+    # "CS584: Internal compiler error ... Dictionary<TKey,TValue>.ValueCollection.Enumerator" for a
+    # foreach over dict.Values. Our stub compile (Roslyn) does not see this, so these constructs are
+    # banned outright: iterate the dictionary itself (KeyValuePair) or copy into a List first.
+    ("VaM compiler: foreach over Dictionary .Keys/.Values (CS584)",
+     r"\bin\s+[\w.\[\]()\"]+\.(?:Keys|Values)\s*\)"),
+    ("VaM compiler: member access / LINQ on .Keys/.Values (CS584 risk)", r"\.(?:Keys|Values)\s*\.\s*\w"),
+    ("VaM compiler: KeyCollection/ValueCollection types (CS584 risk)", r"\b(?:KeyCollection|ValueCollection)\b"),
 ]
 
 _COMPILED = [(label, re.compile(rx)) for label, rx in FORBIDDEN]

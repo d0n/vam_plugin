@@ -5,7 +5,9 @@
    assembled plugin folder must contain zero matches for UnityWebRequest, UnityEngine.Networking,
    WWW, System.IO, System.Net, sockets, Process, System.Diagnostics, reflection, Assembly.Load,
    DllImport/InteropServices, UnityEngine.Microphone, OpenURL and the old AIBODY_HTTP flag -
-   in code, comments and strings alike.
+   in code, comments and strings alike. The same scan bans constructs VaM's own compiler (old
+   Mono mcs) rejects although the stub compile accepts them: foreach / LINQ over Dictionary
+   .Keys/.Values and the KeyCollection/ValueCollection types (CS584, version 13).
 2. Single plugin: AIBody.cslist is flat (plain file names) and its files declare exactly ONE
    MVRScript (AIBody.AIBodyPlugin), one namespace, and no type twice.
 3. Compile check: the .cslist is compiled as one assembly (as VaM does) as C# 6 against the

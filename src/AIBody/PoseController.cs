@@ -28,7 +28,7 @@ namespace AIBody
             _idle = idle;
         }
 
-        public IEnumerable<string> GestureNames { get { return _gestures.Keys; } }
+        public IEnumerable<string> GestureNames { get { return new List<string>(_gestures.Keys); } }   // copy, no key enumerator
 
         /// <summary>VaM's pose preset folders that are listed (top level only, .vap / .json).</summary>
         public static readonly string[] PoseFolders = { "Custom/Atom/Person/Pose", "Custom/Atom/Person/Pose/AIBody" };
@@ -50,8 +50,8 @@ namespace AIBody
                 List<string> names = new List<string>();
                 foreach (KeyValuePair<string, JSONClass> kv in _gestures)
                     if (kv.Value["kind"].Value == "pose") names.Add(kv.Key);
-                foreach (string n in _poseFiles.Keys)
-                    if (!names.Contains(n)) names.Add(n);
+                foreach (KeyValuePair<string, string> kv in _poseFiles)   // not the key collection (CS584 in VaM)
+                    if (!names.Contains(kv.Key)) names.Add(kv.Key);
                 return names;
             }
         }
@@ -103,7 +103,7 @@ namespace AIBody
             get
             {
                 int n = 0;
-                foreach (JSONClass def in _gestures.Values) if (def["kind"].Value == "timeline") n++;
+                foreach (KeyValuePair<string, JSONClass> kv in _gestures) if (kv.Value["kind"].Value == "timeline") n++;
                 return n;
             }
         }
@@ -112,9 +112,9 @@ namespace AIBody
         {
             get
             {
-                foreach (JSONClass def in _gestures.Values)
-                    if (def["kind"].Value == "timeline"
-                        && FindStorable(Protocol.GetString(def, "storable", "VamTimeline.AtomPlugin")) == null) return false;
+                foreach (KeyValuePair<string, JSONClass> kv in _gestures)
+                    if (kv.Value["kind"].Value == "timeline"
+                        && FindStorable(Protocol.GetString(kv.Value, "storable", "VamTimeline.AtomPlugin")) == null) return false;
                 return true;
             }
         }

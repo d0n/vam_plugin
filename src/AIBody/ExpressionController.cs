@@ -31,17 +31,19 @@ namespace AIBody
 
         public string Current { get { return _current; } }
 
-        public IEnumerable<string> PresetNames { get { return _presets.Keys; } }
+        public IEnumerable<string> PresetNames { get { return new List<string>(_presets.Keys); } }   // copy: see MorphNames
 
         /// <summary>Every morph name used by a preset, once (self test: which ones the character has).</summary>
         public List<string> MorphNames
         {
             get
             {
+                // Iterate the dictionaries themselves (KeyValuePair): VaM's compiler fails with CS584 on
+                // the nested key/value collection enumerators (version 13 did not compile in VaM).
                 List<string> names = new List<string>();
-                foreach (Dictionary<string, float> preset in _presets.Values)
-                    foreach (string n in preset.Keys)
-                        if (!names.Contains(n)) names.Add(n);
+                foreach (KeyValuePair<string, Dictionary<string, float>> preset in _presets)
+                    foreach (KeyValuePair<string, float> morph in preset.Value)
+                        if (!names.Contains(morph.Key)) names.Add(morph.Key);
                 return names;
             }
         }
