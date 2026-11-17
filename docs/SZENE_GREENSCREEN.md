@@ -12,12 +12,12 @@ Eine leere Szene ohne Raum mit:
 
 ## Was du brauchst
 
-| Paket | Wo | Status |
-|---|---|---|
-| `d0n.AIBody.7.var` | [Release v0.7.0](https://github.com/d0n/vam_plugin/releases/tag/v0.7.0) | belegt |
-| `Sally.CameraBackgroundColor.7.var` (Version 7, 6 KB, Lizenz FC, VaM 1.22.0.3, keine Abhängigkeiten) | Hub: [Camera Background Color](https://hub.virtamate.com/resources/camera-background-color.24185/) von Sally (Sally Whitemane) | belegt über die Hub-Daten |
+| Paket | Wo |
+|---|---|
+| `d0n.AIBody.7.var` | [Release v0.7.0](https://github.com/d0n/vam_plugin/releases/tag/v0.7.0) |
+| `Sally.CameraBackgroundColor.7.var` (Version 7, 6 KB, Lizenz FC, VaM 1.22.0.3, keine Abhängigkeiten) | Hub: [Camera Background Color](https://hub.virtamate.com/resources/camera-background-color.24185/) von Sally (Sally Whitemane) |
 
-Beide Dateien nach `<VaM-Hauptordner>/AddonPackages/`.
+Beide Dateien nach `<VaM-Hauptordner>/AddonPackages/`. Die Szene verlangt genau Version 7 von Sallys Paket (das Paket ist auf „Exact“ gestellt).
 
 ## Einrichten
 
@@ -26,27 +26,24 @@ Beide Dateien nach `<VaM-Hauptordner>/AddonPackages/`.
    (Ordner `AIBody` ggf. anlegen.)
 2. VaM starten > **Open Scene** (Szene öffnen) > `Saves/scene/AIBody/AIBody_GreenScreen.json`.
 3. **AIBody prüfen:** Figur (Person) auswählen > Tab **Plugins**. Dort muss `d0n.AIBody.7:/Custom/Scripts/d0n/AIBody/AIBody.cslist` stehen. Nicht unter *Session Plugins*.
-4. **Camera Background Color prüfen** (offener Punkt, siehe unten): Menü **Scene Plugins**.
-   - Steht dort ein roter Fehler oder ist das Plugin nicht geladen: Eintrag entfernen > **Add Plugin** > `AddonPackages > Sally.CameraBackgroundColor.7` > die angebotene `.cs`- bzw. `.cslist`-Datei wählen.
-   - Im Plugin-Fenster die Farbe auf **R 0, G 255, B 0** stellen (in VaM-Farbwählern: H 0.333, S 1, V 1). Ohne Einstellung ist laut Nutzern Blau (0, 0, 255) voreingestellt.
-5. **Skybox aus:** Tab **Scene Lighting** (CoreControl) > Skybox ausschalten. Sonst verdeckt der Himmel die Farbe (Hinweis vom Plugin-Autor).
-6. Szene **speichern** (Save Scene). Dann schreibt VaM selbst den richtigen Plugin-Pfad, den Parameternamen und die Skybox-Einstellung in die Datei.
+4. **Camera Background Color prüfen:** Menü **Scene Plugins**. Dort steht `Sally.CameraBackgroundColor.7:/Custom/Scripts/Sally/CameraBackgroundColor/CameraBackgroundColor.cs`. Im Plugin-Fenster: Farbwähler „Color“ auf Grün (R 0, G 255, B 0), Schalter „Show Skybox“ aus. Beides ist in der Szene schon so eingestellt.
+5. **Skybox:** schaltet das Plugin beim Laden selbst aus (Schalter „Show Skybox“, aus = Skybox aus). Wird das Plugin deaktiviert oder entfernt, stellt es die Skybox auf den vorherigen Zustand zurück und den Hintergrund auf Schwarz.
+6. Nicht zusätzlich als *Session Plugin* laden. Zwei Instanzen stören sich; das Plugin warnt dann selbst („multiple CameraBackgroundColor-Plugins loaded“).
 7. In der Brille den Chroma-Key auf **#00FF00** stellen.
 
-Bitte danach einen Screenshot vom Fenster *Scene Plugins* (mit dem Plugin-Namen) und die gespeicherte Szenen-Datei oder ihren CoreControl-Abschnitt schicken. Damit werden die offenen Punkte in der Vorlage ersetzt.
+Bitte danach einen Screenshot (Szene plus Fenster *Scene Plugins*) und alle roten Zeilen mit „AIBody:“ oder „CameraBackgroundColor“ aus dem Error-Log schicken.
 
 ## Was belegt ist und was offen
 
-Belegt:
-- Plugin, Autor, Paketname und Version: Hub-Daten zur Ressource 24185 (Titel „Camera Background Color“, Kurztext „Set any color as camera background.“, Datei `Sally.CameraBackgroundColor.7.var`, Lizenz FC). Der Patreon-Spiegel vom 8.10.2022 nennt CC0. Für das `.var` auf dem Hub gilt FC.
-- Zweck und Skybox-Hinweis: [Patreon-Beitrag von Sally](https://www.patreon.com/posts/vam-camera-color-73037813) – „change the black background color in VAM to anything … useful for chroma keying … not affected by light … Make sure the skybox is disabled in the [Scene Lighting]-tab“.
-- Szenen-Plugin, Standardfarbe Blau 0, 0, 255, keine Wände/Skybox: [VAM Desktop Chroma Passthrough (VAManon)](https://vamhub.net/resource/vam-desktop-chroma-passthrough-vamtual-girl-63459).
-- Aufbau der Szenen-Datei: Werte als Text (`"true"`, `"0.5"`), siehe E21 in `docs/API_AUDIT.md`. Plugin aus einem Paket auf der Person als `PluginManager.plugins["plugin#0"] = "Paket.Version:/Custom/Scripts/…cslist"`, Szenen-Plugins im `PluginManager` des Atoms `CoreControl`, Plugin-Einstellungen in einem Storable `plugin#0_<Klassenname>`, Farben als `{"h","s","v"}` von 0 bis 1. Belege: [ml-clone-test, EMPTY_SCENE_BLUE_HAIR.json @4d20126](https://github.com/RobQuistNL/ml-clone-test/blob/4d2012670deb75338f7d96e1443cdc651920c97d/examples/EMPTY_SCENE_BLUE_HAIR.json) und [vam-improved-pov, Empty.json @dea8570](https://github.com/acidbubbles/vam-improved-pov/blob/dea857067da496e7e19ae5af31088fdc5fa6fb53/scenes/Empty.json) (Lichtfarbe L272–276).
+Belegt am 17.11.2026 aus dem Original-Paket `Sally.CameraBackgroundColor.7.var` (vom Hub geladen, sha256 `6327040e37a35d7130431b08864dfadf8cac865d208a88387e66d7e4bf8d4662`, 6097 Bytes; nicht ins Repo übernommen):
+- `meta.json`: `creatorName` „Sally“, `packageName` „CameraBackgroundColor“, `licenseType` „FC“, `programVersion` 1.22.0.3, keine Abhängigkeiten, `scriptReferenceVersionOption` „Exact“, Inhalt nur `Custom/Scripts/Sally/CameraBackgroundColor/CameraBackgroundColor.cs`. Beschreibung: „Changes the background color. The Skybox in Scene lighting setting must be disabled to see the color.“
+- Quelltext (CC0): Klasse `public class CameraBackgroundColor : MVRScript` ohne Namespace, daher Storable-ID `plugin#0_CameraBackgroundColor`.
+- Gespeicherte Parameter: `JSONStorableColor "Color"` (Standard Blau, RGB 0, 0, 1), `JSONStorableBool "Show Skybox"` (Standard aus), `JSONStorableBool "OriginalSkyboxState"` (merkt den Skybox-Zustand vor dem Laden), `JSONStorableBool "Render [Control + R] <color=#FF0000>(experimental)</color>"` (Standard an). „Debug messages“ wird nicht gespeichert.
+- Das Plugin setzt die Hintergrundfarbe der Hauptkamera, der Screenshot-Kameras und der WindowCamera. Als Szenen-Plugin nimmt es die Farbe aus der Szene; die Datei `Saves/PluginData/CameraBackgroundColor/default.json` liest es nur als *Session Plugin*.
+- Grün im VaM-Format `{"h":"0.3333333","s":"1","v":"1"}` ergibt RGB (0, 255, 0).
+- Aufbau der Szenen-Datei: Werte als Text (E21 in `docs/API_AUDIT.md`). Plugin aus einem Paket als `PluginManager.plugins["plugin#0"] = "Paket.Version:/Pfad"`, Szenen-Plugins im `PluginManager` des Atoms `CoreControl`, Einstellungen in `plugin#0_<Klassenname>`, Farben als `{"h","s","v"}`. Belege: [ml-clone-test, EMPTY_SCENE_BLUE_HAIR.json @4d20126](https://github.com/RobQuistNL/ml-clone-test/blob/4d2012670deb75338f7d96e1443cdc651920c97d/examples/EMPTY_SCENE_BLUE_HAIR.json) und [vam-improved-pov, Empty.json @dea8570](https://github.com/acidbubbles/vam-improved-pov/blob/dea857067da496e7e19ae5af31088fdc5fa6fb53/scenes/Empty.json) (Lichtfarbe L272–276).
 
-Offen (TODO(verify)), in der Datei als `TODO_VERIFY…` markiert:
-- **Pfad im Paket** (`Sally.CameraBackgroundColor.7:/Custom/Scripts/Sally/TODO_VERIFY_CameraBackgroundColor.cs`): geraten. Die Hub-Seite und der Download sind hinter einer Altersabfrage, die nicht stellvertretend bestätigt wurde. Das Paket wurde deshalb nicht geöffnet. Folge, solange nicht ersetzt: VaM meldet beim Laden einen Fehler für dieses Plugin, die übrige Szene lädt trotzdem (TODO(verify)).
-- **Klassenname und Name des Farbparameters** (`plugin#0_TODO_VERIFY_ClassName`, `TODO_VERIFY_Background Color`): geraten. Ein falscher Eintrag wird vermutlich ignoriert; dann Farbe von Hand setzen (Schritt 4).
-- **Skybox aus** steht nicht in der Datei: der Name der Einstellung in der Szenen-Datei ist nicht belegt. Von Hand ausschalten (Schritt 5) und speichern.
+Offen (TODO(verify)), nur in VaM prüfbar:
 - Ob VaM eine Szene ohne Kamera-, Navigations- und Raum-Atome ohne Rückfrage lädt und fehlende Standard-Atome selbst ergänzt.
 - Ob VaM 1.22 ohne Raum-Atome trotzdem einen Boden oder ein Raster zeigt.
 - Licht-Positionen und Helligkeit; die Figur hat das Standard-Aussehen (keine Kleidung/Haare festgelegt).
@@ -54,7 +51,8 @@ Offen (TODO(verify)), in der Datei als `TODO_VERIFY…` markiert:
 
 ## Quellen
 
-- Hub: <https://hub.virtamate.com/resources/camera-background-color.24185/> (Altersabfrage; Daten über die Hub-Schnittstelle von VaM gelesen)
+- Hub: <https://hub.virtamate.com/resources/camera-background-color.24185/>
 - Patreon-Spiegel (CC0): <https://www.patreon.com/posts/vam-camera-color-73037813>
-- Passthrough-Anleitung auf dem Hub (nicht gelesen, Altersabfrage): „How to use Passthrough in VAM (VR/AR)“ von thinoreos, <https://hub.virtamate.com/resources/how-to-use-passthrough-in-vam-vr-mixed-reality.37851/>
+- Der Quelltext nennt als Idee für den Render-Schalter den Hub-Thread „VD for passthrough“: <https://hub.virtamate.com/threads/vd-for-passthrough.43272/post-135631>
+- Passthrough-Anleitung auf dem Hub: „How to use Passthrough in VAM (VR/AR)“ von thinoreos, <https://hub.virtamate.com/resources/how-to-use-passthrough-in-vam-vr-mixed-reality.37851/> (nicht gelesen)
 - Desktop-Variante: <https://vamhub.net/resource/vam-desktop-chroma-passthrough-vamtual-girl-63459>

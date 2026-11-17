@@ -19,16 +19,17 @@
             {
                "id": "PluginManager",
                "plugins": {
-                  "plugin#0": "Sally.CameraBackgroundColor.7:/Custom/Scripts/Sally/TODO_VERIFY_CameraBackgroundColor.cs"
+                  "plugin#0": "Sally.CameraBackgroundColor.7:/Custom/Scripts/Sally/CameraBackgroundColor/CameraBackgroundColor.cs"
                }
             },
             {
-               "id": "plugin#0_TODO_VERIFY_ClassName",
-               "TODO_VERIFY_Background Color": {
+               "id": "plugin#0_CameraBackgroundColor",
+               "Color": {
                   "h": "0.3333333",
                   "s": "1",
                   "v": "1"
-               }
+               },
+               "Show Skybox": "false"
             }
          ]
       },
