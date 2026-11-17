@@ -21,7 +21,7 @@
 // Layout: left column = header + status box (Selbsttest, live state, start log), always visible.
 // Right column = a row of tab buttons and below it the controls of the active tab. Switching tabs
 // removes the old controls with the standard Remove* methods (UiPage, evidence E17/E18).
-// Tabs: Voice Mode (link, API Reconnect, sound test) | AI (engines, key file paths + status, Delay
+// Tabs: Voice Mode (link, Einfacher Q&A-Modus, API Reconnect, sound test) | AI (engines, key file paths + status, Delay
 // placeholder, proactive) | AI Character (AI mode, voice, body of this Person) | Client Character
 // (microphone, push-to-talk, voice barge-in) | Post (channel, paths) | Config | Erweitert.
 //
@@ -203,6 +203,8 @@ namespace AIBody
                 switch (index)
                 {
                     case 0: // Voice Mode
+                        _page.Button("Einfacher Q&A-Modus", EnableSimpleQa);
+                        _page.Text(_simpleQaJson, 110f);
                         if (_link != null) _link.BuildVoiceModeTab(_page);
                         if (_body != null) _body.BuildVoiceModeTab(_page);
                         break;
@@ -240,6 +242,22 @@ namespace AIBody
         /// Button "Reload Config JSON": applies config.json to the UI (paths, connection, engines, mic,
         /// body, ai keys of the tabs) and pushes the result to the companion app.
         /// </summary>
+        private readonly JSONStorableString _simpleQaJson = new JSONStorableString("Simple Q&A help",
+            "Einfacher Q&A-Modus: Frage sprechen oder in der Companion-Konsole tippen -> Grok antwortet -> "
+            + "die Person spricht. Setzt AI mode = qa und Body control = aus (Tab AI Character). Braucht einen xAI-Key.");
+
+        /// <summary>
+        /// Button "Einfacher Q&amp;A-Modus": AI mode qa (STT -> Grok -> TTS, speech only) and body
+        /// control off, saved to config.json and sent to the companion app.
+        /// </summary>
+        private void EnableSimpleQa()
+        {
+            if (_link != null) _link.SetSimpleQa();
+            if (_body != null) _body.SetBodyControl(false);
+            _simpleQaJson.val = "Einfacher Q&A-Modus an (" + DateTime.Now.ToString("HH:mm:ss") + "): AI mode = qa, Body control = aus. "
+                + "Jetzt 'Test-Ton abspielen', dann eine Frage stellen.";
+        }
+
         private void ReloadConfigJson()
         {
             if (_link == null) return;

@@ -1,7 +1,8 @@
 // Speech output: a playback queue on the Person's head audio source.
 //
 // Each utterance is a WAV/OGG file below the VaM folder, written by the companion app into
-// Saves/PluginData/AIBody/<channel>/audio/. Only VaM's own audio path is used, exactly as public
+// Custom/Sounds/AIBody/<channel>/ (or Saves/PluginData/AIBody/<channel>/audio/ after the app's
+// automatic switch, or connection.paths.audio). Only VaM's own audio path is used, exactly as public
 // sandboxed plugins do it (see docs/API_AUDIT.md for the evidence links):
 //   - load:  URLAudioClipManager.singleton.QueueClip(SuperController.singleton.NormalizeMediaPath(path))
 //            then URLAudioClipManager.singleton.GetClip(clip.uid)          (Dollmaster, FreeMMD)
@@ -165,7 +166,14 @@ namespace AIBody
                 return "speak needs 'audio' (a file path below the VaM folder)";
             }
             // Plain paths below the VaM folder can be checked (E10); package paths ("pkg:/...") cannot.
-            if (path.IndexOf(':') < 0 && !FileManagerSecure.FileExists(path))
+            // A check that throws (folder the sandbox does not let us look into) does not block loading.
+            bool missing = false;
+            if (path.IndexOf(':') < 0)
+            {
+                try { missing = !FileManagerSecure.FileExists(path); }
+                catch (Exception e) { Log.Debug("FileExists(" + path + ") failed: " + e.Message + " – loading anyway"); }
+            }
+            if (missing)
             {
                 SetError("Datei fehlt: " + path + " (schreibt die Companion-App in denselben VaM-Ordner? --vam-root prüfen)");
                 return "audio file not found: " + path;

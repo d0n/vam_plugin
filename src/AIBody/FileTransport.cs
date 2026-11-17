@@ -3,7 +3,8 @@
 // Layout (relative to the VaM install folder):
 //   Saves/PluginData/AIBody/<channel>/inbox/   companion app -> plugin, one *.json file per message
 //   Saves/PluginData/AIBody/<channel>/outbox/  plugin -> companion app, one *.json file per event
-//   Saves/PluginData/AIBody/<channel>/audio/   TTS audio written by the companion app
+//   TTS audio is written by the companion app to Custom/Sounds/AIBody/<channel>/ (default) or
+//   Saves/PluginData/AIBody/<channel>/audio/ (its fallback), see SpeechPlayer.
 //
 // The companion app writes atomically (write "name.tmp", then rename to "name.json"), so the
 // plugin never sees half written JSON. The plugin cannot rename through FileManagerSecure,

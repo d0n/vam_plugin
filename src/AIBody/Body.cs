@@ -146,6 +146,11 @@ namespace AIBody
 
         public bool BodyControl { get { return _bodyControlJson == null || _bodyControlJson.val; } }
 
+        public void SetBodyControl(bool on)
+        {
+            if (_bodyControlJson != null) _bodyControlJson.val = on;
+        }
+
         /// <summary>Body part of the tab "AI Character" (this Person, i.e. this plugin instance).</summary>
         public void BuildCharacterTab(UiPage page)
         {
