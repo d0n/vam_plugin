@@ -61,6 +61,8 @@ namespace AIBody
         {
             string type = Protocol.GetString(msg, "type", "");
             string id = Protocol.GetString(msg, "id", "");
+            if (type != Protocol.CmdPing)
+                Log.Debug("Befehl " + type + " " + id + (Protocol.Has(msg, "audio") ? " audio=" + Protocol.GetString(msg, "audio", "") : ""));
             string error;
             try
             {
@@ -74,6 +76,7 @@ namespace AIBody
 
             if (error != null)
             {
+                Log.Debug("Befehl " + type + " " + id + " fehlgeschlagen: " + error);
                 _send(Protocol.NewError(id, "command_failed", error));
             }
             else if (AckAll || Protocol.GetBool(msg, "ack", false))

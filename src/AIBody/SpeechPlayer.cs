@@ -257,6 +257,7 @@ namespace AIBody
             _control.volume = _volume;
             Status = "Lade: " + FileName(u.Path) + (_volume < 0.01f ? " (Achtung: Speech volume ist 0)" : "");
             u.Plays++;
+            Log.Debug("PlayNow " + u.Id + ": " + u.Path);
             _control.PlayNow(u.Clip);
         }
 
@@ -273,6 +274,7 @@ namespace AIBody
                     u.StartedClip = clip;
                     Status = "Spreche: " + FileName(u.Path) + " (" + clip.length.ToString("0.0") + " s"
                         + (_volume < 0.01f ? ", Speech volume ist 0 – nichts zu hören" : "") + ")";
+                    Log.Debug("Spricht " + u.Id + " (" + clip.length.ToString("0.0") + " s, " + u.Plays + "x PlayNow)");
                     if (OnStarted != null) OnStarted(u.Id, clip.length);
                     return;
                 }
@@ -303,6 +305,7 @@ namespace AIBody
             _current = null;
             if (reason != "failed") Status = (reason == "completed" ? "Fertig: " : "Abgebrochen (" + reason + "): ") + FileName(done.Path);
             Release(done);
+            Log.Debug("Ende " + done.Id + ": " + reason);
             Fire(OnEnded, done.Id, reason);
         }
 

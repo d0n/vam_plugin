@@ -132,7 +132,11 @@ namespace AIBody
             }
             _diag.Run("Verbose-Schalter", () =>
             {
-                _verboseJson = new JSONStorableBool("Verbose log", false, (bool v) => Log.Verbose = v);
+                _verboseJson = new JSONStorableBool("Verbose log", false, (bool v) =>
+                {
+                    Log.Verbose = v;
+                    if (_link != null) _link.MarkConfigDirty();   // tells the companion (config event "advanced")
+                });
                 RegisterBool(_verboseJson);
                 _settingsInitJson = new JSONStorableBool("Settings initialized", false, (bool v) => { });
                 RegisterBool(_settingsInitJson);
@@ -398,6 +402,7 @@ namespace AIBody
             _statusJson.val = "AIBody " + PluginVersion + " auf '" + uid + "'\n"
                 + SelfTest()
                 + (_live.Length > 0 ? "<b>Live</b>\n" + _live : "")
+                + (Log.Verbose && Log.RecentText().Length > 0 ? "<b>Letzte Ereignisse</b> (Verbose log)\n" + Log.RecentText() : "")
                 + "<b>Start-Protokoll</b>\n" + (_diag != null ? _diag.Text : "");
         }
 

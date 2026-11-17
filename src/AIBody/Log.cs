@@ -2,6 +2,7 @@
 // Small logging helper so every message carries the same prefix. Shared by both plugins;
 // each plugin sets its own Prefix in Init().
 using System;
+using System.Collections.Generic;
 
 namespace AIBody
 {
@@ -15,9 +16,21 @@ namespace AIBody
             SuperController.LogMessage(Prefix + message);
         }
 
+        /// <summary>The last debug lines (newest last) for the status box while Verbose log is on.</summary>
+        public const int RecentMax = 8;
+        private static readonly List<string> _recent = new List<string>();
+
         public static void Debug(string message)
         {
-            if (Verbose) SuperController.LogMessage(Prefix + "[debug] " + message);
+            if (!Verbose) return;
+            SuperController.LogMessage(Prefix + "[debug] " + message);
+            _recent.Add(DateTime.Now.ToString("HH:mm:ss") + " " + message);
+            if (_recent.Count > RecentMax) _recent.RemoveAt(0);
+        }
+
+        public static string RecentText()
+        {
+            return _recent.Count == 0 ? "" : string.Join("\n", _recent.ToArray()) + "\n";
         }
 
         public static void Error(string message)

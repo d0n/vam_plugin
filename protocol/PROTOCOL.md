@@ -128,7 +128,7 @@ push-to-talk (`ptt`) as event files.
 
 | type         | fields | when |
 |--------------|--------|------|
-| `config_ack` | `reply_to`, `applied` (`{"mic": {...}, "engines": {...}}` settings in effect after clamping), `errors` (list of strings), `mic_state` | answer to every `config` event |
+| `config_ack` | `reply_to`, `applied` (`{"mic": {...}, "engines": {...}, "ai": {...}, "advanced": {"verbose_log": true}}` settings in effect after clamping), `errors` (list of strings), `mic_state` | answer to every `config` event |
 | `devices`    | `devices`: list of `{name, index, default, channels, sample_rate}`, `error`, `reply_to` | answer to `list_devices` |
 | `mic_state`  | `enabled`, `capturing`, `device`, `mode`, `ptt_active`, `error` | when the microphone state changes, and after `ready` |
 | `mic_level`  | `rms` (peak RMS 0..1 since the last message), `speech`, `gate_open` | 5 per second while capturing, if `level_meter` is on |
@@ -143,7 +143,7 @@ All events come from the one plugin:
 | `heartbeat`      | status fields                                       | every 2 s |
 | `pong`           | status fields, `reply_to`                           | answer to `ping` |
 | `error`          | `reply_to`, `code`, `message`                       | `bad_json`, `command_failed`, `audio_failed` |
-| `config`         | `mic` (see below), `engines` (`{"stt", "llm", "tts"}`), `ai` (`{"mode", "proactive": {"enabled", "idle_seconds"}, "realtime": {"send_while_speaking", "voice"}, "xai": {"voice", "key_file"?}, "elevenlabs": {"key_file"}?}`, key file paths only when set) | after (re)connect and 0.3 s after the last settings change |
+| `config`         | `mic` (see below), `engines` (`{"stt", "llm", "tts"}`), `ai` (`{"mode", "proactive": {"enabled", "idle_seconds"}, "realtime": {"send_while_speaking", "voice"}, "xai": {"voice", "key_file"?}, "elevenlabs": {"key_file"}?}`, key file paths only when set), `advanced` (`{"verbose_log"}`: Erweitert > Verbose log, turns the companion's turn trace on/off live) | after (re)connect and 0.3 s after the last settings change |
 | `ptt`            | `active` (bool)                                     | push-to-talk pressed / released |
 | `list_devices`   | -                                                   | after (re)connect and on "Refresh mic devices" |
 | `test_tone`      | -                                                   | button "Test-Ton über Companion": the app answers with a `speak` (queue `interrupt`, text "Test-Ton") of a 1.5 s chime WAV in its audio folder |
@@ -201,6 +201,14 @@ commands taken from a `<<expression gesture>>` tag at the start of the model's t
 settings live in `config.json` only (docs/CONFIG.md). In realtime mode the answer audio arrives as
 one `speak` (queue `append`) per segment, exactly like the sentence-by-sentence chain answers; a
 barge-in sends `stop_speaking`. The protocol itself is unchanged (still version 3).
+
+### Verbose log (`config.advanced`)
+
+`advanced.verbose_log` (true/false; VaM sends it as a string) is the plugin's Erweitert > "Verbose log"
+toggle. The companion applies it live (turn trace in its console and log file, see docs/CONFIG.md) and
+echoes it in `config_ack.applied.advanced`. The plugin writes its own side ([debug] lines) to the VaM log.
+The Voice Mode toggle "Echtzeit (Realtime) verwenden" is not a protocol field: it only sets `ai.mode`
+(on = `auto`, off = `qa`).
 
 ## Audio delivery
 

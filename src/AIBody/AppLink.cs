@@ -51,6 +51,8 @@ namespace AIBody
 
         // ai controls (sent in the config event, merged into config.json "ai"; the rest of "ai" is file-only)
         private JSONStorableStringChooser _aiModeJson;
+        private JSONStorableBool _realtimeJson;
+        private bool _syncingRealtime;
         private JSONStorableBool _proactiveJson;
         private JSONStorableFloat _proactiveIdleJson;
         private JSONStorableBool _bargeInJson;
@@ -117,8 +119,10 @@ namespace AIBody
             // qa = simple questions and answers (STT -> LLM -> TTS with xAI, speech only; the default);
             // auto = realtime voice if the companion has an xAI key, else the chain
             _aiModeJson = new JSONStorableStringChooser("AI mode", new List<string> { ModeQa, "auto", "realtime", "chain" },
-                ModeQa, "AI mode", (string v) => MarkConfigDirty());
+                ModeQa, "AI mode", (string v) => { SyncRealtimeToggle(); MarkConfigDirty(); });
             _plugin.RegisterStringChooser(_aiModeJson);
+            // Not registered: only a view of "AI mode" (on = auto, off = qa), so nothing new is saved.
+            _realtimeJson = new JSONStorableBool("Echtzeit (Realtime) verwenden", false, SetRealtime);
             _proactiveJson = new JSONStorableBool("Proactive", true, (bool v) => MarkConfigDirty());
             _plugin.RegisterBool(_proactiveJson);
             _proactiveIdleJson = new JSONStorableFloat("Proactive idle (s)", 90f, (float v) => MarkConfigDirty(), 15f, 900f);
@@ -188,6 +192,9 @@ namespace AIBody
             engines["tts"] = _ttsJson.val;
             configEvent["engines"] = engines;
             configEvent["ai"] = BuildAiJson();
+            JSONClass advanced = new JSONClass();
+            advanced["verbose_log"].AsBool = Log.Verbose;   // Erweitert > Verbose log: companion turn trace too
+            configEvent["advanced"] = advanced;
         }
 
         /// <summary>The ai keys the plugin UI controls: mode, proactive on/off + idle, voice barge-in.</summary>
@@ -269,6 +276,8 @@ namespace AIBody
         public void BuildVoiceModeTab(UiPage page)
         {
             page.Toggle(_activeJson);
+            SyncRealtimeToggle();
+            page.Toggle(_realtimeJson);
             page.Button("API Reconnect", ApiReconnect);
             page.Button("Test-Ton über Companion", RequestTestTone);
         }
@@ -338,6 +347,27 @@ namespace AIBody
             + "auto / realtime = Grok Voice direkt (Fallback: Kette). chain = genau die Engines aus Tab AI.");
 
         /// <summary>Button "Einfacher Q&amp;A-Modus": AI mode qa (body control is switched off by the plugin).</summary>
+        /// <summary>
+        /// Voice Mode > "Echtzeit (Realtime) verwenden": on = AI mode auto (Grok Voice, falls back to
+        /// the chain), off = qa (the default). Shows on while AI mode is auto or realtime.
+        /// </summary>
+        private void SetRealtime(bool on)
+        {
+            if (_syncingRealtime) return;
+            bool isOn = _aiModeJson.val == "auto" || _aiModeJson.val == "realtime";
+            if (on != isOn) _aiModeJson.val = on ? "auto" : ModeQa;   // its callback marks the config dirty
+        }
+
+        private void SyncRealtimeToggle()
+        {
+            if (_realtimeJson == null || _aiModeJson == null) return;
+            bool isOn = _aiModeJson.val == "auto" || _aiModeJson.val == "realtime";
+            if (_realtimeJson.val == isOn) return;
+            _syncingRealtime = true;
+            try { _realtimeJson.val = isOn; }
+            finally { _syncingRealtime = false; }
+        }
+
         public void SetSimpleQa()
         {
             _aiModeJson.val = ModeQa;

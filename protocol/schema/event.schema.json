@@ -203,6 +203,18 @@
           "type": "string"
         }
       }
+    },
+    "advanced": {
+      "type": "object",
+      "description": "config: the Erweitert tab (verbose_log = companion turn trace on/off)",
+      "properties": {
+        "verbose_log": {
+          "type": [
+            "boolean",
+            "string"
+          ]
+        }
+      }
     }
   },
   "allOf": [
