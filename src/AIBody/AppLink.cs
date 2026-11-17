@@ -225,7 +225,10 @@ namespace AIBody
             return ai;
         }
 
-        /// <summary>An empty key file field takes the path from config.json (also for saved scenes).</summary>
+        /// <summary>
+        /// On every start the key file paths come from config.json (also for saved scenes). Since
+        /// version 15 there is no menu field, so a path in the file wins over one saved with the scene.
+        /// </summary>
         public void AdoptKeyFiles(JSONClass root)
         {
             JSONClass ai = root != null ? root["ai"] as JSONClass : null;
@@ -236,9 +239,9 @@ namespace AIBody
 
         private static void AdoptKeyFile(JSONStorableString field, JSONClass section)
         {
-            if (field == null || section == null || field.val.Length > 0) return;
+            if (field == null || section == null) return;
             string path = Protocol.GetString(section, "key_file", "");
-            if (path.Length > 0 && !LooksLikeKey(path)) field.val = path;
+            if (path.Length > 0 && path != field.val && !LooksLikeKey(path)) field.val = path;
         }
 
         /// <summary>

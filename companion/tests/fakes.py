@@ -143,7 +143,7 @@ class FakePlugin:
         self.ai_ui: dict[str, Any] = {"mode": mode, "proactive": {"enabled": True, "idle_seconds": 90.0},
                                       "realtime": {"send_while_speaking": False}}
         self.voice = "eve"  # AI Character tab "Voice" -> ai.realtime.voice + ai.xai.voice
-        self.key_files = {"xai": "", "elevenlabs": ""}  # AI tab key file fields (paths only)
+        self.key_files = {"xai": "", "elevenlabs": ""}  # key file paths (from config.json; no menu field since 15)
         self.ui = {
             "connection": {"channel": channel, "active": True,
                            "paths": {"expressions": "Saves/PluginData/AIBody/expressions.json",
@@ -295,13 +295,13 @@ class FakePlugin:
         self.settings_initialized = True
 
     def adopt_key_files(self) -> None:
-        """AppLink.AdoptKeyFiles: empty key file fields take the paths from config.json (every start)."""
+        """AppLink.AdoptKeyFiles: the key file paths come from config.json on every start (file wins, version 15)."""
         if not self.settings_path.exists():
             return
         ai = json.loads(self.settings_path.read_text(encoding="utf-8")).get("ai") or {}
         for provider in self.key_files:
             path = str((ai.get(provider) or {}).get("key_file") or "")
-            if not self.key_files[provider] and path:
+            if path:
                 self.key_files[provider] = path
 
     def write_settings(self) -> None:

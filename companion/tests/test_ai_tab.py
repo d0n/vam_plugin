@@ -1,4 +1,5 @@
-"""Tab "AI" / "AI Character" / "Voice Mode" controls: key file paths, key status, voice, API Reconnect."""
+"""Tab "Voice" controls (Voice Mode, Voice > AI Character): key file paths from config.json, key status, voice,
+API Reconnect."""
 from __future__ import annotations
 
 import json
@@ -91,6 +92,15 @@ class AiTabTests(unittest.TestCase):
         self.plugin.key_files["elevenlabs"] = ""
         self.plugin.write_settings()
         self.assertEqual(json.loads(path.read_text())["ai"]["elevenlabs"]["key_file"], "keys/eleven.txt")
+
+    def test_path_in_config_json_wins_over_the_one_saved_with_the_scene(self):
+        path = settings_file.settings_path(self.tmp.name)
+        data = json.loads(path.read_text())
+        data["ai"]["xai"]["key_file"] = "keys/new.txt"
+        path.write_text(json.dumps(data))
+        self.plugin.key_files["xai"] = "keys/old.txt"   # saved with the scene (v13/v14 menu field)
+        self.plugin.adopt_key_files()
+        self.assertEqual(self.plugin.key_files["xai"], "keys/new.txt")
 
     def test_rejected_key(self):
         key_file = self.root / "xai.txt"
