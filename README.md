@@ -1,6 +1,8 @@
 # AIBody
 
-Virt-A-Mate-Plugin (VaM 1.22) mit Python-Begleit-App, das einer KI einen Körper in einer VaM-Szene gibt. Stand: v0.7.4, Paket `d0n.AIBody.11.var`. Noch nicht in VaM getestet.
+Virt-A-Mate-Plugin (VaM 1.22) mit Python-Begleit-App, das einer KI einen Körper in einer VaM-Szene gibt. Stand: Version 12, Paket `d0n.AIBody.12.var`, Release `v12`. Noch nicht in VaM getestet.
+
+Versionsschema seit Version 12: Version = Paketnummer der `.var` (Plugin-Anzeige, Begleit-App, Git-Tag `v<N>`). Version 12 folgt auf 0.7.4 (= Paket 11); ältere Tags bleiben unverändert.
 
 Weitere Dokumente: [SPEC](docs/SPEC.md) (vereinbarter Umfang) · [ANFORDERUNGEN](docs/ANFORDERUNGEN.md) (umgesetzt / offen) · [BACKLOG](docs/BACKLOG.md) (zurückgestellte Ideen) · [TESTPROTOKOLL](docs/TESTPROTOKOLL.md) · [TECHNIK](docs/TECHNIK.md) (Architektur, Protokoll, Sandbox, englisch) · [API_AUDIT](docs/API_AUDIT.md) · [Releases](https://github.com/d0n/vam_plugin/releases) (Installation und Schnellstart je Version in den Release-Notes).
 
@@ -12,12 +14,12 @@ Weitere Dokumente: [SPEC](docs/SPEC.md) (vereinbarter Umfang) · [ANFORDERUNGEN]
   - Begleit-App `aibody_companion` (Python, läuft neben VaM auf demselben PC): Mikrofon, Spracherkennung, Sprachmodell, Sprachausgabe, Verbindung zu xAI (optional ElevenLabs).
 - Verbindung: Dateien unter `<VaM>/Saves/PluginData/AIBody/<Kanal>/`; Sprache als WAV unter `<VaM>/Custom/Sounds/AIBody/<Kanal>/`.
 - Ablauf: Plugin auf die KI-Figur laden → Begleit-App starten (`python -m aibody_companion --vam-root "<VaM>"`, mit xAI-Key) → sprechen (oder in der Konsole tippen) → die Figur antwortet.
-- Kurzinstallation: `d0n.AIBody.11.var` nach `<VaM>/AddonPackages/`, ältere `d0n.AIBody.*`, `d0n.AIBodySession.*`, `d0n.AIBodyPerson.*`, `d0n.AIBodyPerson2.*` löschen; Person auswählen > Tab Plugins > Add Plugin > `AddonPackages > d0n.AIBody.11:/Custom/Scripts/d0n/AIBody/AIBody.cslist`; Begleit-App: `cd companion`, `pip install sounddevice`, dann starten wie oben. Details und Schritt-für-Schritt: Release-Notes.
+- Kurzinstallation: `d0n.AIBody.12.var` nach `<VaM>/AddonPackages/`, ältere `d0n.AIBody.*`, `d0n.AIBodySession.*`, `d0n.AIBodyPerson.*`, `d0n.AIBodyPerson2.*` löschen; Person auswählen > Tab Plugins > Add Plugin > `AddonPackages > d0n.AIBody.12:/Custom/Scripts/d0n/AIBody/AIBody.cslist`; Begleit-App: `cd companion`, `pip install sounddevice`, dann starten wie oben. Details und Schritt-für-Schritt: Release-Notes.
 
 ## 2. Wofür ausgelegt / Spezifikation
 
-- Mitgelieferte Szene: [`examples/scenes/AIBody_GreenScreen.json`](examples/scenes/AIBody_GreenScreen.json), Anleitung [`docs/SZENE_GREENSCREEN.md`](docs/SZENE_GREENSCREEN.md). Inhalt: eine Person mit AIBody (`d0n.AIBody.11`) im Plugins-Tab, Sallys Szenen-Plugin *Camera Background Color* (`Sally.CameraBackgroundColor.7`, Farbe #00FF00, Skybox aus), zwei unsichtbare Lichter, kein Raum. Gedacht für Passthrough per Chroma-Key in Brille/Streaming-Programm; VaM selbst zeigt nur Grün. Nicht in VaM getestet.
-- Das Plugin funktioniert auch in anderen Szenen, solange es auf einer Person liegt.
+- Mitgelieferte Szene: [`examples/scenes/AIBody_GreenScreen.json`](examples/scenes/AIBody_GreenScreen.json), Anleitung [`docs/SZENE_GREENSCREEN.md`](docs/SZENE_GREENSCREEN.md). Inhalt: zwei Personen, die sich in 1,2 m Abstand ansehen: `AI Character` (weiblich, VaM-Standardfigur `Female 3`) mit AIBody (`d0n.AIBody.12`) im Plugins-Tab, und `Client Character` (männlich, `Male 1`) mit Sallys *Camera Background Color* (`Sally.CameraBackgroundColor.7`, Farbe #00FF00, Skybox aus) direkt im Plugins-Tab dieser Person; zwei unsichtbare Lichter, kein Raum, kein Szenen-Plugin. Abhängigkeit: `Sally.CameraBackgroundColor.7.var` vom VaM Hub. Gedacht für Passthrough per Chroma-Key in Brille/Streaming-Programm; VaM selbst zeigt nur Grün. Nicht in VaM getestet.
+- AIBody funktioniert auch in anderen Szenen, solange es auf der Person der KI liegt.
 - Kurzfassung der Spezifikation (vollständig: [SPEC.md](docs/SPEC.md)):
   - VaM-Sandbox: kein Netzwerk-, `System.IO`-, Reflection-, Mikrofon-Code im Plugin; nur belegte APIs; Dateizugriff nur über `FileManagerSecure`; „Allow Plugins Network Access“ bleibt aus.
   - Netzwerk nur in der Begleit-App.
@@ -33,12 +35,14 @@ Weitere Dokumente: [SPEC](docs/SPEC.md) (vereinbarter Umfang) · [ANFORDERUNGEN]
 
 - AI Character = der Körper der KI: die Person, auf der das Plugin geladen ist. Tab *AI Character*: KI-Modus, Stimme, Posen, Ausdrücke, Gesten, Körper.
 - Client Character = der menschliche Nutzer, der mit der KI spricht. Tab *Client Character*: Mikrofon (aufgenommen von der Begleit-App am PC), Push-to-Talk, Unterbrechen per Stimme.
-- Umsetzung im Code: beide Rollen stecken in dem einen Plugin auf der KI-Person. Für den Nutzer gibt es kein eigenes Atom und kein eigenes Plugin; seine Eingabe kommt über Mikrofon/Push-to-Talk bzw. Texteingabe in der Konsole der Begleit-App.
+- In der mitgelieferten Szene ist jede Rolle eine eigene Person: `AI Character` (weiblich, trägt AIBody) und `Client Character` (männlich, sichtbarer Körper des Nutzers, trägt das Hintergrund-Plugin Camera Background Color).
+- Umsetzung im Code: AIBody liegt nur auf der KI-Person und kennt kein Client-Atom; die Einstellungen beider Rollen stehen in diesem einen Plugin. Die Eingabe des Nutzers kommt weiter über Mikrofon/Push-to-Talk bzw. Texteingabe in der Konsole der Begleit-App, nicht über das Client-Atom.
 - Nicht vorgesehen und nicht getestet:
   - AIBody ohne Nutzerseite (ohne laufende Begleit-App gibt es weder Zuhören noch Antworten; das Plugin bleibt stabil und zeigt „GETRENNT“).
   - AIBody auf einem Nicht-Person-Atom (das Plugin-Fenster erklärt dann nur, wohin es gehört).
   - AIBody auf einer zweiten Person bzw. zwei Instanzen auf demselben Kanal (beide würden dieselben Dateien lesen).
-  - Client Character als eigene Figur/eigenes Atom und eine zweite KI-Figur: zurückgestellt, siehe [BACKLOG](docs/BACKLOG.md).
+  - Die Szene mit nur einer Person: AIBody selbst läuft dann, aber die Szene ist für zwei Personen gebaut (Hintergrund-Plugin auf dem Client-Atom).
+  - Steuerung über das Client-Atom (Client-Logik auf eigenem Atom) und eine zweite KI-Figur: zurückgestellt, siehe [BACKLOG](docs/BACKLOG.md).
 
 ## 4. Einstellungen
 

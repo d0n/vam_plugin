@@ -1,10 +1,10 @@
 # AIBody – Anforderungskatalog (Stand-Übersicht)
 
-Stand: 17.11.2026, v0.7.4. Übersicht, was umgesetzt ist und was offen ist; wird bei jedem Release aktualisiert.
+Stand: 17.11.2026, Version 12. Übersicht, was umgesetzt ist und was offen ist; wird bei jedem Release aktualisiert.
 - Vereinbarte Spezifikation (was gilt): [`docs/SPEC.md`](SPEC.md)
 - Zurückgestellte Ideen / Nice to have: [`docs/BACKLOG.md`](BACKLOG.md)
 - Testanleitung in VaM: [`docs/TESTPROTOKOLL.md`](TESTPROTOKOLL.md) · API-Belege: [`docs/API_AUDIT.md`](API_AUDIT.md)
-- Repo: https://github.com/d0n/vam_plugin · aktuelles Paket: `d0n.AIBody.11.var`
+- Repo: https://github.com/d0n/vam_plugin · aktuelles Paket: `d0n.AIBody.12.var` (Version = Paketnummer seit 12)
 
 „Umgesetzt“ heißt: im Code und gegen nachgebaute Gegenstellen getestet. Was in VaM bzw. gegen die echten xAI-APIs noch nicht geprüft ist, steht zusätzlich unter 2.
 
@@ -57,11 +57,16 @@ Stand: 17.11.2026, v0.7.4. Übersicht, was umgesetzt ist und was offen ist; wird
 - Das Menü zeigt nur Einstellbares (Leon, 17.11.2026 21:43): reine Pfad-/Info-Anzeigen in Post, Config und AI Character entfernt, nicht verschoben; Pfade stehen einmal im VaM-Log; Erklär-/Statustexte zu Bedienelementen bleiben – v0.7.4.
 - Push-to-Talk-Erklärtext unter dem Schalter statt Tooltip (kein belegter Weg) – v0.7.2, erneut geprüft v0.7.3.
 
+### Version und Konfiguration
+- Versionsschema Version = Paketnummer (`d0n.AIBody.12.var` = Version 12, Tag `v12`; Test prüft Gleichheit) – Version 12 (Leon, 17.11.2026 22:31).
+- Regler im Plugin decken die vollen config.json-Bereiche ab (VAD threshold bis 0,5, Proactive idle bis 3600 s), damit Werte aus der Datei nicht abgeschnitten und zurückgeschrieben werden; Test vergleicht alle Regler mit den Bereichen der App – Version 12.
+
 ### Protokollierung
 - Verbose log (Tab Erweitert, `advanced.verbose_log`, `-v`): Trace pro Runde in Konsole und `<VaM>/Saves/PluginData/AIBody/logs/companion.log` (1 MB × 5), Keys geschwärzt; im Plugin `[debug]`-Zeilen und *Letzte Ereignisse* – v0.7.3; Tool-Aufrufe und Latenz im Trace – v0.7.4.
 
 ### Szene, Doku
-- Szenen-Vorlage Green Screen / Passthrough (Sallys *Camera Background Color* #00FF00): `examples/scenes/AIBody_GreenScreen.json`, `docs/SZENE_GREENSCREEN.md` – v0.7.x (Wunsch 17.11.2026).
+- Szenen-Vorlage Green Screen / Passthrough (Sallys *Camera Background Color* #00FF00): `examples/scenes/AIBody_GreenScreen.json`, `docs/SZENE_GREENSCREEN.md` – v0.7.x (Wunsch 17.11.2026); Paketverweis auf das aktuelle Paket korrigiert – nach v0.7.4.
+- Szene mit zwei Personen: `AI Character` (weiblich, `Female 3`, AIBody) und `Client Character` (männlich, `Male 1`, Camera Background Color direkt auf der Person), 1,2 m, einander zugewandt – Version 12 (Leon, 17.11.2026 22:30).
 - README auf Deutsch neu: Zweck, mitgelieferte Szene, zwei Figuren, vollständige Einstellungsreferenz, Hinweise für den Hub; Technik nach `docs/TECHNIK.md` – nach v0.7.4 (Leon, 17.11.2026 22:11).
 - `docs/BACKLOG.md` (zurückgestellte Ideen, Leon 17.11.2026 21:45) und `docs/SPEC.md` (Spec-Log, Leon 17.11.2026 21:50) – v0.7.4.
 
@@ -90,6 +95,7 @@ Stand: 17.11.2026, v0.7.4. Übersicht, was umgesetzt ist und was offen ist; wird
 - `GetFiles` auf einem `Custom/`-Ordner in der Sandbox (Posen-Dateien).
 - Storable „PosePresets“ folgt dem belegten Muster (1.22).
 - Morph-Namen für Ausdrücke an Standard-Figuren (weiblich/männlich).
+- Szene: Personen in Blickrichtung +Z (0°/180° = einander zugewandt), Aussehen ohne festgelegte Kleidung, Camera Background Color auf einem Person-Atom.
 - Ursache des leeren Mikrofon-Menüs bei Leon: aus dem Code abgeleitet, Bestätigung über Statuszeile/Konsole steht aus.
 
 ### Offene Fragen an Leon

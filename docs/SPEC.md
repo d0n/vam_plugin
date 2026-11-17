@@ -14,6 +14,7 @@ Vereinbarter Stand, was gilt. Status (umgesetzt/offen): [`ANFORDERUNGEN.md`](ANF
 - C# 6.
 - Ein Plugin, eine `.cslist` (`Custom/Scripts/d0n/AIBody/AIBody.cslist`), genau eine MVRScript-Klasse; Laden in einem Schritt im Plugins-Tab der Person.
 - Eine `.var` (`d0n.AIBody.<N>.var`) nach `<VaM>/AddonPackages/`.
+- Versionsschema ab Version 12: Version = Paketnummer `<N>` der `.var`; gleich in Plugin-Anzeige (`PluginVersion`), Begleit-App (`__version__`, pyproject), `packaging/AIBody.json` und Git-Tag/Release `v<N>`. Ältere Tags (bis v0.7.4 = Paket 11) bleiben.
 - LICENSE und `licenseType` „FC“ in `meta.json` nicht anfassen; Lizenzfrage außen vor.
 - Keine Secrets im Repo; API-Keys nie im Log (geschwärzt), nie in Szene oder config.json.
 - Code auf Englisch; README auf Deutsch (Leon, 17.11.2026 22:11; technische Details englisch in `docs/TECHNIK.md`); Release-Notes auf Deutsch mit vollen Pfaden ab VaM-Hauptordner, Ladeort (Plugins-Tab der Person) und Bitte um Screenshot, rote `AIBody:`-Logzeilen und Konsolenausgabe der Begleit-App.
@@ -57,6 +58,13 @@ Vereinbarter Stand, was gilt. Status (umgesetzt/offen): [`ANFORDERUNGEN.md`](ANF
 - Keine Tools in `qa` und bei Body control aus.
 - Posen: Steuerung per Sprache über die KI, zusätzlich manuelles Menü (Auswahl + anwenden) im Tab AI Character.
 
+## Szene
+- Mitgelieferte Szene `examples/scenes/AIBody_GreenScreen.json`: zwei Personen, die sich ansehen.
+  - `AI Character`: weiblich (VaM-Standardfigur `Female 3`), AIBody im Plugins-Tab.
+  - `Client Character`: männlich (`Male 1`), sichtbarer Körper des Nutzers, Sallys *Camera Background Color* (#00FF00, Skybox aus) direkt im Plugins-Tab dieser Person (Abhängigkeit `Sally.CameraBackgroundColor.7`).
+  - Nur eingebaute Standard-Figuren, keine Fremd-Looks; kein Raum, kein Szenen-Plugin.
+- AIBody kennt kein Client-Atom; Nutzereingabe über Begleit-App (Mikrofon, Push-to-Talk, Konsole) und Tab Client Character im AIBody-Plugin.
+
 ## Menü
 - Das Menü zeigt nur, was sich einstellen lässt. Reine Info-/Pfadanzeigen gibt es nicht; eine Pfadanzeige nur im Tab Erweitert, wenn es dort etwas Sinnvolles einzustellen gibt.
 - Erklär- und Statustexte, die zu einem Bedienelement gehören (Modus-Hilfe, PTT-Erklärung, Key-/Engine-Status, Mikrofon-Status), bleiben.
@@ -81,3 +89,4 @@ Vereinbarter Stand, was gilt. Status (umgesetzt/offen): [`ANFORDERUNGEN.md`](ANF
 ## Änderungen
 - 17.11.2026 (v0.7.4): Erste Fassung des Spec-Logs.
 - 17.11.2026: README auf Deutsch (Zweck, Szene, zwei Figuren, vollständige Einstellungsreferenz, Hinweise für den Hub); bisheriger README-Inhalt nach `docs/TECHNIK.md`.
+- 17.11.2026 (Version 12): Versionsschema Version = Paketnummer; Szene mit zwei Personen (AI Character weiblich mit AIBody, Client Character männlich mit Camera Background Color); Regler im Plugin decken die vollen config.json-Bereiche ab.

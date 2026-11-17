@@ -15,7 +15,7 @@ Grundregel seit v0.6.0: erst Lauffähigkeit (eine `.cslist`, ein MVRScript, ein 
 - **Komfortable UI à la MacGruber Utils**, **Bedienung in VR** – Anforderungskatalog – Nicht begonnen.
 
 ## Laden und Aufbau
-- **Client auf eigenem Atom** (Mikrofon, Engines, Status auf der Figur des Nutzers oder einem Empty) – v0.5.0 (`legacy/v0.5`) – Braucht Plugin-zu-Plugin-Brücke (`GetStorableIDs`, `plugin#`-IDs, String-Param-Callbacks), unbelegt.
+- **Client-Logik auf eigenem Atom** (Mikrofon, Engines, Status auf der Figur des Nutzers oder einem Empty) – v0.5.0 (`legacy/v0.5`) – Seit Version 12 hat die Szene eine männliche Client-Person, aber nur als sichtbaren Körper mit Hintergrund-Plugin; AIBody liegt nicht darauf. Braucht Plugin-zu-Plugin-Brücke (`GetStorableIDs`, `plugin#`-IDs, String-Param-Callbacks), unbelegt.
 - **Zweite Figur bzw. mehrere Figuren** (eigene Instanz, Ziel pro Befehl, Persona pro Figur) – v0.4 `AIBodyPerson2` / v0.5 Atom-Routing – Zurückgestellt.
 - **Session/Person-Plugins trennen**, Session-Anbindung über „Set Current As User Defaults“ – v0.3/v0.4 (Code unter `legacy/`) – Zugunsten des Ladens in einem Schritt zurückgestellt.
 - **Session-Bootstrap**: Plugin setzt AIBody per `MVRPluginManager.CreatePlugin()` + `pluginURLJSON` auf die richtige Figur (Keybindings-Muster) – Anforderungskatalog – API unbelegt, zusätzliches Plugin.
