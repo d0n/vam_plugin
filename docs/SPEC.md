@@ -16,7 +16,7 @@ Vereinbarter Stand, was gilt. Status (umgesetzt/offen): [`ANFORDERUNGEN.md`](ANF
 - Eine `.var` (`d0n.AIBody.<N>.var`) nach `<VaM>/AddonPackages/`.
 - LICENSE und `licenseType` „FC“ in `meta.json` nicht anfassen; Lizenzfrage außen vor.
 - Keine Secrets im Repo; API-Keys nie im Log (geschwärzt), nie in Szene oder config.json.
-- Code und README auf Englisch; Release-Notes auf Deutsch mit vollen Pfaden ab VaM-Hauptordner, Ladeort (Plugins-Tab der Person) und Bitte um Screenshot, rote `AIBody:`-Logzeilen und Konsolenausgabe der Begleit-App.
+- Code auf Englisch; README auf Deutsch (Leon, 17.11.2026 22:11; technische Details englisch in `docs/TECHNIK.md`); Release-Notes auf Deutsch mit vollen Pfaden ab VaM-Hauptordner, Ladeort (Plugins-Tab der Person) und Bitte um Screenshot, rote `AIBody:`-Logzeilen und Konsolenausgabe der Begleit-App.
 - Sinnvolle Commits direkt auf `main`, jeder Commit einzeln grün (Tests, ruff, Plugin-Check, Schema-Check).
 
 ## Verbindung
@@ -80,3 +80,4 @@ Vereinbarter Stand, was gilt. Status (umgesetzt/offen): [`ANFORDERUNGEN.md`](ANF
 
 ## Änderungen
 - 17.11.2026 (v0.7.4): Erste Fassung des Spec-Logs.
+- 17.11.2026: README auf Deutsch (Zweck, Szene, zwei Figuren, vollständige Einstellungsreferenz, Hinweise für den Hub); bisheriger README-Inhalt nach `docs/TECHNIK.md`.

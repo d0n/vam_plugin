@@ -43,71 +43,9 @@ below. Machine-readable:
 [protocol/schema/config.schema.json](../protocol/schema/config.schema.json), example:
 [examples/config.json](../examples/config.json).
 
-| key | type | default | meaning |
-|-----|------|---------|---------|
-| `version` | int | 1 | schema version |
-| `written_by` | string | | who wrote the file last (informational) |
-| **`connection`** (tab "Post", **Active** on "Voice Mode") | | | |
-| `channel` | string | `default` | folder `Saves/PluginData/AIBody/<channel>/` for the message files; letters, digits, `-`, `_` |
-| `active` | bool | true | link to the companion app on/off |
-| `paths.expressions` | string | `Saves/PluginData/AIBody/expressions.json` | expression presets, relative, below `Saves/` or `Custom/` |
-| `paths.gestures` | string | `Saves/PluginData/AIBody/gestures.json` | gestures (Timeline actions), same rules |
-| `paths.audio` | string | `""` | folder for the companion's speech WAVs, relative, below `Saves/` or `Custom/`. `""` = automatic: `Custom/Sounds/AIBody/<channel>`; if VaM cannot load a WAV there (plugin error `audio_failed`), the app switches once to `Saves/PluginData/AIBody/<channel>/audio` and sends the speech again (status box: red note). A fixed folder turns the switch off |
-| **`engines`** (tab "AI") | | | |
-| `stt`, `llm`, `tts` | string | `null`, `echo`, `tone` | engine names; the app only accepts engines it has |
-| **`mic`** (tab "Client Character", section Microphone) | | | captured by the companion app |
-| `enabled` | bool | true | microphone on |
-| `mode` | `vad` / `ptt` | `vad` | voice activation or push-to-talk |
-| `device` | string | `""` | input device name, empty = system default |
-| `vad_threshold` | number 0.001-0.5 | 0.01 | speech level (RMS) |
-| `end_silence_ms` | number 200-5000 | 700 | silence that ends an utterance |
-| `min_utterance_ms` / `max_utterance_ms` | number | 300 / 20000 | shorter ones are dropped / longer ones cut |
-| `echo_tail_s` | number 0-3 | 0.4 | mic stays closed after the body stopped speaking |
-| `gain` | number 0.1-8 | 1.0 | input gain |
-| `ptt_interrupts` | bool | true | push-to-talk stops the body's speech |
-| `level_meter` | bool | true | level meter in the plugin |
-| **`body`** (tab "AI Character") | | | |
-| `speech_volume` | number 0-1 | 1.0 | volume of the head audio |
-| `body_control` | bool | true | **Body control**: false = speech only; expression / morph / gesture / pose / trigger commands are ignored |
-| `idle_motion` / `idle_intensity` | bool / number 0-1 | true / 0.5 | idle head motion |
-| `breathing` / `breaths_per_minute` / `breath_depth` | bool / 4-40 / 0-1 | true / 14 / 0.35 | procedural breathing |
-| `breath_morph` | string | `Breath1` | chest morph for breathing |
-| **`advanced`** (tab "Erweitert") | | | |
-| `file_poll_interval_s` | number 0.02-2 | 0.1 | how often the plugin checks its inbox |
-| `verbose_log` | bool | false | **Verbose log**: turn trace in the companion console and log file (`Saves/PluginData/AIBody/logs/companion.log`, 1 MB x 5, keys redacted) and `[debug]` lines in the VaM log; applied live through the `config` event. `-v` keeps it on |
-| **`ai`** (companion app) | | | the plugin sets only `mode`, `proactive.enabled`, `proactive.idle_seconds`, `realtime.send_while_speaking`, `realtime.voice`, `xai.voice` and (when its field is not empty) `xai.key_file` / `elevenlabs.key_file`; it keeps the rest of the section |
-| `mode` | `qa` / `auto` / `realtime` / `chain` | `qa` | tab *AI Character* **AI mode** (*Voice Mode* > **Einfacher Q&A-Modus** sets `qa`). `qa` = simple Q&A: STT -> LLM -> TTS with `xai` instead of the offline test engines when an xAI key exists, speech only, no proactive remarks. `auto` = realtime when an xAI key exists, else chain; with `engines.tts` = `elevenlabs` auto picks chain. `realtime` = Grok Voice speech-to-speech; `chain` = STT -> LLM -> TTS (exactly the engines above). If realtime cannot connect, or gives no answer 12 s after the user spoke, chain runs (reported). Files from 0.7.1 keep their value (`auto`) |
-| `realtime.url` | string | `wss://api.x.ai/v1/realtime` | |
-| `realtime.model` | string | `grok-voice-latest` | voice model (query parameter `model`) |
-| `realtime.voice` | string | `eve` | tab *AI Character* **Voice** (`eve`, `ara`, `rex`, `sal`, `leo` or a custom voice id from this file); also sets `xai.voice`. Changing it reconnects realtime |
-| `realtime.sample_rate` | 8000 … 48000 | 24000 | answer audio rate (16-bit PCM, written as WAV segments) |
-| `realtime.speed` | number 0.7-1.5 | 1.0 | speaking speed |
-| `realtime.reasoning_effort` | `none` / `high` | `none` | `none` answers faster; `high` is the API default |
-| `realtime.send_while_speaking` | bool | false | tab *Client Character* **Voice barge-in (headphones)**: the mic keeps streaming while the body talks, so you can interrupt by voice. Only with headphones - with speakers the AI hears itself |
-| `realtime.first_segment_s` | number 0.3-5 | 1.2 | the first audio segment is played as soon as a sentence ended after this much audio |
-| `realtime.max_segment_s` | number 1-20 | 6.0 | longer stretches without a sentence end are cut at the quietest spot |
-| `realtime.connect_timeout_s` | number 3-60 | 15 | |
-| `proactive.enabled` | bool | true | tab *AI* **Proactive**: the AI may speak up by itself after a silence |
-| `proactive.idle_seconds` | number 15-3600 | 90 | tab *AI* **Proactive idle (s)** (slider 15-900): silence (nobody spoke) before a nudge; doubles (up to 8x) while the user stays quiet |
-| `proactive.prompt` | string | "The user has been quiet … answer with exactly [silent] …" | note sent with each nudge; the AI may answer `[silent]`, then nothing is played |
-| `persona` | string | friendly character … | persona / system prompt of the language model (xAI: `instructions`, sent with the first request of a conversation) |
-| `language` | string | `auto` | `auto` or a language code (`de`, `en`, …): STT bias (`language`), TTS language |
-| `fallback.stt` / `.llm` / `.tts` | string | `null` / `echo` / `tone` | runs when the selected engine has no key or a request fails |
-| `xai.base_url` | string | `https://api.x.ai/v1` | |
-| `xai.key_file` | string | `""` | tab *AI* **xAI key file**: **path** of a file holding the xAI key (absolute, or relative to your home folder). `XAI_API_KEY` wins |
-| `xai.model` | string | `grok-4.7` | language model (docs.x.ai recommends Grok 4.7 for chat; `grok-4.20-0309-non-reasoning` may answer faster) |
-| `xai.max_output_tokens` | int 16-8000 | 400 | keeps spoken answers short |
-| `xai.stt_model` | string | `grok-voice-transcribe-2.0` | speech-to-text model |
-| `xai.voice` | string | `eve` | TTS voice (`GET /v1/tts/voices` lists them; custom voice ids work too) |
-| `xai.speed` | number 0.7-1.5 | 1.0 | TTS speed |
-| `xai.sample_rate` | 8000 … 48000 | 24000 | TTS sample rate (raw PCM, wrapped into WAV) |
-| `xai.timeout_s` | number 5-600 | 60 | request timeout |
-| `elevenlabs.base_url` | string | `https://api.elevenlabs.io/v1` | |
-| `elevenlabs.key_file` | string | `""` | tab *AI* **ElevenLabs key file**: **path** of a file holding the ElevenLabs key. `ELEVENLABS_API_KEY` wins |
-| `elevenlabs.voice_id` | string | `JBFqnCBsd6RMkjVDRZzb` | voice (the example voice of the ElevenLabs docs; pick your own in their voice library) |
-| `elevenlabs.model_id` | string | `eleven_multilingual_v2` | TTS model (the API default) |
-| `elevenlabs.output_format` | `pcm_16000` … `pcm_48000` | `pcm_24000` | raw PCM, wrapped into WAV; 44.1/48 kHz need an ElevenLabs Pro plan |
-| `elevenlabs.timeout_s` | number 5-600 | 60 | request timeout |
+The complete key reference (type, default, allowed values, effect, where to set it) is in the German
+[README, section 4](../README.md#4-einstellungen); it is the single list and kept in sync with
+`companion/aibody_companion/settings_file.py`.
 
 The push-to-talk *state* is never saved (only the setting `ptt_interrupts` and `mode`). Unknown
 keys are reported and ignored; out-of-range numbers are clamped.

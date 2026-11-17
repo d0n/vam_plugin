@@ -62,6 +62,7 @@ Stand: 17.11.2026, v0.7.4. Übersicht, was umgesetzt ist und was offen ist; wird
 
 ### Szene, Doku
 - Szenen-Vorlage Green Screen / Passthrough (Sallys *Camera Background Color* #00FF00): `examples/scenes/AIBody_GreenScreen.json`, `docs/SZENE_GREENSCREEN.md` – v0.7.x (Wunsch 17.11.2026).
+- README auf Deutsch neu: Zweck, mitgelieferte Szene, zwei Figuren, vollständige Einstellungsreferenz, Hinweise für den Hub; Technik nach `docs/TECHNIK.md` – nach v0.7.4 (Leon, 17.11.2026 22:11).
 - `docs/BACKLOG.md` (zurückgestellte Ideen, Leon 17.11.2026 21:45) und `docs/SPEC.md` (Spec-Log, Leon 17.11.2026 21:50) – v0.7.4.
 
 ## 2. Noch offen / zu tun
@@ -115,7 +116,7 @@ Stand: 17.11.2026, v0.7.4. Übersicht, was umgesetzt ist und was offen ist; wird
 - LICENSE und `licenseType` „FC“ in `meta.json` nicht anfassen; Lizenzfrage außen vor.
 - Keine Secrets im Repo.
 - Push direkt auf `main` in sinnvollen, einzeln grünen Commits.
-- Code und README Englisch; Release-Notes Deutsch mit vollem Pfad ab VaM-Hauptordner, Ladeort (Plugins-Tab der Person), Bitte um Screenshot, rote `AIBody:`-Logzeilen und Konsolenausgabe der Begleit-App.
+- Code Englisch, README Deutsch (seit 17.11.2026 22:11); Release-Notes Deutsch mit vollem Pfad ab VaM-Hauptordner, Ladeort (Plugins-Tab der Person), Bitte um Screenshot, rote `AIBody:`-Logzeilen und Konsolenausgabe der Begleit-App.
 
 ## Lernquellen
 - MacGruber: [LogicBricks](https://hub.virtamate.com/resources/logicbricks.1975/), [Life](https://hub.virtamate.com/resources/life.165/), [Benchmark](https://hub.virtamate.com/resources/benchmark.11336/), [Utils](https://hub.virtamate.com/resources/macgruber-utils.40744/)
