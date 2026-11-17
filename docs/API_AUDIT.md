@@ -145,3 +145,27 @@ from `Exception.ToString()`, not from reflection. The only additions outside the
   SimpleJSON indexer / `as JSONClass` pattern as 0.7.0 (no enumeration of `JSONClass` needed).
 - The realtime voice (WebSocket to `wss://api.x.ai/v1/realtime`) is companion-only; the plugin
   still has no network code and plays the answer segments through the unchanged `speak` command.
+
+## After 0.7.1 (unreleased): sound path, test tones, menu restructure
+
+- **New: plugin folder lookup for the bundled test WAV**, exactly Dollmaster's `GetPluginPath`
+  (E1, L283-290): `storeId.Split('_')[0]`, `containingAtom.GetStorableByID("PluginManager") as
+  MVRPluginManager`, `manager.GetJSON(true, true)["plugins"][pluginId].Value`, cut at the last
+  `/`. Dollmaster's extra line `currentSaveDir = currentLoadDir` is NOT copied (side effect, not
+  needed). The WAV (`AIBodyTest.wav`, next to the `.cslist`) is loaded with the unchanged
+  `NormalizeMediaPath` + `QueueClip` + `PlayNow` path; Dollmaster loads its audio from its own
+  plugin folder the same way (E1 L293-310, `Personality.cs` L45-72), also from a `.var`.
+- **File check before loading:** `FileManagerSecure.FileExists(path)` (E10) for plain paths below
+  the VaM folder, so a missing companion file shows as "Audio-Fehler: Datei fehlt" instead of a
+  15 s start timeout. Package paths (`pkg:/...`) are not checked.
+- **Tooltip / hover on a toggle: not done.** No public sandboxed plugin shows a tooltip API for
+  `CreateToggle` controls, and building one would need Unity `EventTrigger` / pointer handlers
+  that no evidence covers. The push-to-talk explanation is a short text field right under the
+  checkbox (unregistered `JSONStorableString` + `CreateTextField`, as for the tab headers).
+- Placeholder slider "Delay" and the key status text are unregistered storables shown with
+  `CreateSlider` / `CreateTextField` (same pattern as the engine status text).
+- Toggle labels come from the storable name; the existing storable "Push-to-talk active" keeps its
+  name (renaming would lose the value saved in scenes).
+- Still TODO(verify): whether VaM's audio loader accepts WAVs below `Saves/PluginData` at all
+  (the evidence loads from `Custom/` and package folders). The two test-tone buttons tell the
+  cases apart; the fallback is `connection.paths.audio` (e.g. `Custom/Sounds/AIBody`).

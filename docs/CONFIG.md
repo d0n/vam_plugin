@@ -20,8 +20,9 @@ is one of the values. Evidence links: [API_AUDIT.md](API_AUDIT.md) ("Config file
 | scene **with** saved AIBody settings | the scene's values win and are written back | - |
 | a value changes in the plugin UI | written back within 1 s (only if something changed) | gets it live as a `config` event (protocol) |
 | app start | - | reads channel, mic, engines and `ai` from the file (`--channel` on the command line wins); adds a missing `ai` section with its defaults |
-| `ai` section | never edits it, keeps it when writing the file | reads it (persona, language, fallback, engine settings) |
-| paths (`connection.paths`) | read from the file (no UI), on start, channel change and "Reload config.json" | - |
+| `ai` section | sets only its tab controls (`mode`, `proactive.enabled` / `idle_seconds`, `realtime.send_while_speaking` / `voice`, `xai.voice`, `xai.key_file` / `elevenlabs.key_file` when set), keeps the rest when writing the file; an empty key file field takes the path from the file on every start | reads it (persona, language, fallback, engine settings); the tab controls also arrive live in the `config` event |
+| paths (`connection.paths`) | read from the file (no UI), on start, channel change and **Reload Config JSON** (tab *Config*); `paths.audio` is kept unchanged | `paths.audio`: where it writes the speech WAVs |
+| tab *Config* > **Reload Config JSON** | applies the whole file to the UI (also for a saved scene) and sends it to the app | gets the new values live |
 
 The plugin writes compact JSON in place (FileManagerSecure cannot rename); the app writes the
 default file atomically and ignores a file it cannot parse (then defaults, with a warning).
@@ -34,7 +35,11 @@ to win.
 
 ## Schema (version 1)
 
-One object per tab of the plugin window ("Status" has no settings). Machine-readable:
+One object per settings category. Since the menu restructure the categories no longer match
+the tabs one to one (kept for compatibility with existing files): `connection` = tab *Post*
+(+ *Voice Mode* **Active**), `engines` = tab *AI*, `mic` = tab *Client Character*, `body` = tab
+*AI Character*, `advanced` = tab *Erweitert*, `ai` = companion settings plus the tab controls named
+below. Machine-readable:
 [protocol/schema/config.schema.json](../protocol/schema/config.schema.json), example:
 [examples/config.json](../examples/config.json).
 
@@ -42,14 +47,15 @@ One object per tab of the plugin window ("Status" has no settings). Machine-read
 |-----|------|---------|---------|
 | `version` | int | 1 | schema version |
 | `written_by` | string | | who wrote the file last (informational) |
-| **`connection`** (tab "Verbindung") | | | |
+| **`connection`** (tab "Post", **Active** on "Voice Mode") | | | |
 | `channel` | string | `default` | folder `Saves/PluginData/AIBody/<channel>/` for the message files; letters, digits, `-`, `_` |
 | `active` | bool | true | link to the companion app on/off |
 | `paths.expressions` | string | `Saves/PluginData/AIBody/expressions.json` | expression presets, relative, below `Saves/` or `Custom/` |
 | `paths.gestures` | string | `Saves/PluginData/AIBody/gestures.json` | gestures (Timeline actions), same rules |
-| **`engines`** (tab "Engines") | | | |
+| `paths.audio` | string | `""` | folder for the companion's speech WAVs, relative, below `Saves/` or `Custom/`; `""` = `Saves/PluginData/AIBody/<channel>/audio`. Change it (e.g. `Custom/Sounds/AIBody`) only if **Test-Ton über Companion** stays silent while **Test-Ton abspielen** works |
+| **`engines`** (tab "AI") | | | |
 | `stt`, `llm`, `tts` | string | `null`, `echo`, `tone` | engine names; the app only accepts engines it has |
-| **`mic`** (tab "Mikrofon & PTT") | | | captured by the companion app |
+| **`mic`** (tab "Client Character", section Microphone) | | | captured by the companion app |
 | `enabled` | bool | true | microphone on |
 | `mode` | `vad` / `ptt` | `vad` | voice activation or push-to-talk |
 | `device` | string | `""` | input device name, empty = system default |
@@ -60,34 +66,35 @@ One object per tab of the plugin window ("Status" has no settings). Machine-read
 | `gain` | number 0.1-8 | 1.0 | input gain |
 | `ptt_interrupts` | bool | true | push-to-talk stops the body's speech |
 | `level_meter` | bool | true | level meter in the plugin |
-| **`body`** (tab "Körper") | | | |
+| **`body`** (tab "AI Character") | | | |
 | `speech_volume` | number 0-1 | 1.0 | volume of the head audio |
+| `body_control` | bool | true | **Body control**: false = speech only; expression / morph / gesture / pose / trigger commands are ignored |
 | `idle_motion` / `idle_intensity` | bool / number 0-1 | true / 0.5 | idle head motion |
 | `breathing` / `breaths_per_minute` / `breath_depth` | bool / 4-40 / 0-1 | true / 14 / 0.35 | procedural breathing |
 | `breath_morph` | string | `Breath1` | chest morph for breathing |
 | **`advanced`** (tab "Erweitert") | | | |
 | `file_poll_interval_s` | number 0.02-2 | 0.1 | how often the plugin checks its inbox |
 | `verbose_log` | bool | false | debug lines in the VaM log |
-| **`ai`** (companion app) | | | the plugin's Engines tab sets only `mode`, `proactive.enabled`, `proactive.idle_seconds` and `realtime.send_while_speaking`; it keeps the rest of the section |
-| `mode` | `auto` / `realtime` / `chain` | `auto` | Engines tab **AI mode**. `auto` = realtime when an xAI key exists, else chain; with `engines.tts` = `elevenlabs` auto picks chain. `realtime` = Grok Voice speech-to-speech; `chain` = STT -> LLM -> TTS (the engines above). If realtime cannot connect, chain runs meanwhile (reported) |
+| **`ai`** (companion app) | | | the plugin sets only `mode`, `proactive.enabled`, `proactive.idle_seconds`, `realtime.send_while_speaking`, `realtime.voice`, `xai.voice` and (when its field is not empty) `xai.key_file` / `elevenlabs.key_file`; it keeps the rest of the section |
+| `mode` | `auto` / `realtime` / `chain` | `auto` | tab *AI Character* **AI mode**. `auto` = realtime when an xAI key exists, else chain; with `engines.tts` = `elevenlabs` auto picks chain. `realtime` = Grok Voice speech-to-speech; `chain` = STT -> LLM -> TTS (the engines above). If realtime cannot connect, chain runs meanwhile (reported) |
 | `realtime.url` | string | `wss://api.x.ai/v1/realtime` | |
 | `realtime.model` | string | `grok-voice-latest` | voice model (query parameter `model`) |
-| `realtime.voice` | string | `eve` | voice (e.g. `eve`, `ara`, `rex`) |
+| `realtime.voice` | string | `eve` | tab *AI Character* **Voice** (`eve`, `ara`, `rex`, `sal`, `leo` or a custom voice id from this file); also sets `xai.voice`. Changing it reconnects realtime |
 | `realtime.sample_rate` | 8000 … 48000 | 24000 | answer audio rate (16-bit PCM, written as WAV segments) |
 | `realtime.speed` | number 0.7-1.5 | 1.0 | speaking speed |
 | `realtime.reasoning_effort` | `none` / `high` | `none` | `none` answers faster; `high` is the API default |
-| `realtime.send_while_speaking` | bool | false | Engines tab **Voice barge-in (headphones)**: the mic keeps streaming while the body talks, so you can interrupt by voice. Only with headphones - with speakers the AI hears itself |
+| `realtime.send_while_speaking` | bool | false | tab *Client Character* **Voice barge-in (headphones)**: the mic keeps streaming while the body talks, so you can interrupt by voice. Only with headphones - with speakers the AI hears itself |
 | `realtime.first_segment_s` | number 0.3-5 | 1.2 | the first audio segment is played as soon as a sentence ended after this much audio |
 | `realtime.max_segment_s` | number 1-20 | 6.0 | longer stretches without a sentence end are cut at the quietest spot |
 | `realtime.connect_timeout_s` | number 3-60 | 15 | |
-| `proactive.enabled` | bool | true | Engines tab **Proactive**: the AI may speak up by itself after a silence |
-| `proactive.idle_seconds` | number 15-3600 | 90 | Engines tab **Proactive idle (s)** (slider 15-900): silence (nobody spoke) before a nudge; doubles (up to 8x) while the user stays quiet |
+| `proactive.enabled` | bool | true | tab *AI* **Proactive**: the AI may speak up by itself after a silence |
+| `proactive.idle_seconds` | number 15-3600 | 90 | tab *AI* **Proactive idle (s)** (slider 15-900): silence (nobody spoke) before a nudge; doubles (up to 8x) while the user stays quiet |
 | `proactive.prompt` | string | "The user has been quiet … answer with exactly [silent] …" | note sent with each nudge; the AI may answer `[silent]`, then nothing is played |
 | `persona` | string | friendly character … | persona / system prompt of the language model (xAI: `instructions`, sent with the first request of a conversation) |
 | `language` | string | `auto` | `auto` or a language code (`de`, `en`, …): STT bias (`language`), TTS language |
 | `fallback.stt` / `.llm` / `.tts` | string | `null` / `echo` / `tone` | runs when the selected engine has no key or a request fails |
 | `xai.base_url` | string | `https://api.x.ai/v1` | |
-| `xai.key_file` | string | `""` | **path** of a file holding the xAI key (absolute, or relative to your home folder). `XAI_API_KEY` wins |
+| `xai.key_file` | string | `""` | tab *AI* **xAI key file**: **path** of a file holding the xAI key (absolute, or relative to your home folder). `XAI_API_KEY` wins |
 | `xai.model` | string | `grok-4.7` | language model (docs.x.ai recommends Grok 4.7 for chat; `grok-4.20-0309-non-reasoning` may answer faster) |
 | `xai.max_output_tokens` | int 16-8000 | 400 | keeps spoken answers short |
 | `xai.stt_model` | string | `grok-voice-transcribe-2.0` | speech-to-text model |
@@ -96,7 +103,7 @@ One object per tab of the plugin window ("Status" has no settings). Machine-read
 | `xai.sample_rate` | 8000 … 48000 | 24000 | TTS sample rate (raw PCM, wrapped into WAV) |
 | `xai.timeout_s` | number 5-600 | 60 | request timeout |
 | `elevenlabs.base_url` | string | `https://api.elevenlabs.io/v1` | |
-| `elevenlabs.key_file` | string | `""` | **path** of a file holding the ElevenLabs key. `ELEVENLABS_API_KEY` wins |
+| `elevenlabs.key_file` | string | `""` | tab *AI* **ElevenLabs key file**: **path** of a file holding the ElevenLabs key. `ELEVENLABS_API_KEY` wins |
 | `elevenlabs.voice_id` | string | `JBFqnCBsd6RMkjVDRZzb` | voice (the example voice of the ElevenLabs docs; pick your own in their voice library) |
 | `elevenlabs.model_id` | string | `eleven_multilingual_v2` | TTS model (the API default) |
 | `elevenlabs.output_format` | `pcm_16000` … `pcm_48000` | `pcm_24000` | raw PCM, wrapped into WAV; 44.1/48 kHz need an ElevenLabs Pro plan |
@@ -118,7 +125,7 @@ starts talking with the first segment. Expressions and gestures come from the `e
 call and become the existing `expression` / `gesture` commands. When the server reports
 `input_audio_buffer.speech_started` while the body talks, the companion sends `stop_speaking`
 and drops the rest of that answer (push-to-talk also sends `response.cancel`). The connection is
-re-opened with backoff (1, 2, 4, 8, 15, 30 s); meanwhile chain runs. The Engines tab shows the
+re-opened with backoff (1, 2, 4, 8, 15, 30 s); meanwhile chain runs. The tab *AI* shows the
 active mode ("Modus: realtime – Realtime verbunden …").
 
 **Echo:** while the body talks, the companion streams silence instead of the microphone (there is
@@ -126,7 +133,7 @@ no echo cancellation), so interrupting by voice needs **Voice barge-in (headphon
 always interrupts.
 
 **Chain** (`ai.mode` `chain`, or `auto` without xAI key / with ElevenLabs TTS): the engines of the
-Engines tab, as before.
+tab *AI*, as before.
 
 ## Proactive speech and time context
 
@@ -161,9 +168,16 @@ Engines tab, as before.
    `C:\Users\<you>\keys\elevenlabs.txt`, and enter its path in `config.json`:
    `"ai": { "elevenlabs": { "key_file": "C:/Users/<you>/keys/elevenlabs.txt" } }`
    (a relative path counts from your home folder, e.g. `keys/elevenlabs.txt`).
-3. Select **Text-to-speech: elevenlabs** in the plugin's Engines tab. The status line there
+3. Select **Text-to-speech: elevenlabs** in the plugin's tab *AI*. The status line there
    changes from "nicht konfiguriert" to "bereit (…)" - a key file within 10 s, an environment
    variable after restarting the app.
+
+Instead of editing `config.json` you can enter the key file path in the tab *AI*
+(**xAI key file**, **ElevenLabs key file**); the status below shows per provider **konfiguriert**,
+**fehlt** or **abgelehnt** (the server refused the key with HTTP 401/403). Something that looks like
+a pasted key (starts with `xai-` / `sk_`, or a long string without `/ \ .`) is refused by the
+plugin and the app and never stored. A direct key field is not built: it would be saved readably
+in the scene and in `config.json` (open question to the user, TODO hook in `AppLink.cs`).
 
 The key itself never goes into `config.json` (a `key_file` value that looks like a key is
 refused) or into the log. Without a key nothing is blocked: the engine is "nicht konfiguriert"

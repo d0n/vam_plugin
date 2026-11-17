@@ -1,4 +1,4 @@
-# AIBody – Testprotokoll für den ersten Test in VaM 1.22 (ab v0.6.3, aktuell v0.7.1)
+# AIBody – Testprotokoll für den ersten Test in VaM 1.22 (ab v0.6.3, aktuell v0.7.1; T9 und die neuen Tab-Namen gelten ab der nächsten Version)
 
 Ziel: die offenen „Muss jetzt“-Punkte, die nur in VaM prüfbar sind. Bitte jeden Punkt der Reihe
 nach durchgehen und das Ergebnis eintragen (✅ / ❌ / unklar). Dauer: etwa 20 Minuten.
@@ -57,11 +57,13 @@ Companion-App: erscheinen `speech_started`/`speech_ended` bzw. Fehler wie `audio
 
 ## T4 – Menü-Aktualisierung und Textfeld
 
-1. Tab **Mikrofon & PTT** öffnen > **Refresh device list** > Auswahl **Mic device** öffnen.
-2. Tab **Engines** öffnen und die drei Auswahllisten öffnen.
-3. Tab **Verbindung**: ins Feld **Channel** klicken, `test` eintippen, Enter. Danach wieder `default`.
-4. Tab **Körper**: ins Feld **Breath morph** klicken und einen Buchstaben ändern, dann zurück.
-5. Alle sechs Tabs einmal durchklicken (Status, Verbindung, Engines, Mikrofon & PTT, Körper, Erweitert).
+Tab-Namen ab der nächsten Version (in v0.7.1 noch: Status, Verbindung, Engines, Mikrofon & PTT, Körper, Erweitert):
+
+1. Tab **Client Character** (früher *Mikrofon & PTT*) öffnen > **Refresh device list** > Auswahl **Mic device** öffnen.
+2. Tab **AI** (früher *Engines*) öffnen und die drei Auswahllisten öffnen; ins Feld **xAI key file** klicken und tippen.
+3. Tab **Post** (früher *Verbindung*): ins Feld **Channel** klicken, `test` eintippen, Enter. Danach wieder `default`.
+4. Tab **AI Character** (früher *Körper*): ins Feld **Breath morph** klicken und einen Buchstaben ändern, dann zurück.
+5. Alle sieben Tabs einmal durchklicken (Voice Mode, AI, AI Character, Client Character, Post, Config, Erweitert).
 
 Melden: Zeigt die Geräteliste die echten Mikrofone? Lässt sich in die Textfelder tippen? Ändert
 sich nach `test` der Ordner unter *Live* auf `Saves/PluginData/AIBody/test`? Wechseln die Tabs
@@ -69,7 +71,7 @@ sauber (alte Elemente weg, keine doppelten)? Steht eine *WARNUNG „nur lesbar�
 
 ## T5 – Pose-Speicher, Morph-Namen, Atem-Morph
 
-1. Tab **Körper**: **Breathing** an; auf die Brust schauen. Unter *Live* die Zeile „Breath morph“ lesen.
+1. Tab **AI Character** (v0.7.1: *Körper*): **Body control** und **Breathing** an; auf die Brust schauen. Unter *Live* die Zeile „Breath morph“ lesen.
 2. In der Companion-App nacheinander tippen: `Hallo` (fröhlich + Nicken), `Nein` (traurig +
    Kopfschütteln), `Was machst du?` (nachdenklich + Kopfneigen). Die Test-Engine schickt Ausdruck
    und Geste automatisch mit. Auf Gesicht und Kopf achten.
@@ -101,7 +103,7 @@ einer Minute ohne App in `Saves/PluginData/AIBody/default/outbox/` (sollten höc
 ## T7 – Engine-Status (ab v0.7.0)
 
 1. Companion-App läuft (ohne API-Keys).
-2. Tab **Engines** öffnen, bei **Text-to-speech** `elevenlabs` auswählen, 3 Sekunden warten.
+2. Tab **AI** (v0.7.1: *Engines*) öffnen, bei **Text-to-speech** `elevenlabs` auswählen, 3 Sekunden warten.
 3. Einen Satz in der Companion-App tippen.
 
 Melden: Steht unter den Auswahllisten „Text-to-speech: elevenlabs – nicht konfiguriert: …“ und
@@ -117,7 +119,7 @@ und am besten ein Headset.
 
 1. Companion-App mit Key starten. Im Log der App sollte stehen: `Modus: auto -> realtime` und
    `Realtime: verbunden mit wss://api.x.ai/v1/realtime?model=grok-voice-latest`.
-2. Im Plugin Tab **Engines**: **AI mode** steht auf `auto`; im Status darunter
+2. Im Plugin Tab **AI Character** (v0.7.1: *Engines*): **AI mode** steht auf `auto`; im Tab **AI** im Status
    „Modus: realtime – Realtime verbunden …“ und „Proaktiv: an, nach 90 s Stille“.
 3. Etwas sagen (z. B. „Hallo, wie spät ist es?“). Die Figur soll nach kurzer Pause antworten,
    der Mund bewegt sich, die Uhrzeit stimmt ungefähr.
@@ -133,4 +135,22 @@ mit `Realtime` oder `failed` aus dem App-Log.
 
 ---
 
-**Ergebnis zurückschicken:** pro Punkt T1–T8 ✅/❌, die Screenshots und die roten „AIBody:“-Zeilen.
+## T9 – Ton im Spiel: Frage → Antwort hörbar (ab der nächsten Version)
+
+Ziel: Es soll einfach eine hörbare Antwort aus dem Kopf der Figur kommen. Körpersteuerung ist dafür
+nicht nötig.
+
+1. Tab **AI Character**: **Body control** aus (nur Sprache), **Speech volume** auf 1.
+2. Tab **Voice Mode** > **Test-Ton abspielen** (spielt die Datei aus dem Paket, ohne Companion-App).
+   Im Statusfeld unter *Live* steht `Audio: Lade: AIBodyTest.wav`, dann `Spreche: AIBodyTest.wav (1.5 s)`, dann `Fertig: …`.
+3. Companion-App starten, dann **Test-Ton über Companion** (Datei aus `Saves/PluginData/AIBody/default/audio/`).
+4. In der Companion-App einen Satz tippen (`Hallo`). Danach – mit xAI-Key (Realtime) oder mit
+   Speech-to-text `xai` – ins Mikrofon sprechen. Mit Speech-to-text `null` versteht die App nichts
+   (sie warnt dann im Log).
+
+Melden: Hört man bei 2, 3 und 4 etwas? Was steht jeweils unter *Live* bei `Audio:`? Steht dort eine
+rote Zeile `Audio-Fehler: …`, bitte genau abschreiben. Wenn 2 klingt, 3 aber nicht: Problem ist der
+Ordner `Saves/PluginData` – dann in `config.json` `"connection": {"paths": {"audio": "Custom/Sounds/AIBody"}}`
+eintragen, Companion-App neu starten und 3 wiederholen.
+
+**Ergebnis zurückschicken:** pro Punkt T1–T9 ✅/❌, die Screenshots und die roten „AIBody:“-Zeilen.

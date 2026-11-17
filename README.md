@@ -166,7 +166,7 @@ d0n.AIBody.7.var
 Then follow the [load flow](#load-flow-the-whole-setup). If VaM asks whether to enable plugins
 from this package, allow it. Keep the character's **Auto Behaviors > Lip Sync** enabled. Optional:
 copy `examples/expressions.json` and `examples/gestures.json` to `<VaM>/Saves/PluginData/AIBody/`
-and press **Reload expressions / gestures**.
+and press **Reload Expressions** / **Reload Gestures** (tab *AI Character*).
 
 Loose files instead of the package (handy while developing): copy `src/AIBody/` to
 `<VaM>/Custom/Scripts/d0n/AIBody/` (or run
@@ -199,19 +199,28 @@ Right column: a row of tab buttons, below it the settings of the active tab:
 
 | tab | settings |
 |-----|----------|
-| **Status** | **Active** (link on/off), **Reconnect**, **Stop speaking**, **Reset expression** |
-| **Verbindung** | **Channel** (default `default`; folder below `Saves/PluginData/AIBody`), paths and config file info, **Reload config.json (paths)**, **Reload expressions / gestures** |
-| **Engines** | **Speech-to-text**, **Language model**, **Text-to-speech** (lists come from the companion app), **AI mode** (auto / realtime / chain), **Proactive**, **Proactive idle (s)**, **Voice barge-in (headphones)**; status: active mode, proactive state, selected engine, "bereit" or "nicht konfiguriert", and the fallback that runs instead |
-| **Mikrofon & PTT** | captured by the companion app, applied live 0.3 s after the last change: **Mic enabled**, **Mic mode** (Voice activation / Push-to-talk), **Mic device** (**Refresh device list**), **Push-to-talk active**, **Push-to-talk interrupts speech**, mic status, **Show level meter**, **VAD threshold**, **Input gain**, **Silence timeout**, **Min / Max utterance**, **Echo gate tail** |
-| **Körper** | **Speech volume**, **Idle head motion**, **Idle intensity**, **Breathing**, **Breaths per minute**, **Breath depth**, **Breath morph** |
+| **Voice Mode** | **Active** (link on/off), **API Reconnect** (the companion re-reads its keys and reopens the realtime connection; the plugin restarts its link), **Test-Ton über Companion**, **Test-Ton abspielen**, **Stop speaking** |
+| **AI** | **Speech-to-text**, **Language model**, **Text-to-speech** (incl. `elevenlabs`; lists come from the companion app), **xAI key file** / **ElevenLabs key file** (the PATH of a text file holding the key, never the key itself) with key status per provider (konfiguriert / fehlt / abgelehnt), **Delay (s)** (placeholder, no function yet), **Proactive**, **Proactive idle (s)**; status: active mode, proactive state, selected engine, "bereit" or "nicht konfiguriert", and the fallback that runs instead |
+| **AI Character** | for this Person (this plugin instance): **AI mode** (auto / realtime / chain), **Voice** (xAI voice for realtime and TTS), **Body control** (off = speech only), **Speech volume**, **Idle head motion**, **Idle intensity**, **Breathing**, **Breaths per minute**, **Breath depth**, **Breath morph**, **Reset expression**, **Reload Expressions**, **Reload Gestures** |
+| **Client Character** | **Microphone**, captured by the companion app, applied live 0.3 s after the last change: **Mic enabled**, **Mic mode** (Voice activation / Push-to-talk), **Mic device** (**Refresh device list**), **Push-to-talk active** (explanation text below it), **Push-to-talk interrupts speech**, mic status, **Show level meter**, **VAD threshold**, **Input gain**, **Silence timeout**, **Min / Max utterance**, **Echo gate tail**; **Voice barge-in (headphones)** |
+| **Post** | **Channel** (default `default`; folder below `Saves/PluginData/AIBody`), paths info (the label is one constant, `AIBodyPlugin.PostTabLabel`) |
+| **Config** | **Reload Config JSON** (applies `config.json` to the UI and sends it to the companion), file info |
 | **Erweitert** | **File poll interval**, **Verbose log** |
+
+**Sound check (no AI needed):** *Voice Mode* > **Test-Ton abspielen** plays `AIBodyTest.wav` from
+the package on the head audio (no companion app involved); **Test-Ton über Companion** lets the
+app write a WAV into its audio folder and sends it like an answer. The status box shows
+`Audio: Lade / Spreche: <file> / Fertig` or a red `Audio-Fehler: <reason>` (file missing, could not
+be queued, no head audio, clip never started, speech volume 0). If only the companion tone stays
+silent, the audio folder is the problem: set `connection.paths.audio` (e.g.
+`Custom/Sounds/AIBody`) in `config.json`.
 
 All settings are saved with the scene and mirrored to the shared config file
 `<VaM>/Saves/PluginData/AIBody/config.json` (one object per tab; see [docs/CONFIG.md](docs/CONFIG.md)).
 The companion app reads it on start. A scene without saved AIBody settings takes its values from
 that file once. The file also has an `ai` section (persona, language, fallback, realtime, proactive, xAI and
-ElevenLabs settings) for the companion app; the plugin sets only the Engines tab's AI mode,
-proactive and voice barge-in keys in it and keeps the rest.
+ElevenLabs settings) for the companion app; the plugin sets only its tab controls in it (AI mode,
+voice, proactive, voice barge-in, key file paths) and keeps the rest.
 
 If the companion app is missing or crashes, the plugin keeps running: the status shows
 "GETRENNT", unread files in the channel folder are kept small (old commands are dropped, at most 20
@@ -248,7 +257,7 @@ test lip sync, expressions, gestures, queueing and echo gating.
 | `realtime` | Grok Voice speech-to-speech over one WebSocket (`wss://api.x.ai/v1/realtime`, `grok-voice-latest`): the mic is streamed, the server detects the end of speech, the answer audio is cut into WAV segments and spoken from the first segment on; expressions / gestures via a function tool; interrupting stops the body; reconnects with backoff, chain runs meanwhile |
 | `chain` | speech to text -> language model -> text to speech (below) |
 
-- **Proactive:** after 90 s of silence (`ai.proactive.idle_seconds`, Engines tab) the AI may say
+- **Proactive:** after 90 s of silence (`ai.proactive.idle_seconds`, tab *AI*) the AI may say
   something by itself, or stay silent (`[silent]`, nothing is played). Needs realtime or `llm: xai`.
 - **Time context:** the AI has no clock. Each user turn and nudge carries the local date/time and
   the time since the last exchange.
@@ -260,7 +269,7 @@ test lip sync, expressions, gestures, queueing and echo gating.
 ### AI engines (chain mode)
 
 One answer = speech to text -> language model -> text to speech, chosen in the plugin's
-**Engines** tab (or `engines` in `config.json`):
+**AI** tab (or `engines` in `config.json`):
 
 | kind | engines | key |
 |------|---------|-----|
@@ -274,10 +283,10 @@ One answer = speech to text -> language model -> text to speech, chosen in the p
   existing `expression` / `gesture` commands.
 - Every TTS engine writes 16-bit PCM WAV into the channel's `audio/` folder (VaM's audio loader
   plays WAV; WAV also gives the exact duration for the echo gate).
-- **Keys:** environment variable, or the PATH of a key file in `config.json`
-  (`ai.xai.key_file`, `ai.elevenlabs.key_file`). Never the key itself in `config.json` or the
+- **Keys:** environment variable, or the PATH of a key file (tab *AI* fields **xAI key file** /
+  **ElevenLabs key file**, stored as `ai.xai.key_file`, `ai.elevenlabs.key_file`). Never the key itself in `config.json` or the
   repository. Without a key the engine stays selectable but shows **"nicht konfiguriert"** in the
-  Engines tab and the fallback (`ai.fallback`, default `null` / `echo` / `tone`) runs. A key file
+  tab *AI* and the fallback (`ai.fallback`, default `null` / `echo` / `tone`) runs. A key file
   added later is picked up within 10 s; a new environment variable needs an app restart.
 - If a request fails, that sentence / answer uses the fallback engine; nothing stops.
 - All settings (model, voice, language, persona): [docs/CONFIG.md](docs/CONFIG.md).
