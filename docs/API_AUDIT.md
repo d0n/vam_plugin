@@ -1,4 +1,4 @@
-# VaM API audit (AIBody 0.6.1, extended for 0.6.3)
+# VaM API audit (AIBody 0.6.1, extended for 0.6.3 and 0.7.0)
 
 Rule: the plugin uses only VaM 1.22 APIs that the official VaM notes or established, working
 plugins show in use inside the plugin sandbox. **Anything without such visible evidence is
@@ -40,6 +40,7 @@ Enforcement:
 | E18 | [VamHeightPlugin UI.cs](https://github.com/lfe999/VamHeightPlugin/blob/dfc7781cb4f4038d503bec3d770cfccfcd1e4625/src/UI.cs) (lfe999) | rebuilding a settings page: `RemoveButton` (L1460), `RemoveToggle` (L1465), `RemoveSpacer` (L1470), `RemoveTextField` (L1473) |
 | E19 | [vam-keybindings KeybindingsStorage.cs](https://github.com/acidbubbles/vam-keybindings/blob/6495ab5b623358c90a066b2faabfa27213f452dd/src/Keybindings/KeybindingsStorage.cs) (Acid Bubbles) | per-plugin data folder `Saves\PluginData\Keybindings` (L12) created with `FileManagerSecure.CreateDirectory` (L162, L206) |
 | E20 | [Official API doc: FileManagerSecure](https://apidoc.virtamate.com/api/MVR.FileManagementSecure.FileManagerSecure.html) (MeshedVR) | `WriteAllText(path, text)`: "file creation is passed to user confirm/deny system for security reasons, so the file may not be immediately created" |
+| E21 | [vam-improved-pov scenes/Empty.json](https://github.com/acidbubbles/vam-improved-pov/blob/dea857067da496e7e19ae5af31088fdc5fa6fb53/scenes/Empty.json) (Acid Bubbles, a scene saved by VaM) | VaM's SimpleJSON writes numbers and booleans as strings: `"x" : "355.9811"` (L4), `"useSceneLoadPosition" : "true"` (L8), `"on" : "true"` (L12). The companion app therefore accepts `"0.5"` / `"true"` for numbers / booleans in everything the plugin writes |
 
 ## Kept
 
@@ -79,7 +80,7 @@ Enforcement:
 
 These use evidenced APIs but in a combination nobody has shown publicly, or depend on scene content:
 
-1. The plugin loads from `d0n.AIBody.6.var` in the sandbox (flat `.cslist`).
+1. The plugin loads from `d0n.AIBody.7.var` in the sandbox (flat `.cslist`).
 2. `FileManagerSecure.GetFiles(dir)` returns paths that `ReadAllText` / `DeleteFile` accept for
    `Saves/PluginData/AIBody/<channel>/inbox` (`FileTransport.cs`).
 3. `NormalizeMediaPath` + `QueueClip` with a `Saves/PluginData/...` relative path (evidence uses
@@ -120,3 +121,17 @@ from `Exception.ToString()`, not from reflection. The only additions outside the
   `settings.json`, because the settings describe the one AI character; the channel is a value in
   the file. TODO(verify): VaM 1.22 creates the file without asking (as for the channel files).
 - New UnityEngine use: none beyond `Time.time` (retry timers, 0.6.2).
+
+## 0.7.0: engine status, preserved "ai" section
+
+- No new VaM API. The plugin keeps the companion-only `ai` section of config.json when it writes
+  the file: `JSON.Parse(FileManagerSecure.ReadAllText(...)) as JSONClass`, `existing["ai"] as
+  JSONClass`, `root["ai"] = ai` (indexer and `as` cast, as already used for config.json; E10,
+  E11). The engine status from `companion_heartbeat` is shown in an unregistered
+  `JSONStorableString` text field in the Engines tab (same pattern as the tab headers).
+- Finding from the 0.7.0 review (E21): every number / boolean the plugin writes is a string.
+  Before 0.7.0 the companion app rejected them, so push-to-talk events (`"active":"true"`), the
+  mic settings from the plugin (`config` event) and the plugin-written config.json values were
+  dropped. Fixed on the companion side; covered by the end-to-end simulation test.
+- Network: still none in the plugin. The cloud engines (xAI, ElevenLabs) run only in the Python
+  companion app.

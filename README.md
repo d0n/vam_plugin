@@ -6,7 +6,7 @@ poses, and keeps moving (idle motion and breathing) while it waits.
 
 Two parts, **both needed**:
 
-- **AIBody plugin** (`src/AIBody/`, package `d0n.AIBody.6.var`): ONE plugin, loaded once on the AI
+- **AIBody plugin** (`src/AIBody/`, package `d0n.AIBody.7.var`): ONE plugin, loaded once on the AI
   character's Person atom. It links to the companion app through a shared folder (heartbeat,
   status, microphone/push-to-talk and engine menus) and drives the body: speech with lip sync on
   the head audio, morphs, expressions, gestures, poses, idle motion and breathing.
@@ -14,16 +14,18 @@ Two parts, **both needed**:
   the VaM plugin sandbox does not allow: microphone capture, voice activity detection, speech to
   text, the language model and text to speech.
 
-Status: **early (v0.6.3)**. The plugin compiles as C# 6 against API stubs but has not been run
+Status: **early (v0.7.0)**. The plugin compiles as C# 6 against API stubs but has not been run
 inside VaM yet; every unverified VaM/Unity call is marked `TODO(verify)` in the code. The
-companion app runs end to end with mock engines (no real STT, LLM or TTS yet). Deferred features
-are in [docs/BACKLOG.md](docs/BACKLOG.md).
+companion app has real AI engines (xAI speech to text, Grok language model with streaming, xAI
+and ElevenLabs text to speech) next to the offline test engines; they are tested against a fake
+server only, because no API key was available yet (`TODO(verify)`). Deferred features are in
+[docs/BACKLOG.md](docs/BACKLOG.md).
 
 ## Load flow (the whole setup)
 
-1. Copy `d0n.AIBody.6.var` to `<VaM>/AddonPackages/` (remove older AIBody packages, see below).
+1. Copy `d0n.AIBody.7.var` to `<VaM>/AddonPackages/` (remove older AIBody packages, see below).
 2. In VaM select the AI character's Person atom > **Plugins** tab > **Add Plugin** > choose
-   `AddonPackages > d0n.AIBody.6:/Custom/Scripts/d0n/AIBody/AIBody.cslist`.
+   `AddonPackages > d0n.AIBody.7:/Custom/Scripts/d0n/AIBody/AIBody.cslist`.
 3. Start the companion app: `python -m aibody_companion --vam-root "C:/VaM"`.
 
 That's it. The plugin's status box shows "Companion app: running ..." once both sides see each
@@ -115,7 +117,8 @@ companion/                 Python companion app (stdlib only for the core)
   aibody_companion/
     transport/               file transport (the only link to the plugin)
     audio/                   capture + device control, mic settings, input processor, VAD, echo gate
-    pipeline/                STT, LLM, TTS interfaces and mock engines
+    pipeline/                STT, LLM, TTS interfaces, engines (offline test engines, xai.py,
+                             elevenlabs.py), engine registry + fallback (engines.py)
     orchestrator.py          ties it all together (tick loop, heartbeat)
   tests/                     unit and end-to-end tests (python -m unittest)
 examples/                  example commands and events, expressions.json, gestures.json
@@ -135,22 +138,22 @@ tools/                     assemble_plugins.py (plugin folder), build_var.py (pa
 
 ### Install the package
 
-Download `d0n.AIBody.6.var` from the [releases](https://github.com/d0n/vam_plugin/releases), or
-build it with `python tools/build_var.py` (writes `dist/d0n.AIBody.6.var`), and copy it to:
+Download `d0n.AIBody.7.var` from the [releases](https://github.com/d0n/vam_plugin/releases), or
+build it with `python tools/build_var.py` (writes `dist/d0n.AIBody.7.var`), and copy it to:
 
 ```
-<VaM>/AddonPackages/d0n.AIBody.6.var
+<VaM>/AddonPackages/d0n.AIBody.7.var
 ```
 
 Remove all older AIBody packages from `AddonPackages`: `d0n.AIBody.1.var`, `d0n.AIBody.2.var`,
-`d0n.AIBody.3.var`, `d0n.AIBody.4.var`, `d0n.AIBody.5.var`, `d0n.AIBodySession.*.var`, `d0n.AIBodyPerson.*.var`,
+`d0n.AIBody.3.var`, `d0n.AIBody.4.var`, `d0n.AIBody.5.var`, `d0n.AIBody.6.var`, `d0n.AIBodySession.*.var`, `d0n.AIBodyPerson.*.var`,
 `d0n.AIBodyPerson2.*.var`. Scenes saved with an older package point at that package's path, so
-remove the old plugin entry from the character and add `d0n.AIBody.6` again, then save.
+remove the old plugin entry from the character and add `d0n.AIBody.7` again, then save.
 
 Contents:
 
 ```
-d0n.AIBody.6.var
+d0n.AIBody.7.var
 ├── meta.json
 └── Custom/Scripts/d0n/AIBody/
     ├── AIBody.cslist
@@ -198,7 +201,7 @@ Right column: a row of tab buttons, below it the settings of the active tab:
 |-----|----------|
 | **Status** | **Active** (link on/off), **Reconnect**, **Stop speaking**, **Reset expression** |
 | **Verbindung** | **Channel** (default `default`; folder below `Saves/PluginData/AIBody`), paths and config file info, **Reload config.json (paths)**, **Reload expressions / gestures** |
-| **Engines** | **Speech-to-text**, **Language model**, **Text-to-speech** (lists come from the companion app) |
+| **Engines** | **Speech-to-text**, **Language model**, **Text-to-speech** (lists come from the companion app), engine status: selected engine, "bereit" or "nicht konfiguriert", and the fallback that runs instead |
 | **Mikrofon & PTT** | captured by the companion app, applied live 0.3 s after the last change: **Mic enabled**, **Mic mode** (Voice activation / Push-to-talk), **Mic device** (**Refresh device list**), **Push-to-talk active**, **Push-to-talk interrupts speech**, mic status, **Show level meter**, **VAD threshold**, **Input gain**, **Silence timeout**, **Min / Max utterance**, **Echo gate tail** |
 | **Körper** | **Speech volume**, **Idle head motion**, **Idle intensity**, **Breathing**, **Breaths per minute**, **Breath depth**, **Breath morph** |
 | **Erweitert** | **File poll interval**, **Verbose log** |
@@ -206,7 +209,8 @@ Right column: a row of tab buttons, below it the settings of the active tab:
 All settings are saved with the scene and mirrored to the shared config file
 `<VaM>/Saves/PluginData/AIBody/config.json` (one object per tab; see [docs/CONFIG.md](docs/CONFIG.md)).
 The companion app reads it on start. A scene without saved AIBody settings takes its values from
-that file once.
+that file once. The file also has an `ai` section (persona, language, fallback, xAI and
+ElevenLabs settings) that only the companion app uses; the plugin keeps it unchanged.
 
 If the companion app is missing or crashes, the plugin keeps running: the status shows
 "GETRENNT", unread files in the channel folder are kept small (old commands are dropped, at most 20
@@ -231,15 +235,41 @@ Options: `--channel` (default `default`), `--no-mic` (text only), `--no-stdin`,
 `--config config.json` (see `config.example.json`, including initial `mic` settings).
 `--vam-root` is required: the app and the plugin exchange JSON and audio files in
 `<VaM>/Saves/PluginData/AIBody/<channel>/`. Typed lines on stdin make
-the body speak, which is handy for testing without a microphone. With the mock engines the
-character answers "You said: ..." with a humming tone, enough to test lip sync, expressions,
-gestures, queueing and echo gating. Put API keys for real engines in environment variables, never
-in the repository.
+the body speak, which is handy for testing without a microphone. With the offline test engines
+(`null` / `echo` / `tone`) the character answers "You said: ..." with a humming tone, enough to
+test lip sync, expressions, gestures, queueing and echo gating.
+
+### AI engines (companion app)
+
+One answer = speech to text -> language model -> text to speech, chosen in the plugin's
+**Engines** tab (or `engines` in `config.json`):
+
+| kind | engines | key |
+|------|---------|-----|
+| Speech-to-text | `null` (offline, hears nothing), `xai` (`POST https://api.x.ai/v1/stt`, grok-voice-transcribe-2.0) | `XAI_API_KEY` |
+| Language model | `echo` (offline test), `xai` (Grok, `POST https://api.x.ai/v1/responses`, streamed) | `XAI_API_KEY` |
+| Text-to-speech | `tone` (offline test tone), `xai` (`POST https://api.x.ai/v1/tts`), `elevenlabs` (`POST https://api.elevenlabs.io/v1/text-to-speech/{voice_id}`) | `XAI_API_KEY` / `ELEVENLABS_API_KEY` |
+
+- The answer is streamed: the first sentence is synthesized and queued on the body while the
+  model is still writing. The persona goes into `instructions`; the conversation continues with
+  `previous_response_id`. The model may start with a tag like `<<happy nod>>`, which becomes the
+  existing `expression` / `gesture` commands.
+- Every TTS engine writes 16-bit PCM WAV into the channel's `audio/` folder (VaM's audio loader
+  plays WAV; WAV also gives the exact duration for the echo gate).
+- **Keys:** environment variable, or the PATH of a key file in `config.json`
+  (`ai.xai.key_file`, `ai.elevenlabs.key_file`). Never the key itself in `config.json` or the
+  repository. Without a key the engine stays selectable but shows **"nicht konfiguriert"** in the
+  Engines tab and the fallback (`ai.fallback`, default `null` / `echo` / `tone`) runs. A key file
+  added later is picked up within 10 s; a new environment variable needs an app restart.
+- If a request fails, that sentence / answer uses the fallback engine; nothing stops.
+- All settings (model, voice, language, persona): [docs/CONFIG.md](docs/CONFIG.md).
+
+Network access exists only in the companion app. The VaM plugin still has no network code at all.
 
 Tests and checks:
 
 ```
-cd companion && python -m unittest discover -s tests -t .
+cd companion && python -m unittest discover -s tests -t .   # incl. end-to-end simulation (fake plugin)
 python tools/check_plugin.py   # needs the .NET SDK: strict sandbox scan, single-plugin check, compile (C# 6)
 python tools/build_var.py      # builds dist/d0n.AIBody.<N>.var and scans every file inside it
 ```

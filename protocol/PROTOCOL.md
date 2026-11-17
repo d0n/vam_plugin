@@ -12,7 +12,7 @@ companion app  <-- files in Saves/PluginData/AIBody/<channel>/ -->  AIBody plugi
                                                                       AppLink --in-process--> Body
 ```
 
-The VaM side is **one plugin**: `Custom/Scripts/d0n/AIBody/AIBody.cslist` in `d0n.AIBody.6.var`,
+The VaM side is **one plugin**: `Custom/Scripts/d0n/AIBody/AIBody.cslist` in `d0n.AIBody.7.var`,
 one MVRScript (`AIBody.AIBodyPlugin`), loaded once on the AI character's Person atom (Plugins
 tab). Inside it, two plain C# components call each other directly:
 
@@ -34,6 +34,11 @@ Every message has:
 | `type`| string | message type                                                   |
 | `id`  | string | unique id. Replies carry `reply_to`.                           |
 | `ts`  | number | Unix time in seconds (informational)                           |
+
+**Value types from the plugin:** VaM's SimpleJSON writes every number and boolean as a string
+(`"v":"3"`, `"active":"true"`, `"duration":"1.25"`). The companion accepts both forms in all
+plugin events and in config.json (`aibody_companion/vamjson.py`); the plugin reads the
+companion's real JSON numbers and booleans with `AsFloat` / `AsBool`.
 
 A command may set `"ack": true` to get an `ack` event on success. Failures always produce an
 `error` event with `reply_to` set to the command id. A transport payload may contain one message
@@ -73,8 +78,9 @@ Saves/PluginData/AIBody/<channel>/audio/    speech audio written by the companio
 ### Shared config file
 
 Besides the message files, both sides use `Saves/PluginData/AIBody/config.json` (one global file,
-one object per plugin tab: `connection`, `engines`, `mic`, `body`, `advanced`). The plugin UI
-wins and writes it back; the companion app reads it on start. See `docs/CONFIG.md` and
+one object per plugin tab: `connection`, `engines`, `mic`, `body`, `advanced`, plus `ai` for the
+companion app only, which the plugin keeps unchanged). The plugin UI wins and writes it back;
+the companion app reads it on start. See `docs/CONFIG.md` and
 `schema/config.schema.json`. Live changes still travel as `config` events.
 
 ### Robustness
@@ -111,7 +117,7 @@ not detected by the plugin; a missing storable or parameter is reported as `comm
 | type                  | fields | effect |
 |-----------------------|--------|--------|
 | `ping`                | -      | answers `pong` with its status |
-| `companion_heartbeat` | `session` (required), `version`, `engines_available` (`{"stt": [...], "llm": [...], "tts": [...]}`), `mic_capturing` | companion liveness; fills the engine menus |
+| `companion_heartbeat` | `session` (required), `version`, `engines_available` (`{"stt": [...], "llm": [...], "tts": [...]}`), `engines_status` (`{"tts": {"elevenlabs": "nicht konfiguriert: ..."}, ...}`: "bereit (...)" or "nicht konfiguriert: <why>" per engine), `engines_active` (`{"stt": "null", ...}`: what really runs, the fallback if the selected engine is not configured), `mic_capturing` | companion liveness; fills the engine menus and the engine status in the Engines tab |
 
 ### Microphone feedback (app link)
 
@@ -176,7 +182,12 @@ leave the previous value in place. Numbers are clamped to the range.
 
 `stt`, `llm`, `tts`: engine names picked in the AIBody plugin's menus. The companion accepts only
 names it has implemented (listed in `companion_heartbeat.engines_available`) and reports others
-in `config_ack.errors`. Implemented so far: `null`, `echo`, `tone` (mock engines).
+in `config_ack.errors`. Implemented: stt `null` | `xai`, llm `echo` | `xai`, tts `tone` | `xai` |
+`elevenlabs`. A cloud engine without API key is accepted (the choice is kept) but the fallback
+runs; `config_ack.errors` and `companion_heartbeat.engines_status` / `engines_active` say so.
+A streaming model is spoken sentence by sentence: one `speak` (queue `append`) per sentence, the
+first one sent while the model still writes. An answer may start with `expression` / `gesture`
+commands taken from a `<<expression gesture>>` tag at the start of the model's text.
 
 ## Audio delivery
 

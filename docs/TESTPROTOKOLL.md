@@ -1,4 +1,4 @@
-# AIBody – Testprotokoll für den ersten Test in VaM 1.22 (ab v0.6.3)
+# AIBody – Testprotokoll für den ersten Test in VaM 1.22 (ab v0.6.3, aktuell v0.7.0)
 
 Ziel: die offenen „Muss jetzt“-Punkte, die nur in VaM prüfbar sind. Bitte jeden Punkt der Reihe
 nach durchgehen und das Ergebnis eintragen (✅ / ❌ / unklar). Dauer: etwa 20 Minuten.
@@ -13,9 +13,9 @@ nach durchgehen und das Ergebnis eintragen (✅ / ❌ / unklar). Dauer: etwa 20 
 **Vorbereitung**
 
 - VaM schließen. In `<VaM-Hauptordner>/AddonPackages/` alle alten AIBody-Pakete löschen:
-  `d0n.AIBody.1.var` bis `d0n.AIBody.5.var`, `d0n.AIBodySession.*`, `d0n.AIBodyPerson.*`,
+  `d0n.AIBody.1.var` bis `d0n.AIBody.6.var`, `d0n.AIBodySession.*`, `d0n.AIBodyPerson.*`,
   `d0n.AIBodyPerson2.*`. Lose Dateien unter `Custom/Scripts/d0n/AIBody/` ebenfalls entfernen.
-- `d0n.AIBody.6.var` nach `<VaM-Hauptordner>/AddonPackages/` kopieren.
+- `d0n.AIBody.7.var` nach `<VaM-Hauptordner>/AddonPackages/` kopieren.
 - Companion-App bereithalten (noch **nicht** starten):
   `python -m aibody_companion --vam-root "C:/VaM"` (Pfad zum eigenen VaM-Ordner anpassen).
 
@@ -25,12 +25,12 @@ nach durchgehen und das Ergebnis eintragen (✅ / ❌ / unklar). Dauer: etwa 20 
 
 1. VaM starten, eine Szene mit einer weiblichen Standard-Figur öffnen (oder neue Szene + Person).
 2. Die Figur (Person-Atom) auswählen > Tab **Plugins** > **Add Plugin** >
-   `AddonPackages > d0n.AIBody.6:/Custom/Scripts/d0n/AIBody/AIBody.cslist`.
+   `AddonPackages > d0n.AIBody.7:/Custom/Scripts/d0n/AIBody/AIBody.cslist`.
    **Nicht** unter *Session Plugins* oder *Scene Plugins*.
 3. Falls VaM fragt, ob Plugins aus dem Paket erlaubt werden sollen: erlauben und notieren, dass gefragt wurde.
 4. **Open Custom UI** (Plugin-Fenster) öffnen.
 
-Melden: Taucht in der Paketliste nur noch `d0n.AIBody.6` auf? Hat VaM nach Erlaubnis gefragt?
+Melden: Taucht in der Paketliste nur noch `d0n.AIBody.7` auf? Hat VaM nach Erlaubnis gefragt?
 Screenshot des Fensters; rote „AIBody:“-Zeilen. Erwartet: *Selbsttest* „Person-Atom: ja“,
 Start-Protokoll endet mit „Init fertig, keine Fehler.“
 
@@ -98,6 +98,16 @@ wieder „verbunden“, ohne dass man etwas klickt? Sind die eigenen Einstellung
 noch da? Rote Zeilen beim Entfernen, Speichern oder Neuladen? Wie viele Dateien liegen nach
 einer Minute ohne App in `Saves/PluginData/AIBody/default/outbox/` (sollten höchstens ~20 sein)?
 
+## T7 – Engine-Status (ab v0.7.0)
+
+1. Companion-App läuft (ohne API-Keys).
+2. Tab **Engines** öffnen, bei **Text-to-speech** `elevenlabs` auswählen, 3 Sekunden warten.
+3. Einen Satz in der Companion-App tippen.
+
+Melden: Steht unter den Auswahllisten „Text-to-speech: elevenlabs – nicht konfiguriert: …“ und
+„läuft stattdessen: tone (Fallback)“? Spricht die Figur trotzdem (Summton)? Steht unter *Live*
+„Engines aktiv: STT null, LLM echo, TTS tone (Fallback …)“? Danach wieder `tone` auswählen.
+
 ---
 
-**Ergebnis zurückschicken:** pro Punkt T1–T6 ✅/❌, die Screenshots und die roten „AIBody:“-Zeilen.
+**Ergebnis zurückschicken:** pro Punkt T1–T7 ✅/❌, die Screenshots und die roten „AIBody:“-Zeilen.
