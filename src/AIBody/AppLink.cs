@@ -61,14 +61,14 @@ namespace AIBody
 
         // API keys: only the PATH of a key file (the key itself would be saved readably in the scene
         // and in config.json). TODO(user decision): a direct key field was asked about; not built.
+        // Since version 15 the path fields are not in the menu (they showed as empty, unlabeled
+        // boxes); the paths come from config.json ai.xai.key_file / ai.elevenlabs.key_file and are
+        // still saved with the scene and sent to the companion (docs/BACKLOG.md).
         private JSONStorableString _xaiKeyFileJson;
         private JSONStorableString _elevenKeyFileJson;
         private JSONClass _keyInfo;                          // companion heartbeat "keys"
         private readonly JSONStorableString _keyStatusJson = new JSONStorableString("API key status", "API-Keys: warte auf die Companion-App ...");
         private string _keyWarning;
-
-        // Placeholder only (requested): no logic yet, not saved.
-        private readonly JSONStorableFloat _delayJson = new JSONStorableFloat("Delay (s) – Platzhalter, ohne Funktion", 0f, (float v) => { }, 0f, 5f);
 
         /// <summary>Set by the plugin once Init is complete; settings callbacks restart only then.</summary>
         public bool Ready;
@@ -273,7 +273,6 @@ namespace AIBody
 
         // ---------------------------------------------------------------- tabs (see AIBodyPlugin)
 
-        /// <summary>Tab "Voice Mode": link on/off, API Reconnect, sound test.</summary>
         /// <summary>"Latenz: 2.4 s (Ø 2.6 s, 5 Runden) – STT 0.80 · …": end of speech -> first sound.</summary>
         private string LatencyLine()
         {
@@ -287,6 +286,7 @@ namespace AIBody
             return text + "\n  " + string.Join(" · ", items.ToArray());
         }
 
+        /// <summary>Tab "Voice", section "Voice Mode": link on/off, realtime, API Reconnect, sound test.</summary>
         public void BuildVoiceModeTab(UiPage page)
         {
             page.Toggle(_activeJson);
@@ -320,44 +320,43 @@ namespace AIBody
             _testToneStatus = "Test-Ton über Companion angefordert (kommt als normales speak)";
         }
 
-        /// <summary>Tab "Post" (label: AIBodyPlugin.PostTabLabel): channel and file paths.</summary>
-        public void BuildPostTab(UiPage page)
+        /// <summary>
+        /// Tab "Voice", section "Voice > AI Character": how the AI character listens, thinks and speaks
+        /// (AI mode, voice, engines, proactive). No text fields: help and status go to the big info
+        /// field on the left (VoiceInfoText).
+        /// </summary>
+        public void BuildAiVoiceSection(UiPage page)
         {
-            if (!page.TextInput(_channelJson))
-                _diag.Warn("Feld 'Channel' ist nur lesbar (InputField ging nicht); Standard 'default' bleibt.");
-        }
-
-        /// <summary>Tab "AI": engines (incl. ElevenLabs), API key files + status, Delay placeholder, proactive.</summary>
-        public void BuildAiTab(UiPage page)
-        {
+            page.Popup(_aiModeJson);
+            page.Popup(_voiceJson);
             page.Popup(_sttJson);
             page.Popup(_llmJson);
             page.Popup(_ttsJson);
-            page.Header("<b>API-Keys</b> (Pfad einer Key-Datei, nie der Key selbst)");
-            if (!page.TextInput(_xaiKeyFileJson)) _diag.Warn("Feld 'xAI key file' ist nur lesbar (InputField ging nicht).");
-            if (!page.TextInput(_elevenKeyFileJson)) _diag.Warn("Feld 'ElevenLabs key file' ist nur lesbar (InputField ging nicht).");
-            UpdateKeyStatus();
-            page.Text(_keyStatusJson, 150f);
-            page.Slider(_delayJson);
             page.Toggle(_proactiveJson);
             page.Slider(_proactiveIdleJson);
-            UpdateEngineInfo();
-            page.Text(_engineInfoJson, 300f);
         }
 
-        /// <summary>Voice part of the tab "AI Character": AI mode and voice.</summary>
-        public void BuildCharacterVoice(UiPage page)
+        /// <summary>Info for the tab "Voice" in the big field on the left: mode help, key and engine status.</summary>
+        public string VoiceInfoText()
         {
-            page.Popup(_aiModeJson);
-            page.Text(_modeHelpJson, 150f);
-            page.Popup(_voiceJson);
+            UpdateKeyStatus();
+            UpdateEngineInfo();
+            string text = _modeHelpJson.val + "\n" + _keyStatusJson.val + "\n";
+            if (_engineStatus != null) text += _engineInfoJson.val;   // before the first heartbeat: Live says "noch nicht gesehen"
+            return text;
+        }
+
+        /// <summary>Channel line for the tab "Config" (set in config.json connection.channel, not in the menu).</summary>
+        public string ChannelInfoText()
+        {
+            return "Kanal: " + Channel + " (Ordner " + ChannelDir + "; änderbar in config.json connection.channel oder mit --channel der Begleit-App)";
         }
 
         public const string ModeQa = "qa";
 
         private readonly JSONStorableString _modeHelpJson = new JSONStorableString("AI mode help",
             "qa = Einfacher Q&A: Spracherkennung -> Grok -> Stimme (xAI), nur Sprache, keine proaktiven Sätze. "
-            + "auto / realtime = Grok Voice direkt (Fallback: Kette). chain = genau die Engines aus Tab AI.");
+            + "auto / realtime = Grok Voice direkt (Fallback: Kette). chain = genau die Engines unter Voice > AI Character.");
 
         /// <summary>Button "Einfacher Q&amp;A-Modus": AI mode qa (body control is switched off by the plugin).</summary>
         /// <summary>
@@ -479,26 +478,27 @@ namespace AIBody
             bool fallback = (_sttJson != null && stt != _sttJson.val && stt != "xai") || (_llmJson != null && llm != _llmJson.val && llm != "xai")
                 || (_ttsJson != null && tts != _ttsJson.val && tts != "xai");
             return mode + "Engines aktiv: STT " + stt + ", LLM " + llm + ", TTS " + tts
-                + (fallback ? " (Fallback – siehe Tab AI)" : "") + "\n";
+                + (fallback ? " (Fallback – siehe Voice > AI Character)" : "") + "\n";
         }
 
         /// <summary>Tab "Client Character": the user's microphone and push-to-talk, voice barge-in.</summary>
         public void BuildClientCharacterTab(UiPage page)
         {
-            page.Header("<b>Microphone</b>");
+            page.Header("<b>Client Character: Mikrofon und Push-to-Talk</b>");
             if (_mic != null) _mic.BuildTab(page);
             page.Toggle(_bargeInJson);
         }
 
-        /// <summary>Tab "Config": the shared config.json.</summary>
-        public void BuildConfigTab(UiPage page, UnityEngine.Events.UnityAction reload, JSONStorableString status)
+        /// <summary>Info for the tab "Client Character": push-to-talk help, microphone status.</summary>
+        public string ClientInfoText()
         {
-            page.Button("Reload Config JSON", reload);
-            page.Text(status, 80f);   // result of the button only (no pure path display)
+            return _mic != null ? _mic.InfoText() : "";
         }
 
-        public void BuildAdvancedTab(UiPage page)
+        /// <summary>Tab "Config" (former Config + Erweitert): the shared config.json and the file link.</summary>
+        public void BuildConfigTab(UiPage page, UnityEngine.Events.UnityAction reload)
         {
+            page.Button("Reload Config JSON", reload);
             page.Slider(_filePollJson);
         }
 

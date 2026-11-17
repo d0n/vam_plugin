@@ -4,23 +4,23 @@ Location: <vam_root>/Saves/PluginData/AIBody/config.json, ONE global file, in th
 below Saves/PluginData that established plugins use for their settings. Key reference (German):
 README.md section 4. Categories (kept from the first schema; they no longer match the tabs 1:1):
 
-  connection  channel (tab Post), active (tab Voice Mode), paths {expressions, gestures, audio}
-              (file only)
-  engines     stt, llm, tts (tab AI)
+  connection  channel (file only since version 15), active (tab Voice), paths {expressions, gestures,
+              audio} (file only)
+  engines     stt, llm, tts (tab Voice > AI Character)
   mic         microphone + push-to-talk settings (tab Client Character; audio/mic_settings.py)
   body        speech_volume, body_control, idle_motion, idle_intensity, breathing,
               breaths_per_minute, breath_depth, breath_morph (tab AI Character)
-  advanced    file_poll_interval_s, verbose_log (tab Erweitert)
+  advanced    file_poll_interval_s, verbose_log (tab Config)
 
 plus one category this app owns (the plugin keeps it unchanged when it writes, except the keys
 it has controls for):
 
   ai          mode, persona, language, fallback {stt, llm, tts}, realtime {...}, proactive {...},
               xai {...}, elevenlabs {...}
-              plugin controls: mode (tab AI Character / Voice Mode), proactive.enabled /
-              idle_seconds (tab AI), realtime.send_while_speaking (tab Client Character),
-              realtime.voice + xai.voice (tab AI Character), xai.key_file /
-              elevenlabs.key_file (tab AI, only when the field is not empty)
+              plugin controls: mode (tab Voice), proactive.enabled /
+              idle_seconds (tab Voice), realtime.send_while_speaking (tab Client Character),
+              realtime.voice + xai.voice (tab Voice), xai.key_file /
+              elevenlabs.key_file (no menu field since version 15; the plugin keeps the path it read)
 
 The plugin UI wins: the plugin writes its values back after every change. This app reads the
 file on start (channel, initial mic and engine settings before the plugin connects) and creates

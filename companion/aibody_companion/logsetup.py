@@ -3,7 +3,7 @@
 Log file: <vam_root>/Saves/PluginData/AIBody/logs/companion.log (rotating, 1 MB x 5 files), next
 to config.json, so it is found where everything else of AIBody lives. The plugin never reads it.
 
-Verbose (config.json advanced.verbose_log, the plugin's "Verbose log" toggle under Erweitert, or
+Verbose (config.json advanced.verbose_log, the plugin's "Verbose log" toggle in tab Config, or
 --verbose) switches on the turn trace: one line per step of every turn with a turn id and the
 time since the turn started, e.g.
 

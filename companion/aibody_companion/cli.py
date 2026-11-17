@@ -129,8 +129,8 @@ def main(argv: list[str] | None = None) -> int:
 
     companion = build_stack(cfg, use_mic=not args.no_mic)
     if not companion.engine_set.key("xai"):
-        log.warning("Kein xAI-Key: nur Test-Engines (Echo + Ton). %s; XAI_API_KEY setzen oder Key-Datei im Tab AI.",
-                    KEY_HINT["xai"])
+        log.warning("Kein xAI-Key: nur Test-Engines (Echo + Ton). %s; XAI_API_KEY setzen oder Key-Datei "
+                    "in config.json (ai.xai.key_file).", KEY_HINT["xai"])
     companion.transport.start()
     try:
         run(companion, read_stdin=not args.no_stdin, poll_interval=cfg.poll_interval_s)

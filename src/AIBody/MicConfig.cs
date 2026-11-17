@@ -86,7 +86,7 @@ namespace AIBody
             _pttActive = new JSONStorableBool("Push-to-talk active", false, (bool v) => SendPtt(v));
             _status = new JSONStorableString("Mic status", "");
             // VaM's plugin UI has no tooltip / hover API with public evidence, so the explanation
-            // is a short text right below the checkbox.
+            // stands in the big info field on the left while the tab Client Character is open.
             _pttHelp = new JSONStorableString("Push-to-talk help",
                 "Push-to-talk active: solange angehakt, hört die Companion-App zu (wie eine gedrückte Funk-Taste). "
                 + "Nur im Mic mode Push-to-talk. Per Trigger/Taste: Aktionen 'Push-to-talk start / stop / toggle'.");
@@ -108,9 +108,7 @@ namespace AIBody
             page.ScrollablePopup(Device);
             page.Button("Mikrofone neu laden", RequestDevices);
             page.Toggle(_pttActive);
-            page.Text(_pttHelp, 110f);
             page.Toggle(PttInterrupts);
-            page.Text(_status, 160f);
             page.Toggle(LevelMeter);
             page.Slider(Threshold);
             page.Slider(Gain);
@@ -118,6 +116,14 @@ namespace AIBody
             page.Slider(MinUtteranceMs);
             page.Slider(MaxUtteranceMs);
             page.Slider(EchoTail);
+        }
+
+        /// <summary>Push-to-talk help and microphone status for the big info field (tab Client Character).</summary>
+        public string InfoText()
+        {
+            if (_pttHelp == null || _status == null || LevelMeter == null) return "";
+            RefreshStatus();
+            return _pttHelp.val + "\n" + _status.val + "\n";
         }
 
         public void MarkDirty()

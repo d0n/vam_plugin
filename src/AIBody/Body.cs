@@ -222,7 +222,7 @@ namespace AIBody
 
         private string _testStatus;
 
-        /// <summary>Sound test in the tab "Voice Mode".</summary>
+        /// <summary>Sound test in the tab "Voice", section "Voice Mode".</summary>
         public void BuildVoiceModeTab(UiPage page)
         {
             page.Button("Test-Ton abspielen", () => { _testStatus = PlayTestTone(); });
@@ -240,7 +240,7 @@ namespace AIBody
         public void BuildCharacterTab(UiPage page)
         {
             RefreshCharacterChoices();
-            page.Header("<b>Pose</b> (per Sprache über die KI, oder hier)");
+            page.Header("<b>Posen</b> (per Sprache über die KI, oder hier)");
             page.ScrollablePopup(_poseChoiceJson);
             page.Button("Pose anwenden", ApplyChosenPose);
             page.Button("Posen neu laden", () => { ReloadGestures(); RefreshCharacterChoices(); });
@@ -258,9 +258,18 @@ namespace AIBody
             page.Toggle(_breathingJson);
             page.Slider(_breathRateJson);
             page.Slider(_breathDepthJson);
+            page.Header("Atem-Morph (Name des Morphs, Feld darunter editierbar):");
             if (!page.TextInput(_breathMorphJson))
                 _diag.Warn("Feld 'Breath morph' ist nur lesbar (InputField ging nicht).");
             page.Button("Reload Expressions", ReloadExpressions);
+        }
+
+        /// <summary>Info for the tab "AI Character" in the big field on the left.</summary>
+        public string CharacterInfoText()
+        {
+            string text = "Posen: " + (_poses != null ? _poses.PoseNames.Count + " im Menü und für die KI (" + _poses.PoseScanNote + ")" : "PoseController fehlt") + "\n";
+            text += "Body control aus = nur Sprache, die KI bekommt keine Körper-Werkzeuge. Atem-Morph: Name eines Brust-Morphs der Figur (Tab Morphs).\n";
+            return text;
         }
 
         /// <summary>Fills the pose / expression / gesture menus from what this body really has.</summary>

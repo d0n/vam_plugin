@@ -18,12 +18,14 @@
 // and the rest of the UI still appears. A non-Person atom gets an explanation instead of a blank
 // window.
 //
-// Layout: left column = header + status box (Selbsttest, live state, start log), always visible.
-// Right column = a row of tab buttons and below it the controls of the active tab. Switching tabs
-// removes the old controls with the standard Remove* methods (UiPage, evidence E17/E18).
-// Tabs: Voice Mode (link, Einfacher Q&A-Modus, API Reconnect, sound test) | AI (engines, key file paths + status, Delay
-// placeholder, proactive) | AI Character (AI mode, voice, body of this Person) | Client Character
-// (microphone, push-to-talk, voice barge-in) | Post (channel, paths) | Config | Erweitert.
+// Layout: left column = header + ONE big info field (info and help for the open tab, Selbsttest,
+// live state, start log), always visible. Right column = a row of tab buttons and below it ONLY
+// the controls of the active tab (no text fields; help and status go to the big field). Switching
+// tabs removes the old controls with the standard Remove* methods (UiPage, evidence E17/E18).
+// Tabs (version 15): Voice (Voice Mode: link, Einfacher Q&A-Modus, realtime, API Reconnect, sound
+// test; Voice > AI Character: AI mode, voice, engines, proactive) | AI Character (Posen, expression
+// and gesture, body of this Person) | Client Character (microphone, push-to-talk, voice barge-in)
+// | Config (Reload Config JSON, file poll interval, verbose log).
 //
 // config.json (Saves/PluginData/AIBody/config.json, one global file) is shared with the companion
 // app, one object per tab category (docs/CONFIG.md). The plugin UI (saved with the scene) wins
@@ -53,11 +55,10 @@ namespace AIBody
         private string _writable = "noch nicht geprüft";
         private string _live = "";
 
-        /// <summary>Label of the connection tab, as the user said it ("Post"; may be meant as "Port").</summary>
-        public const string PostTabLabel = "Post";
-
-        private static readonly string[] Tabs = { "Voice Mode", "AI", "AI Character", "Client Character", PostTabLabel, "Config", "Erweitert" };
-        private readonly JSONStorableString _configStatusJson = new JSONStorableString("Config status", "");
+        // Tab names: self-explanatory, never just "AI" / "Client" (Leon, 17.11.2026). The former tabs
+        // AI, Post and Erweitert are gone (docs/BACKLOG.md "Entfernte Menüeinträge").
+        private static readonly string[] Tabs = { "Voice", "AI Character", "Client Character", "Config" };
+        private string _configStatus = "";   // result of "Reload Config JSON", shown in the info field
         private UiPage _page;
         private int _tab = -1;
 
@@ -80,7 +81,7 @@ namespace AIBody
             {
                 UiHelper.Header(this, "<b>AIBody " + PluginVersion + "</b> (needs the companion app running)", false);
                 UIDynamicTextField status = CreateTextField(_statusJson);
-                status.height = 640f;
+                status.height = 1200f;   // the one big info field (no small text fields in the tabs)
             }
             catch (Exception e)
             {
@@ -203,36 +204,29 @@ namespace AIBody
             _tab = index;
             try
             {
-                _page.Header("<b>" + name + "</b>");
                 switch (index)
                 {
-                    case 0: // Voice Mode
+                    case 0: // Voice
+                        _page.Header("<b>Voice Mode</b> (Verbindung, Modus, Ton-Test)");
                         _page.Button("Einfacher Q&A-Modus", EnableSimpleQa);
-                        _page.Text(_simpleQaJson, 110f);
                         if (_link != null) _link.BuildVoiceModeTab(_page);
                         if (_body != null) _body.BuildVoiceModeTab(_page);
+                        _page.Header("<b>Voice > AI Character</b> (Stimme und Sprach-KI der Figur)");
+                        if (_link != null) _link.BuildAiVoiceSection(_page);
                         break;
-                    case 1: // AI
-                        if (_link != null) _link.BuildAiTab(_page);
-                        break;
-                    case 2: // AI Character
-                        if (_link != null) _link.BuildCharacterVoice(_page);
+                    case 1: // AI Character
                         if (_body != null) _body.BuildCharacterTab(_page);
                         break;
-                    case 3: // Client Character
+                    case 2: // Client Character
                         if (_link != null) _link.BuildClientCharacterTab(_page);
                         break;
-                    case 4: // Post
-                        if (_link != null) _link.BuildPostTab(_page);
-                        break;
-                    case 5: // Config
-                        if (_link != null) _link.BuildConfigTab(_page, ReloadConfigJson, _configStatusJson);
-                        break;
-                    default: // Erweitert
-                        if (_link != null) _link.BuildAdvancedTab(_page);
+                    default: // Config (former Config + Erweitert)
+                        _page.Header("<b>Config</b> (config.json, Verbindung, Protokoll)");
+                        if (_link != null) _link.BuildConfigTab(_page, ReloadConfigJson);
                         _page.Toggle(_verboseJson);
                         break;
                 }
+                RefreshStatus();
             }
             catch (Exception e)
             {
@@ -246,9 +240,8 @@ namespace AIBody
         /// Button "Reload Config JSON": applies config.json to the UI (paths, connection, engines, mic,
         /// body, ai keys of the tabs) and pushes the result to the companion app.
         /// </summary>
-        private readonly JSONStorableString _simpleQaJson = new JSONStorableString("Simple Q&A help",
-            "Einfacher Q&A-Modus: Frage sprechen oder in der Companion-Konsole tippen -> Grok antwortet -> "
-            + "die Person spricht. Setzt AI mode = qa und Body control = aus (Tab AI Character). Braucht einen xAI-Key.");
+        private string _simpleQa = "Einfacher Q&A-Modus: Frage sprechen oder in der Companion-Konsole tippen -> Grok antwortet -> "
+            + "die Person spricht. Setzt AI mode = qa und Body control = aus (Tab AI Character). Braucht einen xAI-Key.";
 
         /// <summary>
         /// Button "Einfacher Q&amp;A-Modus": AI mode qa (STT -> Grok -> TTS, speech only) and body
@@ -258,7 +251,7 @@ namespace AIBody
         {
             if (_link != null) _link.SetSimpleQa();
             if (_body != null) _body.SetBodyControl(false);
-            _simpleQaJson.val = "Einfacher Q&A-Modus an (" + DateTime.Now.ToString("HH:mm:ss") + "): AI mode = qa, Body control = aus. "
+            _simpleQa = "Einfacher Q&A-Modus an (" + DateTime.Now.ToString("HH:mm:ss") + "): AI mode = qa, Body control = aus. "
                 + "Jetzt 'Test-Ton abspielen', dann eine Frage stellen.";
         }
 
@@ -270,7 +263,7 @@ namespace AIBody
                 JSONClass file = _link.LoadSettingsFile();
                 if (file == null)
                 {
-                    _configStatusJson.val = "Keine gültige config.json unter " + _link.SettingsPath + " – nichts geändert.";
+                    _configStatus = "Keine gültige config.json unter " + _link.SettingsPath + " – nichts geändert.";
                     return;
                 }
                 _link.ApplySettings(file);
@@ -280,11 +273,11 @@ namespace AIBody
                     _verboseJson.val = Protocol.GetBool(advanced, "verbose_log", _verboseJson.val);
                 if (_body != null) _body.ReloadConfigFiles();
                 _link.MarkConfigDirty();
-                _configStatusJson.val = "config.json neu geladen (" + DateTime.Now.ToString("HH:mm:ss") + "): " + _link.SettingsPath;
+                _configStatus = "config.json neu geladen (" + DateTime.Now.ToString("HH:mm:ss") + "): " + _link.SettingsPath;
             }
             catch (Exception e)
             {
-                _configStatusJson.val = "config.json laden fehlgeschlagen: " + Diag.Describe(e);
+                _configStatus = "config.json laden fehlgeschlagen: " + Diag.Describe(e);
                 _diag.Fail("Reload Config JSON", e);
             }
         }
@@ -389,6 +382,38 @@ namespace AIBody
             return text;
         }
 
+        /// <summary>Help and status for the open tab (the tabs themselves have no text fields).</summary>
+        private string TabInfo()
+        {
+            if (_tab < 0 || _tab >= Tabs.Length) return "";
+            string text = "";
+            try
+            {
+                switch (_tab)
+                {
+                    case 0:
+                        text = _simpleQa + "\n" + (_link != null ? _link.VoiceInfoText() : "");
+                        break;
+                    case 1:
+                        text = _body != null ? _body.CharacterInfoText() : "";
+                        break;
+                    case 2:
+                        text = _link != null ? _link.ClientInfoText() : "";
+                        break;
+                    default:
+                        text = (_link != null ? "config.json: " + _link.SettingsPath + "\n" + _link.ChannelInfoText() + "\n" : "")
+                            + (_configStatus.Length > 0 ? _configStatus + "\n" : "");
+                        break;
+                }
+            }
+            catch (Exception e)
+            {
+                text = "Info fehlgeschlagen: " + Diag.Describe(e) + "\n";
+            }
+            if (text.Length > 0 && !text.EndsWith("\n")) text += "\n";
+            return "<b>Info: " + Tabs[_tab] + "</b>\n" + text;
+        }
+
         private static string Reason(string error)
         {
             return string.IsNullOrEmpty(error) ? "" : " (" + error + ")";
@@ -401,6 +426,7 @@ namespace AIBody
             try { if (containingAtom != null) uid = containingAtom.uid; }
             catch (Exception) { }
             _statusJson.val = "AIBody " + PluginVersion + " auf '" + uid + "'\n"
+                + TabInfo()
                 + SelfTest()
                 + (_live.Length > 0 ? "<b>Live</b>\n" + _live : "")
                 + (Log.Verbose && Log.RecentText().Length > 0 ? "<b>Letzte Ereignisse</b> (Verbose log)\n" + Log.RecentText() : "")

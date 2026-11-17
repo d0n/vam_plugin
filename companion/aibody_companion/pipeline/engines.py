@@ -1,5 +1,5 @@
 """Engine registry: builds the STT / LLM / TTS engines selected in config.json (engines {stt,
-llm, tts}, changeable live from the plugin's tab AI) with their settings from the "ai"
+llm, tts}, changeable live from the plugin's tab Voice > AI Character) with their settings from the "ai"
 section, and falls back when an engine cannot run.
 
   stt   null (offline, recognizes nothing) | xai
