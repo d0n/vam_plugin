@@ -37,7 +37,7 @@ namespace AIBody
 {
     public class AIBodyPlugin : MVRScript
     {
-        public const string PluginVersion = "0.7.3";
+        public const string PluginVersion = "0.7.4";
 
         private AppLink _link;
         private Body _body;

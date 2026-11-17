@@ -6,7 +6,7 @@ poses, and keeps moving (idle motion and breathing) while it waits.
 
 Two parts, **both needed**:
 
-- **AIBody plugin** (`src/AIBody/`, package `d0n.AIBody.10.var`): ONE plugin, loaded once on the AI
+- **AIBody plugin** (`src/AIBody/`, package `d0n.AIBody.11.var`): ONE plugin, loaded once on the AI
   character's Person atom. It links to the companion app through a shared folder (heartbeat,
   status, microphone/push-to-talk and engine menus) and drives the body: speech with lip sync on
   the head audio, morphs, expressions, gestures, poses, idle motion and breathing.
@@ -14,7 +14,7 @@ Two parts, **both needed**:
   the VaM plugin sandbox does not allow: microphone capture, voice activity detection, speech to
   text, the language model and text to speech.
 
-Status: **early (v0.7.3)**. The plugin compiles as C# 6 against API stubs but has not been run
+Status: **early (v0.7.4)**. The plugin compiles as C# 6 against API stubs but has not been run
 inside VaM yet; every unverified VaM/Unity call is marked `TODO(verify)` in the code. The
 companion app has real AI engines (xAI speech to text, Grok language model with streaming, xAI
 and ElevenLabs text to speech) next to the offline test engines; they are tested against a fake
@@ -23,9 +23,9 @@ server only, because no API key was available yet (`TODO(verify)`). Deferred fea
 
 ## Load flow (the whole setup)
 
-1. Copy `d0n.AIBody.10.var` to `<VaM>/AddonPackages/` (remove older AIBody packages, see below).
+1. Copy `d0n.AIBody.11.var` to `<VaM>/AddonPackages/` (remove older AIBody packages, see below).
 2. In VaM select the AI character's Person atom > **Plugins** tab > **Add Plugin** > choose
-   `AddonPackages > d0n.AIBody.10:/Custom/Scripts/d0n/AIBody/AIBody.cslist`.
+   `AddonPackages > d0n.AIBody.11:/Custom/Scripts/d0n/AIBody/AIBody.cslist`.
 3. Start the companion app: `python -m aibody_companion --vam-root "C:/VaM"`.
 
 That's it. The plugin's status box shows "Companion app: running ..." once both sides see each
@@ -161,22 +161,22 @@ tools/                     assemble_plugins.py (plugin folder), build_var.py (pa
 
 ### Install the package
 
-Download `d0n.AIBody.10.var` from the [releases](https://github.com/d0n/vam_plugin/releases), or
-build it with `python tools/build_var.py` (writes `dist/d0n.AIBody.10.var`), and copy it to:
+Download `d0n.AIBody.11.var` from the [releases](https://github.com/d0n/vam_plugin/releases), or
+build it with `python tools/build_var.py` (writes `dist/d0n.AIBody.11.var`), and copy it to:
 
 ```
-<VaM>/AddonPackages/d0n.AIBody.10.var
+<VaM>/AddonPackages/d0n.AIBody.11.var
 ```
 
 Remove all older AIBody packages from `AddonPackages`: `d0n.AIBody.1.var`, `d0n.AIBody.2.var`,
-`d0n.AIBody.3.var` to `d0n.AIBody.9.var`, `d0n.AIBodySession.*.var`, `d0n.AIBodyPerson.*.var`,
+`d0n.AIBody.3.var` to `d0n.AIBody.10.var`, `d0n.AIBodySession.*.var`, `d0n.AIBodyPerson.*.var`,
 `d0n.AIBodyPerson2.*.var`. Scenes saved with an older package point at that package's path, so
-remove the old plugin entry from the character and add `d0n.AIBody.10` again, then save.
+remove the old plugin entry from the character and add `d0n.AIBody.11` again, then save.
 
 Contents:
 
 ```
-d0n.AIBody.10.var
+d0n.AIBody.11.var
 ├── meta.json
 └── Custom/Scripts/d0n/AIBody/
     ├── AIBody.cslist
@@ -224,11 +224,16 @@ Right column: a row of tab buttons, below it the settings of the active tab:
 |-----|----------|
 | **Voice Mode** | **Einfacher Q&A-Modus** (AI mode `qa` + Body control off), **Active** (link on/off), **Echtzeit (Realtime) verwenden** (on = AI mode `auto`: Grok Voice with the chain as fallback; off = `qa`; shows on while AI mode is `auto` or `realtime`), **API Reconnect** (the companion re-reads its keys and reopens the realtime connection; the plugin restarts its link), **Test-Ton über Companion**, **Test-Ton abspielen**, **Stop speaking** |
 | **AI** | **Speech-to-text**, **Language model**, **Text-to-speech** (incl. `elevenlabs`; lists come from the companion app), **xAI key file** / **ElevenLabs key file** (the PATH of a text file holding the key, never the key itself) with key status per provider (konfiguriert / fehlt / abgelehnt), **Delay (s)** (placeholder, no function yet), **Proactive**, **Proactive idle (s)**; status: active mode, proactive state, selected engine, "bereit" or "nicht konfiguriert", and the fallback that runs instead |
-| **AI Character** | for this Person (this plugin instance): **AI mode** (qa / auto / realtime / chain, with a short explanation), **Voice** (xAI voice for realtime and TTS), **Body control** (off = speech only), **Speech volume**, **Idle head motion**, **Idle intensity**, **Breathing**, **Breaths per minute**, **Breath depth**, **Breath morph**, **Reset expression**, **Reload Expressions**, **Reload Gestures** |
-| **Client Character** | **Microphone**, captured by the companion app, applied live 0.3 s after the last change: **Mic enabled**, **Mic mode** (Voice activation / Push-to-talk), **Mic device** (**Refresh device list**), **Push-to-talk active** (explanation text below it), **Push-to-talk interrupts speech**, mic status, **Show level meter**, **VAD threshold**, **Input gain**, **Silence timeout**, **Min / Max utterance**, **Echo gate tail**; **Voice barge-in (headphones)** |
-| **Post** | **Channel** (default `default`; folder below `Saves/PluginData/AIBody`), paths info (the label is one constant, `AIBodyPlugin.PostTabLabel`) |
-| **Config** | **Reload Config JSON** (applies `config.json` to the UI and sends it to the companion), file info |
+| **AI Character** | for this Person (this plugin instance): **AI mode** (qa / auto / realtime / chain, with a short explanation), **Voice** (xAI voice for realtime and TTS); **Pose** (the AI picks poses by voice through a tool call; here by hand: pose menu, **Pose anwenden**, **Posen neu laden**; poses = `gestures.json` entries of kind `pose` plus preset files in `Custom/Atom/Person/Pose` and `Custom/Atom/Person/Pose/AIBody`); **Ausdruck und Geste** (expression menu + **Ausdruck zeigen**, **Reset expression**, gesture menu + **Geste abspielen**); **Körper**: **Body control** (off = speech only, the AI gets no body tools; the manual menus still work), **Speech volume**, **Idle head motion**, **Idle intensity**, **Breathing**, **Breaths per minute**, **Breath depth**, **Breath morph**, **Reload Expressions** |
+| **Client Character** | **Microphone**, captured by the companion app, applied live 0.3 s after the last change: **Mic enabled**, **Mic mode** (Voice activation / Push-to-talk), **Mic device** (the companion's microphones, one entry per device, first entry **Standard (System-Mikrofon)**; the list is requested again when the menu opens), **Mikrofone neu laden**, a status line `Mikrofone: N gefunden (host API), Auswahl: ...` or the red reason why the app found none, **Push-to-talk active** (explanation text below it), **Push-to-talk interrupts speech**, mic status, **Show level meter**, **VAD threshold**, **Input gain**, **Silence timeout**, **Min / Max utterance**, **Echo gate tail**; **Voice barge-in (headphones)** |
+| **Post** | **Channel** (default `default`; folder below `Saves/PluginData/AIBody`; the label is one constant, `AIBodyPlugin.PostTabLabel`) |
+| **Config** | **Reload Config JSON** (applies `config.json` to the UI and sends it to the companion) and its result |
 | **Erweitert** | **File poll interval**, **Verbose log** (turn trace in the companion console + log file, `[debug]` lines in the VaM log, last 8 events in the status box; see *Verbose log* below) |
+
+**Menu rule:** the menu shows only what can be configured. Pure path / info displays were removed in
+0.7.4 (the folders are written once to the VaM log: `Settings file: ... | Expressions: ... | Gestures: ... | Audio ...`); texts that explain or
+report a control (mode help, push-to-talk help, key / engine / mic status) stay. The status box shows
+`Latenz bis zum ersten Ton: X s (Ø Y s, n Runden)` with the breakdown (see *Latency* below).
 
 **Sound check (no AI needed):** *Voice Mode* > **Test-Ton abspielen** plays `AIBodyTest.wav` from
 the package on the head audio (no companion app involved); **Test-Ton über Companion** lets the
@@ -325,6 +330,32 @@ until **API Reconnect** (or a mode change) and the chain answers.
   voice in realtime mode use headphones and switch on **Voice barge-in (headphones)**. Push-to-talk
   always interrupts.
 - Details: [docs/CONFIG.md](docs/CONFIG.md#modes-realtime-voice-and-chain).
+
+### API key
+
+xAI needs an **API key from [console.x.ai](https://console.x.ai)** (starts with `xai-`, API credit).
+A Grok subscription (SuperGrok / X Premium) or a grok.com login token is not an API key and is
+refused by `api.x.ai`. Without a key the companion warns at start and runs the offline test engines;
+the key status in tab *AI* says which key is needed (red when the server refused it).
+
+### Body tools (the AI moves the body)
+
+In `auto` / `realtime` / `chain` with **Body control** on, the language model gets function tools:
+`express` (expression and / or gesture from the loaded lists) and `pose` (only if poses exist).
+Realtime: `function_call` -> commands to the plugin -> `function_call_output`; chain: `/v1/responses`
+with `tools`, the outputs go back with `previous_response_id` (at most 3 tool-only rounds per turn).
+Every call gets a result (`{"ok": true}` or `{"ok": false, "error": ...}`) so the model never waits.
+Not offered in `qa` (speech only) or with Body control off; a stray call is answered `ok: false`.
+There is no look-at tool: AIBody has no gaze control.
+
+### Latency
+
+Measured per turn from the end of your speech (VAD end, push-to-talk release, Enter in the console;
+realtime: the server's `speech_stopped`) to the first sound (the plugin's `speech_started`).
+Breakdown (chain): STT, LLM erstes Token, erster Satz, TTS, Datei, an Plugin, Plugin-Start;
+(realtime): Server erstes Audio, Segment, an Plugin, Plugin-Start. One INFO line per turn in the
+console / `companion.log` (`Latenz t0003 bis zum ersten Ton: 2.41 s – STT 0.80 · ...`), a trace step
+in the verbose log, and the last value plus the average of the last 10 turns in the plugin status box.
 
 ### AI engines (chain mode)
 
@@ -464,7 +495,9 @@ Poses from VaMHub can be loaded with the `pose` command using the usual package 
    loading of a `Saves/PluginData` path and `PlayNow` playback (lip sync, start detection), the
    `PosePresets` storable, editable text fields, chooser updates, morph names (breath morph).
 2. **Real engines** in the companion app (STT, LLM, TTS), streamed sentence by sentence.
-3. Everything else is parked in [docs/BACKLOG.md](docs/BACKLOG.md).
+3. Everything else is parked in [docs/BACKLOG.md](docs/BACKLOG.md) (German, deferred ideas).
+
+Agreed spec: [docs/SPEC.md](docs/SPEC.md); status done / open: [docs/ANFORDERUNGEN.md](docs/ANFORDERUNGEN.md).
 
 ## License
 

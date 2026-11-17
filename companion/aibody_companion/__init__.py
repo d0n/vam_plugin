@@ -5,5 +5,5 @@ turns it into text, asks a language model for a reply, synthesizes speech and se
 commands to the VaM plugin. See ../protocol/PROTOCOL.md.
 """
 
-__version__ = "0.7.3"
+__version__ = "0.7.4"
 PROTOCOL_VERSION = 3
