@@ -201,7 +201,7 @@ Right column: a row of tab buttons, below it the settings of the active tab:
 |-----|----------|
 | **Status** | **Active** (link on/off), **Reconnect**, **Stop speaking**, **Reset expression** |
 | **Verbindung** | **Channel** (default `default`; folder below `Saves/PluginData/AIBody`), paths and config file info, **Reload config.json (paths)**, **Reload expressions / gestures** |
-| **Engines** | **Speech-to-text**, **Language model**, **Text-to-speech** (lists come from the companion app), engine status: selected engine, "bereit" or "nicht konfiguriert", and the fallback that runs instead |
+| **Engines** | **Speech-to-text**, **Language model**, **Text-to-speech** (lists come from the companion app), **AI mode** (auto / realtime / chain), **Proactive**, **Proactive idle (s)**, **Voice barge-in (headphones)**; status: active mode, proactive state, selected engine, "bereit" or "nicht konfiguriert", and the fallback that runs instead |
 | **Mikrofon & PTT** | captured by the companion app, applied live 0.3 s after the last change: **Mic enabled**, **Mic mode** (Voice activation / Push-to-talk), **Mic device** (**Refresh device list**), **Push-to-talk active**, **Push-to-talk interrupts speech**, mic status, **Show level meter**, **VAD threshold**, **Input gain**, **Silence timeout**, **Min / Max utterance**, **Echo gate tail** |
 | **Körper** | **Speech volume**, **Idle head motion**, **Idle intensity**, **Breathing**, **Breaths per minute**, **Breath depth**, **Breath morph** |
 | **Erweitert** | **File poll interval**, **Verbose log** |
@@ -209,8 +209,9 @@ Right column: a row of tab buttons, below it the settings of the active tab:
 All settings are saved with the scene and mirrored to the shared config file
 `<VaM>/Saves/PluginData/AIBody/config.json` (one object per tab; see [docs/CONFIG.md](docs/CONFIG.md)).
 The companion app reads it on start. A scene without saved AIBody settings takes its values from
-that file once. The file also has an `ai` section (persona, language, fallback, xAI and
-ElevenLabs settings) that only the companion app uses; the plugin keeps it unchanged.
+that file once. The file also has an `ai` section (persona, language, fallback, realtime, proactive, xAI and
+ElevenLabs settings) for the companion app; the plugin sets only the Engines tab's AI mode,
+proactive and voice barge-in keys in it and keeps the rest.
 
 If the companion app is missing or crashes, the plugin keeps running: the status shows
 "GETRENNT", unread files in the channel folder are kept small (old commands are dropped, at most 20
@@ -239,7 +240,24 @@ the body speak, which is handy for testing without a microphone. With the offlin
 (`null` / `echo` / `tone`) the character answers "You said: ..." with a humming tone, enough to
 test lip sync, expressions, gestures, queueing and echo gating.
 
-### AI engines (companion app)
+### AI modes (companion app)
+
+| `ai.mode` | what runs |
+|-----------|-----------|
+| `auto` (default) | `realtime` if an xAI key exists (and TTS is not `elevenlabs`), else `chain` |
+| `realtime` | Grok Voice speech-to-speech over one WebSocket (`wss://api.x.ai/v1/realtime`, `grok-voice-latest`): the mic is streamed, the server detects the end of speech, the answer audio is cut into WAV segments and spoken from the first segment on; expressions / gestures via a function tool; interrupting stops the body; reconnects with backoff, chain runs meanwhile |
+| `chain` | speech to text -> language model -> text to speech (below) |
+
+- **Proactive:** after 90 s of silence (`ai.proactive.idle_seconds`, Engines tab) the AI may say
+  something by itself, or stay silent (`[silent]`, nothing is played). Needs realtime or `llm: xai`.
+- **Time context:** the AI has no clock. Each user turn and nudge carries the local date/time and
+  the time since the last exchange.
+- **Echo:** without echo cancellation the mic sends silence while the body talks; to interrupt by
+  voice in realtime mode use headphones and switch on **Voice barge-in (headphones)**. Push-to-talk
+  always interrupts.
+- Details: [docs/CONFIG.md](docs/CONFIG.md#modes-realtime-voice-and-chain).
+
+### AI engines (chain mode)
 
 One answer = speech to text -> language model -> text to speech, chosen in the plugin's
 **Engines** tab (or `engines` in `config.json`):

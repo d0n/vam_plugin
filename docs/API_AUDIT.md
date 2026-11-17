@@ -135,3 +135,13 @@ from `Exception.ToString()`, not from reflection. The only additions outside the
   dropped. Fixed on the companion side; covered by the end-to-end simulation test.
 - Network: still none in the plugin. The cloud engines (xAI, ElevenLabs) run only in the Python
   companion app.
+
+## 0.7.1: AI mode / proactive controls, realtime voice in the companion
+
+- No new VaM API. The Engines tab gets one more `JSONStorableStringChooser` (AI mode), two
+  `JSONStorableBool` (Proactive, Voice barge-in) and one `JSONStorableFloat` (Proactive idle),
+  registered and shown with `CreatePopup` / `CreateToggle` / `CreateSlider` like the existing
+  settings (E11). The plugin merges these four keys into the kept `ai` section with the same
+  SimpleJSON indexer / `as JSONClass` pattern as 0.7.0 (no enumeration of `JSONClass` needed).
+- The realtime voice (WebSocket to `wss://api.x.ai/v1/realtime`) is companion-only; the plugin
+  still has no network code and plays the answer segments through the unchanged `speak` command.

@@ -1,7 +1,7 @@
 # AIBody – Anforderungskatalog (Single Source of Truth)
 
-> **Nicht bindend.** Sammlung aller Ziele und Ideen aus Chat und Anrufen (Stand: 17.11.2026, nach Release v0.7.0). Zum Bearbeiten, Ergänzen und Nachschlagen gedacht, keine Arbeitsanweisung.
-> Repo: https://github.com/d0n/vam_plugin · Aktueller Release: [v0.7.0](https://github.com/d0n/vam_plugin/releases/tag/v0.7.0) (`d0n.AIBody.7.var`) · Testanleitung: [`docs/TESTPROTOKOLL.md`](https://github.com/d0n/vam_plugin/blob/main/docs/TESTPROTOKOLL.md)
+> **Nicht bindend.** Sammlung aller Ziele und Ideen aus Chat und Anrufen (Stand: 17.11.2026, nach Release v0.7.1). Zum Bearbeiten, Ergänzen und Nachschlagen gedacht, keine Arbeitsanweisung.
+> Repo: https://github.com/d0n/vam_plugin · Aktueller Release: [v0.7.1](https://github.com/d0n/vam_plugin/releases/tag/v0.7.1) (`d0n.AIBody.8.var`) · Testanleitung: [`docs/TESTPROTOKOLL.md`](https://github.com/d0n/vam_plugin/blob/main/docs/TESTPROTOKOLL.md)
 
 **Ziel:** Ein Virt-A-Mate-Plugin (VaM 1.22), das einer KI einen virtuellen Körper gibt. Die KI spricht mit Lippensync, reagiert mit Mimik, Gestik und Posen, und hört über das Mikrofon zu.
 
@@ -21,8 +21,8 @@
 - [ ] **Auf die Figur legen und wieder entfernen,** Szene speichern und neu laden, ohne Exceptions und ohne spürbaren FPS-Einbruch. *(Seit v0.6.2 läuft jede Init-Phase einzeln abgesichert, mit Statusfeld und Selbsttest; in VaM noch nicht getestet, siehe Testprotokoll T6.)*
 
 ### Installation
-- [x] **Eine einzige `.var`** (`d0n.AIBody.7.var`) kommt nach `<VaM-Hauptordner>/AddonPackages/`.
-- [ ] **Alte AIBody-Pakete löschen:** `d0n.AIBody.1` bis `d0n.AIBody.6.var`, `d0n.AIBodySession.*`, `d0n.AIBodyPerson.*`, `d0n.AIBodyPerson2.*`. Bei Szenen, die mit einer älteren Version gespeichert sind, alten Plugin-Eintrag entfernen und neu hinzufügen. *(Liste in README und Release-Notes; ob beim Nutzer erledigt, prüft Testprotokoll T1.)*
+- [x] **Eine einzige `.var`** (`d0n.AIBody.8.var`) kommt nach `<VaM-Hauptordner>/AddonPackages/`.
+- [ ] **Alte AIBody-Pakete löschen:** `d0n.AIBody.1` bis `d0n.AIBody.7.var`, `d0n.AIBodySession.*`, `d0n.AIBodyPerson.*`, `d0n.AIBodyPerson2.*`. Bei Szenen, die mit einer älteren Version gespeichert sind, alten Plugin-Eintrag entfernen und neu hinzufügen. *(Liste in README und Release-Notes; ob beim Nutzer erledigt, prüft Testprotokoll T1.)*
 - [x] **Release-Notes auf Deutsch** mit vollem Pfad ab dem VaM-Hauptordner und dem Ladeort.
 
 ### Verbindung zur Begleit-App
@@ -50,7 +50,7 @@
 - [x] **Config-Menü im Plugin:** Kanal, Mikrofonwahl (Liste kommt von der App), Push-to-Talk, Engine-Menüs und Verbindungsstatus. Die Einstellungen werden mit der Szene gespeichert. *(Seit v0.6.3 in Tabs, siehe unten.)*
 
 ### Stand der KI
-- **Fakt – was xAI für Sprache anbietet (geprüft auf docs.x.ai am 17.11.2026):** Spracherkennung **und** Sprachausgabe sind dokumentiert: `POST /v1/stt` (Modell `grok-voice-transcribe-2.0`, auch als WebSocket-Stream), `POST /v1/tts` (Stimmen z. B. `eve`, Formate mp3/wav/pcm), dazu Sprache-zu-Sprache über `wss://api.x.ai/v1/realtime` (nicht genutzt, weil es die Kette STT → LLM → TTS und den Datei-Transport umgehen würde). Links: `docs/CONFIG.md`, Abschnitt „What xAI offers for speech“.
+- **Fakt – was xAI für Sprache anbietet (geprüft auf docs.x.ai am 17.11.2026):** Spracherkennung **und** Sprachausgabe sind dokumentiert: `POST /v1/stt` (Modell `grok-voice-transcribe-2.0`, auch als WebSocket-Stream), `POST /v1/tts` (Stimmen z. B. `eve`, Formate mp3/wav/pcm), dazu Sprache-zu-Sprache über `wss://api.x.ai/v1/realtime` (Modell `grok-voice-latest`; seit v0.7.1 als Modus `realtime` genutzt: die Antwort-Audiodaten werden in WAV-Stücke geschnitten und über den Datei-Transport abgespielt). Links: `docs/CONFIG.md`, Abschnitt „What xAI offers for speech“.
 - [x] **Test-Engines** (`null` / `echo` / `tone`) bleiben als Offline-Betrieb und als Fallback erhalten. Spracherkennung, KI und Sprachausgabe sind per Konfiguration (`engines` in `config.json` bzw. Tab Engines) austauschbar.
 
 ### Erster echter Test in VaM (offen – Anleitung: `docs/TESTPROTOKOLL.md`)
@@ -60,6 +60,7 @@
 - [ ] Aktualisiert sich das Menü, wenn sich die Auswahlliste ändert, und funktioniert das Textfeld? Wechseln die Tabs sauber? *(T4)*
 - [ ] Stimmen der Name des Pose-Speichers, die Morph-Namen für die Ausdrücke und der Atem-Morph? *(T5)*
 - [ ] Hinzufügen, Entfernen, Speichern, Neuladen ohne Exceptions und FPS-Einbruch; „GETRENNT“ und automatischer Neuaufbau, wenn die App beendet und neu gestartet wird? Wird `config.json` ohne Rückfrage angelegt? *(T6)*
+- [ ] Realtime-Modus mit echtem xAI-Key: verbindet, antwortet flüssig, lässt sich unterbrechen; proaktives Sprechen nach Stille? *(T8)*
 
 ---
 
@@ -67,7 +68,8 @@
 
 *Geplant, aber nach dem ersten lauffähigen Stand.*
 
-- [ ] **Echte KI-Engines** in der Begleit-App für Spracherkennung, LLM und Sprachausgabe, dazu bessere Sprachaktivitätserkennung und Unterbrechen beim Reinreden. *(v0.7.0: Engines im Code fertig, aber **noch nie gegen die echten APIs gelaufen** (keine Keys vorhanden), nur gegen einen nachgebauten Server getestet – deshalb nicht abgehakt. Vorhanden: Spracherkennung `xai` (`POST /v1/stt`), LLM `xai` (Grok `grok-4.7`, `POST /v1/responses` mit Streaming, Persona über `instructions`, Gesprächsfaden über `previous_response_id`, Ausgabe satzweise, damit die Sprachausgabe schon beim ersten Satz startet), Sprachausgabe `xai` (`POST /v1/tts`) und `elevenlabs` (REST, austauschbarer Adapter). Keys nur über `XAI_API_KEY` / `ELEVENLABS_API_KEY` oder den Pfad einer Key-Datei in `config.json`; ohne Key „nicht konfiguriert“ im Tab Engines und automatischer Fallback auf `null` / `echo` / `tone`. Unterbrechen beim Reinreden: per Push-to-Talk wird die laufende Antwort jetzt abgebrochen; bessere Sprachaktivitätserkennung ist noch offen. Netzwerk nur in der Begleit-App, das Plugin bleibt ohne Netzwerkcode.)*
+- [ ] **Echte KI-Engines** in der Begleit-App für Spracherkennung, LLM und Sprachausgabe, dazu bessere Sprachaktivitätserkennung und Unterbrechen beim Reinreden. *(v0.7.0: Engines im Code fertig, aber **noch nie gegen die echten APIs gelaufen** (keine Keys vorhanden), nur gegen einen nachgebauten Server getestet – deshalb nicht abgehakt. Vorhanden: Spracherkennung `xai` (`POST /v1/stt`), LLM `xai` (Grok `grok-4.7`, `POST /v1/responses` mit Streaming, Persona über `instructions`, Gesprächsfaden über `previous_response_id`, Ausgabe satzweise, damit die Sprachausgabe schon beim ersten Satz startet), Sprachausgabe `xai` (`POST /v1/tts`) und `elevenlabs` (REST, austauschbarer Adapter). Keys nur über `XAI_API_KEY` / `ELEVENLABS_API_KEY` oder den Pfad einer Key-Datei in `config.json`; ohne Key „nicht konfiguriert“ im Tab Engines und automatischer Fallback auf `null` / `echo` / `tone`. Unterbrechen beim Reinreden: per Push-to-Talk wird die laufende Antwort jetzt abgebrochen; bessere Sprachaktivitätserkennung ist noch offen. Netzwerk nur in der Begleit-App, das Plugin bleibt ohne Netzwerkcode. v0.7.1: zusätzlich Modus `realtime` (Grok Voice über `wss://api.x.ai/v1/realtime`, eine dauerhafte WebSocket-Verbindung): Mikrofon wird gestreamt, der Server erkennt das Sprechende, die Antwort wird in Stücke geschnitten und ab dem ersten Stück gesprochen, Ausdrücke/Gesten über ein Funktions-Tool, Unterbrechen per Push-to-Talk bzw. mit Headset per Stimme, Neuverbindung mit Backoff. `ai.mode` `auto` nimmt Realtime, wenn ein xAI-Key da ist, sonst die Kette; Anzeige im Tab Engines. Ebenfalls nur gegen einen nachgebauten Server getestet, siehe Testprotokoll T8.)*
+- [ ] **Proaktives Sprechen nach Stille** *(vom Nutzer am 17.11.2026 gewünscht)*: Nach einer einstellbaren Zeit ohne Gespräch darf die KI von sich aus etwas sagen – oder bewusst schweigen. Dazu bekommt sie bei jedem Gesprächsschritt die aktuelle Uhrzeit und die Zeit seit dem letzten Austausch mit, weil sie selbst keine Uhr hat. *(v0.7.1: im Code fertig: `ai.proactive` (an/aus, `idle_seconds`, Standard 90 s, Hinweistext), im Plugin Schalter **Proactive** und Regler **Proactive idle (s)** im Tab Engines; Realtime per `conversation.item.create` + `response.create`, Kette per LLM-Aufruf (`llm: xai`). Antwortet die KI mit `[silent]`, wird nichts abgespielt; nach unbeantworteten Anstößen verdoppelt sich die Wartezeit (bis 8×). In VaM noch nicht getestet (T8).)*
 - [ ] **Aufteilung in Session und Person, erneut aufgreifen:** ein Session-Teil für die Verbindung, Mikrofon und Status, der Szenenwechsel überlebt, und ein Person-Teil pro Körper. *(So umgesetzt in v0.3/v0.4, dann zugunsten des Ladens in einem Schritt zurückgestellt. Code liegt unter `legacy/`.)*
 - [ ] **Session-Anbindung**, also Laden beim VaM-Start über „Set Current As User Defaults“ für den Session-Teil.
 - [ ] **Zweite Figur als eigene Instanz:** ein eigenständiges Person-Plugin mit eigenem Paket, eigenen Namen und fester Kennung. Die beiden Figuren werden nie zu einem Plugin zusammengelegt, und Befehle landen nie bei der falschen Figur. *(In v0.4 als `AIBodyPerson2` umgesetzt, derzeit zurückgestellt.)*

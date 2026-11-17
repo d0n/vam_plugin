@@ -68,7 +68,21 @@ One object per tab of the plugin window ("Status" has no settings). Machine-read
 | **`advanced`** (tab "Erweitert") | | | |
 | `file_poll_interval_s` | number 0.02-2 | 0.1 | how often the plugin checks its inbox |
 | `verbose_log` | bool | false | debug lines in the VaM log |
-| **`ai`** (companion app only, no tab) | | | the plugin keeps this section unchanged |
+| **`ai`** (companion app) | | | the plugin's Engines tab sets only `mode`, `proactive.enabled`, `proactive.idle_seconds` and `realtime.send_while_speaking`; it keeps the rest of the section |
+| `mode` | `auto` / `realtime` / `chain` | `auto` | Engines tab **AI mode**. `auto` = realtime when an xAI key exists, else chain; with `engines.tts` = `elevenlabs` auto picks chain. `realtime` = Grok Voice speech-to-speech; `chain` = STT -> LLM -> TTS (the engines above). If realtime cannot connect, chain runs meanwhile (reported) |
+| `realtime.url` | string | `wss://api.x.ai/v1/realtime` | |
+| `realtime.model` | string | `grok-voice-latest` | voice model (query parameter `model`) |
+| `realtime.voice` | string | `eve` | voice (e.g. `eve`, `ara`, `rex`) |
+| `realtime.sample_rate` | 8000 … 48000 | 24000 | answer audio rate (16-bit PCM, written as WAV segments) |
+| `realtime.speed` | number 0.7-1.5 | 1.0 | speaking speed |
+| `realtime.reasoning_effort` | `none` / `high` | `none` | `none` answers faster; `high` is the API default |
+| `realtime.send_while_speaking` | bool | false | Engines tab **Voice barge-in (headphones)**: the mic keeps streaming while the body talks, so you can interrupt by voice. Only with headphones - with speakers the AI hears itself |
+| `realtime.first_segment_s` | number 0.3-5 | 1.2 | the first audio segment is played as soon as a sentence ended after this much audio |
+| `realtime.max_segment_s` | number 1-20 | 6.0 | longer stretches without a sentence end are cut at the quietest spot |
+| `realtime.connect_timeout_s` | number 3-60 | 15 | |
+| `proactive.enabled` | bool | true | Engines tab **Proactive**: the AI may speak up by itself after a silence |
+| `proactive.idle_seconds` | number 15-3600 | 90 | Engines tab **Proactive idle (s)** (slider 15-900): silence (nobody spoke) before a nudge; doubles (up to 8x) while the user stays quiet |
+| `proactive.prompt` | string | "The user has been quiet … answer with exactly [silent] …" | note sent with each nudge; the AI may answer `[silent]`, then nothing is played |
 | `persona` | string | friendly character … | persona / system prompt of the language model (xAI: `instructions`, sent with the first request of a conversation) |
 | `language` | string | `auto` | `auto` or a language code (`de`, `en`, …): STT bias (`language`), TTS language |
 | `fallback.stt` / `.llm` / `.tts` | string | `null` / `echo` / `tone` | runs when the selected engine has no key or a request fails |
@@ -90,6 +104,42 @@ One object per tab of the plugin window ("Status" has no settings). Machine-read
 
 The push-to-talk *state* is never saved (only the setting `ptt_interrupts` and `mode`). Unknown
 keys are reported and ignored; out-of-range numbers are clamped.
+
+## Modes: realtime voice and chain
+
+**Realtime** (`ai.mode` `realtime`, or `auto` with an xAI key): one persistent WebSocket to
+`wss://api.x.ai/v1/realtime?model=grok-voice-latest` (header `Authorization: Bearer <key>`, same
+key as the xAI engines). The companion sends `session.update` (persona + rules as `instructions`,
+`voice`, `turn_detection: server_vad`, PCM formats, a function tool `express`) and streams the
+microphone as `input_audio_buffer.append` (16-bit PCM at the mic rate, 16 kHz by default). The
+server detects the end of speech and answers; the answer audio (`response.output_audio.delta`) is
+cut into WAV segments at sentence ends and played through the usual `speak` commands, so the body
+starts talking with the first segment. Expressions and gestures come from the `express` function
+call and become the existing `expression` / `gesture` commands. When the server reports
+`input_audio_buffer.speech_started` while the body talks, the companion sends `stop_speaking`
+and drops the rest of that answer (push-to-talk also sends `response.cancel`). The connection is
+re-opened with backoff (1, 2, 4, 8, 15, 30 s); meanwhile chain runs. The Engines tab shows the
+active mode ("Modus: realtime – Realtime verbunden …").
+
+**Echo:** while the body talks, the companion streams silence instead of the microphone (there is
+no echo cancellation), so interrupting by voice needs **Voice barge-in (headphones)**. Push-to-talk
+always interrupts.
+
+**Chain** (`ai.mode` `chain`, or `auto` without xAI key / with ElevenLabs TTS): the engines of the
+Engines tab, as before.
+
+## Proactive speech and time context
+
+- **Proactive:** after `ai.proactive.idle_seconds` without speech (user or AI), the companion
+  nudges the AI: realtime via `conversation.item.create` + `response.create`, chain via one
+  language-model turn (needs `llm` = `xai`). The nudge carries the time context and
+  `ai.proactive.prompt`; the default prompt allows the AI to stay silent by answering `[silent]`,
+  which is then not played. After an unanswered nudge the wait doubles (up to 8x); any user speech
+  resets it. Never while the body talks, the user speaks or push-to-talk is held.
+- **Time context:** the AI has no clock of its own. The companion adds the local date and time
+  (with UTC offset) and the time since the last exchange to every user turn (chain, `xai` LLM:
+  prefix of the user message, not stored in the history) and to every nudge; in realtime mode it
+  is part of the `instructions`, refreshed when the user starts speaking and every 60 s.
 
 ## API keys and engines
 
@@ -131,9 +181,10 @@ for `Engine ... bereit`, the spoken sentences and any `failed (...)` warnings.
 - **Text to speech: yes** - `POST /v1/tts` (and `wss://api.x.ai/v1/tts` streaming), voices such
   as `eve` / `ara` / `rex`, codecs mp3/wav/pcm/mulaw/alaw.
   <https://docs.x.ai/developers/model-capabilities/audio/text-to-speech>
-- **Speech to speech:** `wss://api.x.ai/v1/realtime` (Grok voice). Not used: it would replace the
-  STT -> LLM -> TTS pipeline and needs a WebSocket client.
-  <https://docs.x.ai/developers/model-capabilities/audio/voice>
+- **Speech to speech:** `wss://api.x.ai/v1/realtime` (Grok Voice, `grok-voice-latest`). Used by
+  `ai.mode` `realtime` since v0.7.1 (standard-library WebSocket client in the companion).
+  <https://docs.x.ai/developers/model-capabilities/audio/speech-to-speech>,
+  <https://docs.x.ai/developers/rest-api-reference/inference/voice>
 - Language model: `POST /v1/responses` with `stream: true`; `instructions` cannot be combined with
   `previous_response_id` (the stored system prompt is reused), so the persona goes out with the
   first request of a conversation only.

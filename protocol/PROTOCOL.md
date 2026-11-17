@@ -117,7 +117,7 @@ not detected by the plugin; a missing storable or parameter is reported as `comm
 | type                  | fields | effect |
 |-----------------------|--------|--------|
 | `ping`                | -      | answers `pong` with its status |
-| `companion_heartbeat` | `session` (required), `version`, `engines_available` (`{"stt": [...], "llm": [...], "tts": [...]}`), `engines_status` (`{"tts": {"elevenlabs": "nicht konfiguriert: ..."}, ...}`: "bereit (...)" or "nicht konfiguriert: <why>" per engine), `engines_active` (`{"stt": "null", ...}`: what really runs, the fallback if the selected engine is not configured), `mic_capturing` | companion liveness; fills the engine menus and the engine status in the Engines tab |
+| `companion_heartbeat` | `session` (required), `version`, `engines_available` (`{"stt": [...], "llm": [...], "tts": [...]}`), `engines_status` (`{"tts": {"elevenlabs": "nicht konfiguriert: ..."}, ...}`: "bereit (...)" or "nicht konfiguriert: <why>" per engine), `engines_active` (`{"stt": "null", ...}`: what really runs, the fallback if the selected engine is not configured), `mic_capturing`, `mode` (`{"requested": "auto", "active": "realtime", "status": "Realtime verbunden …"}`), `proactive` (`{"enabled": true, "idle_seconds": 90, "status": …}`) | companion liveness; fills the engine menus and the engine status in the Engines tab |
 
 ### Microphone feedback (app link)
 
@@ -142,7 +142,7 @@ All events come from the one plugin:
 | `heartbeat`      | status fields                                       | every 2 s |
 | `pong`           | status fields, `reply_to`                           | answer to `ping` |
 | `error`          | `reply_to`, `code`, `message`                       | `bad_json`, `command_failed`, `audio_failed` |
-| `config`         | `mic` (see below), `engines` (`{"stt", "llm", "tts"}`) | after (re)connect and 0.3 s after the last settings change |
+| `config`         | `mic` (see below), `engines` (`{"stt", "llm", "tts"}`), `ai` (`{"mode", "proactive": {"enabled", "idle_seconds"}, "realtime": {"send_while_speaking"}}`) | after (re)connect and 0.3 s after the last settings change |
 | `ptt`            | `active` (bool)                                     | push-to-talk pressed / released |
 | `list_devices`   | -                                                   | after (re)connect and on "Refresh mic devices" |
 | `shutdown`       | -                                                   | plugin is stopping its transport |
@@ -188,6 +188,14 @@ runs; `config_ack.errors` and `companion_heartbeat.engines_status` / `engines_ac
 A streaming model is spoken sentence by sentence: one `speak` (queue `append`) per sentence, the
 first one sent while the model still writes. An answer may start with `expression` / `gesture`
 commands taken from a `<<expression gesture>>` tag at the start of the model's text.
+
+### AI controls (`config.ai`)
+
+`mode` (`auto` | `realtime` | `chain`), `proactive.enabled`, `proactive.idle_seconds` (15..3600),
+`realtime.send_while_speaking`: applied live, echoed in `config_ack.applied.ai`; all other `ai`
+settings live in `config.json` only (docs/CONFIG.md). In realtime mode the answer audio arrives as
+one `speak` (queue `append`) per segment, exactly like the sentence-by-sentence chain answers; a
+barge-in sends `stop_speaking`. The protocol itself is unchanged (still version 3).
 
 ## Audio delivery
 

@@ -1,4 +1,4 @@
-# AIBody – Testprotokoll für den ersten Test in VaM 1.22 (ab v0.6.3, aktuell v0.7.0)
+# AIBody – Testprotokoll für den ersten Test in VaM 1.22 (ab v0.6.3, aktuell v0.7.1)
 
 Ziel: die offenen „Muss jetzt“-Punkte, die nur in VaM prüfbar sind. Bitte jeden Punkt der Reihe
 nach durchgehen und das Ergebnis eintragen (✅ / ❌ / unklar). Dauer: etwa 20 Minuten.
@@ -13,9 +13,9 @@ nach durchgehen und das Ergebnis eintragen (✅ / ❌ / unklar). Dauer: etwa 20 
 **Vorbereitung**
 
 - VaM schließen. In `<VaM-Hauptordner>/AddonPackages/` alle alten AIBody-Pakete löschen:
-  `d0n.AIBody.1.var` bis `d0n.AIBody.6.var`, `d0n.AIBodySession.*`, `d0n.AIBodyPerson.*`,
+  `d0n.AIBody.1.var` bis `d0n.AIBody.7.var`, `d0n.AIBodySession.*`, `d0n.AIBodyPerson.*`,
   `d0n.AIBodyPerson2.*`. Lose Dateien unter `Custom/Scripts/d0n/AIBody/` ebenfalls entfernen.
-- `d0n.AIBody.7.var` nach `<VaM-Hauptordner>/AddonPackages/` kopieren.
+- `d0n.AIBody.8.var` nach `<VaM-Hauptordner>/AddonPackages/` kopieren.
 - Companion-App bereithalten (noch **nicht** starten):
   `python -m aibody_companion --vam-root "C:/VaM"` (Pfad zum eigenen VaM-Ordner anpassen).
 
@@ -110,4 +110,27 @@ Melden: Steht unter den Auswahllisten „Text-to-speech: elevenlabs – nicht ko
 
 ---
 
-**Ergebnis zurückschicken:** pro Punkt T1–T7 ✅/❌, die Screenshots und die roten „AIBody:“-Zeilen.
+## T8 – Realtime-Sprache und proaktives Sprechen (ab v0.7.1)
+
+Braucht einen xAI-Key (Umgebungsvariable `XAI_API_KEY` oder `ai.xai.key_file` in `config.json`)
+und am besten ein Headset.
+
+1. Companion-App mit Key starten. Im Log der App sollte stehen: `Modus: auto -> realtime` und
+   `Realtime: verbunden mit wss://api.x.ai/v1/realtime?model=grok-voice-latest`.
+2. Im Plugin Tab **Engines**: **AI mode** steht auf `auto`; im Status darunter
+   „Modus: realtime – Realtime verbunden …“ und „Proaktiv: an, nach 90 s Stille“.
+3. Etwas sagen (z. B. „Hallo, wie spät ist es?“). Die Figur soll nach kurzer Pause antworten,
+   der Mund bewegt sich, die Uhrzeit stimmt ungefähr.
+4. Während sie spricht, **Push-to-talk** drücken (oder mit Headset und eingeschaltetem
+   **Voice barge-in (headphones)** einfach reinsprechen): Sie soll sofort verstummen.
+5. **Proactive idle (s)** auf 20 stellen, 30 Sekunden still sein: Die Figur sagt von sich aus etwas
+   (oder schweigt bewusst – dann steht im App-Log `Proactive: the AI chose to stay silent`).
+6. **AI mode** auf `chain` stellen: Status zeigt „Modus: chain“; danach wieder `auto`.
+
+Melden: die Zeilen 1–2 aus dem App-Log, wie lange es bis zur Antwort dauert (geschätzt), ob die
+Antwort abgehackt klingt (Pausen zwischen den Stücken), ob Unterbrechen klappt, und alle Zeilen
+mit `Realtime` oder `failed` aus dem App-Log.
+
+---
+
+**Ergebnis zurückschicken:** pro Punkt T1–T8 ✅/❌, die Screenshots und die roten „AIBody:“-Zeilen.
