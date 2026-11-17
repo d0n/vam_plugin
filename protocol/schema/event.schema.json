@@ -229,6 +229,10 @@
         "string"
       ],
       "description": "ready/heartbeat: Body control on (false = speech only, no body tools for the AI)"
+    },
+    "selftest": {
+      "type": "object",
+      "description": "ready/heartbeat: in-game self test of the body (Body.SelfTestJson): pose_storage (ok or why not), pose_files, poses, breath_morph, breath_morph_found, expression_morphs_found / _total / _missing, timeline_gestures, timeline, or error; the companion logs it once per change"
     }
   },
   "allOf": [

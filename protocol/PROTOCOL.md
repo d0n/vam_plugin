@@ -160,7 +160,12 @@ played), `failed` (could not be loaded; an `audio_failed` error comes first).
 
 Status fields (`ready`, `heartbeat`, `pong`): `plugin_version`, `protocol`, `channel`,
 `transport`, `audio_dir`, `atom` (uid of the Person atom the plugin is on, informational),
-`speaking`, `speech_queue`, `expression`, `expressions` (preset names), `gestures` (names).
+`speaking`, `speech_queue`, `expression`, `expressions` (preset names), `gestures` (names),
+`poses`, `body_control`, `selftest` (since version 13: the in-game self test of the body, object
+with `pose_storage` ("ok" or why not), `pose_files`, `poses`, `breath_morph`, `breath_morph_found`,
+`expression_morphs_found`, `expression_morphs_total`, `expression_morphs_missing`,
+`timeline_gestures`, `timeline`, or `error`; recomputed at most every 5 s; the companion logs it as
+"Plugin-Selbsttest: …" once per change, as a warning when something is missing).
 
 ### Microphone settings (`config.mic`)
 
@@ -261,7 +266,7 @@ fields in events and report unknown command types as errors.
 
 ## Body tools (companion <-> xAI, v0.7.4)
 
-The plugin's `status` event lists `expressions`, `gestures`, `poses` and `body_control`. From these
+The plugin's status fields (`ready` / `heartbeat`) list `expressions`, `gestures`, `poses` and `body_control`. From these
 the companion offers the language model the tools `express` (`expression`, `gesture`, enums of the
 loaded names) and `pose` (`name`, only when poses exist). A call becomes `expression` / `gesture` /
 `pose` commands on this channel; every call is answered (`{"ok": true}` / `{"ok": false, "error"}`).

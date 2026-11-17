@@ -135,6 +135,11 @@ class FakePlugin:
         # ai controls of the plugin tabs (AppLink.BuildAiJson): sent in the config event, merged into config.json "ai"
         self.poses: list[str] = []      # Body.AddStatus "poses" (gestures.json poses + preset files)
         self.body_control = True        # Body.AddStatus "body_control"
+        # Body.SelfTestJson (in-game checks, sent as "selftest" in ready / heartbeat)
+        self.selftest: dict[str, Any] = {"pose_storage": "ok", "pose_files": 0, "poses": 0,
+                                         "breath_morph": "Breath1", "breath_morph_found": True,
+                                         "expression_morphs_found": 9, "expression_morphs_total": 9,
+                                         "expression_morphs_missing": [], "timeline_gestures": 0, "timeline": False}
         self.ai_ui: dict[str, Any] = {"mode": mode, "proactive": {"enabled": True, "idle_seconds": 90.0},
                                       "realtime": {"send_while_speaking": False}}
         self.voice = "eve"  # AI Character tab "Voice" -> ai.realtime.voice + ai.xai.voice
@@ -214,7 +219,8 @@ class FakePlugin:
         return {"atom": "Person", "speaking": bool(self.playing), "speech_queue": len(self.playing),
                 "expression": "neutral", "expressions": ["neutral", "happy", "sad", "thinking"],
                 "gestures": ["nod", "shake", "tilt", *self.poses], "poses": list(self.poses),
-                "body_control": self.body_control, "channel": self.channel, "plugin_version": PLUGIN_VERSION}
+                "body_control": self.body_control, "selftest": dict(self.selftest),
+                "channel": self.channel, "plugin_version": PLUGIN_VERSION}
 
     def send_config(self) -> None:
         self.send("config", mic=dict(self.ui["mic"]), engines=dict(self.ui["engines"]),

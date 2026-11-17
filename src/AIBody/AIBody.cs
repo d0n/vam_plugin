@@ -383,6 +383,7 @@ namespace AIBody
             if (!person) return text;
             text += "  Kopf-Audio (HeadAudioSource): " + (_body != null && _body.SpeechAvailable ? "ja" : "NEIN" + Reason(_body != null ? _body.SpeechError : "Body fehlt")) + "\n";
             text += "  Morphs (geometry): " + (_body != null && _body.MorphsAvailable ? "ja" : "NEIN" + Reason(_body != null ? _body.MorphsError : "Body fehlt")) + "\n";
+            if (_body != null) text += _body.SelfTestText();
             text += "  PluginData beschreibbar: " + _writable + "\n";
             text += "  Companion-App-Heartbeat: " + (_link == null ? "-" : _link.AppSeen ? "ja" : _link.AppLost ? "GETRENNT (verbindet automatisch neu)" : "noch nicht") + "\n";
             return text;

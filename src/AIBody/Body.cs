@@ -64,6 +64,77 @@ namespace AIBody
         public bool MorphsAvailable { get { return _morphs != null && _morphs.Available; } }
         public string MorphsError { get { return _morphs != null ? _morphs.LookupError : "MorphHelper fehlt"; } }
 
+        // In-game checks for the TODO(verify) points (T3, T5): computed at most every 5 s.
+        private float _selfTestAge = 999f;
+        private JSONClass _selfTest;
+
+        /// <summary>
+        /// Self test of the body parts that can only be checked in VaM: pose storage (PosePresets),
+        /// pose files (GetFiles on Custom/), breath morph, expression morphs, Timeline. Same values as
+        /// lines for the status box and as "selftest" in ready/heartbeat (the companion logs them).
+        /// </summary>
+        public JSONClass SelfTestJson()
+        {
+            if (_selfTest != null && _selfTestAge < 5f) return _selfTest;
+            _selfTestAge = 0f;
+            JSONClass t = new JSONClass();
+            try
+            {
+                string storage = _poses != null ? _poses.CheckPoseStorage() : "PoseController fehlt";
+                t["pose_storage"] = storage ?? "ok";
+                t["pose_files"].AsInt = _poses != null ? _poses.PoseFileCount : 0;
+                t["poses"].AsInt = _poses != null ? _poses.PoseNames.Count : 0;
+                t["breath_morph"] = _breathing != null ? _breathing.MorphName : "";
+                t["breath_morph_found"].AsBool = _breathing != null && _morphs != null && _morphs.Find(_breathing.MorphName) != null;
+                int found = 0, total = 0;
+                JSONArray missing = new JSONArray();
+                if (_expressions != null && _morphs != null && _morphs.Available)
+                {
+                    foreach (string n in _expressions.MorphNames)
+                    {
+                        total++;
+                        if (_morphs.Find(n) != null) found++;
+                        else missing.Add(new JSONData(n));
+                    }
+                }
+                t["expression_morphs_found"].AsInt = found;
+                t["expression_morphs_total"].AsInt = total;
+                t["expression_morphs_missing"] = missing;
+                t["timeline_gestures"].AsInt = _poses != null ? _poses.TimelineGestureCount : 0;
+                t["timeline"].AsBool = _poses != null && _poses.HasTimeline;
+            }
+            catch (Exception e)
+            {
+                t["error"] = Diag.Describe(e);
+            }
+            _selfTest = t;
+            return t;
+        }
+
+        /// <summary>Self test lines for the status box (below head audio / morphs).</summary>
+        public string SelfTestText()
+        {
+            JSONClass t = SelfTestJson();
+            if (Protocol.Has(t, "error")) return "  Körper-Prüfung: FEHLER " + t["error"].Value + "\n";
+            string storage = t["pose_storage"].Value;
+            string text = "  Pose-Speicher (PosePresets): " + (storage == "ok" ? "ja" : "NEIN (" + storage + ")") + "\n";
+            text += "  Posen: " + t["poses"].AsInt + " (davon Dateien in Custom/Atom/Person/Pose: " + t["pose_files"].AsInt + ")\n";
+            text += "  Atem-Morph '" + t["breath_morph"].Value + "': " + (t["breath_morph_found"].AsBool ? "gefunden" : "NICHT gefunden (Tab AI Character > Breath morph)") + "\n";
+            int found = t["expression_morphs_found"].AsInt, total = t["expression_morphs_total"].AsInt;
+            text += "  Ausdrucks-Morphs: " + (total == 0 ? "-" : found + " von " + total + " gefunden");
+            JSONArray missing = t["expression_morphs_missing"] as JSONArray;
+            if (missing != null && missing.Count > 0)
+            {
+                List<string> names = new List<string>();
+                for (int i = 0; i < missing.Count && i < 6; i++) names.Add(missing[i].Value);
+                text += " – fehlen: " + string.Join(", ", names.ToArray()) + (missing.Count > 6 ? ", …" : "");
+            }
+            text += "\n";
+            if (t["timeline_gestures"].AsInt > 0)
+                text += "  Timeline für " + t["timeline_gestures"].AsInt + " Geste(n): " + (t["timeline"].AsBool ? "ja" : "NEIN (Timeline-Plugin fehlt auf dieser Person)") + "\n";
+            return text;
+        }
+
         // ---------------------------------------------------------------- setup
 
         public void CreateStorables()
@@ -87,7 +158,7 @@ namespace AIBody
             _breathDepthJson = new JSONStorableFloat("Breath depth", 0.35f, (float v) => { if (_breathing != null) _breathing.Depth = v; }, 0f, 1f);
             _plugin.RegisterFloat(_breathDepthJson);
             // TODO(verify): choose a chest morph that exists on the character.
-            _breathMorphJson = new JSONStorableString("Breath morph", "Breath1", (string v) => { if (_breathing != null) _breathing.SetMorph(v); });
+            _breathMorphJson = new JSONStorableString("Breath morph", "Breath1", (string v) => { if (_breathing != null) _breathing.SetMorph(v); _selfTestAge = 999f; });
             _plugin.RegisterString(_breathMorphJson);
 
             // Manual pose / expression / gesture menu (tab AI Character). Not registered: only the
@@ -282,6 +353,7 @@ namespace AIBody
         public void ReloadExpressions()
         {
             if (_expressions != null) _expressions.LoadPresetFile(ExpressionsPath);
+            _selfTestAge = 999f;   // self test checks the new morph names
         }
 
         public void ReloadGestures()
@@ -290,6 +362,7 @@ namespace AIBody
             _poses.LoadGestureFile(GesturesPath);
             _poses.ScanPoseFiles();
             Log.Info(_poses.PoseScanNote + "; " + _poses.PoseNames.Count + " Posen im Menü / für die KI");
+            _selfTestAge = 999f;
         }
 
         /// <summary>
@@ -348,6 +421,7 @@ namespace AIBody
             if (_poses != null) foreach (string n in _poses.PoseNames) poses.Add(new JSONData(n));
             s["poses"] = poses;
             s["body_control"].AsBool = BodyControl;   // off: the companion offers the AI no body tools
+            s["selftest"] = SelfTestJson();   // in-game checks, logged by the companion when they change
         }
 
         private void OnSpeechStarted(string id, float duration)
@@ -374,6 +448,7 @@ namespace AIBody
         public void Update(float dt)
         {
             _lastCommandAge += dt;
+            _selfTestAge += dt;
             if (_speech != null) _speech.Update(dt);
             bool speaking = _speech != null && _speech.IsSpeaking;
             if (_expressions != null) _expressions.Update(dt);

@@ -62,7 +62,7 @@ from .proactive import ProactiveTimer
 from .realtime_voice import RealtimeVoice
 from .settings_file import CHOICES, DEFAULTS, RANGES, _check_value
 from .transport import Transport
-from .vamjson import as_bool
+from .vamjson import as_bool, as_number
 
 log = logging.getLogger(__name__)
 
@@ -100,6 +100,33 @@ def _short(text: str, limit: int = 80) -> str:
     text = " ".join(str(text).split())
     return text if len(text) <= limit else text[: limit - 1] + "…"
 
+
+
+def describe_selftest(t: dict[str, Any]) -> tuple[str, bool]:
+    """One line from the plugin's "selftest" (Body.SelfTestJson) and whether something is missing."""
+    if t.get("error"):
+        return f"FEHLER {t['error']}", True
+    problems = False
+    parts = []
+    storage = str(t.get("pose_storage", ""))
+    parts.append("Pose-Speicher ja" if storage == "ok" else f"Pose-Speicher NEIN ({storage})")
+    problems |= storage != "ok"
+    parts.append(f"Posen {as_number(t.get('poses')) or 0:.0f} (Dateien {as_number(t.get('pose_files')) or 0:.0f})")
+    breath = as_bool(t.get("breath_morph_found"))
+    parts.append(f"Atem-Morph '{t.get('breath_morph', '')}' {'gefunden' if breath else 'NICHT gefunden'}")
+    problems |= not breath
+    found, total = as_number(t.get("expression_morphs_found")) or 0, as_number(t.get("expression_morphs_total")) or 0
+    missing = [str(m) for m in (t.get("expression_morphs_missing") or [])]
+    if total:
+        gone = f" (fehlen: {', '.join(missing)})" if missing else ""
+        parts.append(f"Ausdrucks-Morphs {found:.0f}/{total:.0f}{gone}")
+        problems |= bool(missing)
+    timeline_gestures = as_number(t.get("timeline_gestures")) or 0
+    if timeline_gestures:
+        has = as_bool(t.get("timeline"))
+        parts.append(f"Timeline {'ja' if has else 'NEIN'} für {timeline_gestures:.0f} Geste(n)")
+        problems |= not has
+    return "; ".join(parts), problems
 
 class Companion:
     def __init__(
@@ -139,6 +166,7 @@ class Companion:
         self.latency = LatencyStats()  # end of speech -> first sound, last value + rolling average
         self.history: list[dict[str, str]] = []
         self.body_info: dict[str, Any] = {}  # last ready/heartbeat from the AIBody plugin
+        self._last_selftest: dict[str, Any] | None = None  # plugin self test last logged
         self.session_id = uuid.uuid4().hex[:12]  # changes on every companion start
         self._last_heartbeat = -HEARTBEAT_INTERVAL_S
         self._audio_files: list[Path] = []
@@ -322,6 +350,15 @@ class Companion:
     def on_exchange(self) -> None:
         self._last_exchange = self._clock()
 
+    def _log_selftest(self, selftest: Any) -> None:
+        """Logs the plugin's in-game self test (pose storage, morphs, ...) once per change, so the
+        companion console / companion.log shows what only VaM can check."""
+        if not isinstance(selftest, dict) or selftest == self._last_selftest:
+            return
+        self._last_selftest = dict(selftest)
+        text, problems = describe_selftest(selftest)
+        (log.warning if problems else log.info)("Plugin-Selbsttest: %s", text)
+
     # -- body tools (function calls) -------------------------------------------------------
 
     def body_lists(self) -> body_tools.BodyLists:
@@ -413,6 +450,7 @@ class Companion:
                              event.get("plugin_version"), event.get("channel"))
                     self._last_mic_state = None  # make sure the plugin gets a fresh mic_state
                 self.body_info = event
+                self._log_selftest(event.get("selftest"))
             elif type_ == "config":
                 self.handle_config(event)
             elif type_ == "ptt":

@@ -85,6 +85,40 @@ namespace AIBody
                 + (folders == 0 ? " (Ordner nicht lesbar oder leer)" : "");
         }
 
+        /// <summary>Self test: null if the pose storage LoadPose uses is there, else why not.</summary>
+        public string CheckPoseStorage()
+        {
+            JSONStorable presets = _atom != null ? _atom.GetStorableByID("PosePresets") : null;
+            if (presets == null) return "kein Storable 'PosePresets'";
+            if (presets.GetUrlJSONParam("presetBrowsePath") == null) return "PosePresets ohne presetBrowsePath";
+            return null;
+        }
+
+        /// <summary>Number of preset files found by ScanPoseFiles (GetFiles on Custom/...).</summary>
+        public int PoseFileCount { get { return _poseFiles.Count; } }
+
+        /// <summary>gestures.json entries of kind timeline; HasTimeline: their Timeline storables are all on the atom.</summary>
+        public int TimelineGestureCount
+        {
+            get
+            {
+                int n = 0;
+                foreach (JSONClass def in _gestures.Values) if (def["kind"].Value == "timeline") n++;
+                return n;
+            }
+        }
+
+        public bool HasTimeline
+        {
+            get
+            {
+                foreach (JSONClass def in _gestures.Values)
+                    if (def["kind"].Value == "timeline"
+                        && FindStorable(Protocol.GetString(def, "storable", "VamTimeline.AtomPlugin")) == null) return false;
+                return true;
+            }
+        }
+
         /// <summary>Applies a pose by name (gestures.json pose, else a listed preset file).</summary>
         public string ApplyPose(string name)
         {

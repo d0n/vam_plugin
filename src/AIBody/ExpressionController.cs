@@ -33,6 +33,19 @@ namespace AIBody
 
         public IEnumerable<string> PresetNames { get { return _presets.Keys; } }
 
+        /// <summary>Every morph name used by a preset, once (self test: which ones the character has).</summary>
+        public List<string> MorphNames
+        {
+            get
+            {
+                List<string> names = new List<string>();
+                foreach (Dictionary<string, float> preset in _presets.Values)
+                    foreach (string n in preset.Keys)
+                        if (!names.Contains(n)) names.Add(n);
+                return names;
+            }
+        }
+
         private void LoadDefaults()
         {
             // TODO(verify): morph names against a stock VaM 1.22 female and male character.
