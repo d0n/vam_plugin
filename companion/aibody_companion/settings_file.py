@@ -11,10 +11,20 @@ One object per category, the same categories as the plugin's tabs:
               breath_depth, breath_morph
   advanced    file_poll_interval_s, verbose_log
 
+plus one category only this app uses (no tab; the plugin keeps it unchanged when it writes):
+
+  ai          persona, language, fallback {stt, llm, tts}, xai {...}, elevenlabs {...}
+
 The plugin UI wins: the plugin writes its values back after every change. This app reads the
 file on start (channel, initial mic and engine settings before the plugin connects) and creates
-it with the defaults if it does not exist yet; live changes still arrive as `config` events.
-Only `--channel` on the command line overrides the channel from this file.
+it with the defaults if it does not exist yet (or adds a missing "ai" section); live changes
+still arrive as `config` events. Only `--channel` on the command line overrides the channel.
+
+The plugin writes with VaM's SimpleJSON, which stores numbers and booleans as strings
+("0.5", "true"); validate() accepts both (vamjson.py).
+
+API keys never go into this file: only the PATH of a key file (ai.xai.key_file,
+ai.elevenlabs.key_file), or the environment variables XAI_API_KEY / ELEVENLABS_API_KEY.
 """
 from __future__ import annotations
 
@@ -27,6 +37,7 @@ from typing import Any
 
 from .audio.mic_settings import MicSettings, apply_mic_config
 from .config import ENGINES_AVAILABLE, PLUGIN_DATA_SUBDIR
+from .vamjson import as_bool, as_number
 
 log = logging.getLogger(__name__)
 
@@ -55,6 +66,33 @@ DEFAULTS: dict[str, dict[str, Any]] = {
         "breath_morph": "Breath1",
     },
     "advanced": {"file_poll_interval_s": 0.1, "verbose_log": False},
+    # Companion app only (no tab in the plugin; the plugin preserves this section).
+    "ai": {
+        "persona": "You are a friendly, curious character living in a 3D scene. You talk with the user "
+                   "face to face. Answer briefly and naturally, in the language the user speaks.",
+        "language": "auto",  # "auto" or a language code such as "de" / "en" (STT bias, TTS language)
+        # Used when the selected engine is not configured (no API key) or a request fails.
+        "fallback": {"stt": "null", "llm": "echo", "tts": "tone"},
+        "xai": {
+            "base_url": "https://api.x.ai/v1",
+            "key_file": "",  # path of a file holding the key; XAI_API_KEY (environment) wins
+            "model": "grok-4.7",
+            "max_output_tokens": 400,
+            "stt_model": "grok-voice-transcribe-2.0",
+            "voice": "eve",
+            "speed": 1.0,
+            "sample_rate": 24000,
+            "timeout_s": 60.0,
+        },
+        "elevenlabs": {
+            "base_url": "https://api.elevenlabs.io/v1",
+            "key_file": "",  # path of a file holding the key; ELEVENLABS_API_KEY (environment) wins
+            "voice_id": "JBFqnCBsd6RMkjVDRZzb",
+            "model_id": "eleven_multilingual_v2",
+            "output_format": "pcm_24000",
+            "timeout_s": 60.0,
+        },
+    },
 }
 
 RANGES: dict[tuple[str, str], tuple[float, float]] = {
@@ -63,9 +101,24 @@ RANGES: dict[tuple[str, str], tuple[float, float]] = {
     ("body", "breaths_per_minute"): (4.0, 40.0),
     ("body", "breath_depth"): (0.0, 1.0),
     ("advanced", "file_poll_interval_s"): (0.02, 2.0),
+    ("ai", "xai", "max_output_tokens"): (16, 8000),
+    ("ai", "xai", "speed"): (0.7, 1.5),
+    ("ai", "xai", "timeout_s"): (5.0, 600.0),
+    ("ai", "elevenlabs", "timeout_s"): (5.0, 600.0),
+}
+
+# Allowed values for some strings.
+CHOICES: dict[tuple[str, ...], tuple[str, ...]] = {
+    ("ai", "xai", "sample_rate"): ("8000", "16000", "22050", "24000", "44100", "48000"),
+    ("ai", "elevenlabs", "output_format"): ("pcm_16000", "pcm_22050", "pcm_24000", "pcm_44100", "pcm_48000"),
+    ("ai", "fallback", "stt"): tuple(ENGINES_AVAILABLE["stt"]),
+    ("ai", "fallback", "llm"): tuple(ENGINES_AVAILABLE["llm"]),
+    ("ai", "fallback", "tts"): tuple(ENGINES_AVAILABLE["tts"]),
 }
 
 CATEGORIES = tuple(DEFAULTS)
+PLUGIN_CATEGORIES = ("connection", "engines", "mic", "body", "advanced")  # written by the plugin
+COMPANION_CATEGORIES = ("ai",)  # read only by this app, preserved by the plugin
 
 
 def settings_path(vam_root: str | Path) -> Path:
@@ -85,12 +138,86 @@ def _check_path(value: Any) -> bool:
     return (p.startswith("Saves/") or p.startswith("Custom/")) and ".." not in p and ":" not in p
 
 
+def looks_like_secret(value: str) -> bool:
+    """True if a "key_file" value looks like a pasted API key instead of a file path."""
+    v = value.strip()
+    if not v:
+        return False
+    if v.startswith(("xai-", "sk_", "sk-")):
+        return True
+    return len(v) >= 24 and not any(c in v for c in "/\\.~") and " " not in v
+
+
+def _check_value(path: tuple[str, ...], default: Any, value: Any, errors: list[str]) -> Any:
+    """Returns the checked value, or the default (and adds an error)."""
+    name = ".".join(path)
+    if isinstance(default, bool):
+        flag = as_bool(value)
+        if flag is None:
+            errors.append(f"{name}: must be true/false")
+            return default
+        return flag
+    if isinstance(default, (int, float)):
+        number = as_number(value)
+        if number is None:
+            errors.append(f"{name}: must be a number")
+            return default
+        if path in RANGES:
+            lo, hi = RANGES[path]
+            number = min(max(number, lo), hi)
+        if path in CHOICES and str(int(number)) not in CHOICES[path]:
+            errors.append(f"{name}: must be one of {', '.join(CHOICES[path])}")
+            return default
+        return int(round(number)) if isinstance(default, int) else float(number)
+    # strings (VaM may write a number-looking string; Python callers may pass numbers)
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        value = str(int(value)) if float(value).is_integer() else str(value)
+    if not isinstance(value, str):
+        errors.append(f"{name}: must be a string")
+        return default
+    if path in CHOICES and value not in CHOICES[path]:
+        errors.append(f"{name}: must be one of {', '.join(CHOICES[path])}")
+        return default
+    if path[-1] == "key_file" and looks_like_secret(value):
+        errors.append(f"{name}: looks like an API key, not a file path - ignored. Put the key into a file "
+                      "and enter that file's path here, or use the environment variable.")
+        return default
+    return value
+
+
+def _merge(path: tuple[str, ...], default: dict[str, Any], data: dict[str, Any], errors: list[str]) -> dict[str, Any]:
+    result = json.loads(json.dumps(default))
+    for key, value in data.items():
+        sub = (*path, key)
+        if key not in default:
+            errors.append(f"{'.'.join(path)}: unknown key {key!r}")
+        elif sub == ("connection", "paths"):
+            if not isinstance(value, dict):
+                errors.append("connection.paths: must be an object")
+                continue
+            for name, p in value.items():
+                if name not in default[key]:
+                    errors.append(f"connection.paths: unknown key {name!r}")
+                elif not _check_path(p):
+                    errors.append(f"connection.paths.{name}: must be relative, below Saves/ or Custom/")
+                else:
+                    result[key][name] = p.replace("\\", "/")
+        elif isinstance(default[key], dict):
+            if isinstance(value, dict):
+                result[key] = _merge(sub, default[key], value, errors)
+            else:
+                errors.append(f"{'.'.join(sub)}: must be an object")
+        else:
+            result[key] = _check_value(sub, default[key], value, errors)
+    return result
+
+
 def validate(data: Any) -> tuple[dict[str, Any], list[str]]:
     """Returns (settings with defaults filled in and bad values replaced, problems)."""
     result = defaults()
     errors: list[str] = []
     if not isinstance(data, dict):
-        return result, ["settings.json must contain a JSON object"]
+        return result, ["config.json must contain a JSON object"]
     for key in data:
         if key not in CATEGORIES and key not in ("version", "written_by"):
             errors.append(f"unknown category {key!r}")
@@ -106,38 +233,8 @@ def validate(data: Any) -> tuple[dict[str, Any], list[str]]:
             result["mic"] = mic.to_dict()
             errors += [f"mic: {e}" for e in mic_errors]
             continue
-        for key, value in section.items():
-            if key not in DEFAULTS[cat]:
-                errors.append(f"{cat}: unknown key {key!r}")
-                continue
-            default = DEFAULTS[cat][key]
-            if key == "paths":
-                if not isinstance(value, dict):
-                    errors.append("connection.paths: must be an object")
-                    continue
-                for name, path in value.items():
-                    if name not in default:
-                        errors.append(f"connection.paths: unknown key {name!r}")
-                    elif not _check_path(path):
-                        errors.append(f"connection.paths.{name}: must be relative, below Saves/ or Custom/")
-                    else:
-                        result["connection"]["paths"][name] = path.replace("\\", "/")
-            elif isinstance(default, bool):
-                if isinstance(value, bool):
-                    result[cat][key] = value
-                else:
-                    errors.append(f"{cat}.{key}: must be true/false")
-            elif isinstance(default, float):
-                if isinstance(value, bool) or not isinstance(value, (int, float)):
-                    errors.append(f"{cat}.{key}: must be a number")
-                else:
-                    lo, hi = RANGES[(cat, key)]
-                    result[cat][key] = float(min(max(value, lo), hi))
-            elif isinstance(value, str):
-                result[cat][key] = value
-            else:
-                errors.append(f"{cat}.{key}: must be a string")
-    if "version" in data and data["version"] != VERSION:
+        result[cat] = _merge((cat,), DEFAULTS[cat], section, errors)
+    if "version" in data and as_number(data["version"]) != VERSION:
         errors.append(f"version {data['version']!r} is not {VERSION}; reading what is compatible")
     return result, errors
 
@@ -161,9 +258,31 @@ def write_defaults_if_missing(path: Path, channel: str) -> bool:
         return False
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(".tmp")
-    tmp.write_text(json.dumps(defaults(channel), indent=2) + "\n", encoding="utf-8")
+    tmp.write_text(json.dumps(defaults(channel), indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     os.replace(tmp, path)
     return True
+
+
+def add_missing_companion_sections(path: Path) -> list[str]:
+    """Adds the companion-only sections (ai) with their defaults to an existing file that lacks
+    them (e.g. written first by the plugin), so the settings are there to edit. The rest of the
+    file is kept as it is. Returns the names of the added sections."""
+    path = Path(path)
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return []
+    if not isinstance(data, dict):
+        return []
+    added = [cat for cat in COMPANION_CATEGORIES if cat not in data]
+    if not added:
+        return []
+    for cat in added:
+        data[cat] = json.loads(json.dumps(DEFAULTS[cat]))
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    os.replace(tmp, path)
+    return added
 
 
 def apply_to_config(cfg: Any, channel_from_cli: bool = False) -> list[str]:
@@ -173,6 +292,8 @@ def apply_to_config(cfg: Any, channel_from_cli: bool = False) -> list[str]:
     path = settings_path(cfg.vam_root)
     if write_defaults_if_missing(path, cfg.channel):
         log.info("Created %s with default settings", path)
+    elif add_missing_companion_sections(path):
+        log.info("Added the 'ai' section with default settings to %s", path)
     data, errors = load(path)
     if data is None:
         return errors
@@ -190,5 +311,6 @@ def apply_to_config(cfg: Any, channel_from_cli: bool = False) -> list[str]:
         else:
             errors.append(f"engines.{kind} {name!r} is not available here (have: {ENGINES_AVAILABLE[kind]}); "
                           f"using {getattr(cfg, kind)!r}")
+    cfg.ai = json.loads(json.dumps(data["ai"]))
     log.info("Settings from %s: engines %s, mic mode %s", path, data["engines"], data["mic"]["mode"])
     return errors

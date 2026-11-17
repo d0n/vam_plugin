@@ -12,7 +12,7 @@ from . import settings_file
 from .audio import EchoGate, MicController
 from .config import Config, load_config
 from .orchestrator import Companion
-from .pipeline import EchoLlm, NullStt, ToneTts
+from .pipeline.engines import EngineSet
 from .transport import FileTransport, Transport
 
 log = logging.getLogger("aibody_companion")
@@ -39,11 +39,15 @@ def build_transport(cfg: Config) -> Transport:
 
 
 def build_stack(cfg: Config, use_mic: bool = True) -> Companion:
-    # TODO: select real engines from cfg.stt / cfg.llm / cfg.tts once implemented
-    # (and add them to config.ENGINES_AVAILABLE).
+    """Engines from config.json (engines + ai section); API keys from the environment or key files.
+    Turns run on a worker thread so the link stays alive during slow network requests."""
     cfg.audio_dir.mkdir(parents=True, exist_ok=True)
     mic = MicController(cfg.sample_rate, cfg.frame_ms) if use_mic else None
-    return Companion(cfg, build_transport(cfg), NullStt(), EchoLlm(), ToneTts(), EchoGate(), mic=mic)
+    engines = EngineSet(cfg.ai)
+    for kind, states in engines.status().items():
+        for name, state in states.items():
+            log.info("Engine %s/%s: %s", kind, name, state)
+    return Companion(cfg, build_transport(cfg), gate=EchoGate(), mic=mic, engines=engines, background_turns=True)
 
 
 def start_stdin_reader() -> queue.Queue[str | None]:

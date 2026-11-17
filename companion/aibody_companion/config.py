@@ -11,7 +11,13 @@ from typing import Any
 PLUGIN_DATA_SUBDIR = "Saves/PluginData/AIBody"
 
 # Engines this companion version can run (reported to the AIBody plugin's engine menus).
-ENGINES_AVAILABLE: dict[str, list[str]] = {"stt": ["null"], "llm": ["echo"], "tts": ["tone"]}
+# null / echo / tone are offline test engines and the default fallbacks; xai and elevenlabs need
+# an API key (environment variable or key file, see pipeline/engines.py) and network access.
+ENGINES_AVAILABLE: dict[str, list[str]] = {
+    "stt": ["null", "xai"],
+    "llm": ["echo", "xai"],
+    "tts": ["tone", "xai", "elevenlabs"],
+}
 
 
 @dataclass
@@ -28,9 +34,12 @@ class Config:
 
     keep_audio_files: int = 20
 
-    stt: str = "null"  # TODO: "faster-whisper", "vosk", ...
-    llm: str = "echo"  # TODO: "ollama", "openai", ...
-    tts: str = "tone"  # TODO: "piper", "xtts", ...
+    stt: str = "null"  # see ENGINES_AVAILABLE
+    llm: str = "echo"
+    tts: str = "tone"
+    # Engine settings (persona, language, fallback, xai, elevenlabs): the "ai" section of the
+    # shared config.json (settings_file.py). Empty = defaults.
+    ai: dict[str, Any] = field(default_factory=dict)
     extra: dict[str, Any] = field(default_factory=dict)
 
     @property

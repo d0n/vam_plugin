@@ -1,9 +1,5 @@
-"""Speech to text. Plug in a real engine by implementing SpeechToText.
-
-TODO: implement one of
-  * faster-whisper (local, GPU or CPU)      https://github.com/SYSTRAN/faster-whisper
-  * Vosk (local, light, streaming)          https://alphacephei.com/vosk/
-  * a cloud API (keys via environment variables, never committed)
+"""Speech to text. Engines implement SpeechToText; the real one is xai.XaiStt (see engines.py).
+NullStt is the offline placeholder and the default fallback.
 """
 from __future__ import annotations
 

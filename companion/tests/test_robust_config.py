@@ -99,6 +99,7 @@ class SharedConfigTests(unittest.TestCase):
         self.assertEqual(set(data) - {"version", "written_by"}, set(settings_file.CATEGORIES))
         self.assertEqual(settings_file.validate(data)[1], [])
         self.assertEqual(cfg.channel, "default")
+        self.assertEqual(cfg.ai["xai"]["model"], "grok-4.7")
 
     def test_plugin_values_are_used(self):
         self.path.parent.mkdir(parents=True)
@@ -154,11 +155,21 @@ class SharedConfigTests(unittest.TestCase):
         self.assertEqual(settings_file.validate(data)[1], [])
         self.assertEqual(set(data) - {"version", "written_by"}, set(settings_file.CATEGORIES))
 
+    def test_schema_and_example_are_generated_from_the_code(self):
+        import subprocess
+        import sys
+
+        result = subprocess.run([sys.executable, str(ROOT / "tools" / "gen_config_schema.py"), "--check"],
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_csharp_writes_the_same_categories(self):
         sources = "".join((ROOT / "src" / "AIBody" / n).read_text(encoding="utf-8")
                           for n in ("AppLink.cs", "Body.cs", "AIBody.cs"))
-        for cat in settings_file.CATEGORIES:
+        for cat in settings_file.PLUGIN_CATEGORIES:
             self.assertIn(f'root["{cat}"]', sources, cat)
+        for cat in settings_file.COMPANION_CATEGORIES:  # preserved, not written from the UI
+            self.assertIn(f'existing["{cat}"]', sources, cat)
         for cat in ("body", "advanced"):
             for key in settings_file.DEFAULTS[cat]:
                 self.assertIn(f'"{key}"', sources, key)

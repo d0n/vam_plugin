@@ -1,19 +1,25 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/d0n/vam_plugin/protocol/schema/config.schema.json",
-  "title": "AIBody shared settings: <VaM>/Saves/PluginData/AIBody/config.json (one object per plugin tab; the 'Status' tab has no settings)",
+  "title": "AIBody shared settings: <VaM>/Saves/PluginData/AIBody/config.json (one object per plugin tab, plus 'ai' for the companion app; the 'Status' tab has no settings)",
   "type": "object",
   "additionalProperties": false,
   "properties": {
     "version": {
-      "const": 1
+      "anyOf": [
+        {
+          "const": 1
+        },
+        {
+          "const": "1"
+        }
+      ]
     },
     "written_by": {
       "type": "string"
     },
     "connection": {
       "type": "object",
-      "description": "Tab 'Verbindung': channel (folder below Saves/PluginData/AIBody), link on/off, data file paths (relative to the VaM folder, below Saves/ or Custom/)",
       "additionalProperties": false,
       "properties": {
         "channel": {
@@ -21,7 +27,20 @@
           "default": "default"
         },
         "active": {
-          "type": "boolean",
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "true",
+                "false",
+                "True",
+                "False"
+              ]
+            }
+          ],
           "default": true
         },
         "paths": {
@@ -30,21 +49,21 @@
           "properties": {
             "expressions": {
               "type": "string",
-              "pattern": "^(Saves|Custom)/",
-              "default": "Saves/PluginData/AIBody/expressions.json"
+              "default": "Saves/PluginData/AIBody/expressions.json",
+              "pattern": "^(Saves|Custom)/"
             },
             "gestures": {
               "type": "string",
-              "pattern": "^(Saves|Custom)/",
-              "default": "Saves/PluginData/AIBody/gestures.json"
+              "default": "Saves/PluginData/AIBody/gestures.json",
+              "pattern": "^(Saves|Custom)/"
             }
           }
         }
-      }
+      },
+      "description": "Tab 'Verbindung': channel (folder below Saves/PluginData/AIBody), link on/off, data file paths (relative to the VaM folder, below Saves/ or Custom/)"
     },
     "engines": {
       "type": "object",
-      "description": "Tab 'Engines': engine names; the companion app accepts only engines it has",
       "additionalProperties": false,
       "properties": {
         "stt": {
@@ -59,133 +78,489 @@
           "type": "string",
           "default": "tone"
         }
-      }
+      },
+      "description": "Tab 'Engines': stt null|xai, llm echo|xai, tts tone|xai|elevenlabs. A cloud engine without API key stays selected but the fallback (ai.fallback) runs"
     },
     "mic": {
       "type": "object",
-      "description": "Tab 'Mikrofon & PTT': captured by the companion app; push-to-talk state itself is never saved",
       "additionalProperties": false,
       "properties": {
         "enabled": {
-          "type": "boolean",
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "true",
+                "false",
+                "True",
+                "False"
+              ]
+            }
+          ],
           "default": true
         },
         "mode": {
+          "type": "string",
+          "default": "vad",
           "enum": [
             "vad",
             "ptt"
-          ],
-          "default": "vad"
+          ]
         },
         "device": {
           "type": "string",
           "default": ""
         },
         "vad_threshold": {
-          "type": "number",
-          "minimum": 0.001,
-          "maximum": 0.5,
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0.001,
+              "maximum": 0.5
+            },
+            {
+              "type": "string",
+              "pattern": "^\\s*-?[0-9]+(\\.[0-9]+)?([eE][-+]?[0-9]+)?\\s*$"
+            }
+          ],
           "default": 0.01
         },
         "end_silence_ms": {
-          "type": "number",
-          "minimum": 200,
-          "maximum": 5000,
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 200,
+              "maximum": 5000
+            },
+            {
+              "type": "string",
+              "pattern": "^\\s*-?[0-9]+(\\.[0-9]+)?([eE][-+]?[0-9]+)?\\s*$"
+            }
+          ],
           "default": 700
         },
         "min_utterance_ms": {
-          "type": "number",
-          "minimum": 100,
-          "maximum": 5000,
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 100,
+              "maximum": 5000
+            },
+            {
+              "type": "string",
+              "pattern": "^\\s*-?[0-9]+(\\.[0-9]+)?([eE][-+]?[0-9]+)?\\s*$"
+            }
+          ],
           "default": 300
         },
         "max_utterance_ms": {
-          "type": "number",
-          "minimum": 1000,
-          "maximum": 60000,
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1000,
+              "maximum": 60000
+            },
+            {
+              "type": "string",
+              "pattern": "^\\s*-?[0-9]+(\\.[0-9]+)?([eE][-+]?[0-9]+)?\\s*$"
+            }
+          ],
           "default": 20000
         },
         "echo_tail_s": {
-          "type": "number",
-          "minimum": 0.0,
-          "maximum": 3.0,
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 3.0
+            },
+            {
+              "type": "string",
+              "pattern": "^\\s*-?[0-9]+(\\.[0-9]+)?([eE][-+]?[0-9]+)?\\s*$"
+            }
+          ],
           "default": 0.4
         },
         "gain": {
-          "type": "number",
-          "minimum": 0.1,
-          "maximum": 8.0,
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0.1,
+              "maximum": 8.0
+            },
+            {
+              "type": "string",
+              "pattern": "^\\s*-?[0-9]+(\\.[0-9]+)?([eE][-+]?[0-9]+)?\\s*$"
+            }
+          ],
           "default": 1.0
         },
         "ptt_interrupts": {
-          "type": "boolean",
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "true",
+                "false",
+                "True",
+                "False"
+              ]
+            }
+          ],
           "default": true
         },
         "level_meter": {
-          "type": "boolean",
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "true",
+                "false",
+                "True",
+                "False"
+              ]
+            }
+          ],
           "default": true
         }
-      }
+      },
+      "description": "Tab 'Mikrofon & PTT': captured by the companion app; push-to-talk state itself is never saved"
     },
     "body": {
       "type": "object",
-      "description": "Tab 'Körper'",
       "additionalProperties": false,
       "properties": {
         "speech_volume": {
-          "type": "number",
-          "minimum": 0.0,
-          "maximum": 1.0,
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0
+            },
+            {
+              "type": "string",
+              "pattern": "^\\s*-?[0-9]+(\\.[0-9]+)?([eE][-+]?[0-9]+)?\\s*$"
+            }
+          ],
           "default": 1.0
         },
         "idle_motion": {
-          "type": "boolean",
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "true",
+                "false",
+                "True",
+                "False"
+              ]
+            }
+          ],
           "default": true
         },
         "idle_intensity": {
-          "type": "number",
-          "minimum": 0.0,
-          "maximum": 1.0,
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0
+            },
+            {
+              "type": "string",
+              "pattern": "^\\s*-?[0-9]+(\\.[0-9]+)?([eE][-+]?[0-9]+)?\\s*$"
+            }
+          ],
           "default": 0.5
         },
         "breathing": {
-          "type": "boolean",
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "true",
+                "false",
+                "True",
+                "False"
+              ]
+            }
+          ],
           "default": true
         },
         "breaths_per_minute": {
-          "type": "number",
-          "minimum": 4.0,
-          "maximum": 40.0,
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 4.0,
+              "maximum": 40.0
+            },
+            {
+              "type": "string",
+              "pattern": "^\\s*-?[0-9]+(\\.[0-9]+)?([eE][-+]?[0-9]+)?\\s*$"
+            }
+          ],
           "default": 14.0
         },
         "breath_depth": {
-          "type": "number",
-          "minimum": 0.0,
-          "maximum": 1.0,
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0
+            },
+            {
+              "type": "string",
+              "pattern": "^\\s*-?[0-9]+(\\.[0-9]+)?([eE][-+]?[0-9]+)?\\s*$"
+            }
+          ],
           "default": 0.35
         },
         "breath_morph": {
           "type": "string",
           "default": "Breath1"
         }
-      }
+      },
+      "description": "Tab 'Körper'"
     },
     "advanced": {
       "type": "object",
-      "description": "Tab 'Erweitert'",
       "additionalProperties": false,
       "properties": {
         "file_poll_interval_s": {
-          "type": "number",
-          "minimum": 0.02,
-          "maximum": 2.0,
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0.02,
+              "maximum": 2.0
+            },
+            {
+              "type": "string",
+              "pattern": "^\\s*-?[0-9]+(\\.[0-9]+)?([eE][-+]?[0-9]+)?\\s*$"
+            }
+          ],
           "default": 0.1
         },
         "verbose_log": {
-          "type": "boolean",
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "true",
+                "false",
+                "True",
+                "False"
+              ]
+            }
+          ],
           "default": false
         }
-      }
+      },
+      "description": "Tab 'Erweitert'"
+    },
+    "ai": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "persona": {
+          "type": "string",
+          "default": "You are a friendly, curious character living in a 3D scene. You talk with the user face to face. Answer briefly and naturally, in the language the user speaks.",
+          "description": "Persona / system prompt for the language model (xAI: 'instructions')"
+        },
+        "language": {
+          "type": "string",
+          "default": "auto",
+          "description": "'auto' or a language code (de, en, ...): STT bias and TTS language"
+        },
+        "fallback": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "stt": {
+              "type": "string",
+              "default": "null",
+              "enum": [
+                "null",
+                "xai"
+              ]
+            },
+            "llm": {
+              "type": "string",
+              "default": "echo",
+              "enum": [
+                "echo",
+                "xai"
+              ]
+            },
+            "tts": {
+              "type": "string",
+              "default": "tone",
+              "enum": [
+                "tone",
+                "xai",
+                "elevenlabs"
+              ]
+            }
+          },
+          "description": "Engines used when the selected one has no API key or a request fails"
+        },
+        "xai": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "base_url": {
+              "type": "string",
+              "default": "https://api.x.ai/v1"
+            },
+            "key_file": {
+              "type": "string",
+              "default": "",
+              "description": "Path of a file holding the xAI key (absolute, or relative to the home folder); XAI_API_KEY wins"
+            },
+            "model": {
+              "type": "string",
+              "default": "grok-4.7"
+            },
+            "max_output_tokens": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 16,
+                  "maximum": 8000
+                },
+                {
+                  "type": "string",
+                  "pattern": "^\\s*-?[0-9]+(\\.[0-9]+)?([eE][-+]?[0-9]+)?\\s*$"
+                }
+              ],
+              "default": 400
+            },
+            "stt_model": {
+              "type": "string",
+              "default": "grok-voice-transcribe-2.0"
+            },
+            "voice": {
+              "type": "string",
+              "default": "eve"
+            },
+            "speed": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.7,
+                  "maximum": 1.5
+                },
+                {
+                  "type": "string",
+                  "pattern": "^\\s*-?[0-9]+(\\.[0-9]+)?([eE][-+]?[0-9]+)?\\s*$"
+                }
+              ],
+              "default": 1.0
+            },
+            "sample_rate": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "enum": [
+                    8000,
+                    16000,
+                    22050,
+                    24000,
+                    44100,
+                    48000
+                  ]
+                },
+                {
+                  "type": "string",
+                  "pattern": "^\\s*-?[0-9]+(\\.[0-9]+)?([eE][-+]?[0-9]+)?\\s*$"
+                }
+              ],
+              "default": 24000
+            },
+            "timeout_s": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 5.0,
+                  "maximum": 600.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^\\s*-?[0-9]+(\\.[0-9]+)?([eE][-+]?[0-9]+)?\\s*$"
+                }
+              ],
+              "default": 60.0
+            }
+          },
+          "description": "xAI (https://api.x.ai/v1): Grok via POST /v1/responses (stream), STT POST /v1/stt, TTS POST /v1/tts"
+        },
+        "elevenlabs": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "base_url": {
+              "type": "string",
+              "default": "https://api.elevenlabs.io/v1"
+            },
+            "key_file": {
+              "type": "string",
+              "default": "",
+              "description": "Path of a file holding the ElevenLabs key; ELEVENLABS_API_KEY wins"
+            },
+            "voice_id": {
+              "type": "string",
+              "default": "JBFqnCBsd6RMkjVDRZzb"
+            },
+            "model_id": {
+              "type": "string",
+              "default": "eleven_multilingual_v2"
+            },
+            "output_format": {
+              "type": "string",
+              "default": "pcm_24000",
+              "enum": [
+                "pcm_16000",
+                "pcm_22050",
+                "pcm_24000",
+                "pcm_44100",
+                "pcm_48000"
+              ]
+            },
+            "timeout_s": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 5.0,
+                  "maximum": 600.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^\\s*-?[0-9]+(\\.[0-9]+)?([eE][-+]?[0-9]+)?\\s*$"
+                }
+              ],
+              "default": 60.0
+            }
+          },
+          "description": "ElevenLabs TTS: POST /v1/text-to-speech/{voice_id}?output_format=pcm_*"
+        }
+      },
+      "description": "Companion app only (no tab; the plugin keeps this section unchanged). NEVER put an API key here: use XAI_API_KEY / ELEVENLABS_API_KEY or the PATH of a key file (key_file)"
     }
   }
 }

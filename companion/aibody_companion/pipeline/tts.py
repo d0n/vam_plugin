@@ -1,10 +1,13 @@
 """Text to speech. Implementations write a WAV file the plugin can load.
 
-TODO: implement a real engine, e.g. Piper (local), Coqui XTTS (local) or a cloud API.
-Output: mono or stereo PCM WAV (VaM plays WAV and OGG; MP3 support depends on platform).
+Every engine writes 16-bit PCM WAV into the channel's audio folder: VaM's audio loader
+(URLAudioClipManager) plays WAV, and WAV gives the exact duration the speak command and the
+echo gate need. Cloud engines request raw PCM and wrap it with write_pcm_wav(); an engine that
+gets a complete WAV back writes it as it is (write_audio()).
 """
 from __future__ import annotations
 
+import io
 import math
 import struct
 import wave
@@ -21,6 +24,45 @@ class TextToSpeech(Protocol):
 def wav_duration(path: Path) -> float:
     with wave.open(str(path), "rb") as w:
         return w.getnframes() / float(w.getframerate())
+
+
+def write_pcm_wav(pcm16: bytes, sample_rate: int, out_path: Path, channels: int = 1) -> float:
+    """Wraps raw signed 16-bit little-endian PCM in a WAV file; returns its duration."""
+    if len(pcm16) % (2 * channels):
+        pcm16 = pcm16[: len(pcm16) - len(pcm16) % (2 * channels)]
+    if not pcm16:
+        raise ValueError("no audio data")
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = out_path.with_suffix(".part")
+    with wave.open(str(tmp), "wb") as w:
+        w.setnchannels(channels)
+        w.setsampwidth(2)
+        w.setframerate(sample_rate)
+        w.writeframes(pcm16)
+    tmp.replace(out_path)
+    return len(pcm16) / (2 * channels) / float(sample_rate)
+
+
+def write_audio(data: bytes, sample_rate: int, out_path: Path) -> float:
+    """Writes a TTS answer: a complete WAV (starts with RIFF) as is, else raw 16-bit PCM."""
+    if data[:4] == b"RIFF":
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = out_path.with_suffix(".part")
+        tmp.write_bytes(data)
+        tmp.replace(out_path)
+        return wav_duration(out_path)
+    return write_pcm_wav(data, sample_rate, out_path)
+
+
+def pcm_to_wav_bytes(pcm16: bytes, sample_rate: int) -> bytes:
+    """Mono 16-bit PCM -> WAV file bytes (for uploading microphone audio)."""
+    buf = io.BytesIO()
+    with wave.open(buf, "wb") as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(sample_rate)
+        w.writeframes(pcm16)
+    return buf.getvalue()
 
 
 class ToneTts:

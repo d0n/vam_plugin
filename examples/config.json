@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "written_by": "AIBody plugin 0.6.3",
+  "written_by": "AIBody companion app 0.7.0 (example)",
   "connection": {
     "channel": "default",
     "active": true,
@@ -39,5 +39,33 @@
   "advanced": {
     "file_poll_interval_s": 0.1,
     "verbose_log": false
+  },
+  "ai": {
+    "persona": "You are a friendly, curious character living in a 3D scene. You talk with the user face to face. Answer briefly and naturally, in the language the user speaks.",
+    "language": "auto",
+    "fallback": {
+      "stt": "null",
+      "llm": "echo",
+      "tts": "tone"
+    },
+    "xai": {
+      "base_url": "https://api.x.ai/v1",
+      "key_file": "",
+      "model": "grok-4.7",
+      "max_output_tokens": 400,
+      "stt_model": "grok-voice-transcribe-2.0",
+      "voice": "eve",
+      "speed": 1.0,
+      "sample_rate": 24000,
+      "timeout_s": 60.0
+    },
+    "elevenlabs": {
+      "base_url": "https://api.elevenlabs.io/v1",
+      "key_file": "",
+      "voice_id": "JBFqnCBsd6RMkjVDRZzb",
+      "model_id": "eleven_multilingual_v2",
+      "output_format": "pcm_24000",
+      "timeout_s": 60.0
+    }
   }
 }

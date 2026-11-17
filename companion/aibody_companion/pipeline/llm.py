@@ -4,8 +4,9 @@ The model is asked to answer with JSON like
   {"say": "Hello!", "expression": "happy", "gesture": "nod"}
 parse_reply() also accepts plain text, so any chat model works from day one.
 
-TODO: implement a real LanguageModel (local llama.cpp / Ollama server, or a cloud API).
-Read API keys from environment variables; never commit them.
+Real model: xai.XaiLlm (Grok, streaming; see engines.py). A model may also offer
+stream(user_text, history, expressions, gestures) yielding a sentences.Directive and then
+sentences, so speech can start before the whole answer is there.
 """
 from __future__ import annotations
 
