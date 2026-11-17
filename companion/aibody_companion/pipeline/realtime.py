@@ -32,6 +32,7 @@ from collections.abc import Callable
 from typing import Any
 from urllib.parse import urlencode
 
+from .http import is_key_rejection
 from .sentences import SentenceSplitter
 from .websocket import WebSocket, WebSocketError
 
@@ -239,7 +240,7 @@ class RealtimeClient:
 
     @staticmethod
     def _describe(e: WebSocketError) -> str:
-        if e.status in (401, 403):
+        if is_key_rejection(e.status, str(e)):
             return f"API-Key abgelehnt (HTTP {e.status})"
         return str(e)
 

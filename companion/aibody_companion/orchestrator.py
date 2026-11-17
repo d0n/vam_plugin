@@ -38,7 +38,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from . import __version__, protocol
+from . import __version__, logsetup, protocol
 from .audio import (
     EchoGate,
     InputProcessor,
@@ -48,6 +48,7 @@ from .audio import (
     list_input_devices,
 )
 from .config import ENGINES_AVAILABLE, Config
+from .logsetup import Turn
 from .pipeline import Directive, LanguageModel, SpeechToText, TextToSpeech
 from .pipeline.context import is_silent, nudge_text, time_context
 from .pipeline.engines import EngineSet
@@ -75,6 +76,20 @@ LLM_ERROR_SAY = {"de": "Entschuldigung, ich kann gerade nicht antworten. Das Spr
 
 class _CancelledError(Exception):
     pass
+
+
+def _pcm_stats(pcm: bytes, rate: int) -> dict[str, float]:
+    """Length and level of 16-bit mono PCM (for the turn trace)."""
+    import array
+    samples = array.array("h")
+    samples.frombytes(pcm[: len(pcm) - len(pcm) % 2])
+    if not samples:
+        return {"seconds": 0.0, "rms": 0.0, "peak": 0.0}
+    step = max(1, len(samples) // 20000)  # enough for a level, cheap for long utterances
+    part = samples[::step]
+    rms = (sum(x * x for x in part) / len(part)) ** 0.5 / 32768.0
+    return {"seconds": round(len(samples) / rate, 2), "rms": round(rms, 4),
+            "peak": round(max(abs(x) for x in part) / 32768.0, 3)}
 
 
 def _short(text: str, limit: int = 80) -> str:
@@ -145,6 +160,7 @@ class Companion:
         self.turn_status = ""  # last question / answer step, shown in the plugin's status box
         self.audio_note = ""  # audio folder problems / switch, shown in the plugin's status box
         self._recent_speech: dict[str, tuple[str, Path, float]] = {}  # id -> (text, path, duration)
+        self._utt_turn: dict[str, Turn] = {}  # utterance id -> its turn (trace of the plugin's answers)
         self._null_stt_warned = False
         self._stt_error = ""
         self._last_exchange: float | None = None
@@ -241,6 +257,8 @@ class Companion:
     def realtime_unresponsive(self, reason: str) -> None:
         """Realtime connected but did not answer: give it up until "API Reconnect" / a mode change."""
         log.warning("Realtime antwortet nicht (%s) - ab jetzt Chain; 'API Reconnect' versucht es neu", reason)
+        if self.realtime is not None and self.realtime.turn is not None:
+            self.realtime.turn.step("realtime given up", reason=reason, fallback="chain")
         self.realtime_off = reason
         self.turn_status = f"Realtime antwortete nicht ({reason}) - ab jetzt Chain, bitte Frage wiederholen"
         self._update_mode()
@@ -358,6 +376,7 @@ class Companion:
                 continue
             self.gate.on_event(event)
             type_ = event.get("type")
+            self._trace_plugin_event(event)
             if type_ in ("speech_started", "speech_ended"):
                 self.proactive.ai_activity()
             if type_ in ("ready", "heartbeat"):
@@ -383,6 +402,17 @@ class Companion:
             else:
                 log.debug("event: %s", event)
         return events
+
+    def _trace_plugin_event(self, event: dict[str, Any]) -> None:
+        type_ = event.get("type")
+        if type_ not in ("speech_started", "speech_ended", "error", "ack"):
+            return
+        uid = str(event.get("utterance_id") or event.get("reply_to") or "")
+        turn = self._utt_turn.get(uid)
+        if turn is None:
+            return
+        turn.step(f"plugin: {type_}", utterance=uid, duration=event.get("duration"), reason=event.get("reason"),
+                  code=event.get("code"), message=event.get("message"))
 
     def _send_heartbeat(self) -> None:
         # Only while the AIBody plugin is alive: over files, unread heartbeats would pile up.
@@ -486,9 +516,24 @@ class Companion:
         self._update_mode()
         return errors
 
+    def apply_advanced(self, data: Any) -> list[str]:
+        """The plugin's "Verbose log" toggle (advanced.verbose_log): turn trace on/off live."""
+        if data is None:
+            return []
+        if not isinstance(data, dict):
+            return ["advanced: must be an object"]
+        if "verbose_log" not in data:
+            return []
+        value = as_bool(data["verbose_log"])
+        if value is None:
+            return ["advanced.verbose_log: must be true/false"]
+        logsetup.set_verbose(value)
+        return []
+
     def handle_config(self, event: dict[str, Any]) -> None:
         settings, errors = apply_mic_config(self.mic_settings, event.get("mic"))
         errors = errors + self.apply_engines(event.get("engines")) + self.apply_ai(event.get("ai"))
+        errors += self.apply_advanced(event.get("advanced"))
         self.mic_settings = settings
         self.input.apply(settings)
         if self.mic:
@@ -506,7 +551,8 @@ class Companion:
                                           "idle_seconds": self.proactive.idle_seconds},
                             "realtime": {"send_while_speaking":
                                          bool(self.engine_set.ai["realtime"]["send_while_speaking"]),
-                                         "voice": str(self.engine_set.ai["realtime"]["voice"])}}},
+                                         "voice": str(self.engine_set.ai["realtime"]["voice"])}},
+                     "advanced": {"verbose_log": logsetup.is_verbose()}},
             errors=errors, mic_state=state,
         ))
 
@@ -657,11 +703,21 @@ class Companion:
     def _turn(self, kind: str, data: Any, generation: int):
         """Yields steps: ("heard", text), ("command", cmd), ("speak", id, text, path, duration),
         ("status", text) for the plugin's status box."""
+        turn = Turn(kind, **(_pcm_stats(data, self.cfg.sample_rate) if kind == "audio" and logsetup.is_verbose()
+                             else {"text": str(data)} if kind == "text" else {}))
+        names = self.engine_set.active_names
+        turn.step("path", mode=self.mode_requested, active=self.active_mode, chain=f"{names['stt']} -> "
+                  f"{names['llm']} -> {names['tts']}", selected="/".join(self.engine_set.requested.values()),
+                  speech_only=self.speech_only, note=self.mode_note)
         try:
             if kind == "audio":
+                t = turn.elapsed()
                 text = self._transcribe(data)
+                turn.step("stt", engine=self.engine_set.active_names["stt"],
+                          ms=round((turn.elapsed() - t) * 1000), text=text, error=self._stt_error or None)
                 yield ("heard", text, len(data) / 2 / self.cfg.sample_rate)
                 if not text:
+                    turn.step("end", result="nothing understood")
                     return
             else:
                 text = str(data)
@@ -677,9 +733,16 @@ class Companion:
             said: list[str] = []
             problems: list[str] = []
             held: list[Directive] = []  # a nudge's tag waits until its first sentence is not "[silent]"
+            llm_name = self.engine_set.active_names["llm"]
+            turn.step("llm request", engine=llm_name,
+                      model=self.engine_set.ai["xai"]["model"] if llm_name == "xai" else None,
+                      streaming=hasattr(self.llm, "stream"), history=len(self.history), text=text,
+                      time_context=prompt != text)
             for item in self._answer(text, prompt, nudge, problems):
                 self._check(generation)
                 if isinstance(item, Directive):
+                    turn.step("llm tag", expression=item.expression, gesture=item.gesture,
+                              action="dropped (speech only)" if self.speech_only else "sent as commands")
                     if self.speech_only:
                         continue  # simple Q&A: speech only
                     if nudge and not said:
@@ -696,15 +759,24 @@ class Companion:
                         return
                     for d in held:
                         yield from self._directive_steps(d)
+                turn.step(f"llm sentence {len(said) + 1}", text=sentence)
                 utterance_id = protocol.new_id("utt")
                 path = self.cfg.audio_abs_path(f"{utterance_id}.wav")
+                t = turn.elapsed()
+                tts_before = len(problems)
                 duration = self._synthesize(sentence, path, problems)
+                tts_name = self.engine_set.active_names["tts"]
+                turn.step("tts", engine=tts_name if len(problems) == tts_before else f"{tts_name} failed -> fallback",
+                          voice=self._voice_of(tts_name), ms=round((turn.elapsed() - t) * 1000),
+                          wav=self._rel(path), seconds=round(duration, 2))
                 self._check(generation)
                 said.append(sentence)
+                self._utt_turn[utterance_id] = turn
                 yield ("speak", utterance_id, sentence, path, duration)
             if said:
                 self.history.append({"role": "assistant", "content": " ".join(said)})
                 self.on_exchange()
+            turn.step("end", sentences=len(said), problems=" | ".join(dict.fromkeys(problems)) or None)
             if not nudge:
                 if problems:
                     yield ("status", " | ".join(dict.fromkeys(problems)))
@@ -714,7 +786,15 @@ class Companion:
                 else:
                     yield ("status", "Keine Antwort: das Sprachmodell lieferte keinen Text")
         except _CancelledError:
+            turn.step("end", result="cancelled (barge-in)")
             log.info("Answer cancelled")
+
+    def _voice_of(self, tts: str) -> str | None:
+        if tts == "xai":
+            return str(self.engine_set.ai["xai"]["voice"])
+        if tts == "elevenlabs":
+            return str(self.engine_set.ai["elevenlabs"]["voice_id"])
+        return None
 
     def _directive_steps(self, item: Directive):
         if item.expression:
@@ -854,6 +934,8 @@ class Companion:
             log.warning("Audio: could not copy %s to %s: %s", path, new_path, e)
             return
         log.info("Audio: sending %s again from %s", utterance_id, self.cfg.audio_rel_dir)
+        if utterance_id in self._utt_turn:
+            self._utt_turn[new_id] = self._utt_turn[utterance_id]
         self._queue_speech(new_id, text, new_path, duration)
 
     def _rel(self, path: Path) -> str:
@@ -878,7 +960,13 @@ class Companion:
         self._recent_speech[utterance_id] = (text, path, duration)
         while len(self._recent_speech) > self.cfg.keep_audio_files:
             self._recent_speech.pop(next(iter(self._recent_speech)))
+        while len(self._utt_turn) > 4 * self.cfg.keep_audio_files:
+            self._utt_turn.pop(next(iter(self._utt_turn)))
         rel = self._rel(path)
+        turn = self._utt_turn.get(utterance_id)
+        if turn is not None:
+            turn.step("speak sent", utterance=utterance_id, audio=rel, seconds=round(duration, 2),
+                      queue="interrupt" if interrupt else "append")
         self.gate.on_speak_sent(utterance_id, duration, interrupt=interrupt)
         self.send(self.body_command(
             "speak", id_=utterance_id, audio=rel, text=text, duration=round(duration, 3),
@@ -894,6 +982,9 @@ class Companion:
         path = self.cfg.audio_abs_path(f"{utterance_id}.wav")
         duration = write_pcm_wav(test_tone_pcm(), 22050, path)
         log.info("Test tone requested by the plugin: %s", self.cfg.audio_rel_path(path.name))
+        turn = Turn("test_tone")
+        turn.step("wav written", wav=self._rel(path), seconds=round(duration, 2))
+        self._utt_turn[utterance_id] = turn
         return self._queue_speech(utterance_id, "Test-Ton", path, duration, interrupt=True)
 
     def stop_speaking(self) -> None:

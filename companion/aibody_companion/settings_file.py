@@ -372,5 +372,6 @@ def apply_to_config(cfg: Any, channel_from_cli: bool = False) -> list[str]:
             errors.append(f"engines.{kind} {name!r} is not available here (have: {ENGINES_AVAILABLE[kind]}); "
                           f"using {getattr(cfg, kind)!r}")
     cfg.ai = json.loads(json.dumps(data["ai"]))
+    cfg.verbose_log = bool(data["advanced"]["verbose_log"])
     log.info("Settings from %s: engines %s, mic mode %s", path, data["engines"], data["mic"]["mode"])
     return errors

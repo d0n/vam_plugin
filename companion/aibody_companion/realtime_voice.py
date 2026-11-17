@@ -22,6 +22,7 @@ import time
 from typing import TYPE_CHECKING, Any
 
 from . import protocol
+from .logsetup import Turn
 from .pipeline.context import is_silent, time_rules
 from .pipeline.realtime import (
     BACKOFF_S,
@@ -46,6 +47,11 @@ NUDGE_HOLD_CHARS = 12  # a nudge answer is held until this much transcript shows
 # Connected but no answer this long after the user stopped talking: the companion gives realtime up
 # (until "API Reconnect" / a mode change) and answers with the chain, see Companion.realtime_unresponsive.
 ANSWER_TIMEOUT_S = 12.0
+# server events that get a line in the turn trace (verbose log); audio / transcript deltas are summed up
+TRACE_EVENTS = {"input_audio_buffer.speech_started", "input_audio_buffer.speech_stopped",
+                "conversation.item.input_audio_transcription.completed", "response.created", "response.done",
+                "response.function_call_arguments.done", "input_audio_buffer.timeout_triggered", "error",
+                "session.updated", DISCONNECTED}
 
 
 class RealtimeVoice:
@@ -77,6 +83,8 @@ class RealtimeVoice:
         self._last_instructions = 0.0
         self._sent_any = False
         self._waiting_since: float | None = None  # user stopped talking, no answer yet
+        self.turn: Turn | None = None  # trace of the current realtime exchange
+        self._audio_bytes = 0
 
     # -- session ---------------------------------------------------------------------------
 
@@ -170,9 +178,23 @@ class RealtimeVoice:
                 and time.monotonic() - self._last_instructions >= INSTRUCTIONS_REFRESH_S:
             self.refresh_instructions()
 
+    def _trace(self, type_: str, rid: str | None, event: dict[str, Any]) -> None:
+        if self.turn is None or type_ == "input_audio_buffer.speech_started":
+            self.turn = Turn("realtime", prefix="rt")
+        err = event.get("error")
+        self.turn.step(f"realtime {type_}", response=rid, transcript=event.get("transcript"),
+                       name=event.get("name"), arguments=event.get("arguments"),
+                       error=(err.get("message") if isinstance(err, dict) else err) or None,
+                       answer_audio_s=round(self._audio_bytes / 2 / self.out_rate, 2)
+                       if type_ == "response.done" else None)
+
     def handle(self, event: dict[str, Any]) -> None:
         type_ = event.get("type", "")
         rid = event.get("response_id") or (event.get("response") or {}).get("id")
+        if type_ in TRACE_EVENTS:
+            self._trace(type_, rid, event)
+        if type_ == "response.created":
+            self._audio_bytes = 0
         if type_ == DISCONNECTED:
             self._reset_response()
             self.user_speaking = False
@@ -205,6 +227,7 @@ class RealtimeVoice:
                 pcm = base64.b64decode(str(event.get("delta") or ""), validate=False)
             except (binascii.Error, ValueError):
                 return
+            self._audio_bytes += len(pcm)
             self._emit(self.assembler.feed_audio(pcm))
         elif type_ == "response.output_audio_transcript.delta":
             if not self._current(rid):
@@ -315,6 +338,9 @@ class RealtimeVoice:
             uid = protocol.new_id("utt")
             path = self.c.cfg.audio_abs_path(f"{uid}.wav")
             duration = write_pcm_wav(pcm, self.out_rate, path)
+            if self.turn is not None:
+                self.turn.step("realtime segment", text=text, seconds=round(duration, 2))
+                self.c._utt_turn[uid] = self.turn
             self.c._queue_speech(uid, text or "…", path, duration)
             self._sent_any = True
 

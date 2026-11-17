@@ -215,7 +215,21 @@ class FakePlugin:
 
     def send_config(self) -> None:
         self.send("config", mic=dict(self.ui["mic"]), engines=dict(self.ui["engines"]),
-                  ai=self.build_ai_json())
+                  ai=self.build_ai_json(), advanced={"verbose_log": self.ui["advanced"]["verbose_log"]})
+
+    def set_verbose(self, on: bool) -> None:
+        """Erweitert > "Verbose log": saved to config.json and sent to the app (config event)."""
+        self.ui["advanced"]["verbose_log"] = on
+        self.write_settings()
+        self.send_config()
+
+    def set_realtime(self, on: bool) -> None:
+        """Voice Mode > "Echtzeit (Realtime) verwenden" (AppLink.SetRealtime): on = AI mode auto,
+        off = qa; it shows on while the mode is auto or realtime."""
+        if on != (self.ai_ui["mode"] in ("auto", "realtime")):
+            self.ai_ui["mode"] = "auto" if on else "qa"
+        self.write_settings()
+        self.send_config()
 
     def build_ai_json(self) -> dict:
         """AppLink.BuildAiJson: the ai keys the tabs control; key file paths only when set."""

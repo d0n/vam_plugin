@@ -26,6 +26,13 @@ class ApiError(Exception):
         self.message = message
 
 
+def is_key_rejection(status: int, message: str) -> bool:
+    """True if the server refused the API key. xAI answers a wrong key with HTTP 400 and
+    "Incorrect API key provided" (seen on /v1/tts, /v1/stt and the realtime handshake, 17.11.2026),
+    other services with 401 / 403."""
+    return status in (401, 403) or (status == 400 and "api key" in str(message).lower())
+
+
 def _default_opener(request: urllib.request.Request, timeout: float) -> Any:
     return urllib.request.urlopen(request, timeout=timeout)  # noqa: S310 (https URLs from config)
 

@@ -8,7 +8,7 @@ import sys
 import threading
 import time
 
-from . import settings_file
+from . import __version__, logsetup, settings_file
 from .audio import EchoGate, MicController
 from .config import Config, load_config
 from .orchestrator import Companion
@@ -29,7 +29,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--no-mic", action="store_true", help="never open the microphone (text input only)")
     p.add_argument("--no-stdin", action="store_true", help="do not read typed messages from stdin")
     p.add_argument("--list-devices", action="store_true", help="print input devices and exit")
-    p.add_argument("-v", "--verbose", action="store_true")
+    p.add_argument("-v", "--verbose", action="store_true",
+                   help="DEBUG output of all modules plus the turn trace (else: config.json advanced.verbose_log)")
     return p
 
 
@@ -96,8 +97,7 @@ def run(companion: Companion, read_stdin: bool, poll_interval: float) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO,
-                        format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    logsetup.setup(None, debug=args.verbose)
     if args.list_devices:
         from .audio import list_input_devices
 
@@ -116,8 +116,11 @@ def main(argv: list[str] | None = None) -> int:
         for e in errors:
             log.error(e)
         return 2
+    log_path = logsetup.setup(cfg.vam_root, debug=args.verbose)
+    log.info("AIBody companion %s, Logdatei: %s", __version__, log_path or "keine (Ordner nicht beschreibbar)")
     for problem in settings_file.apply_to_config(cfg, channel_from_cli=args.channel is not None):
         log.warning("config.json: %s", problem)
+    logsetup.set_verbose(cfg.verbose_log)
     errors = cfg.validate()  # re-check after config.json (channel, engines)
     if errors:
         for e in errors:

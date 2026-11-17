@@ -38,6 +38,8 @@ class Config:
     mic: dict[str, Any] = field(default_factory=dict)
 
     keep_audio_files: int = 20
+    # advanced.verbose_log from config.json / the plugin's "Verbose log" toggle: turn trace in the log
+    verbose_log: bool = False
     # connection.paths.audio from config.json: folder below the VaM folder for the speech WAVs;
     # "" = automatic: Custom/Sounds/AIBody/<channel>, switching once to
     # Saves/PluginData/AIBody/<channel>/audio if VaM cannot load the files

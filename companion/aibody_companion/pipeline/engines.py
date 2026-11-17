@@ -25,7 +25,7 @@ from typing import Any
 
 from ..config import ENGINES_AVAILABLE
 from . import elevenlabs, xai
-from .http import HttpClient
+from .http import HttpClient, is_key_rejection
 from .keys import resolve_key
 from .llm import EchoLlm
 from .stt import NullStt
@@ -85,9 +85,9 @@ class EngineSet:
         return changed
 
     def note_api_error(self, error: Any) -> None:
-        """Remembers a refused key (HTTP 401/403) for the key status in the plugin."""
+        """Remembers a refused key (HTTP 401/403, xAI: 400 "Incorrect API key") for the key status."""
         status = getattr(error, "status", 0)
-        if status not in (401, 403):
+        if not is_key_rejection(status, getattr(error, "message", str(error))):
             return
         provider = str(getattr(error, "service", "")).lower()
         if provider in KEYED:
