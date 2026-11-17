@@ -41,6 +41,8 @@ Enforcement:
 | E19 | [vam-keybindings KeybindingsStorage.cs](https://github.com/acidbubbles/vam-keybindings/blob/6495ab5b623358c90a066b2faabfa27213f452dd/src/Keybindings/KeybindingsStorage.cs) (Acid Bubbles) | per-plugin data folder `Saves\PluginData\Keybindings` (L12) created with `FileManagerSecure.CreateDirectory` (L162, L206) |
 | E20 | [Official API doc: FileManagerSecure](https://apidoc.virtamate.com/api/MVR.FileManagementSecure.FileManagerSecure.html) (MeshedVR) | `WriteAllText(path, text)`: "file creation is passed to user confirm/deny system for security reasons, so the file may not be immediately created" |
 | E21 | [vam-improved-pov scenes/Empty.json](https://github.com/acidbubbles/vam-improved-pov/blob/dea857067da496e7e19ae5af31088fdc5fa6fb53/scenes/Empty.json) (Acid Bubbles, a scene saved by VaM) | VaM's SimpleJSON writes numbers and booleans as strings: `"x" : "355.9811"` (L4), `"useSceneLoadPosition" : "true"` (L8), `"on" : "true"` (L12). The companion app therefore accepts `"0.5"` / `"true"` for numbers / booleans in everything the plugin writes |
+| E22 | [FootstepsExtended Footsteps.Audio.cs](https://github.com/emptyngton/FootstepsExtended/blob/cd38ce35546a9fa89d8b7b271a97ff652fff52b7/src/Footsteps.Audio.cs) (emptyngton) | audio below `Custom/Sounds/FootstepsSFX/` (L13); sandboxed `FileManagerSecure.GetFiles(dir, "*.wav")` (L98) and `ReadAllBytes` (L143) on those paths; it decodes with VaM's `NAudioPlayer` / `WAV` helpers instead of `URLAudioClipManager` |
+| E23 | [VaM Japan glossary: Scene Audio](https://vamjapan.com/glossary/scene-audio/) (user documentation) | VaM's Scene Audio atom: **Browse** opens `Custom\Sounds` in the file browser; audio files to play are placed below that folder |
 
 ## Kept
 
@@ -169,3 +171,25 @@ from `Exception.ToString()`, not from reflection. The only additions outside the
 - Still TODO(verify): whether VaM's audio loader accepts WAVs below `Saves/PluginData` at all
   (the evidence loads from `Custom/` and package folders). The two test-tone buttons tell the
   cases apart; the fallback is `connection.paths.audio` (e.g. `Custom/Sounds/AIBody`).
+
+## 0.7.2: simple Q&A, audio folder below Custom/Sounds
+
+- **No new plugin API.** The button "Einfacher Q&A-Modus" is a `CreateButton` (E1) that sets the
+  existing AI mode chooser and the existing "Body control" bool; the explanation texts are
+  unregistered `JSONStorableString` + `CreateTextField` (E12), the new status lines are text in the
+  existing status box. The `FileExists` check (E10) is now wrapped in try/catch so a throwing check
+  never blocks loading.
+- **Audio folder default `Custom/Sounds/AIBody/<channel>`** (written by the companion with normal
+  file IO, outside the sandbox). Evidence for the folder: VaM's own Scene Audio browser opens
+  `Custom\Sounds` (E23); a public plugin keeps its WAVs in `Custom/Sounds/...` and reads them with
+  `FileManagerSecure` (E22); Dollmaster loads its clips with `QueueClip(NormalizeMediaPath(path))`
+  from its own folder below `Custom/Scripts` or its package (E1). No evidenced plugin loads audio
+  from `Saves/PluginData`. So `Custom/Sounds` is the better-supported default, and
+  `Saves/PluginData/AIBody/<channel>/audio` (the 0.7.1 folder) is kept as the automatic fallback:
+  when the plugin reports `audio_failed` (clip not loadable / never started) the companion switches
+  once and sends the same speech again from there.
+- Still TODO(verify): `QueueClip` with a loose WAV below `Custom/Sounds` (E22 decodes the bytes
+  itself, E23 is documentation of the Scene Audio atom, not of `URLAudioClipManager` from a
+  plugin); `QueueClip` below `Saves/PluginData`; `FileExists` on a `Custom/` path in the sandbox.
+  T9 (both test tones, then a typed and a spoken question) answers all three.
+

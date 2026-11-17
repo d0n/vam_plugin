@@ -31,6 +31,29 @@ server only, because no API key was available yet (`TODO(verify)`). Deferred fea
 That's it. The plugin's status box shows "Companion app: running ..." once both sides see each
 other. Save the scene to keep the plugin and its settings with the character.
 
+### Quick start: ask a question, hear the answer
+
+The simplest flow, and the default: **simple Q&A** (`ai.mode` `qa`). You speak (or type in the
+companion console), xAI speech to text transcribes it, Grok answers (streamed, sentence by
+sentence), xAI text to speech speaks it, and the Person plays the WAV on her head audio with lip
+sync. Speech only, no expressions or gestures, no proactive remarks. A few seconds of delay are normal.
+
+1. Install the package and add the plugin to the Person (steps 1 and 2 above).
+2. Start the companion app with your xAI key in the environment:
+   `set XAI_API_KEY=xai-...` (Windows `cmd`; PowerShell: `$env:XAI_API_KEY="xai-..."`), then
+   `python -m aibody_companion --vam-root "C:/VaM"`.
+3. Plugin tab *Voice Mode* > **Einfacher Q&A-Modus** (sets AI mode `qa` and Body control off;
+   scenes from 0.7.1 still have `auto`).
+4. **Test-Ton abspielen** (tone from the package) and **Test-Ton über Companion** (tone through the
+   app's audio folder): both must be heard.
+5. Ask a question, or type `Hallo` + Enter in the companion console (same path without the mic).
+   The status box shows `Letzte Runde: Gehört: ... / Antwort ...` or a red error line.
+
+Without an xAI key the same flow runs on the offline test engines ("You said: ..." with a tone)
+and the status says so. If realtime is selected (`auto` / `realtime`) but not connected, or it does
+not answer within 12 s after you spoke, the chain answers instead (with xAI) and the status says so;
+**API Reconnect** tries realtime again.
+
 ## Architecture
 
 ```mermaid
@@ -44,7 +67,7 @@ flowchart LR
         llm --> tts[Text to speech]
         filet[File transport]
     end
-    folder[("Saves/PluginData/AIBody/channel: inbox, outbox, audio")]
+    folder[("Saves/PluginData/AIBody/channel: inbox, outbox; Custom/Sounds/AIBody/channel: audio")]
     subgraph vam["Virt-A-Mate 1.22"]
         subgraph plugin["AIBody plugin on the AI's Person atom"]
             link[AppLink: file transport, heartbeat, mic and engine menus]
@@ -73,8 +96,8 @@ Flow of one turn:
 1. The companion app records the user (voice activation or push-to-talk), detects the end of the
    utterance (silence timeout) and transcribes it.
 2. The language model answers with text plus an optional expression and gesture.
-3. The companion app writes a WAV into `Saves/PluginData/AIBody/<channel>/audio/` and drops
-   `expression`, `gesture` and `speak` commands into the channel's `inbox/`.
+3. The companion app writes a WAV into `Custom/Sounds/AIBody/<channel>/` (see "Audio folder"
+   below) and drops `expression`, `gesture` and `speak` commands into the channel's `inbox/`.
 4. The plugin's AppLink picks them up and calls its Body directly.
 5. The Body loads the clip with VaM's `URLAudioClipManager`, queues it and plays it through the
    character's head audio source. VaM's built-in lip sync moves the mouth.
@@ -199,9 +222,9 @@ Right column: a row of tab buttons, below it the settings of the active tab:
 
 | tab | settings |
 |-----|----------|
-| **Voice Mode** | **Active** (link on/off), **API Reconnect** (the companion re-reads its keys and reopens the realtime connection; the plugin restarts its link), **Test-Ton über Companion**, **Test-Ton abspielen**, **Stop speaking** |
+| **Voice Mode** | **Einfacher Q&A-Modus** (AI mode `qa` + Body control off), **Active** (link on/off), **API Reconnect** (the companion re-reads its keys and reopens the realtime connection; the plugin restarts its link), **Test-Ton über Companion**, **Test-Ton abspielen**, **Stop speaking** |
 | **AI** | **Speech-to-text**, **Language model**, **Text-to-speech** (incl. `elevenlabs`; lists come from the companion app), **xAI key file** / **ElevenLabs key file** (the PATH of a text file holding the key, never the key itself) with key status per provider (konfiguriert / fehlt / abgelehnt), **Delay (s)** (placeholder, no function yet), **Proactive**, **Proactive idle (s)**; status: active mode, proactive state, selected engine, "bereit" or "nicht konfiguriert", and the fallback that runs instead |
-| **AI Character** | for this Person (this plugin instance): **AI mode** (auto / realtime / chain), **Voice** (xAI voice for realtime and TTS), **Body control** (off = speech only), **Speech volume**, **Idle head motion**, **Idle intensity**, **Breathing**, **Breaths per minute**, **Breath depth**, **Breath morph**, **Reset expression**, **Reload Expressions**, **Reload Gestures** |
+| **AI Character** | for this Person (this plugin instance): **AI mode** (qa / auto / realtime / chain, with a short explanation), **Voice** (xAI voice for realtime and TTS), **Body control** (off = speech only), **Speech volume**, **Idle head motion**, **Idle intensity**, **Breathing**, **Breaths per minute**, **Breath depth**, **Breath morph**, **Reset expression**, **Reload Expressions**, **Reload Gestures** |
 | **Client Character** | **Microphone**, captured by the companion app, applied live 0.3 s after the last change: **Mic enabled**, **Mic mode** (Voice activation / Push-to-talk), **Mic device** (**Refresh device list**), **Push-to-talk active** (explanation text below it), **Push-to-talk interrupts speech**, mic status, **Show level meter**, **VAD threshold**, **Input gain**, **Silence timeout**, **Min / Max utterance**, **Echo gate tail**; **Voice barge-in (headphones)** |
 | **Post** | **Channel** (default `default`; folder below `Saves/PluginData/AIBody`), paths info (the label is one constant, `AIBodyPlugin.PostTabLabel`) |
 | **Config** | **Reload Config JSON** (applies `config.json` to the UI and sends it to the companion), file info |
@@ -211,9 +234,15 @@ Right column: a row of tab buttons, below it the settings of the active tab:
 the package on the head audio (no companion app involved); **Test-Ton über Companion** lets the
 app write a WAV into its audio folder and sends it like an answer. The status box shows
 `Audio: Lade / Spreche: <file> / Fertig` or a red `Audio-Fehler: <reason>` (file missing, could not
-be queued, no head audio, clip never started, speech volume 0). If only the companion tone stays
-silent, the audio folder is the problem: set `connection.paths.audio` (e.g.
-`Custom/Sounds/AIBody`) in `config.json`.
+be queued, no head audio, clip never started, speech volume 0), plus `Audio-Ordner: <folder>` and
+`Letzte Runde: ...` (what was heard and answered, or which step failed) from the companion app.
+
+**Audio folder:** the companion writes the speech WAVs to `Custom/Sounds/AIBody/<channel>/`,
+below VaM's own folder for audio files (public plugins load audio from `Custom/` and packages; none
+from `Saves/PluginData`, see [docs/API_AUDIT.md](docs/API_AUDIT.md)). If VaM cannot load a WAV
+there (the plugin reports the clip as failed), the app switches once to
+`Saves/PluginData/AIBody/<channel>/audio/`, sends the same speech again from there and shows a red
+note in the status box. A fixed `connection.paths.audio` in `config.json` turns the switch off.
 
 All settings are saved with the scene and mirrored to the shared config file
 `<VaM>/Saves/PluginData/AIBody/config.json` (one object per tab; see [docs/CONFIG.md](docs/CONFIG.md)).
@@ -244,21 +273,29 @@ python -m aibody_companion --vam-root "C:/VaM"            # channel from config.
 Options: `--channel` (default `default`), `--no-mic` (text only), `--no-stdin`,
 `--config config.json` (see `config.example.json`, including initial `mic` settings).
 `--vam-root` is required: the app and the plugin exchange JSON and audio files in
-`<VaM>/Saves/PluginData/AIBody/<channel>/`. Typed lines on stdin make
-the body speak, which is handy for testing without a microphone. With the offline test engines
-(`null` / `echo` / `tone`) the character answers "You said: ..." with a humming tone, enough to
+`<VaM>/Saves/PluginData/AIBody/<channel>/` (speech WAVs: `<VaM>/Custom/Sounds/AIBody/<channel>/`).
+A typed line on stdin is a question like a spoken one (language model -> text to speech -> VaM),
+handy for testing without a microphone. With the offline test engines
+(`null` / `echo` / `tone`, no xAI key) the character answers "You said: ..." with a humming tone, enough to
 test lip sync, expressions, gestures, queueing and echo gating.
 
 ### AI modes (companion app)
 
 | `ai.mode` | what runs |
 |-----------|-----------|
-| `auto` (default) | `realtime` if an xAI key exists (and TTS is not `elevenlabs`), else `chain` |
+| `qa` (default) | simple Q&A: the chain below with `xai` instead of the offline test engines when an xAI key exists, speech only (no expressions / gestures), no proactive remarks |
+| `auto` | `realtime` if an xAI key exists (and TTS is not `elevenlabs`), else `chain` |
 | `realtime` | Grok Voice speech-to-speech over one WebSocket (`wss://api.x.ai/v1/realtime`, `grok-voice-latest`): the mic is streamed, the server detects the end of speech, the answer audio is cut into WAV segments and spoken from the first segment on; expressions / gestures via a function tool; interrupting stops the body; reconnects with backoff, chain runs meanwhile |
-| `chain` | speech to text -> language model -> text to speech (below) |
+| `chain` | speech to text -> language model -> text to speech, exactly the engines selected in tab *AI* (below) |
+
+In every mode but `chain`, an xAI key replaces the offline test engines (`null` / `echo` / `tone`)
+with `xai` on the chain path (typed text, the realtime fallback); the engine menus keep their values.
+If realtime is connected but gives no answer within 12 s after the user spoke, the app gives it up
+until **API Reconnect** (or a mode change) and the chain answers.
 
 - **Proactive:** after 90 s of silence (`ai.proactive.idle_seconds`, tab *AI*) the AI may say
-  something by itself, or stay silent (`[silent]`, nothing is played). Needs realtime or `llm: xai`.
+  something by itself, or stay silent (`[silent]`, nothing is played). Needs realtime or `llm: xai`;
+  paused in `qa`.
 - **Time context:** the AI has no clock. Each user turn and nudge carries the local date/time and
   the time since the last exchange.
 - **Echo:** without echo cancellation the mic sends silence while the body talks; to interrupt by
@@ -364,7 +401,7 @@ Example:
 
 ```json
 { "v": 3, "type": "speak", "id": "utt-0001",
-  "audio": "Saves/PluginData/AIBody/default/audio/utt-0001.wav",
+  "audio": "Custom/Sounds/AIBody/default/utt-0001.wav",
   "text": "Hello, nice to meet you!", "expression": "happy", "queue": "append" }
 ```
 

@@ -1,4 +1,4 @@
-# AIBody – Testprotokoll für den ersten Test in VaM 1.22 (ab v0.6.3, aktuell v0.7.1; T9 und die neuen Tab-Namen gelten ab der nächsten Version)
+# AIBody – Testprotokoll für den ersten Test in VaM 1.22 (ab v0.6.3, aktuell v0.7.2; T9 und die neuen Tab-Namen ab v0.7.2)
 
 Ziel: die offenen „Muss jetzt“-Punkte, die nur in VaM prüfbar sind. Bitte jeden Punkt der Reihe
 nach durchgehen und das Ergebnis eintragen (✅ / ❌ / unklar). Dauer: etwa 20 Minuten.
@@ -13,11 +13,12 @@ nach durchgehen und das Ergebnis eintragen (✅ / ❌ / unklar). Dauer: etwa 20 
 **Vorbereitung**
 
 - VaM schließen. In `<VaM-Hauptordner>/AddonPackages/` alle alten AIBody-Pakete löschen:
-  `d0n.AIBody.1.var` bis `d0n.AIBody.7.var`, `d0n.AIBodySession.*`, `d0n.AIBodyPerson.*`,
+  `d0n.AIBody.1.var` bis `d0n.AIBody.8.var`, `d0n.AIBodySession.*`, `d0n.AIBodyPerson.*`,
   `d0n.AIBodyPerson2.*`. Lose Dateien unter `Custom/Scripts/d0n/AIBody/` ebenfalls entfernen.
-- `d0n.AIBody.8.var` nach `<VaM-Hauptordner>/AddonPackages/` kopieren.
+- `d0n.AIBody.9.var` nach `<VaM-Hauptordner>/AddonPackages/` kopieren.
 - Companion-App bereithalten (noch **nicht** starten):
   `python -m aibody_companion --vam-root "C:/VaM"` (Pfad zum eigenen VaM-Ordner anpassen).
+  Für T9 vorher den xAI-Key setzen: `set XAI_API_KEY=xai-...` (cmd) bzw. `$env:XAI_API_KEY="xai-..."` (PowerShell).
 
 ---
 
@@ -57,7 +58,7 @@ Companion-App: erscheinen `speech_started`/`speech_ended` bzw. Fehler wie `audio
 
 ## T4 – Menü-Aktualisierung und Textfeld
 
-Tab-Namen ab der nächsten Version (in v0.7.1 noch: Status, Verbindung, Engines, Mikrofon & PTT, Körper, Erweitert):
+Tab-Namen ab v0.7.2 (in v0.7.1 noch: Status, Verbindung, Engines, Mikrofon & PTT, Körper, Erweitert):
 
 1. Tab **Client Character** (früher *Mikrofon & PTT*) öffnen > **Refresh device list** > Auswahl **Mic device** öffnen.
 2. Tab **AI** (früher *Engines*) öffnen und die drei Auswahllisten öffnen; ins Feld **xAI key file** klicken und tippen.
@@ -135,22 +136,30 @@ mit `Realtime` oder `failed` aus dem App-Log.
 
 ---
 
-## T9 – Ton im Spiel: Frage → Antwort hörbar (ab der nächsten Version)
+## T9 – Ton im Spiel: Frage → Antwort hörbar (ab v0.7.2)
 
 Ziel: Es soll einfach eine hörbare Antwort aus dem Kopf der Figur kommen. Körpersteuerung ist dafür
 nicht nötig.
 
-1. Tab **AI Character**: **Body control** aus (nur Sprache), **Speech volume** auf 1.
+1. Tab **Voice Mode** > **Einfacher Q&A-Modus** (setzt AI mode `qa` und Body control aus; prüfen im
+   Tab **AI Character**). **Speech volume** auf 1.
 2. Tab **Voice Mode** > **Test-Ton abspielen** (spielt die Datei aus dem Paket, ohne Companion-App).
    Im Statusfeld unter *Live* steht `Audio: Lade: AIBodyTest.wav`, dann `Spreche: AIBodyTest.wav (1.5 s)`, dann `Fertig: …`.
-3. Companion-App starten, dann **Test-Ton über Companion** (Datei aus `Saves/PluginData/AIBody/default/audio/`).
-4. In der Companion-App einen Satz tippen (`Hallo`). Danach – mit xAI-Key (Realtime) oder mit
-   Speech-to-text `xai` – ins Mikrofon sprechen. Mit Speech-to-text `null` versteht die App nichts
-   (sie warnt dann im Log).
+3. Companion-App mit xAI-Key starten, dann **Test-Ton über Companion** (Datei aus
+   `Custom/Sounds/AIBody/default/`). Unter *Live* steht `Audio-Ordner: …`.
+4. In der Companion-Konsole `Hallo` tippen + Enter (gleicher Weg wie gesprochen, nur ohne Mikrofon).
+   Unter *Live* erscheint `Letzte Runde: Frage (getippt): Hallo`, dann `Letzte Runde: Antwort (…, xai -> xai): …`,
+   und die Figur spricht die Antwort (ein paar Sekunden Verzögerung sind normal).
+5. Eine Frage ins Mikrofon sprechen. Erwartet: `Letzte Runde: Gehört: …`, dann die gesprochene Antwort.
 
-Melden: Hört man bei 2, 3 und 4 etwas? Was steht jeweils unter *Live* bei `Audio:`? Steht dort eine
-rote Zeile `Audio-Fehler: …`, bitte genau abschreiben. Wenn 2 klingt, 3 aber nicht: Problem ist der
-Ordner `Saves/PluginData` – dann in `config.json` `"connection": {"paths": {"audio": "Custom/Sounds/AIBody"}}`
-eintragen, Companion-App neu starten und 3 wiederholen.
+Melden: Hört man bei 2, 3, 4 und 5 etwas? Was steht jeweils unter *Live* bei `Audio:`, `Audio-Ordner:`
+und `Letzte Runde:`? Rote Zeilen (`Audio-Fehler: …`, `Sprachmodell-Fehler: …`, `Nichts verstanden …`)
+bitte genau abschreiben, dazu die Ausgabe der Companion-Konsole.
+
+- Wenn 2 klingt, 3 aber nicht: Die App wechselt nach etwa 15 s von selbst nach
+  `Saves/PluginData/AIBody/default/audio/` und spielt den Ton noch einmal (rote Zeile „Audio-Ordner
+  gewechselt“). Bitte melden, ob er dann klingt.
+- Steht dort „ohne xAI-Key“: Key nicht gesetzt (gleiches Konsolenfenster wie die App?) oder im Tab
+  **AI** eine Key-Datei eintragen.
 
 **Ergebnis zurückschicken:** pro Punkt T1–T9 ✅/❌, die Screenshots und die roten „AIBody:“-Zeilen.

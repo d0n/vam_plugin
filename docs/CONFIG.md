@@ -52,7 +52,7 @@ below. Machine-readable:
 | `active` | bool | true | link to the companion app on/off |
 | `paths.expressions` | string | `Saves/PluginData/AIBody/expressions.json` | expression presets, relative, below `Saves/` or `Custom/` |
 | `paths.gestures` | string | `Saves/PluginData/AIBody/gestures.json` | gestures (Timeline actions), same rules |
-| `paths.audio` | string | `""` | folder for the companion's speech WAVs, relative, below `Saves/` or `Custom/`; `""` = `Saves/PluginData/AIBody/<channel>/audio`. Change it (e.g. `Custom/Sounds/AIBody`) only if **Test-Ton über Companion** stays silent while **Test-Ton abspielen** works |
+| `paths.audio` | string | `""` | folder for the companion's speech WAVs, relative, below `Saves/` or `Custom/`. `""` = automatic: `Custom/Sounds/AIBody/<channel>`; if VaM cannot load a WAV there (plugin error `audio_failed`), the app switches once to `Saves/PluginData/AIBody/<channel>/audio` and sends the speech again (status box: red note). A fixed folder turns the switch off |
 | **`engines`** (tab "AI") | | | |
 | `stt`, `llm`, `tts` | string | `null`, `echo`, `tone` | engine names; the app only accepts engines it has |
 | **`mic`** (tab "Client Character", section Microphone) | | | captured by the companion app |
@@ -76,7 +76,7 @@ below. Machine-readable:
 | `file_poll_interval_s` | number 0.02-2 | 0.1 | how often the plugin checks its inbox |
 | `verbose_log` | bool | false | debug lines in the VaM log |
 | **`ai`** (companion app) | | | the plugin sets only `mode`, `proactive.enabled`, `proactive.idle_seconds`, `realtime.send_while_speaking`, `realtime.voice`, `xai.voice` and (when its field is not empty) `xai.key_file` / `elevenlabs.key_file`; it keeps the rest of the section |
-| `mode` | `auto` / `realtime` / `chain` | `auto` | tab *AI Character* **AI mode**. `auto` = realtime when an xAI key exists, else chain; with `engines.tts` = `elevenlabs` auto picks chain. `realtime` = Grok Voice speech-to-speech; `chain` = STT -> LLM -> TTS (the engines above). If realtime cannot connect, chain runs meanwhile (reported) |
+| `mode` | `qa` / `auto` / `realtime` / `chain` | `qa` | tab *AI Character* **AI mode** (*Voice Mode* > **Einfacher Q&A-Modus** sets `qa`). `qa` = simple Q&A: STT -> LLM -> TTS with `xai` instead of the offline test engines when an xAI key exists, speech only, no proactive remarks. `auto` = realtime when an xAI key exists, else chain; with `engines.tts` = `elevenlabs` auto picks chain. `realtime` = Grok Voice speech-to-speech; `chain` = STT -> LLM -> TTS (exactly the engines above). If realtime cannot connect, or gives no answer 12 s after the user spoke, chain runs (reported). Files from 0.7.1 keep their value (`auto`) |
 | `realtime.url` | string | `wss://api.x.ai/v1/realtime` | |
 | `realtime.model` | string | `grok-voice-latest` | voice model (query parameter `model`) |
 | `realtime.voice` | string | `eve` | tab *AI Character* **Voice** (`eve`, `ara`, `rex`, `sal`, `leo` or a custom voice id from this file); also sets `xai.voice`. Changing it reconnects realtime |
@@ -112,7 +112,22 @@ below. Machine-readable:
 The push-to-talk *state* is never saved (only the setting `ptt_interrupts` and `mode`). Unknown
 keys are reported and ignored; out-of-range numbers are clamped.
 
-## Modes: realtime voice and chain
+## Modes: simple Q&A, realtime voice and chain
+
+**Simple Q&A** (`ai.mode` `qa`, the default): the chain below, made as hard to get wrong as
+possible. With an xAI key (environment `XAI_API_KEY` or a key file) the offline test engines
+(`null` / `echo` / `tone`) are replaced by `xai`, so STT `xai` -> Grok (streamed, split into
+sentences, the first sentence is spoken while the rest is still written) -> TTS `xai` -> WAV ->
+`speak` -> head audio; engines picked explicitly (e.g. TTS `elevenlabs`) stay. Expression /
+gesture tags in the answer are dropped (speech only); proactive remarks are paused. Typed text in
+the companion console takes the same path without speech to text. Every step reports to the
+status box (heartbeat `turn`): `Gehört: …`, `Antwort (n Satz/Sätze, xai -> xai): …`,
+`Nichts verstanden …`, `Spracherkennung-Fehler: …`, `Sprachmodell-Fehler: … - Ersatzantwort` (a
+short spoken notice instead of the answer), `Sprachausgabe-Fehler: … - Ersatzton (tone)` (the
+sentence is played as a tone). Without a key the test engines run and the mode status says so.
+
+In every mode but `chain`, an xAI key also replaces the test engines on the chain path for typed
+text and for the realtime fallback.
 
 **Realtime** (`ai.mode` `realtime`, or `auto` with an xAI key): one persistent WebSocket to
 `wss://api.x.ai/v1/realtime?model=grok-voice-latest` (header `Authorization: Bearer <key>`, same
@@ -125,15 +140,18 @@ starts talking with the first segment. Expressions and gestures come from the `e
 call and become the existing `expression` / `gesture` commands. When the server reports
 `input_audio_buffer.speech_started` while the body talks, the companion sends `stop_speaking`
 and drops the rest of that answer (push-to-talk also sends `response.cancel`). The connection is
-re-opened with backoff (1, 2, 4, 8, 15, 30 s); meanwhile chain runs. The tab *AI* shows the
-active mode ("Modus: realtime – Realtime verbunden …").
+re-opened with backoff (1, 2, 4, 8, 15, 30 s); meanwhile chain runs. If the server is connected but
+sends no answer within 12 s after `input_audio_buffer.speech_stopped`, the companion gives realtime
+up ("Realtime aus: keine Antwort …") until **API Reconnect** or a new AI mode, and the chain
+answers (repeat the question). The tab *AI* shows the active mode ("Modus: realtime – Realtime
+verbunden …").
 
 **Echo:** while the body talks, the companion streams silence instead of the microphone (there is
 no echo cancellation), so interrupting by voice needs **Voice barge-in (headphones)**. Push-to-talk
 always interrupts.
 
-**Chain** (`ai.mode` `chain`, or `auto` without xAI key / with ElevenLabs TTS): the engines of the
-tab *AI*, as before.
+**Chain** (`ai.mode` `chain`, or `auto` without xAI key / with ElevenLabs TTS): exactly the engines
+of the tab *AI*, as before.
 
 ## Proactive speech and time context
 

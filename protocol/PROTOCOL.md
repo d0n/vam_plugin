@@ -56,7 +56,8 @@ All paths are relative to the VaM install folder:
 ```
 Saves/PluginData/AIBody/<channel>/inbox/    companion app -> AIBody plugin (commands)
 Saves/PluginData/AIBody/<channel>/outbox/   AIBody plugin -> companion app (events)
-Saves/PluginData/AIBody/<channel>/audio/    speech audio written by the companion
+Custom/Sounds/AIBody/<channel>/             speech audio written by the companion (default)
+Saves/PluginData/AIBody/<channel>/audio/    its fallback if VaM cannot load the default folder
 ```
 
 - The plugin side uses only `FileManagerSecure` (writes are allowed below `Saves/PluginData`).
@@ -117,7 +118,7 @@ not detected by the plugin; a missing storable or parameter is reported as `comm
 | type                  | fields | effect |
 |-----------------------|--------|--------|
 | `ping`                | -      | answers `pong` with its status |
-| `companion_heartbeat` | `session` (required), `version`, `engines_available` (`{"stt": [...], "llm": [...], "tts": [...]}`), `engines_status` (`{"tts": {"elevenlabs": "nicht konfiguriert: ..."}, ...}`: "bereit (...)" or "nicht konfiguriert: <why>" per engine), `engines_active` (`{"stt": "null", ...}`: what really runs, the fallback if the selected engine is not configured), `mic_capturing`, `mode` (`{"requested": "auto", "active": "realtime", "status": "Realtime verbunden …"}`), `proactive` (`{"enabled": true, "idle_seconds": 90, "status": …}`), `keys` (`{"xai": {"state": "configured" \| "missing" \| "rejected", "detail": "Key-Datei …"}, "elevenlabs": {…}}`, never the key) | companion liveness; fills the engine menus and the engine status in the Engines tab |
+| `companion_heartbeat` | `session` (required), `version`, `engines_available` (`{"stt": [...], "llm": [...], "tts": [...]}`), `engines_status` (`{"tts": {"elevenlabs": "nicht konfiguriert: ..."}, ...}`: "bereit (...)" or "nicht konfiguriert: <why>" per engine), `engines_active` (`{"stt": "null", ...}`: what really runs, the fallback if the selected engine is not configured), `mic_capturing`, `mode` (`{"requested": "qa" \| "auto" \| "realtime" \| "chain", "active": "realtime", "status": "Realtime verbunden …"}`), `proactive` (`{"enabled": true, "idle_seconds": 90, "status": …}`), `keys` (`{"xai": {"state": "configured" \| "missing" \| "rejected", "detail": "Key-Datei …"}, "elevenlabs": {…}}`, never the key), `audio_out` (`{"folder": "Custom/Sounds/AIBody/default", "auto": true, "note"?: "VaM konnte … nicht laden - Audio-Ordner gewechselt auf …"}`), `turn` (last question / answer step or problem as text: `Gehört: …`, `Antwort (…): …`, `Nichts verstanden …`, `Sprachmodell-Fehler: …`) | companion liveness; fills the engine menus and the engine status in the Engines tab |
 
 ### Microphone feedback (app link)
 
@@ -193,7 +194,7 @@ commands taken from a `<<expression gesture>>` tag at the start of the model's t
 
 ### AI controls (`config.ai`)
 
-`mode` (`auto` | `realtime` | `chain`), `proactive.enabled`, `proactive.idle_seconds` (15..3600),
+`mode` (`qa` | `auto` | `realtime` | `chain`), `proactive.enabled`, `proactive.idle_seconds` (15..3600),
 `realtime.send_while_speaking`, `realtime.voice` / `xai.voice` (a changed realtime voice reconnects),
 `xai.key_file` / `elevenlabs.key_file` (paths; a value that looks like a key is refused with an error in
 `config_ack.errors` and the old path stays): applied live, echoed in `config_ack.applied.ai`; all other `ai`
@@ -203,13 +204,18 @@ barge-in sends `stop_speaking`. The protocol itself is unchanged (still version 
 
 ## Audio delivery
 
-The companion writes each TTS clip to `Saves/PluginData/AIBody/<channel>/audio/` (so it needs
-`vam_root`) and sends a `speak` with:
+The companion writes each TTS clip to `Custom/Sounds/AIBody/<channel>/` (so it needs
+`vam_root`; `connection.paths.audio` overrides the folder) and sends a `speak` with:
 
-- `audio`: `Saves/PluginData/AIBody/<channel>/audio/<file>`, relative to the VaM folder. The
+- `audio`: `Custom/Sounds/AIBody/<channel>/<file>`, relative to the VaM folder. The
   AIBody plugin loads it with VaM's own `URLAudioClipManager.QueueClip` (after
   `SuperController.NormalizeMediaPath`) and plays the resulting `NamedAudioClip` with the head `AudioSourceControl.PlayNow`,
   so VaM's lip sync animates the mouth.
+- If the plugin reports `error` with `code` `audio_failed` for one of these clips (VaM could not
+  load or start it) and the folder is automatic, the companion switches once to
+  `Saves/PluginData/AIBody/<channel>/audio/`, copies the WAV there and sends a new `speak` for it;
+  later clips go to the new folder (heartbeat `audio_out`). `command_failed` (file missing, no head
+  audio) does not switch.
 
 The plugin keeps an ordered queue (`queue: append`, default) and prefetches the next two
 clips while one plays. `queue: interrupt` stops the current clip (`speech_ended` reason
