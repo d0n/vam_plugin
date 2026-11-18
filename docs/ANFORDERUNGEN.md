@@ -4,7 +4,7 @@ Stand: 17.11.2026, Version 12. Übersicht, was umgesetzt ist und was offen ist; 
 - Vereinbarte Spezifikation (was gilt): [`docs/SPEC.md`](SPEC.md)
 - Zurückgestellte Ideen / Nice to have: [`docs/BACKLOG.md`](BACKLOG.md)
 - Testanleitung in VaM: [`docs/TESTPROTOKOLL.md`](TESTPROTOKOLL.md) · API-Belege: [`docs/API_AUDIT.md`](API_AUDIT.md)
-- Repo: https://github.com/d0n/vam_plugin · aktuelles Paket: `d0n.AIBody.18.var` (Version = Paketnummer seit 12)
+- Repo: https://github.com/d0n/vam_plugin · aktuelles Paket: `d0n.AIBody.19.var` (Version = Paketnummer seit 12)
 
 „Umgesetzt“ heißt: im Code und gegen nachgebaute Gegenstellen getestet. Was in VaM bzw. gegen die echten xAI-APIs noch nicht geprüft ist, steht zusätzlich unter 2.
 

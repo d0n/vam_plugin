@@ -1,7 +1,7 @@
 {
   "_comment": "Overrides merged over packaging/meta.json by tools/build_var.py (all other fields, incl. licenseType, come from meta.json unchanged).",
   "packageName": "AIBody",
-  "version": 18,
+  "version": 19,
   "description": "AIBody: gives an AI a virtual body. One plugin on the AI character: link to the external AIBody companion app (microphone, push-to-talk, engine settings) plus the body (speech with lip sync, expressions, morphs, gestures, poses, idle and breathing). Needs the companion app running.",
   "instructions": "Select the AI character's Person atom > Plugins tab > Add Plugin > AddonPackages > d0n.AIBody.<version>:/Custom/Scripts/d0n/AIBody/AIBody.cslist. Then start the companion app. See https://github.com/d0n/vam_plugin"
 }
