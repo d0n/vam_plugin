@@ -49,6 +49,15 @@ public static class MicDeviceListTests
         c = MicDeviceList.Build(null, MicDeviceList.LegacyDefaultV16, out found, out missing);
         Check(Join(c) == MicDeviceList.DefaultChoice && !missing, "old German default from a scene -> only the default: " + Join(c));
         Check(MicDeviceList.ToConfig("Line In") == "Line In", "name saved as is");
+        string off = MicDeviceList.NoListText(false, false, false, 0);
+        Check(off.Contains("'Active'"), "link off -> switch on Active: " + off);
+        string notRunning = MicDeviceList.NoListText(true, false, true, 1);
+        Check(notRunning.Contains("not running") && notRunning.Contains(MicDeviceList.StartHint), "companion missing -> start hint: " + notRunning);
+        Check(!notRunning.Contains("no answer"), "no 'no answer' while the companion is not running");
+        Check(MicDeviceList.NoListText(true, true, true, 2).Contains("asked"), "running + waiting -> asked");
+        Check(MicDeviceList.NoListText(true, true, false, 3).Contains("no answer"), "running, no reply -> no answer");
+        c = MicDeviceList.Build(new List<string>(), MicDeviceList.DefaultChoice, out found, out missing);
+        Check(c.Count == 1 && c[0] == MicDeviceList.DefaultChoice, "no companion -> menu still has the default: " + Join(c));
         Check(MicDeviceList.ToChoice("") == MicDeviceList.DefaultChoice, "empty config -> default");
         Check(MicDeviceList.ToChoice("Line In") == "Line In", "config name -> menu name");
 

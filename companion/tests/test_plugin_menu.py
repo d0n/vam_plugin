@@ -87,7 +87,7 @@ class Version16MenuTests(unittest.TestCase):
         self.assertIsNone(re.search(r"\.displayChoices\s*=", mic),
                           "the only chooser with displayChoices showed an empty list")
         self.assertIn("MicDeviceList.Build(", method_body(mic, "public void HandleDevices(JSONClass msg)"))
-        self.assertIn("EnsureDeviceChoices();", method_body(mic, "public void BuildTab(UiPage page)"))
+        self.assertIn("RefillChoices();", method_body(mic, "public void BuildTab(UiPage page)"))
         self.assertIn("MicDeviceList.cs", source("AIBody.cslist"))
         self.assertIn('"System default microphone"', source("MicDeviceList.cs"))
 
@@ -148,8 +148,8 @@ class Version18MenuTests(unittest.TestCase):
     def test_old_german_mic_default_is_migrated(self):
         mic_list = source("MicDeviceList.cs")
         self.assertIn('LegacyDefaultV16 = "Standard (System-Mikrofon)"', mic_list)
-        update = method_body(source("MicConfig.cs"), "public void Update(float deltaTime, bool connected)")
-        self.assertIn("IsLegacyDefault(", update)
+        sig = "public void Update(float deltaTime, bool connected, bool appRunning, bool linkActive)"
+        self.assertIn("IsLegacyDefault(", method_body(source("MicConfig.cs"), sig))
 
     def test_problem_turns_red_for_old_and_new_companion_texts(self):
         body = method_body(source("AppLink.cs"), "public static bool IsProblemTurn(string turn)")
@@ -181,6 +181,36 @@ class Version19MenuTests(unittest.TestCase):
                      "Does not reload config.json", "Reload Config JSON"):
             self.assertIn(part, hint)
         self.assertIn("FilePollInfoText()", method_body(source("AIBody.cs"), "private string TabInfo()"))
+
+
+class Version20MicMenuTests(unittest.TestCase):
+    """Leon, 18.11.2026: Mic device menu empty, 'no answer from the companion app' while it was not running."""
+
+    def test_menu_is_refilled_on_open_on_refresh_and_on_build(self):
+        mic = source("MicConfig.cs")
+        self.assertIn("Device.popupOpenCallback = OnDevicePopupOpen;", mic)
+        self.assertIn("RefillChoices();", method_body(mic, "private void OnDevicePopupOpen()"))
+        self.assertIn("RefillChoices();", method_body(mic, "public void RefreshMicrophones()"))
+        build = method_body(mic, "public void BuildTab(UiPage page)")
+        self.assertIn('page.Button("Refresh microphones", RefreshMicrophones);', build)
+        refill = method_body(mic, "private void RefillChoices()")
+        self.assertIn("Device.choices = MicDeviceList.Build(", refill, "always a new list, unconditionally")
+        self.assertNotIn("if (", refill)
+
+    def test_no_answer_text_only_while_the_companion_runs(self):
+        mic_list = source("MicDeviceList.cs")
+        sig = "public static string NoListText(bool linkActive, bool appRunning, bool waiting, int requests)"
+        text = method_body(mic_list, sig)
+        for part in ("companion app not running. Start it: ", "StartHint", "switch on 'Active' (tab Voice)",
+                     "<color=red>"):
+            self.assertIn(part, text)
+        self.assertIn('python -m aibody_companion --vam-root', mic_list)
+        update_sig = "public void Update(float deltaTime, bool connected, bool appRunning, bool linkActive)"
+        update = method_body(source("MicConfig.cs"), update_sig)
+        self.assertIn("MicDeviceList.NoListText(linkActive, appRunning", update)
+        self.assertIn("appRunning && _devicesAsked < 0f && _sinceDevicesAsked > MicDeviceList.RetrySeconds",
+                      update)
+        self.assertIn("_mic.Update(dt, connected, _appAlive,", source("AppLink.cs"))
 
 
 if __name__ == "__main__":

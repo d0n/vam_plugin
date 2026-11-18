@@ -53,6 +53,10 @@ namespace AIBody
         private string _requestedAt = "";
         private string _receivedText = "";
         private string _defaultName = "";
+        private List<string> _knownNames = new List<string>();   // last names received from the companion
+        private bool _haveList;                                  // a devices answer arrived since the last connect
+        private bool _linkActive = true;
+        private bool _appRunning;
 
         public MicConfig(MVRScript plugin, Action<JSONClass> send)
         {
@@ -74,8 +78,9 @@ namespace AIBody
             // Plain choices, no displayChoices (version 16, see MicDeviceList.cs). The system default is always in.
             Device = new JSONStorableStringChooser("Mic device", new List<string> { DefaultDevice }, DefaultDevice,
                 "Mic device", (string v) => MarkDirty());
-            // Opening the menu asks the companion app for the current list (Embody / Timeline pattern).
-            Device.popupOpenCallback = RequestDevicesSoon;
+            // Opening the menu refills the choices right away and asks the companion app for the
+            // current list (Embody / Timeline pattern: choices set inside popupOpenCallback, E25).
+            Device.popupOpenCallback = OnDevicePopupOpen;
             _plugin.RegisterStringChooser(Device);
             // RMS level (0..1) above which a frame counts as speech.
             Threshold = Reg(new JSONStorableFloat("VAD threshold", 0.01f, (float v) => MarkDirty(), 0.001f, 0.5f));
@@ -109,11 +114,11 @@ namespace AIBody
         {
             page.Toggle(Enabled);
             page.Popup(Mode);
-            EnsureDeviceChoices();
+            RefillChoices();
             page.ScrollablePopup(Device);
             // Set the list once more on the popup that now exists (choices refresh a shown popup: E24, E25).
-            Device.choices = new List<string>(Device.choices);
-            page.Button("Refresh microphones", RequestDevices);
+            RefillChoices();
+            page.Button("Refresh microphones", RefreshMicrophones);
             page.Toggle(_pttActive);
             page.Toggle(PttInterrupts);
             page.Toggle(LevelMeter);
@@ -147,8 +152,10 @@ namespace AIBody
             if (PttActive) SendPtt(true);
         }
 
-        public void Update(float deltaTime, bool connected)
+        public void Update(float deltaTime, bool connected, bool appRunning, bool linkActive)
         {
+            _appRunning = appRunning;
+            _linkActive = linkActive;
             _sinceChange += deltaTime;
             _levelAge += deltaTime;
             _sinceDevicesAsked += deltaTime;
@@ -157,13 +164,16 @@ namespace AIBody
             if (_devicesAsked >= 0f)
             {
                 _devicesAsked += deltaTime;
-                if (_devicesAsked > 5f)
-                {
-                    _devicesAsked = -1f;
-                    _devicesText = connected
-                        ? "<color=red>Microphone list: no answer from the companion app</color> (check its console)"
-                        : "Microphone list: companion app not connected - the list arrives once it runs";
-                }
+                if (_devicesAsked > 5f) _devicesAsked = -1f;
+            }
+            // Version 20: the "no answer" text only while the companion really runs (before, the file link
+            // alone counted as connected, so a missing companion read "no answer from the companion app").
+            if (!_haveList)
+            {
+                _devicesText = MicDeviceList.NoListText(linkActive, appRunning, _devicesAsked >= 0f, _requests);
+                // The companion runs but no list came back (request lost, sent before it started): ask again.
+                if (connected && appRunning && _devicesAsked < 0f && _sinceDevicesAsked > MicDeviceList.RetrySeconds)
+                    RequestDevices();
             }
             // Debounce slider drags: send 0.3 s after the last change.
             if (_dirty && connected && _sinceChange > 0.3f) SendConfig();
@@ -207,7 +217,7 @@ namespace AIBody
             if (Protocol.Has(mic, "device"))
             {
                 Device.val = MicDeviceList.ToChoice(Protocol.GetString(mic, "device", ""));
-                EnsureDeviceChoices();
+                RefillChoices();
             }
             Threshold.val = Protocol.GetFloat(mic, "vad_threshold", Threshold.val);
             SilenceMs.val = Protocol.GetFloat(mic, "end_silence_ms", SilenceMs.val);
@@ -234,20 +244,27 @@ namespace AIBody
             _send(evt);
         }
 
+        /// <summary>Button "Refresh microphones": menu refilled at once, then a new list is requested.</summary>
+        public void RefreshMicrophones()
+        {
+            RefillChoices();
+            RequestDevices();
+        }
+
         public void RequestDevices()
         {
             _sinceDevicesAsked = 0f;
             _devicesAsked = 0f;
             _requests++;
             _requestedAt = DateTime.Now.ToString("HH:mm:ss");
-            _devicesText = "Microphone list: requested at " + _requestedAt + " (request " + _requests + ") ...";
-            Log.Debug("list_devices sent");
+            Log.Debug("list_devices sent" + (_appRunning ? "" : " (companion app not running yet)"));
             _send(Protocol.NewEvent(Protocol.EvtListDevices));
         }
 
-        /// <summary>Menu opened: ask again unless a list was asked for in the last 2 s.</summary>
-        private void RequestDevicesSoon()
+        /// <summary>Menu opened: choices set again at once (never an empty menu), then ask unless asked in the last 2 s.</summary>
+        private void OnDevicePopupOpen()
         {
+            RefillChoices();
             if (_sinceDevicesAsked > 2f) RequestDevices();
         }
 
@@ -273,10 +290,12 @@ namespace AIBody
                     if (_defaultName.Length == 0 && Protocol.GetBool(d, "default", false)) _defaultName = name;
                 }
             }
+            _knownNames = names;
+            _haveList = true;
             int found;
             bool missing;
             List<string> choices = MicDeviceList.Build(names, Device.val, out found, out missing);
-            Device.choices = choices;   // refreshes a shown popup (E24, E25)
+            Device.choices = choices;   // a new list; refreshes a shown popup (E24, E25)
             if (MicDeviceList.IsDefault(Device.val) && Device.val != DefaultDevice) Device.val = DefaultDevice;
             string error = Protocol.GetString(msg, "error", "");
             _receivedText = "Microphone list: " + received + " received from the companion app"
@@ -291,16 +310,16 @@ namespace AIBody
                 + ", menu has " + Device.choices.Count + " entries" + (error.Length > 0 ? ", error: " + error : ""));
         }
 
-        /// <summary>Makes sure the system default and the current selection are in the menu (before any list arrived).</summary>
-        private void EnsureDeviceChoices()
+        /// <summary>
+        /// Sets the menu to a NEW list: "System default microphone", the last received names and the
+        /// current selection. Always assigned (not only when the count changed), so the popup is
+        /// refilled even without the companion app (version 20).
+        /// </summary>
+        private void RefillChoices()
         {
-            List<string> current = Device.choices != null ? Device.choices : new List<string>();
-            List<string> names = new List<string>();
-            for (int i = 0; i < current.Count; i++) names.Add(current[i]);
             int found;
             bool missing;
-            List<string> choices = MicDeviceList.Build(names, Device.val, out found, out missing);
-            if (choices.Count != current.Count || missing) Device.choices = choices;
+            Device.choices = MicDeviceList.Build(_knownNames, Device.val, out found, out missing);
         }
 
         public void HandleMicState(JSONClass msg)
@@ -382,6 +401,7 @@ namespace AIBody
         {
             _micState = "unknown (companion app not connected)";
             _levelText = "";
+            _haveList = false;   // the info line says again that the companion is missing; the menu keeps the names
         }
     }
 }

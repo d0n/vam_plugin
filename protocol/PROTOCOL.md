@@ -147,7 +147,7 @@ All events come from the one plugin:
 | `error`          | `reply_to`, `code`, `message`                       | `bad_json`, `command_failed`, `audio_failed` |
 | `config`         | `mic` (see below), `engines` (`{"stt", "llm", "tts"}`), `ai` (`{"mode", "proactive": {"enabled", "idle_seconds"}, "realtime": {"send_while_speaking", "voice"}, "xai": {"voice", "key_file"?}, "elevenlabs": {"key_file"}?}`, key file paths only when set), `advanced` (`{"verbose_log"}`: Erweitert > Verbose log, turns the companion's turn trace on/off live) | after (re)connect and 0.3 s after the last settings change |
 | `ptt`            | `active` (bool)                                     | push-to-talk pressed / released |
-| `list_devices`   | -                                                   | after (re)connect and on "Refresh mic devices" |
+| `list_devices`   | -                                                   | after (re)connect, on "Refresh mic devices", when the Mic device menu opens, and every 10 s while the companion runs but no list arrived (version 20); the companion also sends `devices` after every `ready` |
 | `test_tone`      | -                                                   | button "Test-Ton über Companion": the app answers with a `speak` (queue `interrupt`, text "Test-Ton") of a 1.5 s chime WAV in its audio folder |
 | `reconnect`      | -                                                   | button "API Reconnect": the app re-reads its API keys and reopens the realtime connection |
 | `shutdown`       | -                                                   | plugin is stopping its transport |

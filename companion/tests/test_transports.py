@@ -132,6 +132,14 @@ class CompanionFilePluginTests(unittest.TestCase):
         msg = [m for m in self.plugin.poll() if m["type"] == "devices"][0]
         self.assertEqual(msg["devices"][0]["name"], "USB Mic")
 
+    def test_ready_brings_the_device_list_without_a_request(self):
+        """Version 20: a list_devices written before the companion started is cleared with its folders;
+        the plugin's ready (sent on every new companion session) brings the list anyway."""
+        self.plugin.send({"type": "ready", "plugin_version": "test", "protocol": 3})
+        self.c.tick()
+        msg = [m for m in self.plugin.poll() if m["type"] == "devices"][0]
+        self.assertEqual(msg["devices"][0]["name"], "USB Mic")
+
     def test_device_list_error_reaches_the_plugin_and_choice_is_applied(self):
         self.devices = []
         self.c._list_devices = lambda: ([], "sounddevice is not installed (pip install sounddevice)")

@@ -54,6 +54,9 @@ def _input_devices(sd: Any) -> list[dict[str, Any]]:
             api = None
     inputs = [(i, d) for i, d in enumerate(devices) if d.get("max_input_channels", 0) > 0]
     chosen = [(i, d) for i, d in inputs if api is None or d.get("hostapi") == api] or inputs
+    log.info("Microphones (raw): %d PortAudio devices, %d with input channels, %d in the listed host API %s",
+             len(devices), len(inputs), len(chosen),
+             apis[api].get("name", api) if isinstance(api, int) and 0 <= api < len(apis) else "(all)")
     result: list[dict[str, Any]] = []
     seen: set[str] = set()
     for index, d in chosen:

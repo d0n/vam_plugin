@@ -187,7 +187,10 @@ bitte trotzdem kurz reinschauen) und einen Screenshot des Statusfelds mit *Recen
    oder rot mit Grund, darunter `Mic device menu: M entries: System default microphone, …` und
    `Selected: … | Windows default: …`. Die Companion-Konsole zeigt `Microphones: N found (…): …`.
    Menü **Mic device** öffnen: erster Eintrag `System default microphone` (auch ohne App), darunter
-   jedes Mikrofon einmal. Eins wählen, sprechen
+   jedes Mikrofon einmal. Ab Version 20 ohne laufende Begleit-App: rote Zeile
+   `Microphone list: companion app not running. Start it: python -m aibody_companion --vam-root "<VaM>"`
+   und im Menü nur `System default microphone`; nach dem Start der App kommt die Liste von selbst
+   (spätestens nach etwa 10 s). Eins wählen, sprechen
    (Pegel bewegt sich), Szene speichern, neu laden: die Wahl ist noch da.
 2. Tab **AI Character** > Abschnitt **Poses**: Menü öffnen (Posen aus `gestures.json` und aus
    `<VaM>/Custom/Atom/Person/Pose/` bzw. `.../Pose/AIBody/`), eine wählen, **Apply pose**.

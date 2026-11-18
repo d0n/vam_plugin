@@ -297,3 +297,10 @@ from `Exception.ToString()`, not from reflection. The only additions outside the
   storable "File poll interval (s)" is shown as "Companion inbox poll interval (s)". The storable
   name (saved in scenes) and the polling behaviour are unchanged; the compile stub declares the
   member with the E26 tag. No `foreach` over Dictionary `.Keys`/`.Values` (CS584 rule).
+
+## Version 20: mic menu without the companion app
+
+- No new VaM API. The Mic device chooser gets a new `choices` list when its popup opens (inside
+  `popupOpenCallback`, as E25 does), on "Refresh microphones" and when the tab is built (E24, E25).
+  TODO(verify): why VaM showed no entry at all; the info field line "Mic device menu: N entries"
+  reads the chooser back. No `foreach` over Dictionary `.Keys`/`.Values` (CS584 rule).

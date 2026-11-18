@@ -951,7 +951,7 @@ namespace AIBody
                     if (!alive) _transport.PruneOutbox(MaxOutboxWhileAway);
                 }
             }
-            if (_mic != null) _mic.Update(dt, connected);
+            if (_mic != null) _mic.Update(dt, connected, _appAlive, _activeJson != null && _activeJson.val);
         }
 
         /// <summary>

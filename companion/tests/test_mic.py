@@ -313,6 +313,13 @@ class WindowsDeviceListTests(unittest.TestCase):
         self.assertEqual([d["name"] for d in devices], ["Mikrofon (Realtek(R) Audio)", "Headset (Jabra Evolve 65)",
                                                         "Webcam C920", "Line In (Realtek)"])
 
+    def test_raw_counts_are_logged(self):
+        with self.assertLogs("aibody_companion.audio.capture", level="INFO") as logs:
+            self._list(self._sd(default_in=1))
+        line = [r.getMessage() for r in logs.records if "Microphones (raw)" in r.getMessage()][0]
+        self.assertIn("PortAudio devices", line)
+        self.assertIn("with input channels", line)
+
     def test_host_api_without_inputs_falls_back_to_all_inputs_once_per_name(self):
         devices, _ = self._list(self._sd(default_in=-1, hostapi_default=99))
         names = [d["name"] for d in devices]

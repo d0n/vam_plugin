@@ -453,6 +453,7 @@ class Companion:
                     log.info("AIBody plugin ready on %r: plugin=%s channel=%s", event.get("atom"),
                              event.get("plugin_version"), event.get("channel"))
                     self._last_mic_state = None  # make sure the plugin gets a fresh mic_state
+                    self.send_devices()  # version 20: the list also without a (lost) list_devices request
                 self.body_info = event
                 self._log_selftest(event.get("selftest"))
             elif type_ == "config":

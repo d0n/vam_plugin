@@ -68,5 +68,30 @@ namespace AIBody
             if (missing) choices.Add(selected);
             return choices;
         }
+
+        /// <summary>Start command of the companion app, shown when it is not running.</summary>
+        public const string StartHint = "python -m aibody_companion --vam-root \"<VaM>\"";
+
+        /// <summary>
+        /// Info line while no device list has arrived (version 20): says plainly why and what to do.
+        /// linkActive = toggle "Active" (tab Voice); appRunning = companion heartbeat seen;
+        /// waiting = a list_devices request is still within its 5 s; requests = list_devices sent so far.
+        /// </summary>
+        public static string NoListText(bool linkActive, bool appRunning, bool waiting, int requests)
+        {
+            if (!linkActive)
+                return "<color=red>Microphone list: link is off - switch on 'Active' (tab Voice).</color> "
+                    + "Until then only '" + DefaultChoice + "'.";
+            if (!appRunning)
+                return "<color=red>Microphone list: companion app not running. Start it: " + StartHint + "</color> "
+                    + "Until then only '" + DefaultChoice + "'; the list arrives by itself once it runs.";
+            if (waiting) return "Microphone list: asked the companion app (request " + requests + ") ...";
+            return "<color=red>Microphone list: no answer from the running companion app (request " + requests
+                + ") - check its console / companion.log.</color> Asking again every "
+                + RetrySeconds.ToString("0") + " s.";
+        }
+
+        /// <summary>While the companion runs but no list arrived, list_devices is sent again after this many seconds.</summary>
+        public const float RetrySeconds = 10f;
     }
 }
