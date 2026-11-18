@@ -90,7 +90,7 @@ These use evidenced APIs but in a combination nobody has shown publicly, or depe
 3. `NormalizeMediaPath` + `QueueClip` with a `Saves/PluginData/...` relative path (evidence uses
    file-browser paths), and `PlayNow` on a still loading clip being retried safely; start/end
    detection via `AudioSource.isPlaying` / `clip`; lip sync follows (`SpeechPlayer.cs`).
-4. ~~`JSONStorableStringChooser.choices` refreshes an open popup~~: now evidenced (E24, E25: set on popups that are on screen, refilled from `popupOpenCallback`). Still to see in VaM: the mic list after **Mikrofone neu laden** (T11).
+4. ~~`JSONStorableStringChooser.choices` refreshes an open popup~~: now evidenced (E24, E25: set on popups that are on screen, refilled from `popupOpenCallback`). Still to see in VaM: the mic list after **Refresh microphones** (T11).
 5. The `InputField` text field pattern on `CreateTextField` (`UiHelper.cs`).
 6. The `PosePresets` storable id and its `presetBrowsePath` / `LoadPreset` (`PoseController.cs`).
 7. Morph names of the built-in expressions and the breath morph (`ExpressionController.cs`,
@@ -176,7 +176,7 @@ from `Exception.ToString()`, not from reflection. The only additions outside the
 
 ## 0.7.2: simple Q&A, audio folder below Custom/Sounds
 
-- **No new plugin API.** The button "Einfacher Q&A-Modus" is a `CreateButton` (E1) that sets the
+- **No new plugin API.** The button "Simple Q&A mode" is a `CreateButton` (E1) that sets the
   existing AI mode chooser and the existing "Body control" bool; the explanation texts are
   unregistered `JSONStorableString` + `CreateTextField` (E12), the new status lines are text in the
   existing status box. The `FileExists` check (E10) is now wrapped in try/catch so a throwing check
@@ -199,7 +199,7 @@ from `Exception.ToString()`, not from reflection. The only additions outside the
 
 - **No new plugin API.** `[debug]` lines use `SuperController.LogMessage` (already used for every
   `AIBody:` line); the last 8 are kept in a `List<string>` and shown as text in the existing status
-  box. "Echtzeit (Realtime) verwenden" is an unregistered `JSONStorableBool` shown with
+  box. "Use realtime voice" is an unregistered `JSONStorableBool` shown with
   `CreateToggle` (same pattern as the other unregistered UI-only storables); it only sets the
   existing AI mode chooser, so nothing new is saved with the scene. No `valNoCallback` (not
   evidenced): a guard flag keeps the two in sync.

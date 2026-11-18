@@ -22,7 +22,7 @@ Stand: 17.11.2026, Version 12. Übersicht, was umgesetzt ist und was offen ist; 
 ### Verbindung und Konfiguration
 - Begleit-App (Python) `python -m aibody_companion --vam-root "<VaM>"` – v0.5.0.
 - Datei-Transport über `Saves/PluginData/AIBody/<Kanal>/`, Protokoll v3, Heartbeat, Status – v0.5.0/v0.6.3.
-- Robuste Verbindung: Timeout 6 s → „GETRENNT“, automatischer Neuaufbau, alte Befehle verworfen, Outbox ≤ 20 – v0.6.3, End-to-End-Simulation v0.7.0.
+- Robuste Verbindung: Timeout 6 s → „DISCONNECTED“, automatischer Neuaufbau, alte Befehle verworfen, Outbox ≤ 20 – v0.6.3, End-to-End-Simulation v0.7.0.
 - Gemeinsame `config.json` unter `<VaM>/Saves/PluginData/AIBody/` (Ort entschieden 15.11.2026), Schema, Menüwerte gewinnen; VaM-Werte als Text (`"2.5"`, `"true"`) werden gelesen (E21) – v0.6.3/v0.7.0.
 - Menü in Tabs (Tab-Buttons, `Create*`/`Remove*`, E17/E18) – v0.6.3; neu geordnet nach Leons Wunsch (Voice Mode, AI, AI Character, Client Character, Post, Config, Erweitert) – v0.7.2; neu nach dem VaM-Test: Voice (Voice Mode, Voice > AI Character), AI Character, Client Character, Config – Version 15 (Leon, 17.11.2026).
 
@@ -31,19 +31,19 @@ Stand: 17.11.2026, Version 12. Übersicht, was umgesetzt ist und was offen ist; 
 - Engines xAI (STT `POST /v1/stt`, LLM `POST /v1/responses` gestreamt, TTS `POST /v1/tts`) und ElevenLabs (TTS); Keys über `XAI_API_KEY`/`ELEVENLABS_API_KEY` oder Pfad einer Key-Datei; Key-Status konfiguriert/fehlt/abgelehnt – v0.7.0.
 - Realtime-Modus (Grok Voice, `wss://api.x.ai/v1/realtime`), Neuverbindung mit Backoff, Kette als Fallback – v0.7.1.
 - Proaktives Sprechen nach Stille, Uhrzeit und Zeit seit letztem Austausch im Kontext – v0.7.1.
-- Einfacher Q&A-Modus `qa` als Standard (nur Sprache, Body control aus), Knopf im Tab Voice Mode (seit Version 15: Voice > Voice Mode), Statuszeile „Letzte Runde“, Realtime ohne Antwort nach 12 s → Kette – v0.7.2 (von Leon freigegeben 17.11.2026).
-- Schalter „Echtzeit (Realtime) verwenden“ (an = `auto`, aus = `qa`, Standard bleibt `qa`) – v0.7.3.
+- Simple Q&A mode `qa` als Standard (nur Sprache, Body control aus), Knopf im Tab Voice Mode (seit Version 15: Voice > Voice Mode), Statuszeile „Last turn“, Realtime ohne Antwort nach 12 s → Kette – v0.7.2 (von Leon freigegeben 17.11.2026).
+- Schalter „Use realtime voice“ (an = `auto`, aus = `qa`, Standard bleibt `qa`) – v0.7.3.
 - Abgelehnter xAI-Key (HTTP 400 „Incorrect API key“) wird als „abgelehnt“ erkannt – v0.7.3.
 - Hinweis, welcher Key funktioniert: API-Key von console.x.ai, kein Grok-Abo/grok.com-Token (Key-Status, Startwarnung der App) – v0.7.4.
 - Tool-Aufrufe → Körperbefehle (Kette: `/v1/responses` mit tools; Realtime: function_call + function_call_output): `express` (Ausdruck/Geste), `pose` (wenn Posen vorhanden); jeder Aufruf bekommt ein Ergebnis; keine Tools in `qa` und bei Body control aus – v0.7.4.
-- Latenzmessung Sprechende → erster Ton mit Aufschlüsselung (STT, LLM erstes Token, erster Satz, TTS, Datei, an Plugin, Plugin-Start), Logzeile pro Runde, letzter Wert + Mittel im Statusfeld (*Live*, „Latenz bis zum ersten Ton“) – v0.7.4.
+- Latenzmessung Sprechende → erster Ton mit Aufschlüsselung (STT, LLM first token, first sentence, TTS, file write, to plugin, plugin start), Logzeile pro Runde, letzter Wert + Mittel im Statusfeld (*Live*, „Latency to first sound“) – v0.7.4.
 
 ### Mikrofon
 - Mikrofon nur in der Begleit-App (Aufnahme, Geräteliste, VAD, Echo-Sperre); Push-to-Talk im Plugin, Meldung als Datei – v0.5.0.
 - Push-to-Talk unterbricht die laufende Antwort; Voice barge-in (Kopfhörer) im Realtime-Modus – v0.7.0/v0.7.1.
 - Mikrofon-Einstellungen live (0,3 s nach letzter Änderung), Pegelanzeige – v0.6.3.
-- Mikrofon-Menü repariert (leeres Menü): ein Eintrag je Gerät (nur Host-API des Standardgeräts, Windows listet sonst jedes Mikro mehrfach), Öffnen per Index, Fehlergrund der App wird angezeigt, Eintrag „Standard (System-Mikrofon)“, Knopf „Mikrofone neu laden“, Statuszeile mit Geräteanzahl, Liste wird beim Öffnen neu angefragt (E24/E25) – v0.7.4.
-- Mikrofon-Menü leer in VaM („(not selected)“, nicht einmal „Standard“) – Version 16: Menü ohne getrennte Anzeigenamen (`displayChoices`), „Standard (System-Mikrofon)“ immer drin, Infofeld mit Anzahl empfangen, Host-API, Uhrzeit, Menüeinträgen; Test `tools/mic_test.py`. TODO(verify) in VaM.
+- Mikrofon-Menü repariert (leeres Menü): ein Eintrag je Gerät (nur Host-API des Standardgeräts, Windows listet sonst jedes Mikro mehrfach), Öffnen per Index, Fehlergrund der App wird angezeigt, Eintrag „System default microphone“, Knopf „Refresh microphones“, Statuszeile mit Geräteanzahl, Liste wird beim Öffnen neu angefragt (E24/E25) – v0.7.4.
+- Mikrofon-Menü leer in VaM („(not selected)“, nicht einmal „Standard“) – Version 16: Menü ohne getrennte Anzeigenamen (`displayChoices`), „Standard (System-Mikrofon)“ (seit Version 18 „System default microphone“) immer drin, Infofeld mit Anzahl empfangen, Host-API, Uhrzeit, Menüeinträgen; Test `tools/mic_test.py`. TODO(verify) in VaM.
 
 ### Sprachausgabe
 - VaMs Audio-Lader (`NormalizeMediaPath` → `URLAudioClipManager.QueueClip` → `PlayNow` auf `HeadAudioSource`) mit eingebautem Lippensync, nur lokale Dateien – v0.6.x.
@@ -53,14 +53,15 @@ Stand: 17.11.2026, Version 12. Übersicht, was umgesetzt ist und was offen ist; 
 ### Körper
 - Ausdrücke über Morphs, Atmung (Atem-Morph in config.json einstellbar), Kopf-Leerlauf, Gesten über Timeline (`Play <Name>`), Posen über Pose-Presets – v0.5.0/v0.6.3.
 - Schalter Body control (aus = nur Sprache) – v0.7.1.
-- Tab AI Character: Posen per Sprache über die KI und manuelles Menü (Auswahl + „Pose anwenden“, „Posen neu laden“; Posen aus `gestures.json` und Preset-Dateien in `Custom/Atom/Person/Pose` und `.../Pose/AIBody`), Ausdruck/Geste mit Auswahl und Knopf – v0.7.4 (Leon, 17.11.2026 21:41).
+- Tab AI Character: Posen per Sprache über die KI und manuelles Menü (Auswahl + „Apply pose“, „Reload poses“; Posen aus `gestures.json` und Preset-Dateien in `Custom/Atom/Person/Pose` und `.../Pose/AIBody`), Ausdruck/Geste mit Auswahl und Knopf – v0.7.4 (Leon, 17.11.2026 21:41).
 
 ### Menü-Grundsatz
 - Das Menü zeigt nur Einstellbares (Leon, 17.11.2026 21:43): reine Pfad-/Info-Anzeigen in Post, Config und AI Character entfernt, nicht verschoben; Pfade stehen einmal im VaM-Log; Erklär-/Statustexte zu Bedienelementen bleiben – v0.7.4.
 - Push-to-Talk-Erklärtext unter dem Schalter statt Tooltip (kein belegter Weg) – v0.7.2, erneut geprüft v0.7.3; seit Version 15 im Infofeld links.
-- Ein großes Infofeld links für alle Hilfe-, Status- und Pfadtexte („Info: <Tab>“, Selbsttest, Live, Start-Protokoll); in den Tabs nur Bedienelemente; keine leeren Platzhalter; Eingabefelder beschriftet; Namen selbsterklärend (AI Character, Client Character) – Version 15 (Leon, 17.11.2026).
-- Infofeld 1800 hoch, links nur das Infofeld (Kopfzeile mit Hinweis entfernt), Infotexte gekürzt, „Ausdrücke neu laden“ beim Ausdruck – Version 17 (Leon, 18.11.2026).
-- Infofeld größer (1600) und nur mit den Infos des offenen Tabs; Selbsttest, Letzte Ereignisse, Start-Protokoll im Tab Config; Startergebnis als eine Zeile auf jedem Tab; keine leere Posen-Auswahl; geprüft: kein Menü und kein Abschnitt, der nur „default“ zeigt – Version 16 (Leon, 18.11.2026).
+- Ein großes Infofeld links für alle Hilfe-, Status- und Pfadtexte („Info: <Tab>“, Self-test, Live, Startup log); in den Tabs nur Bedienelemente; keine leeren Platzhalter; Eingabefelder beschriftet; Namen selbsterklärend (AI Character, Client Character) – Version 15 (Leon, 17.11.2026).
+- Infofeld 1800 hoch, links nur das Infofeld (Kopfzeile mit Hinweis entfernt), Infotexte gekürzt, „Reload expressions“ beim Ausdruck – Version 17 (Leon, 18.11.2026).
+- Plugin-Oberfläche, Begleit-App-Ausgaben und `tools/mic_test.py` auf Englisch (internationaler Standard, unabhängig von der Systemsprache); vom System gelieferte Namen (Mikrofone, Host-APIs) unverändert; alte Szenen und config.json bleiben gültig – Version 18 (Leon, 18.11.2026).
+- Infofeld größer (1600) und nur mit den Infos des offenen Tabs; Selbsttest, Recent events, Startup log im Tab Config; Startergebnis als eine Zeile auf jedem Tab; keine leere Posen-Auswahl; geprüft: kein Menü und kein Abschnitt, der nur „default“ zeigt – Version 16 (Leon, 18.11.2026).
 - „Posen“ statt „Post“: Tab Post entfernt, Posen im Tab AI Character; Erweitert in Config aufgegangen – Version 15. Ursprüngliche Absicht der entfernten Einträge: `docs/BACKLOG.md`.
 
 ### Version und Konfiguration
@@ -68,9 +69,9 @@ Stand: 17.11.2026, Version 12. Übersicht, was umgesetzt ist und was offen ist; 
 - Regler im Plugin decken die vollen config.json-Bereiche ab (VAD threshold bis 0,5, Proactive idle bis 3600 s), damit Werte aus der Datei nicht abgeschnitten und zurückgeschrieben werden; Test vergleicht alle Regler mit den Bereichen der App – Version 12.
 
 ### Protokollierung
-- Verbose log (Tab Erweitert, `advanced.verbose_log`, `-v`): Trace pro Runde in Konsole und `<VaM>/Saves/PluginData/AIBody/logs/companion.log` (1 MB × 5), Keys geschwärzt; im Plugin `[debug]`-Zeilen und *Letzte Ereignisse* – v0.7.3; Tool-Aufrufe und Latenz im Trace – v0.7.4.
+- Verbose log (Tab Config, `advanced.verbose_log`, `-v`): Trace pro Runde in Konsole und `<VaM>/Saves/PluginData/AIBody/logs/companion.log` (1 MB × 5), Keys geschwärzt; im Plugin `[debug]`-Zeilen und *Recent events* – v0.7.3; Tool-Aufrufe und Latenz im Trace – v0.7.4.
 
-- Erweiterter Selbsttest für die nur in VaM prüfbaren Punkte (T5): Pose-Speicher, Posen und Pose-Dateien, Atem-Morph, Ausdrucks-Morphs mit fehlenden Namen, Timeline-Storable; im Statusfeld und als „Plugin-Selbsttest: …“ in Konsole und `companion.log` – Version 13.
+- Erweiterter Selbsttest für die nur in VaM prüfbaren Punkte (T5): Pose-Speicher, Posen und Pose-Dateien, Atem-Morph, Ausdrucks-Morphs mit fehlenden Namen, Timeline-Storable; im Statusfeld und als „Plugin self-test: …“ in Konsole und `companion.log` – Version 13.
 
 ### Szene, Doku
 - Quellennennung im README, Abschnitt 6 (MacGruber als Hauptquelle, Acid Bubbles, VamDeluxe, Sally, weitere Belegquellen) – Version 13.
@@ -87,7 +88,7 @@ Stand: 17.11.2026, Version 12. Übersicht, was umgesetzt ist und was offen ist; 
 - T3: Kopf-Audio mit Lippensync, `PlayNow`-Retry, Start/Ende-Erkennung.
 - T4: Menü-Aktualisierung, Textfeld, Tabs.
 - T5: Pose-Speicher-Name, Morph-Namen, Atem-Morph (seit Version 13 direkt im Selbsttest und im Log der Begleit-App ablesbar).
-- T6: Hinzufügen/Entfernen/Speichern/Neuladen ohne Exceptions und FPS-Einbruch; „GETRENNT“ und Neuaufbau; config.json ohne Rückfrage.
+- T6: Hinzufügen/Entfernen/Speichern/Neuladen ohne Exceptions und FPS-Einbruch; „DISCONNECTED“ und Neuaufbau; config.json ohne Rückfrage.
 - T7: Engine-Status.
 - T8: Realtime mit echtem xAI-Key, Unterbrechen, proaktives Sprechen.
 - T9: Frage → hörbare Antwort im Spiel.
@@ -105,7 +106,7 @@ Stand: 17.11.2026, Version 12. Übersicht, was umgesetzt ist und was offen ist; 
 - Storable „PosePresets“ folgt dem belegten Muster (1.22).
 - Morph-Namen für Ausdrücke an Standard-Figuren (weiblich/männlich).
 - Szene: Personen in Blickrichtung +Z (0°/180° = einander zugewandt), Aussehen ohne festgelegte Kleidung, Camera Background Color auf einem Person-Atom.
-- Ursache des leeren Mikrofon-Menüs bei Leon (Version 16): Vermutung `displayChoices` (einzige Auswahl des Plugins damit); Bestätigung über Screenshot des Infofelds (Zeile „Menü Mic device: N Einträge …“) und Ausgabe von `tools/mic_test.py` steht aus.
+- Ursache des leeren Mikrofon-Menüs bei Leon (Version 16): Vermutung `displayChoices` (einzige Auswahl des Plugins damit); Bestätigung über Screenshot des Infofelds (Zeile „Mic device menu: N entries …“) und Ausgabe von `tools/mic_test.py` steht aus.
 - Sichtbare Höhe des Infofelds (1800) in VaM.
 
 ### Offene Fragen an Leon

@@ -22,7 +22,7 @@ Vereinbarter Stand, was gilt. Status (umgesetzt/offen): [`ANFORDERUNGEN.md`](ANF
 
 ## Verbindung
 - Datei-Transport über `<VaM>/Saves/PluginData/AIBody/<Kanal>/` in beide Richtungen (Befehle rein, Events raus), Protokoll v3 (`protocol/PROTOCOL.md`, Schemas `protocol/schema/`).
-- Heartbeat beider Seiten; Timeout 6 s → Status „GETRENNT“, automatischer Neuaufbau; alte Befehle werden verworfen.
+- Heartbeat beider Seiten; Timeout 6 s → Status „DISCONNECTED“, automatischer Neuaufbau; alte Befehle werden verworfen.
 - Plugin bleibt stabil ohne Begleit-App.
 
 ## Gemeinsame Konfiguration
@@ -37,7 +37,7 @@ Vereinbarter Stand, was gilt. Status (umgesetzt/offen): [`ANFORDERUNGEN.md`](ANF
 
 ## KI-Modi
 - Standard `qa` (Einfacher Q&A): Spracherkennung xAI → Grok → Stimme xAI, nur Sprache, keine Körpersteuerung durch die KI, kein proaktives Sprechen.
-- Realtime optional (Schalter „Echtzeit (Realtime) verwenden“ = `auto`): Grok Voice über `wss://api.x.ai/v1/realtime`, Kette als Fallback.
+- Realtime optional (Schalter „Use realtime voice“ = `auto`): Grok Voice über `wss://api.x.ai/v1/realtime`, Kette als Fallback.
 - `chain`: genau die unter Voice > AI Character gewählten Engines.
 - Test-Engines `null` / `echo` / `tone` als Offline-Betrieb und Fallback ohne Key.
 - Proaktives Sprechen nach einstellbarer Stille; die KI bekommt Uhrzeit und Zeit seit dem letzten Austausch mit.
@@ -45,8 +45,8 @@ Vereinbarter Stand, was gilt. Status (umgesetzt/offen): [`ANFORDERUNGEN.md`](ANF
 ## Mikrofon
 - Aufnahme, Geräteliste, VAD und Echo-Sperre nur in der Begleit-App.
 - Push-to-Talk wird im Plugin geschaltet und an die App gemeldet; Push-to-Talk unterbricht die laufende Antwort.
-- Gerätemenü listet die Mikrofone der App (ein Eintrag je Gerät), Eintrag „Standard (System-Mikrofon)“, Knopf „Mikrofone neu laden“, Statuszeile mit Geräteanzahl bzw. Fehlergrund; Wahl wird angewendet und gespeichert.
-- „Standard (System-Mikrofon)“ steht immer im Menü, auch ohne Liste der App (Version 16). Menüeinträge = Gerätenamen ohne Zusätze.
+- Gerätemenü listet die Mikrofone der App (ein Eintrag je Gerät), Eintrag „System default microphone“, Knopf „Refresh microphones“, Statuszeile mit Geräteanzahl bzw. Fehlergrund; Wahl wird angewendet und gespeichert.
+- „System default microphone“ steht immer im Menü, auch ohne Liste der App (Version 16). Menüeinträge = Gerätenamen ohne Zusätze.
 - Infofeld (Tab Client Character) zeigt: wie viele Mikrofone von der App empfangen wurden, Host-API, Uhrzeit von Anfrage und Antwort, die Einträge des Menüs, Auswahl, Windows-Standardgerät (Version 16).
 - Test ohne VaM und App: `tools/mic_test.py` (Geräte roh, je Host-API, Liste wie die App sie schickt; optional in den Plugin-Eingang).
 
@@ -70,36 +70,38 @@ Vereinbarter Stand, was gilt. Status (umgesetzt/offen): [`ANFORDERUNGEN.md`](ANF
 
 ## Menü
 - Das Menü zeigt nur, was sich einstellen lässt. In den Tabs stehen nur Bedienelemente (Knöpfe, Schalter, Regler, Auswahlen, beschriftete Eingabefelder), keine Text- oder Statusfelder (Leon, 17.11.2026, Version 15).
-- Alle Erklär-, Hilfe-, Status- und Pfadtexte stehen in EINEM großen Infofeld links (immer sichtbar). Seit Version 16 nur die Infos des offenen Tabs: oben eine Zeile mit Version und Startergebnis (Fehler rot), dann „Info: <Tab>“. Voice: Hilfe, Key- und Engine-Status, Verbindung. AI Character: Posen, Hinweise, Körper-Status. Client Character: Push-to-Talk, Mikrofon. Config: config.json, Kanal, Selbsttest, Letzte Ereignisse (Verbose log), Start-Protokoll. Seit Version 17: Feld 1800 hoch (etwa so hoch wie der längste Tab rechts), links nur dieses Feld (keine Kopfzeile darüber oder darunter), Texte gekürzt, Modus und Engines nur einmal (Engine-Status), Hinweis auf Umgebungsvariablen nur, solange ein Key fehlt.
-- Keine leeren Auswahllisten: ohne Posen entfallen Posen-Auswahl und „Pose anwenden“ (Version 16).
+- Alle Erklär-, Hilfe-, Status- und Pfadtexte stehen in EINEM großen Infofeld links (immer sichtbar). Seit Version 16 nur die Infos des offenen Tabs: oben eine Zeile mit Version und Startergebnis (Fehler rot), dann „Info: <Tab>“. Voice: Hilfe, Key- und Engine-Status, Verbindung. AI Character: Posen, Hinweise, Körper-Status. Client Character: Push-to-Talk, Mikrofon. Config: config.json, Kanal, Selbsttest, Recent events (Verbose log), Startup log. Seit Version 17: Feld 1800 hoch (etwa so hoch wie der längste Tab rechts), links nur dieses Feld (keine Kopfzeile darüber oder darunter), Texte gekürzt, Modus und Engines nur einmal (Engine-Status), Hinweis auf Umgebungsvariablen nur, solange ein Key fehlt.
+- Keine leeren Auswahllisten: ohne Posen entfallen Posen-Auswahl und „Apply pose“ (Version 16).
 - Namen sind selbsterklärend: „AI Character“ und „Client Character“, nie nur „AI“ oder „Client“.
+- Sprache der Plugin-Oberfläche und der Ausgaben der Begleit-App (Konsole, Log, `tools/mic_test.py`): Englisch nach internationalem Standard, verständlich unabhängig von der Systemsprache (Leon, 18.11.2026, Version 18). Übersetzt werden nur eigene Texte: Feldnamen, Beschriftungen, Überschriften, Info- und Statustexte und eigene feste Einträge (z. B. „System default microphone“). Inhalte, die Betriebssystem oder VaM in ihrer Sprache liefern (Mikrofon-Gerätenamen, Namen der Windows-Standardgeräte, Host-API-Namen, Fehlermeldungen des Systems), bleiben genau so, wie das System sie benennt. Gespeicherte Namen (JSONStorable, config.json-Schlüssel, Protokoll-Nachrichten) bleiben unverändert; Zuordnung alt → neu in `docs/TRANSLATION_V18.md`.
 - Keine leeren Platzhalter-Felder. Ein Eingabefeld zeigt in VaM nur seinen Wert, deshalb steht darüber eine Beschriftung.
 - „Posen“ statt „Post“: der frühere Tab „Post“ ist entfallen (die offene Frage „Post oder Port“ ist damit erledigt); Posen liegen im Tab AI Character.
 - Tabs:
   - Voice:
-    - Voice Mode: Einfacher Q&A-Modus, Active, Echtzeit (Realtime) verwenden, API Reconnect, Test-Ton über Companion, Test-Ton abspielen, Stop speaking.
+    - Voice Mode: Simple Q&A mode, Active, Use realtime voice, API Reconnect, Test tone via companion, Play test tone, Stop speaking.
     - Voice > AI Character: AI mode, Voice, Speech-to-text, Language model, Text-to-speech, Proactive, Proactive idle.
-  - AI Character: Posen (Auswahl, Pose anwenden, Posen neu laden; per Sprache über die KI oder hier); Ausdruck und Geste (Auswahl, Ausdruck zeigen, Reset expression, Ausdrücke neu laden, Geste abspielen); Körper (Body control, Lautstärke, Idle, Atmung, Atem-Morph mit Beschriftung).
-  - Client Character: Mikrofon und Push-to-Talk (Mic enabled, Mic mode, Mic device, Mikrofone neu laden, Push-to-talk active, Push-to-talk interrupts speech, Show level meter, Mikrofon-Regler), Voice barge-in (headphones).
+  - AI Character: Poses (Auswahl, Apply pose, Reload poses; per Sprache über die KI oder hier); Expression and gesture (Auswahl, Show expression, Reset expression, Reload expressions, Play gesture); Body (this Person only) (Body control, Lautstärke, Idle, Atmung, Breath morph mit Beschriftung).
+  - Client Character: microphone and push-to-talk (Mic enabled, Mic mode, Mic device, Refresh microphones, Push-to-talk active, Push-to-talk interrupts speech, Show level meter, Mikrofon-Regler), Voice barge-in (headphones).
   - Config (früher Config und Erweitert): Reload Config JSON, File poll interval, Verbose log.
 - Nur in config.json bzw. Begleit-App (kein Menüfeld): Kanal (`connection.channel`, `--channel`), Key-Datei-Pfade. Entfernte Einträge und ihre ursprüngliche Absicht: `docs/BACKLOG.md`, „Entfernte Menüeinträge (Version 15)“.
 
 ## Protokollierung
-- Verbose log (Tab Config / `advanced.verbose_log` / `-v`): pro Runde Trace mit Runden-Nummer und Zeit in Konsole und `<VaM>/Saves/PluginData/AIBody/logs/companion.log` (1 MB × 5); im Plugin `[debug]`-Zeilen und *Letzte Ereignisse*.
+- Verbose log (Tab Config / `advanced.verbose_log` / `-v`): pro Runde Trace mit Runden-Nummer und Zeit in Konsole und `<VaM>/Saves/PluginData/AIBody/logs/companion.log` (1 MB × 5); im Plugin `[debug]`-Zeilen und *Recent events*.
 
 - Selbsttest im Statusfeld (seit Version 13): Person-Atom, Kopf-Audio, Morphs, Pose-Speicher (`PosePresets` mit `presetBrowsePath`), Anzahl Posen und Pose-Dateien, Atem-Morph gefunden, Ausdrucks-Morphs x von y (fehlende Namen), Timeline-Storable für `timeline`-Gesten, PluginData beschreibbar, Companion-Heartbeat.
-- Die Körper-Prüfungen werden höchstens alle 5 s neu berechnet und als `selftest` in `ready`/`heartbeat` gesendet; die Begleit-App schreibt sie bei jeder Änderung einmal als „Plugin-Selbsttest: …“ in Konsole und `companion.log` (Warnung, wenn etwas fehlt). Keine neue Einstellung, keine neue VaM-Schnittstelle.
+- Die Körper-Prüfungen werden höchstens alle 5 s neu berechnet und als `selftest` in `ready`/`heartbeat` gesendet; die Begleit-App schreibt sie bei jeder Änderung einmal als „Plugin self-test: …“ in Konsole und `companion.log` (Warnung, wenn etwas fehlt). Keine neue Einstellung, keine neue VaM-Schnittstelle.
 
 ## Latenz
 - Gemessen vom Ende der Nutzersprache (VAD-Ende, PTT loslassen, Enter; Realtime: speech_stopped) bis zum ersten Ton (speech_started des Plugins).
-- Aufschlüsselung: STT, LLM erstes Token, erster Satz, TTS, Datei, an Plugin, Plugin-Start (Realtime: Server erstes Audio, Segment, an Plugin, Plugin-Start).
-- Pro Runde eine Logzeile; letzter Wert und Mittel der letzten 10 im Statusfeld (*Live*, „Latenz bis zum ersten Ton“).
+- Aufschlüsselung: STT, LLM first token, first sentence, TTS, file write, to plugin, plugin start (Realtime: server first audio, segment, to plugin, plugin start).
+- Pro Runde eine Logzeile; letzter Wert und Mittel der letzten 10 im Statusfeld (*Live*, „Latency to first sound“).
 
 ## Änderungen
 - 17.11.2026 (v0.7.4): Erste Fassung des Spec-Logs.
 - 17.11.2026: README auf Deutsch (Zweck, Szene, zwei Figuren, vollständige Einstellungsreferenz, Hinweise für den Hub); bisheriger README-Inhalt nach `docs/TECHNIK.md`.
 - 17.11.2026 (Version 12): Versionsschema Version = Paketnummer; Szene mit zwei Personen (AI Character weiblich mit AIBody, Client Character männlich mit Camera Background Color); Regler im Plugin decken die vollen config.json-Bereiche ab.
-- 17.11.2026 (Version 13): Erweiterter Selbsttest (Pose-Speicher, Posen, Atem-Morph, Ausdrucks-Morphs, Timeline) im Statusfeld und als „Plugin-Selbsttest“ im Log der Begleit-App; Quellennennung im README (Abschnitt 6).
-- 18.11.2026 (Version 17): Infofeld 1800 hoch, Kopfzeile links entfernt, Infotexte je Tab gekürzt (keine doppelte Engine-Zeile, kein Ordner im Tab Voice), Knopf „Ausdrücke neu laden (expressions.json)“ im Abschnitt Ausdruck und Geste statt „Reload Expressions“ unter Körper. Keine neuen Funktionen, keine gespeicherten Namen geändert.
-- 18.11.2026 (Version 16): Mikrofon-Menü zeigt immer „Standard (System-Mikrofon)“ und die empfangenen Mikrofone (ohne getrennte Anzeigenamen); Infofeld mit Anzahl, Quelle, Uhrzeit und Menüeinträgen; `tools/mic_test.py`. Infofeld höher und nur mit den Infos des offenen Tabs (Selbsttest und Start-Protokoll im Tab Config). Keine leere Posen-Auswahl.
+- 17.11.2026 (Version 13): Erweiterter Selbsttest (Pose-Speicher, Posen, Atem-Morph, Ausdrucks-Morphs, Timeline) im Statusfeld und als „Plugin self-test“ im Log der Begleit-App; Quellennennung im README (Abschnitt 6).
+- 18.11.2026 (Version 18): Plugin-Oberfläche auf Englisch (Beschriftungen, Überschriften, Infofeld, Status- und Logzeilen, Selbsttest, eigener Menüeintrag „System default microphone“ statt „Standard (System-Mikrofon)“); Konsolen-, Log- und Statustexte der Begleit-App und Ausgabe von `tools/mic_test.py` ebenfalls Englisch; Bezeichner und Kommentare im Code Englisch. Vom System gelieferte Namen (Mikrofone, Host-APIs) bleiben unverändert. Gespeicherte Szenen bleiben gültig: Storable-Namen, config.json-Schlüssel und Protokoll unverändert, alter Mikrofon-Eintrag „Standard (System-Mikrofon)“ wird beim Laden als Systemstandard gelesen, rote Markierung erkennt auch die deutschen Texte älterer Begleit-Apps. Zuordnung alt → neu: `docs/TRANSLATION_V18.md`.
+- 18.11.2026 (Version 17): Infofeld 1800 hoch, Kopfzeile links entfernt, Infotexte je Tab gekürzt (keine doppelte Engine-Zeile, kein Ordner im Tab Voice), Knopf „Reload expressions (expressions.json)“ im Abschnitt Expression and gesture statt „Reload Expressions“ unter Körper. Keine neuen Funktionen, keine gespeicherten Namen geändert.
+- 18.11.2026 (Version 16): Mikrofon-Menü zeigt immer „Standard (System-Mikrofon)“ (seit Version 18 „System default microphone“) und die empfangenen Mikrofone (ohne getrennte Anzeigenamen); Infofeld mit Anzahl, Quelle, Uhrzeit und Menüeinträgen; `tools/mic_test.py`. Infofeld höher und nur mit den Infos des offenen Tabs (Selbsttest und Startup log im Tab Config). Keine leere Posen-Auswahl.
 - 17.11.2026 (Version 15): Menü neu nach Leons Rückmeldung aus dem VaM-Test: Tabs Voice (Voice Mode, Voice > AI Character), AI Character (mit Posen), Client Character, Config (Config + Erweitert zusammengelegt). Ein großes Infofeld links für alle Hilfe- und Statustexte; keine Textfelder in den Tabs. Beschriftung „Posen“ statt „Post“ (Frage „Post oder Port“ erledigt, Tab Post entfällt). Entfernt: Tabs AI, Post, Erweitert, Feld Channel, Key-Datei-Felder, Platzhalter Delay, Titelzeile je Tab. Key-Datei-Pfade und Kanal nur noch in config.json; die Datei gewinnt bei den Key-Datei-Pfaden.

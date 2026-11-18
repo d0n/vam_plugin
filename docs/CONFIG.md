@@ -59,9 +59,9 @@ sentences, the first sentence is spoken while the rest is still written) -> TTS 
 `speak` -> head audio; engines picked explicitly (e.g. TTS `elevenlabs`) stay. Expression /
 gesture tags in the answer are dropped (speech only); proactive remarks are paused. Typed text in
 the companion console takes the same path without speech to text. Every step reports to the
-status box (heartbeat `turn`): `Gehört: …`, `Antwort (n Satz/Sätze, xai -> xai): …`,
-`Nichts verstanden …`, `Spracherkennung-Fehler: …`, `Sprachmodell-Fehler: … - Ersatzantwort` (a
-short spoken notice instead of the answer), `Sprachausgabe-Fehler: … - Ersatzton (tone)` (the
+status box (heartbeat `turn`): `Heard: …`, `Answer (n sentence(s), xai -> xai): …`,
+`Nothing understood …`, `Speech recognition error: …`, `Language model error: … - fallback answer` (a
+short spoken notice instead of the answer), `Text-to-speech error: … - fallback tone (tone)` (the
 sentence is played as a tone). Without a key the test engines run and the mode status says so.
 
 In every mode but `chain`, an xAI key also replaces the test engines on the chain path for typed
@@ -80,9 +80,9 @@ call and become the existing `expression` / `gesture` commands. When the server 
 and drops the rest of that answer (push-to-talk also sends `response.cancel`). The connection is
 re-opened with backoff (1, 2, 4, 8, 15, 30 s); meanwhile chain runs. If the server is connected but
 sends no answer within 12 s after `input_audio_buffer.speech_stopped`, the companion gives realtime
-up ("Realtime aus: keine Antwort …") until **API Reconnect** or a new AI mode, and the chain
-answers (repeat the question). The info field (tab *Voice*) shows the active mode ("Modus: realtime – Realtime
-verbunden …").
+up ("Realtime off: no answer …") until **API Reconnect** or a new AI mode, and the chain
+answers (repeat the question). The info field (tab *Voice*) shows the active mode ("Mode: realtime – Realtime
+connected …").
 
 **Echo:** while the body talks, the companion streams silence instead of the microphone (there is
 no echo cancellation), so interrupting by voice needs **Voice barge-in (headphones)**. Push-to-talk
@@ -125,7 +125,7 @@ of *Voice > AI Character*, as before.
    `"ai": { "elevenlabs": { "key_file": "C:/Users/<you>/keys/elevenlabs.txt" } }`
    (a relative path counts from your home folder, e.g. `keys/elevenlabs.txt`).
 3. Select **Text-to-speech: elevenlabs** in the plugin's tab *Voice > AI Character*. The engine status in the info field
-   changes from "nicht konfiguriert" to "bereit (…)" - a key file within 10 s, an environment
+   changes from "not configured" to "ready (…)" - a key file within 10 s, an environment
    variable after restarting the app.
 
 Since version 15 the key file path is set only in `config.json` (the menu fields showed as empty,
@@ -141,7 +141,7 @@ in the scene and in `config.json` (open question to the user, TODO hook in `AppL
 The key status (heartbeat `keys.xai.hint`, info field of tab *Voice*) says so when the key is missing or refused.
 
 The key itself never goes into `config.json` (a `key_file` value that looks like a key is
-refused) or into the log. Without a key nothing is blocked: the engine is "nicht konfiguriert"
+refused) or into the log. Without a key nothing is blocked: the engine is "not configured"
 and the fallback runs.
 
 **Real API check** (once keys exist; everything is only tested against a fake server so far):

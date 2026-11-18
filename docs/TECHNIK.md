@@ -25,12 +25,12 @@ sync. Speech only, no expressions or gestures, no proactive remarks. A few secon
 2. Start the companion app with your xAI key in the environment:
    `set XAI_API_KEY=xai-...` (Windows `cmd`; PowerShell: `$env:XAI_API_KEY="xai-..."`), then
    `python -m aibody_companion --vam-root "C:/VaM"`.
-3. Plugin tab *Voice* > section *Voice Mode* > **Einfacher Q&A-Modus** (sets AI mode `qa` and Body control off;
+3. Plugin tab *Voice* > section *Voice Mode* > **Simple Q&A mode** (sets AI mode `qa` and Body control off;
    scenes from 0.7.1 still have `auto`).
-4. **Test-Ton abspielen** (tone from the package) and **Test-Ton über Companion** (tone through the
+4. **Play test tone** (tone from the package) and **Test tone via companion** (tone through the
    app's audio folder): both must be heard.
 5. Ask a question, or type `Hallo` + Enter in the companion console (same path without the mic).
-   The status box shows `Letzte Runde: Gehört: ... / Antwort ...` or a red error line.
+   The status box shows `Last turn: Heard: ... / Answer ...` or a red error line.
 
 Without an xAI key the same flow runs on the offline test engines ("You said: ..." with a tone)
 and the status says so. If realtime is selected (`auto` / `realtime`) but not connected, or it does
@@ -173,7 +173,7 @@ d0n.AIBody.17.var
 Then follow the [load flow](#load-flow-the-whole-setup). If VaM asks whether to enable plugins
 from this package, allow it. Keep the character's **Auto Behaviors > Lip Sync** enabled. Optional:
 copy `examples/expressions.json` and `examples/gestures.json` to `<VaM>/Saves/PluginData/AIBody/`
-and press **Ausdrücke neu laden (expressions.json)** / **Posen neu laden** (tab *AI Character*).
+and press **Reload expressions (expressions.json)** / **Reload poses** (tab *AI Character*).
 
 Loose files instead of the package (handy while developing): copy `src/AIBody/` to
 `<VaM>/Custom/Scripts/d0n/AIBody/` (or run
@@ -186,22 +186,22 @@ Since 0.6.2 the plugin window always starts with the status box, built before an
 version 16 it shows only the open tab; since version 17 it is 1800 high and the only element of the
 left column (the header line above it is gone). First line: version and start result
 (failures red), then the tab's info. Self test, recent events and start log are in the tab *Config*,
-the connection lines (*Verbindung*) in *Voice*, the body lines (*Körper*) in *AI Character*. It shows:
+the connection lines (*Connection*) in *Voice*, the body lines (*Body*) in *AI Character*. It shows:
 
 - **Info: <tab>**: help and status for the open tab (Voice: Q&A and AI mode help, key and engine
   status; AI Character: pose count; Client Character: push-to-talk help, microphone status;
   Config: config.json path, channel, result of Reload Config JSON).
 
-- **Selbsttest**: Person atom yes/no, head audio (`HeadAudioSource`) found, morphs (`geometry`)
+- **Self-test**: Person atom yes/no, head audio (`HeadAudioSource`) found, morphs (`geometry`)
   found, pose storage (`PosePresets` with `presetBrowsePath`), pose count (and preset files found
   with `GetFiles` on `Custom/Atom/Person/Pose`), breath morph found, expression morphs x of y found
   (missing names listed), Timeline storable present for `timeline` gestures (version 13),
   `Saves/PluginData/AIBody/<channel>` writable, companion app heartbeat seen. The body checks are
   recomputed at most every 5 s and sent as `selftest` in `ready`/`heartbeat`; the companion logs
-  them as `Plugin-Selbsttest: …` once per change (warning when something is missing).
-- **Verbindung** (tab Voice) / **Körper** (tab AI Character): link state, companion app, audio,
+  them as `Plugin self-test: …` once per change (warning when something is missing).
+- **Connection** (tab Voice) / **Body** (tab AI Character): link state, companion app, audio,
   last turn, latency / speech, expression, breath morph (the channel folder is in the tab Config).
-- **Start-Protokoll**: every Init step (`ok: ...`) and every failure as
+- **Startup log**: every Init step (`ok: ...`) and every failure as
   `FEHLER in <phase>: <exception type>: <message> | at <first stack line>`.
 
 Every phase (AppLink, Body, storables, controllers, each UI block, link start) runs on its own: a
@@ -219,14 +219,14 @@ All settings (menu, `config.json`, command line) are documented in German in the
 **Menu rule:** the menu shows only what can be configured. Pure path / info displays were removed in
 0.7.4 (the folders are written once to the VaM log: `Settings file: ... | Expressions: ... | Gestures: ... | Audio ...`); texts that explain or
 report a control (mode help, push-to-talk help, key / engine / mic status) stay. The status box shows
-`Latenz bis zum ersten Ton: X s (Ø Y s, n Runden)` with the breakdown (see *Latency* below).
+`Latency to first sound: X s (avg Y s, n turns)` with the breakdown (see *Latency* below).
 
-**Sound check (no AI needed):** *Voice* > **Test-Ton abspielen** plays `AIBodyTest.wav` from
-the package on the head audio (no companion app involved); **Test-Ton über Companion** lets the
+**Sound check (no AI needed):** *Voice* > **Play test tone** plays `AIBodyTest.wav` from
+the package on the head audio (no companion app involved); **Test tone via companion** lets the
 app write a WAV into its audio folder and sends it like an answer. The status box shows
 `Audio: Lade / Spreche: <file> / Fertig` or a red `Audio-Fehler: <reason>` (file missing, could not
-be queued, no head audio, clip never started, speech volume 0), plus `Audio-Ordner: <folder>` and
-`Letzte Runde: ...` (what was heard and answered, or which step failed) from the companion app.
+be queued, no head audio, clip never started, speech volume 0), plus `Audio folder: <folder>` and
+`Last turn: ...` (what was heard and answered, or which step failed) from the companion app.
 
 **Audio folder:** the companion writes the speech WAVs to `Custom/Sounds/AIBody/<channel>/`,
 below VaM's own folder for audio files (public plugins load audio from `Custom/` and packages; none
@@ -243,7 +243,7 @@ ElevenLabs settings) for the companion app; the plugin sets only its tab control
 voice, proactive, voice barge-in, key file paths) and keeps the rest.
 
 If the companion app is missing or crashes, the plugin keeps running: the status shows
-"GETRENNT", unread files in the channel folder are kept small (old commands are dropped, at most 20
+"DISCONNECTED", unread files in the channel folder are kept small (old commands are dropped, at most 20
 old events are kept), and the link comes back by itself as soon as the app runs again. If the app
 restarted while the body was speaking, the old speech is cancelled.
 
@@ -288,13 +288,13 @@ Switch on **Verbose log** in the plugin tab *Config* (or `"advanced": {"verbose_
   (`companion.log.1` ... `.5`). API keys never appear: keys read from the environment or a key file,
   `Bearer ...` and anything shaped like `xai-...` / `sk-...` are replaced by `***`.
 - **Plugin:** `[debug]` lines in the VaM log (command received / failed, `PlayNow`, speaking, ended)
-  and the last 8 of them under *Letzte Ereignisse* in the status box.
+  and the last 8 of them under *Recent events* in the status box.
 
 ### AI modes (companion app)
 
 | `ai.mode` | what runs |
 |-----------|-----------|
-Plugin: tab *Voice* > **AI mode**, or *Voice* > section *Voice Mode* > **Echtzeit (Realtime) verwenden**
+Plugin: tab *Voice* > **AI mode**, or *Voice* > section *Voice Mode* > **Use realtime voice**
 (on = `auto`, off = `qa`).
 
 | `qa` (default) | simple Q&A: the chain below with `xai` instead of the offline test engines when an xAI key exists, speech only (no expressions / gestures), no proactive remarks |
@@ -338,8 +338,8 @@ There is no look-at tool: AIBody has no gaze control.
 
 Measured per turn from the end of your speech (VAD end, push-to-talk release, Enter in the console;
 realtime: the server's `speech_stopped`) to the first sound (the plugin's `speech_started`).
-Breakdown (chain): STT, LLM erstes Token, erster Satz, TTS, Datei, an Plugin, Plugin-Start;
-(realtime): Server erstes Audio, Segment, an Plugin, Plugin-Start. One INFO line per turn in the
+Breakdown (chain): STT, LLM first token, first sentence, TTS, file write, to plugin, plugin start;
+(realtime): server first audio, segment, to plugin, plugin start. One INFO line per turn in the
 console / `companion.log` (`Latenz t0003 bis zum ersten Ton: 2.41 s – STT 0.80 · ...`), a trace step
 in the verbose log, and the last value plus the average of the last 10 turns in the plugin status box.
 
@@ -361,7 +361,7 @@ One answer = speech to text -> language model -> text to speech, chosen in the p
 - Every TTS engine writes 16-bit PCM WAV into the channel's `audio/` folder (VaM's audio loader
   plays WAV; WAV also gives the exact duration for the echo gate).
 - **Keys:** environment variable, or the PATH of a key file (`ai.xai.key_file`, `ai.elevenlabs.key_file` in `config.json`; no menu field since version 15). Never the key itself in `config.json` or the
-  repository. Without a key the engine stays selectable but shows **"nicht konfiguriert"** in the
+  repository. Without a key the engine stays selectable but shows **"not configured"** in the
   info field and the fallback (`ai.fallback`, default `null` / `echo` / `tone`) runs. A key file
   added later is picked up within 10 s; a new environment variable needs an app restart.
 - If a request fails, that sentence / answer uses the fallback engine; nothing stops.
@@ -501,6 +501,6 @@ raw, the input devices per host API and the exact list the companion sends (`lis
 and writes `mic_test_output.txt` and `mic_test_devices.json`. With `--vam-root` it also puts that
 `devices` command into the plugin's inbox (same file format as the companion's `FileTransport`), so
 the plugin's menu can be checked without the companion. The plugin's menu entries come from
-`MicDeviceList.Build` (always `Standard (System-Mikrofon)` first, plain choices, no
+`MicDeviceList.Build` (always `System default microphone` first, plain choices, no
 `displayChoices`); `companion/tests/test_mic_device_list_cs.py` runs its tests with plain .NET.
 
