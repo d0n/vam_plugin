@@ -59,6 +59,7 @@ Stand: 17.11.2026, Version 12. Übersicht, was umgesetzt ist und was offen ist; 
 - Das Menü zeigt nur Einstellbares (Leon, 17.11.2026 21:43): reine Pfad-/Info-Anzeigen in Post, Config und AI Character entfernt, nicht verschoben; Pfade stehen einmal im VaM-Log; Erklär-/Statustexte zu Bedienelementen bleiben – v0.7.4.
 - Push-to-Talk-Erklärtext unter dem Schalter statt Tooltip (kein belegter Weg) – v0.7.2, erneut geprüft v0.7.3; seit Version 15 im Infofeld links.
 - Ein großes Infofeld links für alle Hilfe-, Status- und Pfadtexte („Info: <Tab>“, Selbsttest, Live, Start-Protokoll); in den Tabs nur Bedienelemente; keine leeren Platzhalter; Eingabefelder beschriftet; Namen selbsterklärend (AI Character, Client Character) – Version 15 (Leon, 17.11.2026).
+- Infofeld 1800 hoch, links nur das Infofeld (Kopfzeile mit Hinweis entfernt), Infotexte gekürzt, „Ausdrücke neu laden“ beim Ausdruck – Version 17 (Leon, 18.11.2026).
 - Infofeld größer (1600) und nur mit den Infos des offenen Tabs; Selbsttest, Letzte Ereignisse, Start-Protokoll im Tab Config; Startergebnis als eine Zeile auf jedem Tab; keine leere Posen-Auswahl; geprüft: kein Menü und kein Abschnitt, der nur „default“ zeigt – Version 16 (Leon, 18.11.2026).
 - „Posen“ statt „Post“: Tab Post entfernt, Posen im Tab AI Character; Erweitert in Config aufgegangen – Version 15. Ursprüngliche Absicht der entfernten Einträge: `docs/BACKLOG.md`.
 
@@ -105,7 +106,7 @@ Stand: 17.11.2026, Version 12. Übersicht, was umgesetzt ist und was offen ist; 
 - Morph-Namen für Ausdrücke an Standard-Figuren (weiblich/männlich).
 - Szene: Personen in Blickrichtung +Z (0°/180° = einander zugewandt), Aussehen ohne festgelegte Kleidung, Camera Background Color auf einem Person-Atom.
 - Ursache des leeren Mikrofon-Menüs bei Leon (Version 16): Vermutung `displayChoices` (einzige Auswahl des Plugins damit); Bestätigung über Screenshot des Infofelds (Zeile „Menü Mic device: N Einträge …“) und Ausgabe von `tools/mic_test.py` steht aus.
-- Sichtbare Höhe des Infofelds (1600) in VaM.
+- Sichtbare Höhe des Infofelds (1800) in VaM.
 
 ### Offene Fragen an Leon
 - Direktes API-Key-Feld im Plugin (Klartext in Szene/config.json)? Nicht gebaut, siehe Backlog.

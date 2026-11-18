@@ -283,3 +283,8 @@ from `Exception.ToString()`, not from reflection. The only additions outside the
 - Info field: same status `CreateTextField`, height 1600 (TODO(verify): visible height in VaM).
 - No new VaM API; no `foreach` over Dictionary `.Keys`/`.Values` (CS584 rule).
 
+## Version 17: info field
+
+- No new VaM API. One `CreateTextField` less (the left header line); the info field is 1800 high
+  (TODO(verify): visible height in VaM). Button label changes only (`CreateButton` text), no
+  storable names changed. No `foreach` over Dictionary `.Keys`/`.Values` (CS584 rule).

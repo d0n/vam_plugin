@@ -64,7 +64,7 @@ Tabs ab Version 15: Voice, AI Character, Client Character, Config (davor: Voice 
 2. Tab **Voice** öffnen: oben Abschnitt *Voice Mode*, darunter *Voice > AI Character*; die Auswahllisten öffnen. Im Infofeld: Q&A-Hilfe, AI-mode-Hilfe, Key-Status, Engine-Status.
 3. Tab **Config**: **Reload Config JSON** drücken; im Infofeld stehen Pfad der config.json, Kanal und das Ergebnis.
 4. Tab **AI Character**: Abschnitt **Posen** vorhanden; ins beschriftete Feld unter „Atem-Morph“ klicken und einen Buchstaben ändern, dann zurück.
-5. Alle vier Tabs einmal durchklicken. Es darf kein leeres Feld, keine leere Auswahl und kein Feld nur mit einem Tab-Namen erscheinen. Ab Version 16: das Infofeld zeigt nur die Infos des offenen Tabs; Selbsttest und Start-Protokoll stehen im Tab Config; oben steht `Start: ok` (oder rot die Fehler).
+5. Alle vier Tabs einmal durchklicken. Es darf kein leeres Feld, keine leere Auswahl und kein Feld nur mit einem Tab-Namen erscheinen. Ab Version 16: das Infofeld zeigt nur die Infos des offenen Tabs (ab Version 17 ohne Kopfzeile darüber, 1800 hoch: muss man noch scrollen?); Selbsttest und Start-Protokoll stehen im Tab Config; oben steht `Start: ok` (oder rot die Fehler).
 
 Melden: Zeigt die Geräteliste die echten Mikrofone? Lässt sich in das Atem-Morph-Feld tippen? Steht
 im Infofeld zu jedem Tab passende Hilfe? Wechseln die Tabs
@@ -111,8 +111,8 @@ einer Minute ohne App in `Saves/PluginData/AIBody/default/outbox/` (sollten höc
 3. Einen Satz in der Companion-App tippen.
 
 Melden: Steht im Infofeld links „Text-to-speech: elevenlabs – nicht konfiguriert: …“ und
-„läuft stattdessen: tone (Fallback)“? Spricht die Figur trotzdem (Summton)? Steht unter *Live*
-„Engines aktiv: STT null, LLM echo, TTS tone (Fallback …)“? Danach wieder `tone` auswählen.
+„läuft stattdessen: tone (Fallback)“? Spricht die Figur trotzdem (Summton)? (Ab Version 17 steht die
+Engine-Zeile nur noch einmal, im Engine-Status.) Danach wieder `tone` auswählen.
 
 ---
 

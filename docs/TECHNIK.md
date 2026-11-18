@@ -173,7 +173,7 @@ d0n.AIBody.16.var
 Then follow the [load flow](#load-flow-the-whole-setup). If VaM asks whether to enable plugins
 from this package, allow it. Keep the character's **Auto Behaviors > Lip Sync** enabled. Optional:
 copy `examples/expressions.json` and `examples/gestures.json` to `<VaM>/Saves/PluginData/AIBody/`
-and press **Reload Expressions** / **Posen neu laden** (tab *AI Character*).
+and press **Ausdrücke neu laden (expressions.json)** / **Posen neu laden** (tab *AI Character*).
 
 Loose files instead of the package (handy while developing): copy `src/AIBody/` to
 `<VaM>/Custom/Scripts/d0n/AIBody/` (or run
@@ -182,9 +182,9 @@ Loose files instead of the package (handy while developing): copy `src/AIBody/` 
 
 ### If the plugin window looks wrong (troubleshooting)
 
-Since 0.6.2 the plugin window always starts with the header and a status box, built before
-anything else. Since version 15 it is the ONE big info field (the tabs hold only controls). Since
-version 16 it is 1600 high and shows only the open tab: a first line with version and start result
+Since 0.6.2 the plugin window always starts with the status box, built before anything else. Since version 15 it is the ONE big info field (the tabs hold only controls). Since
+version 16 it shows only the open tab; since version 17 it is 1800 high and the only element of the
+left column (the header line above it is gone). First line: version and start result
 (failures red), then the tab's info. Self test, recent events and start log are in the tab *Config*,
 the connection lines (*Verbindung*) in *Voice*, the body lines (*Körper*) in *AI Character*. It shows:
 
@@ -199,7 +199,8 @@ the connection lines (*Verbindung*) in *Voice*, the body lines (*Körper*) in *A
   `Saves/PluginData/AIBody/<channel>` writable, companion app heartbeat seen. The body checks are
   recomputed at most every 5 s and sent as `selftest` in `ready`/`heartbeat`; the companion logs
   them as `Plugin-Selbsttest: …` once per change (warning when something is missing).
-- **Live**: link state, folder, companion app, speech, expression, breath morph.
+- **Verbindung** (tab Voice) / **Körper** (tab AI Character): link state, companion app, audio,
+  last turn, latency / speech, expression, breath morph (the channel folder is in the tab Config).
 - **Start-Protokoll**: every Init step (`ok: ...`) and every failure as
   `FEHLER in <phase>: <exception type>: <message> | at <first stack line>`.
 
