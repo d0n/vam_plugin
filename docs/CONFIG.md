@@ -130,8 +130,8 @@ of *Voice > AI Character*, as before.
 
 Since version 15 the key file path is set only in `config.json` (the menu fields showed as empty,
 unlabeled boxes in VaM and were removed); after editing the file press **Reload Config JSON** (tab
-*Config*) or reload the scene. The key status in the info field (tab *Voice*) shows per provider **konfiguriert**,
-**fehlt** or **abgelehnt** (the server refused the key with HTTP 401/403). Something that looks like
+*Config*) or reload the scene. The key status in the info field (tab *Voice*) shows per provider **configured**,
+**missing** or **rejected** (the server refused the key with HTTP 401/403). Something that looks like
 a pasted key (starts with `xai-` / `sk_`, or a long string without `/ \ .`) is refused by the
 plugin and the app and never stored. A direct key field is not built: it would be saved readably
 in the scene and in `config.json` (open question to the user, TODO hook in `AppLink.cs`).
@@ -146,7 +146,7 @@ and the fallback runs.
 
 **Real API check** (once keys exist; everything is only tested against a fake server so far):
 type a line into the companion app with `llm: xai`, `tts: xai` or `elevenlabs`, and watch its log
-for `Engine ... bereit`, the spoken sentences and any `failed (...)` warnings.
+for `Engine ... ready`, the spoken sentences and any `failed (...)` warnings.
 
 ## What xAI offers for speech (checked on docs.x.ai, 17.11.2026)
 

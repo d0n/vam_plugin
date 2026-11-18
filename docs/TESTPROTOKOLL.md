@@ -13,9 +13,9 @@ nach durchgehen und das Ergebnis eintragen (✅ / ❌ / unklar). Dauer: etwa 20 
 **Vorbereitung**
 
 - VaM schließen. In `<VaM-Hauptordner>/AddonPackages/` alle alten AIBody-Pakete löschen:
-  `d0n.AIBody.1.var` bis `d0n.AIBody.16.var`, `d0n.AIBodySession.*`, `d0n.AIBodyPerson.*`,
+  `d0n.AIBody.1.var` bis `d0n.AIBody.17.var`, `d0n.AIBodySession.*`, `d0n.AIBodyPerson.*`,
   `d0n.AIBodyPerson2.*`. Lose Dateien unter `Custom/Scripts/d0n/AIBody/` ebenfalls entfernen.
-- `d0n.AIBody.17.var` nach `<VaM-Hauptordner>/AddonPackages/` kopieren.
+- `d0n.AIBody.18.var` nach `<VaM-Hauptordner>/AddonPackages/` kopieren.
 - Companion-App bereithalten (noch **nicht** starten):
   `python -m aibody_companion --vam-root "C:/VaM"` (Pfad zum eigenen VaM-Ordner anpassen).
   Für T9 vorher den xAI-Key setzen: `set XAI_API_KEY=xai-...` (cmd) bzw. `$env:XAI_API_KEY="xai-..."` (PowerShell).
@@ -64,7 +64,7 @@ Tabs ab Version 15: Voice, AI Character, Client Character, Config (davor: Voice 
 2. Tab **Voice** öffnen: oben Abschnitt *Voice Mode*, darunter *Voice > AI Character*; die Auswahllisten öffnen. Im Infofeld: Q&A-Hilfe, AI-mode-Hilfe, Key-Status, Engine-Status.
 3. Tab **Config**: **Reload Config JSON** drücken; im Infofeld stehen Pfad der config.json, Kanal und das Ergebnis.
 4. Tab **AI Character**: Abschnitt **Poses** vorhanden; ins beschriftete Feld unter „Breath morph“ klicken und einen Buchstaben ändern, dann zurück.
-5. Alle vier Tabs einmal durchklicken. Es darf kein leeres Feld, keine leere Auswahl und kein Feld nur mit einem Tab-Namen erscheinen. Ab Version 16: das Infofeld zeigt nur die Infos des offenen Tabs (ab Version 17 ohne Kopfzeile darüber, 1800 hoch: muss man noch scrollen?); Selbsttest und Startup log stehen im Tab Config; oben steht `Start: ok` (oder rot die Fehler).
+5. Alle vier Tabs einmal durchklicken. Es darf kein leeres Feld, keine leere Auswahl und kein Feld nur mit einem Tab-Namen erscheinen. Ab Version 16: das Infofeld zeigt nur die Infos des offenen Tabs (ab Version 17 ohne Kopfzeile darüber, 1800 hoch: muss man noch scrollen?); Selbsttest und Startup log stehen im Tab Config; oben steht `Startup: ok` (oder rot die Fehler).
 
 Melden: Zeigt die Geräteliste die echten Mikrofone? Lässt sich in das Atem-Morph-Feld tippen? Steht
 im Infofeld zu jedem Tab passende Hilfe? Wechseln die Tabs
@@ -111,7 +111,7 @@ einer Minute ohne App in `Saves/PluginData/AIBody/default/outbox/` (sollten höc
 3. Einen Satz in der Companion-App tippen.
 
 Melden: Steht im Infofeld links „Text-to-speech: elevenlabs – not configured: …“ und
-„läuft stattdessen: tone (Fallback)“? Spricht die Figur trotzdem (Summton)? (Ab Version 17 steht die
+„running instead: tone (fallback)“? Spricht die Figur trotzdem (Summton)? (Ab Version 17 steht die
 Engine-Zeile nur noch einmal, im Engine-Status.) Danach wieder `tone` auswählen.
 
 ---
@@ -147,7 +147,7 @@ nicht nötig.
 1. Tab **Voice** > **Simple Q&A mode** (setzt AI mode `qa` und Body control aus; prüfen im
    Tab **AI Character**). **Speech volume** auf 1.
 2. Tab **Voice** > **Play test tone** (spielt die Datei aus dem Paket, ohne Companion-App).
-   Im Statusfeld unter *Live* steht `Audio: Lade: AIBodyTest.wav`, dann `Spreche: AIBodyTest.wav (1.5 s)`, dann `Fertig: …`.
+   Im Statusfeld unter *Live* steht `Audio: Loading: AIBodyTest.wav`, dann `Speaking: AIBodyTest.wav (1.5 s)`, dann `Done: …`.
 3. Companion-App mit xAI-Key starten, dann **Test tone via companion** (Datei aus
    `Custom/Sounds/AIBody/default/`). Unter *Live* steht `Audio folder: …`.
 4. In der Companion-Konsole `Hallo` tippen + Enter (gleicher Weg wie gesprochen, nur ohne Mikrofon).

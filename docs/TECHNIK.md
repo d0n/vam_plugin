@@ -6,9 +6,9 @@ German [README](../README.md).
 
 ## Load flow (the whole setup)
 
-1. Copy `d0n.AIBody.17.var` to `<VaM>/AddonPackages/` (remove older AIBody packages, see below).
+1. Copy `d0n.AIBody.18.var` to `<VaM>/AddonPackages/` (remove older AIBody packages, see below).
 2. In VaM select the AI character's Person atom > **Plugins** tab > **Add Plugin** > choose
-   `AddonPackages > d0n.AIBody.17:/Custom/Scripts/d0n/AIBody/AIBody.cslist`.
+   `AddonPackages > d0n.AIBody.18:/Custom/Scripts/d0n/AIBody/AIBody.cslist`.
 3. Start the companion app: `python -m aibody_companion --vam-root "C:/VaM"`.
 
 That's it. The plugin's status box shows "Companion app: running ..." once both sides see each
@@ -145,22 +145,22 @@ tools/                     assemble_plugins.py (plugin folder), build_var.py (pa
 
 ### Install the package
 
-Download `d0n.AIBody.17.var` from the [releases](https://github.com/d0n/vam_plugin/releases), or
-build it with `python tools/build_var.py` (writes `dist/d0n.AIBody.17.var`), and copy it to:
+Download `d0n.AIBody.18.var` from the [releases](https://github.com/d0n/vam_plugin/releases), or
+build it with `python tools/build_var.py` (writes `dist/d0n.AIBody.18.var`), and copy it to:
 
 ```
-<VaM>/AddonPackages/d0n.AIBody.17.var
+<VaM>/AddonPackages/d0n.AIBody.18.var
 ```
 
 Remove all older AIBody packages from `AddonPackages`: `d0n.AIBody.1.var`, `d0n.AIBody.2.var`,
-`d0n.AIBody.3.var` to `d0n.AIBody.16.var`, `d0n.AIBodySession.*.var`, `d0n.AIBodyPerson.*.var`,
+`d0n.AIBody.3.var` to `d0n.AIBody.18.var`, `d0n.AIBodySession.*.var`, `d0n.AIBodyPerson.*.var`,
 `d0n.AIBodyPerson2.*.var`. Scenes saved with an older package point at that package's path, so
-remove the old plugin entry from the character and add `d0n.AIBody.17` again, then save.
+remove the old plugin entry from the character and add `d0n.AIBody.18` again, then save.
 
 Contents:
 
 ```
-d0n.AIBody.17.var
+d0n.AIBody.18.var
 ├── meta.json
 └── Custom/Scripts/d0n/AIBody/
     ├── AIBody.cslist
@@ -224,7 +224,7 @@ report a control (mode help, push-to-talk help, key / engine / mic status) stay.
 **Sound check (no AI needed):** *Voice* > **Play test tone** plays `AIBodyTest.wav` from
 the package on the head audio (no companion app involved); **Test tone via companion** lets the
 app write a WAV into its audio folder and sends it like an answer. The status box shows
-`Audio: Lade / Spreche: <file> / Fertig` or a red `Audio-Fehler: <reason>` (file missing, could not
+`Audio: Loading / Speaking: <file> / Done` or a red `Audio error: <reason>` (file missing, could not
 be queued, no head audio, clip never started, speech volume 0), plus `Audio folder: <folder>` and
 `Last turn: ...` (what was heard and answered, or which step failed) from the companion app.
 
