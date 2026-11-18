@@ -272,3 +272,14 @@ from `Exception.ToString()`, not from reflection. The only additions outside the
   except section headers and the label above the breath morph field. The big info field is the
   existing status `CreateTextField`, taller (1200). No `foreach` over Dictionary `.Keys`/`.Values`
   (CS584 rule, version 14).
+
+## Version 16: mic menu, info field
+
+- **Less API, not more.** The mic chooser no longer sets `displayChoices` (it was the only chooser of
+  the plugin with it and showed "(not selected)" with an empty list in VaM). It now uses only
+  `choices` like the pose, expression, voice and engine choosers (E9, E24, E25). TODO(verify): that
+  `displayChoices` was the cause; the info field lists the menu entries read back from `choices`.
+- `CreateScrollablePopup` (E24) and `popupOpenCallback` (E25) stay as before.
+- Info field: same status `CreateTextField`, height 1600 (TODO(verify): visible height in VaM).
+- No new VaM API; no `foreach` over Dictionary `.Keys`/`.Values` (CS584 rule).
+

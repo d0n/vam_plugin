@@ -64,7 +64,7 @@ Tabs ab Version 15: Voice, AI Character, Client Character, Config (davor: Voice 
 2. Tab **Voice** öffnen: oben Abschnitt *Voice Mode*, darunter *Voice > AI Character*; die Auswahllisten öffnen. Im Infofeld: Q&A-Hilfe, AI-mode-Hilfe, Key-Status, Engine-Status.
 3. Tab **Config**: **Reload Config JSON** drücken; im Infofeld stehen Pfad der config.json, Kanal und das Ergebnis.
 4. Tab **AI Character**: Abschnitt **Posen** vorhanden; ins beschriftete Feld unter „Atem-Morph“ klicken und einen Buchstaben ändern, dann zurück.
-5. Alle vier Tabs einmal durchklicken. Es darf kein leeres Feld und kein Feld nur mit einem Tab-Namen erscheinen.
+5. Alle vier Tabs einmal durchklicken. Es darf kein leeres Feld, keine leere Auswahl und kein Feld nur mit einem Tab-Namen erscheinen. Ab Version 16: das Infofeld zeigt nur die Infos des offenen Tabs; Selbsttest und Start-Protokoll stehen im Tab Config; oben steht `Start: ok` (oder rot die Fehler).
 
 Melden: Zeigt die Geräteliste die echten Mikrofone? Lässt sich in das Atem-Morph-Feld tippen? Steht
 im Infofeld zu jedem Tab passende Hilfe? Wechseln die Tabs
@@ -182,10 +182,12 @@ bitte trotzdem kurz reinschauen) und einen Screenshot des Statusfelds mit *Letzt
 
 ## T11 – Mikrofon-Menü, Posen-Menü, KI-Körpersteuerung, Latenz (ab v0.7.4)
 
-1. Tab **Client Character** > **Mikrofone neu laden**. Im Infofeld links steht
-   `Mikrofone: N gefunden (Windows WASAPI o. Ä.), Auswahl: …` oder rot `Mikrofone: 0 gefunden – <Grund>`.
-   Die Companion-Konsole zeigt `Mikrofone: N gefunden (…): …`. Menü **Mic device** öffnen: erster
-   Eintrag `Standard (System-Mikrofon)`, darunter jedes Mikrofon einmal. Eins wählen, sprechen
+1. Tab **Client Character** > **Mikrofone neu laden**. Im Infofeld links steht (ab Version 16)
+   `Mikrofon-Liste: N empfangen von der Companion-App (Host-API …) um HH:MM:SS, angefordert HH:MM:SS`
+   oder rot mit Grund, darunter `Menü Mic device: M Einträge: Standard (System-Mikrofon), …` und
+   `Auswahl: … | Windows-Standard: …`. Die Companion-Konsole zeigt `Mikrofone: N gefunden (…): …`.
+   Menü **Mic device** öffnen: erster Eintrag `Standard (System-Mikrofon)` (auch ohne App), darunter
+   jedes Mikrofon einmal. Eins wählen, sprechen
    (Pegel bewegt sich), Szene speichern, neu laden: die Wahl ist noch da.
 2. Tab **AI Character** > Abschnitt **Posen**: Menü öffnen (Posen aus `gestures.json` und aus
    `<VaM>/Custom/Atom/Person/Pose/` bzw. `.../Pose/AIBody/`), eine wählen, **Pose anwenden**.
@@ -200,8 +202,20 @@ bitte trotzdem kurz reinschauen) und einen Screenshot des Statusfelds mit *Letzt
 6. Tab **Voice** ohne Key: im Infofeld Key-Status `fehlt` mit `nötig: API-Key von console.x.ai … ein Grok-Abo /
    grok.com-Token funktioniert nicht`.
 
-Melden: Screenshot von Mikrofon-Statuszeile und Menü, Screenshot des Statusfelds mit der Latenz,
-Konsolenausgabe.
+Melden: Screenshot von Infofeld und geöffnetem Menü **Mic device**, Screenshot des Statusfelds mit der
+Latenz, Konsolenausgabe.
+
+### T11a – Mikrofon-Test ohne VaM (`tools/mic_test.py`, ab Version 16)
+
+1. Companion-App beenden. Im Repo-Ordner (nach `git pull`): `python tools/mic_test.py`.
+   Ausgabe: Versionen, Host-APIs, alle Geräte roh, Eingabegeräte je Host-API, die Liste, die die App
+   an das Plugin schickt. Dateien `mic_test_output.txt` und `mic_test_devices.json` im aktuellen Ordner.
+2. VaM mit der Szene offen, Tab **Client Character**:
+   `python tools/mic_test.py --vam-root "<VaM-Hauptordner>"` (bei anderem Kanal `--channel <Kanal>`).
+   Das Skript legt die Liste in `<VaM>/Saves/PluginData/AIBody/<Kanal>/inbox/`. Erwartet: Infofeld zeigt
+   `Mikrofon-Liste: N empfangen …`, das Menü **Mic device** die Mikrofone.
+
+Melden: `mic_test_output.txt`, Screenshot von Infofeld und geöffnetem Menü nach Schritt 2.
 
 **Ergebnis zurückschicken:** pro Punkt T1–T11 ✅/❌, die Screenshots, die roten „AIBody:“-Zeilen und
 bei Problemen mit einer Antwort die Datei `companion.log` (mit eingeschaltetem Verbose log).

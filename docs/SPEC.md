@@ -46,6 +46,9 @@ Vereinbarter Stand, was gilt. Status (umgesetzt/offen): [`ANFORDERUNGEN.md`](ANF
 - Aufnahme, Geräteliste, VAD und Echo-Sperre nur in der Begleit-App.
 - Push-to-Talk wird im Plugin geschaltet und an die App gemeldet; Push-to-Talk unterbricht die laufende Antwort.
 - Gerätemenü listet die Mikrofone der App (ein Eintrag je Gerät), Eintrag „Standard (System-Mikrofon)“, Knopf „Mikrofone neu laden“, Statuszeile mit Geräteanzahl bzw. Fehlergrund; Wahl wird angewendet und gespeichert.
+- „Standard (System-Mikrofon)“ steht immer im Menü, auch ohne Liste der App (Version 16). Menüeinträge = Gerätenamen ohne Zusätze.
+- Infofeld (Tab Client Character) zeigt: wie viele Mikrofone von der App empfangen wurden, Host-API, Uhrzeit von Anfrage und Antwort, die Einträge des Menüs, Auswahl, Windows-Standardgerät (Version 16).
+- Test ohne VaM und App: `tools/mic_test.py` (Geräte roh, je Host-API, Liste wie die App sie schickt; optional in den Plugin-Eingang).
 
 ## Sprachausgabe
 - Antwort als lokale WAV-Datei, abgespielt über VaMs Audio-Lader auf der Kopf-Audioquelle mit eingebautem Lippensync; kein Download per URL.
@@ -67,7 +70,8 @@ Vereinbarter Stand, was gilt. Status (umgesetzt/offen): [`ANFORDERUNGEN.md`](ANF
 
 ## Menü
 - Das Menü zeigt nur, was sich einstellen lässt. In den Tabs stehen nur Bedienelemente (Knöpfe, Schalter, Regler, Auswahlen, beschriftete Eingabefelder), keine Text- oder Statusfelder (Leon, 17.11.2026, Version 15).
-- Alle Erklär-, Hilfe-, Status- und Pfadtexte stehen in EINEM großen Infofeld links (immer sichtbar): oben „Info: <Tab>“ mit Hilfe und Status zum offenen Tab, darunter Selbsttest, Live-Status, Letzte Ereignisse (Verbose log), Start-Protokoll.
+- Alle Erklär-, Hilfe-, Status- und Pfadtexte stehen in EINEM großen Infofeld links (immer sichtbar). Seit Version 16 nur die Infos des offenen Tabs: oben eine Zeile mit Version und Startergebnis (Fehler rot), dann „Info: <Tab>“. Voice: Hilfe, Key- und Engine-Status, Verbindung. AI Character: Posen, Hinweise, Körper-Status. Client Character: Push-to-Talk, Mikrofon. Config: config.json, Kanal, Selbsttest, Letzte Ereignisse (Verbose log), Start-Protokoll. Feld höher als in Version 15 (1600).
+- Keine leeren Auswahllisten: ohne Posen entfallen Posen-Auswahl und „Pose anwenden“ (Version 16).
 - Namen sind selbsterklärend: „AI Character“ und „Client Character“, nie nur „AI“ oder „Client“.
 - Keine leeren Platzhalter-Felder. Ein Eingabefeld zeigt in VaM nur seinen Wert, deshalb steht darüber eine Beschriftung.
 - „Posen“ statt „Post“: der frühere Tab „Post“ ist entfallen (die offene Frage „Post oder Port“ ist damit erledigt); Posen liegen im Tab AI Character.
@@ -96,4 +100,5 @@ Vereinbarter Stand, was gilt. Status (umgesetzt/offen): [`ANFORDERUNGEN.md`](ANF
 - 17.11.2026: README auf Deutsch (Zweck, Szene, zwei Figuren, vollständige Einstellungsreferenz, Hinweise für den Hub); bisheriger README-Inhalt nach `docs/TECHNIK.md`.
 - 17.11.2026 (Version 12): Versionsschema Version = Paketnummer; Szene mit zwei Personen (AI Character weiblich mit AIBody, Client Character männlich mit Camera Background Color); Regler im Plugin decken die vollen config.json-Bereiche ab.
 - 17.11.2026 (Version 13): Erweiterter Selbsttest (Pose-Speicher, Posen, Atem-Morph, Ausdrucks-Morphs, Timeline) im Statusfeld und als „Plugin-Selbsttest“ im Log der Begleit-App; Quellennennung im README (Abschnitt 6).
+- 18.11.2026 (Version 16): Mikrofon-Menü zeigt immer „Standard (System-Mikrofon)“ und die empfangenen Mikrofone (ohne getrennte Anzeigenamen); Infofeld mit Anzahl, Quelle, Uhrzeit und Menüeinträgen; `tools/mic_test.py`. Infofeld höher und nur mit den Infos des offenen Tabs (Selbsttest und Start-Protokoll im Tab Config). Keine leere Posen-Auswahl.
 - 17.11.2026 (Version 15): Menü neu nach Leons Rückmeldung aus dem VaM-Test: Tabs Voice (Voice Mode, Voice > AI Character), AI Character (mit Posen), Client Character, Config (Config + Erweitert zusammengelegt). Ein großes Infofeld links für alle Hilfe- und Statustexte; keine Textfelder in den Tabs. Beschriftung „Posen“ statt „Post“ (Frage „Post oder Port“ erledigt, Tab Post entfällt). Entfernt: Tabs AI, Post, Erweitert, Feld Channel, Key-Datei-Felder, Platzhalter Delay, Titelzeile je Tab. Key-Datei-Pfade und Kanal nur noch in config.json; die Datei gewinnt bei den Key-Datei-Pfaden.

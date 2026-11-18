@@ -43,6 +43,7 @@ Stand: 17.11.2026, Version 12. Übersicht, was umgesetzt ist und was offen ist; 
 - Push-to-Talk unterbricht die laufende Antwort; Voice barge-in (Kopfhörer) im Realtime-Modus – v0.7.0/v0.7.1.
 - Mikrofon-Einstellungen live (0,3 s nach letzter Änderung), Pegelanzeige – v0.6.3.
 - Mikrofon-Menü repariert (leeres Menü): ein Eintrag je Gerät (nur Host-API des Standardgeräts, Windows listet sonst jedes Mikro mehrfach), Öffnen per Index, Fehlergrund der App wird angezeigt, Eintrag „Standard (System-Mikrofon)“, Knopf „Mikrofone neu laden“, Statuszeile mit Geräteanzahl, Liste wird beim Öffnen neu angefragt (E24/E25) – v0.7.4.
+- Mikrofon-Menü leer in VaM („(not selected)“, nicht einmal „Standard“) – Version 16: Menü ohne getrennte Anzeigenamen (`displayChoices`), „Standard (System-Mikrofon)“ immer drin, Infofeld mit Anzahl empfangen, Host-API, Uhrzeit, Menüeinträgen; Test `tools/mic_test.py`. TODO(verify) in VaM.
 
 ### Sprachausgabe
 - VaMs Audio-Lader (`NormalizeMediaPath` → `URLAudioClipManager.QueueClip` → `PlayNow` auf `HeadAudioSource`) mit eingebautem Lippensync, nur lokale Dateien – v0.6.x.
@@ -58,6 +59,7 @@ Stand: 17.11.2026, Version 12. Übersicht, was umgesetzt ist und was offen ist; 
 - Das Menü zeigt nur Einstellbares (Leon, 17.11.2026 21:43): reine Pfad-/Info-Anzeigen in Post, Config und AI Character entfernt, nicht verschoben; Pfade stehen einmal im VaM-Log; Erklär-/Statustexte zu Bedienelementen bleiben – v0.7.4.
 - Push-to-Talk-Erklärtext unter dem Schalter statt Tooltip (kein belegter Weg) – v0.7.2, erneut geprüft v0.7.3; seit Version 15 im Infofeld links.
 - Ein großes Infofeld links für alle Hilfe-, Status- und Pfadtexte („Info: <Tab>“, Selbsttest, Live, Start-Protokoll); in den Tabs nur Bedienelemente; keine leeren Platzhalter; Eingabefelder beschriftet; Namen selbsterklärend (AI Character, Client Character) – Version 15 (Leon, 17.11.2026).
+- Infofeld größer (1600) und nur mit den Infos des offenen Tabs; Selbsttest, Letzte Ereignisse, Start-Protokoll im Tab Config; Startergebnis als eine Zeile auf jedem Tab; keine leere Posen-Auswahl; geprüft: kein Menü und kein Abschnitt, der nur „default“ zeigt – Version 16 (Leon, 18.11.2026).
 - „Posen“ statt „Post“: Tab Post entfernt, Posen im Tab AI Character; Erweitert in Config aufgegangen – Version 15. Ursprüngliche Absicht der entfernten Einträge: `docs/BACKLOG.md`.
 
 ### Version und Konfiguration
@@ -102,7 +104,8 @@ Stand: 17.11.2026, Version 12. Übersicht, was umgesetzt ist und was offen ist; 
 - Storable „PosePresets“ folgt dem belegten Muster (1.22).
 - Morph-Namen für Ausdrücke an Standard-Figuren (weiblich/männlich).
 - Szene: Personen in Blickrichtung +Z (0°/180° = einander zugewandt), Aussehen ohne festgelegte Kleidung, Camera Background Color auf einem Person-Atom.
-- Ursache des leeren Mikrofon-Menüs bei Leon: aus dem Code abgeleitet, Bestätigung über Statuszeile/Konsole steht aus.
+- Ursache des leeren Mikrofon-Menüs bei Leon (Version 16): Vermutung `displayChoices` (einzige Auswahl des Plugins damit); Bestätigung über Screenshot des Infofelds (Zeile „Menü Mic device: N Einträge …“) und Ausgabe von `tools/mic_test.py` steht aus.
+- Sichtbare Höhe des Infofelds (1600) in VaM.
 
 ### Offene Fragen an Leon
 - Direktes API-Key-Feld im Plugin (Klartext in Szene/config.json)? Nicht gebaut, siehe Backlog.

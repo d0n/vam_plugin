@@ -106,6 +106,7 @@ src/AIBody/                the plugin (C# 6), one flat folder = what ships
   AppLink.cs                 companion app link: transport, channel, heartbeat, engine menus
   FileTransport.cs           JSON files in Saves/PluginData via FileManagerSecure
   ITransport.cs              transport interface
+  MicDeviceList.cs           mic menu entries (pure list logic, tested with plain .NET: tools/cs_tests)
   MicConfig.cs               microphone menu, device list, push-to-talk, level meter
   Body.cs                    the character: settings, controllers, body state for heartbeats
   CommandRouter.cs           dispatches body commands, ack / error events
@@ -163,7 +164,7 @@ d0n.AIBody.15.var
 ├── meta.json
 └── Custom/Scripts/d0n/AIBody/
     ├── AIBody.cslist
-    └── Log.cs, Diag.cs, Protocol.cs, UiHelper.cs, ITransport.cs, FileTransport.cs, MicConfig.cs,
+    └── Log.cs, Diag.cs, Protocol.cs, UiHelper.cs, ITransport.cs, FileTransport.cs, MicDeviceList.cs, MicConfig.cs,
         AppLink.cs, MorphHelper.cs, SpeechPlayer.cs, ExpressionController.cs,
         BreathingController.cs, IdleController.cs, PoseController.cs, CommandRouter.cs,
         Body.cs, AIBody.cs
@@ -182,7 +183,10 @@ Loose files instead of the package (handy while developing): copy `src/AIBody/` 
 ### If the plugin window looks wrong (troubleshooting)
 
 Since 0.6.2 the plugin window always starts with the header and a status box, built before
-anything else. Since version 15 it is the ONE big info field (the tabs hold only controls). It shows:
+anything else. Since version 15 it is the ONE big info field (the tabs hold only controls). Since
+version 16 it is 1600 high and shows only the open tab: a first line with version and start result
+(failures red), then the tab's info. Self test, recent events and start log are in the tab *Config*,
+the connection lines (*Verbindung*) in *Voice*, the body lines (*Körper*) in *AI Character*. It shows:
 
 - **Info: <tab>**: help and status for the open tab (Voice: Q&A and AI mode help, key and engine
   status; AI Character: pose count; Client Character: push-to-talk help, microphone status;
@@ -488,3 +492,14 @@ Poses from VaMHub can be loaded with the `pose` command using the usual package 
 3. Everything else is parked in [docs/BACKLOG.md](BACKLOG.md) (German, deferred ideas).
 
 Agreed spec: [docs/SPEC.md](SPEC.md); status done / open: [docs/ANFORDERUNGEN.md](ANFORDERUNGEN.md).
+
+### Microphone list without VaM (version 16)
+
+`python tools/mic_test.py [--vam-root "<VaM>"] [--channel <name>]` prints every PortAudio device
+raw, the input devices per host API and the exact list the companion sends (`list_input_devices`),
+and writes `mic_test_output.txt` and `mic_test_devices.json`. With `--vam-root` it also puts that
+`devices` command into the plugin's inbox (same file format as the companion's `FileTransport`), so
+the plugin's menu can be checked without the companion. The plugin's menu entries come from
+`MicDeviceList.Build` (always `Standard (System-Mikrofon)` first, plain choices, no
+`displayChoices`); `companion/tests/test_mic_device_list_cs.py` runs its tests with plain .NET.
+
