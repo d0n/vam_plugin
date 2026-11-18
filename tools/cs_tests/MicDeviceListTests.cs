@@ -23,15 +23,15 @@ public static class MicDeviceListTests
         bool missing;
 
         List<string> c = MicDeviceList.Build(new List<string>(), "", out found, out missing);
-        Check(Join(c) == MicDeviceList.DefaultChoice, "empty list -> only Standard: " + Join(c));
+        Check(Join(c) == MicDeviceList.DefaultChoice, "empty list -> only the default: " + Join(c));
         Check(found == 0 && !missing, "empty list counts");
 
         c = MicDeviceList.Build(null, MicDeviceList.LegacyDefault, out found, out missing);
-        Check(Join(c) == MicDeviceList.DefaultChoice && !missing, "null list + old default -> only Standard: " + Join(c));
+        Check(Join(c) == MicDeviceList.DefaultChoice && !missing, "null list + old default -> only the default: " + Join(c));
 
         List<string> four = new List<string> { "Mikrofon (Realtek(R) Audio)", " Headset (USB) ", "", "Mikrofon (Realtek(R) Audio)", "Webcam Mic", "Line In" };
         c = MicDeviceList.Build(four, MicDeviceList.DefaultChoice, out found, out missing);
-        Check(c.Count == 5 && c[0] == MicDeviceList.DefaultChoice, "4 mics + Standard: " + Join(c));
+        Check(c.Count == 5 && c[0] == MicDeviceList.DefaultChoice, "4 mics + default: " + Join(c));
         Check(c[2] == "Headset (USB)", "names trimmed: " + Join(c));
         Check(found == 4 && !missing, "found 4, nothing missing: " + found);
 
@@ -41,10 +41,15 @@ public static class MicDeviceListTests
         c = MicDeviceList.Build(four, "Webcam Mic", out found, out missing);
         Check(!missing && c.Count == 5, "selected mic in list: " + Join(c));
 
-        Check(MicDeviceList.ToConfig(MicDeviceList.DefaultChoice) == "", "Standard saved as empty");
+        Check(MicDeviceList.ToConfig(MicDeviceList.DefaultChoice) == "", "default saved as empty");
         Check(MicDeviceList.ToConfig(MicDeviceList.LegacyDefault) == "", "old default saved as empty");
+        Check(MicDeviceList.ToConfig(MicDeviceList.LegacyDefaultV16) == "", "German default of versions 16-17 saved as empty");
+        Check(MicDeviceList.IsLegacyDefault(MicDeviceList.LegacyDefaultV16) && MicDeviceList.IsLegacyDefault(MicDeviceList.LegacyDefault)
+            && !MicDeviceList.IsLegacyDefault(MicDeviceList.DefaultChoice), "legacy defaults recognised");
+        c = MicDeviceList.Build(null, MicDeviceList.LegacyDefaultV16, out found, out missing);
+        Check(Join(c) == MicDeviceList.DefaultChoice && !missing, "old German default from a scene -> only the default: " + Join(c));
         Check(MicDeviceList.ToConfig("Line In") == "Line In", "name saved as is");
-        Check(MicDeviceList.ToChoice("") == MicDeviceList.DefaultChoice, "empty config -> Standard");
+        Check(MicDeviceList.ToChoice("") == MicDeviceList.DefaultChoice, "empty config -> default");
         Check(MicDeviceList.ToChoice("Line In") == "Line In", "config name -> menu name");
 
         if (Failures.Count == 0)

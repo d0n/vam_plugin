@@ -81,16 +81,16 @@ namespace AIBody
                     if (name.Length > 0 && !_poseFiles.ContainsKey(name)) _poseFiles[name] = f.Replace('\\', '/');
                 }
             }
-            PoseScanNote = _poseFiles.Count + " Pose-Dateien in " + string.Join(", ", PoseFolders)
-                + (folders == 0 ? " (Ordner nicht lesbar oder leer)" : "");
+            PoseScanNote = _poseFiles.Count + " pose files in " + string.Join(", ", PoseFolders)
+                + (folders == 0 ? " (folders not readable or empty)" : "");
         }
 
         /// <summary>Self test: null if the pose storage LoadPose uses is there, else why not.</summary>
         public string CheckPoseStorage()
         {
             JSONStorable presets = _atom != null ? _atom.GetStorableByID("PosePresets") : null;
-            if (presets == null) return "kein Storable 'PosePresets'";
-            if (presets.GetUrlJSONParam("presetBrowsePath") == null) return "PosePresets ohne presetBrowsePath";
+            if (presets == null) return "no storable 'PosePresets'";
+            if (presets.GetUrlJSONParam("presetBrowsePath") == null) return "PosePresets without presetBrowsePath";
             return null;
         }
 
@@ -122,13 +122,13 @@ namespace AIBody
         /// <summary>Applies a pose by name (gestures.json pose, else a listed preset file).</summary>
         public string ApplyPose(string name)
         {
-            if (string.IsNullOrEmpty(name)) return "Keine Pose gewählt";
+            if (string.IsNullOrEmpty(name)) return "No pose selected";
             JSONClass def;
             if (_gestures.TryGetValue(name, out def) && def["kind"].Value == "pose")
                 return LoadPose(Protocol.GetString(def, "path", ""));
             string path;
             if (_poseFiles.TryGetValue(name, out path)) return LoadPose(path);
-            return "Unbekannte Pose '" + name + "'";
+            return "Unknown pose '" + name + "'";
         }
 
         public void LoadGestureFile(string path)

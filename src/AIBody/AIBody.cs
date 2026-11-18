@@ -18,12 +18,12 @@
 // and the rest of the UI still appears. A non-Person atom gets an explanation instead of a blank
 // window.
 //
-// Layout: left column = header + ONE big info field (info and help for the open tab, Selbsttest,
-// live state, start log), always visible. Right column = a row of tab buttons and below it ONLY
+// Layout: left column = ONE big info panel (info and help for the open tab; self-test, recent
+// events and startup log in the tab Config), always visible. Right column = a row of tab buttons and below it ONLY
 // the controls of the active tab (no text fields; help and status go to the big field). Switching
 // tabs removes the old controls with the standard Remove* methods (UiPage, evidence E17/E18).
-// Tabs (version 15): Voice (Voice Mode: link, Einfacher Q&A-Modus, realtime, API Reconnect, sound
-// test; Voice > AI Character: AI mode, voice, engines, proactive) | AI Character (Posen, expression
+// Tabs (version 15): Voice (Voice Mode: link, Simple Q&A mode, realtime, API Reconnect, sound
+// test; Voice > AI Character: AI mode, voice, engines, proactive) | AI Character (poses, expression
 // and gesture, body of this Person) | Client Character (microphone, push-to-talk, voice barge-in)
 // | Config (Reload Config JSON, file poll interval, verbose log).
 //
@@ -52,12 +52,12 @@ namespace AIBody
         private bool _bodyBroken;
         private float _uiTimer;
         private string _atomType = "?";
-        private string _writable = "noch nicht geprüft";
+        private string _writable = "not checked yet";
         private string _linkLive = "";   // connection / companion live lines (tab Voice)
         private string _bodyLive = "";   // speech / body live lines (tab AI Character)
 
         // Tab names: self-explanatory, never just "AI" / "Client" (Leon, 17.11.2026). The former tabs
-        // AI, Post and Erweitert are gone (docs/BACKLOG.md "Entfernte Menüeinträge").
+        // AI, Post and Advanced are gone (docs/BACKLOG.md, removed menu entries).
         private static readonly string[] Tabs = { "Voice", "AI Character", "Client Character", "Config" };
         private string _configStatus = "";   // result of "Reload Config JSON", shown in the info field
         private UiPage _page;
@@ -75,7 +75,7 @@ namespace AIBody
         {
             Log.Prefix = "AIBody: ";
             _diag = new Diag();
-            _statusJson = new JSONStorableString("Status", "AIBody " + PluginVersion + " startet ...");
+            _statusJson = new JSONStorableString("Status", "AIBody " + PluginVersion + " starting ...");
 
             // 1. Header and status box before anything that could fail.
             try
@@ -90,34 +90,34 @@ namespace AIBody
             }
             catch (Exception e)
             {
-                _diag.Fail("Statusfeld anlegen", e);
+                _diag.Fail("Create info panel", e);
             }
             _diag.Changed = RefreshStatus;
-            _diag.Step("Init gestartet (AIBody " + PluginVersion + ")");
+            _diag.Step("Init started (AIBody " + PluginVersion + ")");
 
             // 2. Right atom?
             try
             {
-                _atomType = containingAtom != null ? containingAtom.type : "(kein Atom)";
+                _atomType = containingAtom != null ? containingAtom.type : "(no atom)";
             }
             catch (Exception e)
             {
-                _diag.Fail("Atomtyp lesen", e);
+                _diag.Fail("Read atom type", e);
             }
             if (_atomType != "Person")
             {
-                string msg = "Dieses Plugin gehört in den Plugins-Tab einer Person-Figur, nicht in Session/Scene "
-                    + "Plugins oder auf ein Empty – aktuell: " + _atomType;
+                string msg = "This plugin belongs in the Plugins tab of a Person atom, not in Session/Scene "
+                    + "plugins or on an Empty. Current atom type: " + _atomType;
                 _diag.Warn(msg);
-                _diag.Step("Init beendet: AIBody bleibt hier inaktiv. Plugin hier entfernen und auf der "
-                    + "KI-Figur (Person) unter Plugins > Add Plugin hinzufügen.");
+                _diag.Step("Init stopped: AIBody stays inactive here. Remove it and add it to the AI "
+                    + "character (Person) via Plugins > Add Plugin.");
                 return;
             }
             _diag.Step("Atom: Person '" + containingAtom.uid + "'");
 
             // 3. Components and storables, each phase on its own.
-            _diag.Run("AppLink anlegen", () => _link = new AppLink(this, PluginVersion, _diag));
-            _diag.Run("Body anlegen", () => _body = new Body(this, containingAtom, SendToApp, _diag));
+            _diag.Run("Create AppLink", () => _link = new AppLink(this, PluginVersion, _diag));
+            _diag.Run("Create Body", () => _body = new Body(this, containingAtom, SendToApp, _diag));
             if (_link != null && _body != null)
             {
                 _link.OnBodyCommand = _body.Handle;
@@ -126,7 +126,7 @@ namespace AIBody
                 {
                     // The restarted app forgot its queue and echo gate: drop the old speech too.
                     _body.StopSpeaking();
-                    _diag.Step("Companion-App neu gestartet: alte Sprachausgabe abgebrochen.");
+                    _diag.Step("Companion app restarted: pending speech cancelled.");
                 };
                 _body.PluginFolder = FindPluginFolder;
                 _link.OnPathsChanged = () =>
@@ -136,7 +136,7 @@ namespace AIBody
                     _body.ReloadConfigFiles();
                 };
             }
-            _diag.Run("Verbose-Schalter", () =>
+            _diag.Run("Verbose log toggle", () =>
             {
                 _verboseJson = new JSONStorableBool("Verbose log", false, (bool v) =>
                 {
@@ -156,7 +156,7 @@ namespace AIBody
             if (_verboseJson != null) Log.Verbose = _verboseJson.val;
 
             // 4. UI: tab buttons (right column), then the first tab. Each tab guards itself.
-            _diag.Run("UI Tab-Leiste", () =>
+            _diag.Run("UI tab bar", () =>
             {
                 _page = new UiPage(this, true);
                 for (int i = 0; i < Tabs.Length; i++)
@@ -172,16 +172,16 @@ namespace AIBody
             if (_link != null)
             {
                 _link.Ready = true;
-                _diag.Run("Restart (Verbindung starten)", _link.Restart);
-                _diag.Run("Selbsttest PluginData", () =>
+                _diag.Run("Restart (start connection)", _link.Restart);
+                _diag.Run("Self-test PluginData", () =>
                 {
                     string error = _link.TestWritable();
-                    _writable = error == null ? "ja (" + _link.ChannelDir + ")" : "NEIN: " + error;
+                    _writable = error == null ? "yes (" + _link.ChannelDir + ")" : "NO: " + error;
                 });
             }
             _diag.Step(_diag.FailureCount == 0
-                ? "Init fertig, keine Fehler."
-                : "Init fertig mit " + _diag.FailureCount + " Fehler(n): " + string.Join(", ", ToArray(_diag.FailedPhases)));
+                ? "Init complete, no errors."
+                : "Init complete with " + _diag.FailureCount + " error(s): " + string.Join(", ", ToArray(_diag.FailedPhases)));
         }
 
         /// <summary>
@@ -205,18 +205,18 @@ namespace AIBody
             if (_page == null) return;
             string name = Tabs[index];
             try { _page.Clear(); }
-            catch (Exception e) { _diag.Fail("Tab wechseln (alte Elemente entfernen)", e); }
+            catch (Exception e) { _diag.Fail("Switch tab (remove old controls)", e); }
             _tab = index;
             try
             {
                 switch (index)
                 {
                     case 0: // Voice
-                        _page.Header("<b>Voice Mode</b> (Verbindung, Modus, Ton-Test)");
-                        _page.Button("Einfacher Q&A-Modus", EnableSimpleQa);
+                        _page.Header("<b>Voice Mode</b> (connection, mode, sound test)");
+                        _page.Button("Simple Q&A mode", EnableSimpleQa);
                         if (_link != null) _link.BuildVoiceModeTab(_page);
                         if (_body != null) _body.BuildVoiceModeTab(_page);
-                        _page.Header("<b>Voice > AI Character</b> (Stimme und Sprach-KI der Figur)");
+                        _page.Header("<b>Voice > AI Character</b> (the character's voice and speech AI)");
                         if (_link != null) _link.BuildAiVoiceSection(_page);
                         break;
                     case 1: // AI Character
@@ -225,8 +225,8 @@ namespace AIBody
                     case 2: // Client Character
                         if (_link != null) _link.BuildClientCharacterTab(_page);
                         break;
-                    default: // Config (former Config + Erweitert)
-                        _page.Header("<b>Config</b> (config.json, Verbindung, Protokoll)");
+                    default: // Config (former Config + Advanced)
+                        _page.Header("<b>Config</b> (config.json, connection, logging)");
                         if (_link != null) _link.BuildConfigTab(_page, ReloadConfigJson);
                         _page.Toggle(_verboseJson);
                         break;
@@ -245,19 +245,19 @@ namespace AIBody
         /// Button "Reload Config JSON": applies config.json to the UI (paths, connection, engines, mic,
         /// body, ai keys of the tabs) and pushes the result to the companion app.
         /// </summary>
-        private string _simpleQa = "Einfacher Q&A-Modus: Frage sprechen oder in der Companion-Konsole tippen -> Grok antwortet -> "
-            + "die Person spricht. Setzt AI mode = qa und Body control = aus (Tab AI Character). Braucht einen xAI-Key.";
+        private string _simpleQa = "Simple Q&A mode: speak a question or type it in the companion console -> Grok answers -> "
+            + "the character speaks. Sets AI mode = qa and Body control = off (tab AI Character). Needs an xAI API key.";
 
         /// <summary>
-        /// Button "Einfacher Q&amp;A-Modus": AI mode qa (STT -> Grok -> TTS, speech only) and body
+        /// Button "Simple Q&amp;A mode": AI mode qa (STT -> Grok -> TTS, speech only) and body
         /// control off, saved to config.json and sent to the companion app.
         /// </summary>
         private void EnableSimpleQa()
         {
             if (_link != null) _link.SetSimpleQa();
             if (_body != null) _body.SetBodyControl(false);
-            _simpleQa = "Einfacher Q&A-Modus an (" + DateTime.Now.ToString("HH:mm:ss") + "): AI mode = qa, Body control = aus. "
-                + "Jetzt 'Test-Ton abspielen', dann eine Frage stellen.";
+            _simpleQa = "Simple Q&A mode on (" + DateTime.Now.ToString("HH:mm:ss") + "): AI mode = qa, Body control = off. "
+                + "Now press 'Play test tone', then ask a question.";
         }
 
         private void ReloadConfigJson()
@@ -268,7 +268,7 @@ namespace AIBody
                 JSONClass file = _link.LoadSettingsFile();
                 if (file == null)
                 {
-                    _configStatus = "Keine gültige config.json unter " + _link.SettingsPath + " – nichts geändert.";
+                    _configStatus = "No valid config.json at " + _link.SettingsPath + "; nothing changed.";
                     return;
                 }
                 _link.ApplySettings(file);
@@ -278,11 +278,11 @@ namespace AIBody
                     _verboseJson.val = Protocol.GetBool(advanced, "verbose_log", _verboseJson.val);
                 if (_body != null) _body.ReloadConfigFiles();
                 _link.MarkConfigDirty();
-                _configStatus = "config.json neu geladen (" + DateTime.Now.ToString("HH:mm:ss") + "): " + _link.SettingsPath;
+                _configStatus = "config.json reloaded (" + DateTime.Now.ToString("HH:mm:ss") + "): " + _link.SettingsPath;
             }
             catch (Exception e)
             {
-                _configStatus = "config.json laden fehlgeschlagen: " + Diag.Describe(e);
+                _configStatus = "Loading config.json failed: " + Diag.Describe(e);
                 _diag.Fail("Reload Config JSON", e);
             }
         }
@@ -298,11 +298,11 @@ namespace AIBody
                 if (_settingsAge < 1.5f) return;
                 _settingsChecked = true;
                 JSONClass file = null;
-                _diag.Run("config.json lesen", () => file = _link.LoadSettingsFile());
-                if (file != null) _diag.Run("Key-Datei-Pfade aus config.json", () => _link.AdoptKeyFiles(file));
+                _diag.Run("Read config.json", () => file = _link.LoadSettingsFile());
+                if (file != null) _diag.Run("Key file paths from config.json", () => _link.AdoptKeyFiles(file));
                 if (file != null && !_settingsInitJson.val)
                 {
-                    _diag.Run("Einstellungen aus config.json übernehmen (neue Szene)", () =>
+                    _diag.Run("Apply settings from config.json (new scene)", () =>
                     {
                         _link.ApplySettings(file);
                         if (_body != null) _body.ApplySettings(file);
@@ -357,7 +357,7 @@ namespace AIBody
             {
                 if (_settingsWriteWarned) return;
                 _settingsWriteWarned = true;
-                _diag.Fail("config.json schreiben", e);
+                _diag.Fail("Write config.json", e);
             }
         }
 
@@ -376,14 +376,14 @@ namespace AIBody
         private string SelfTest()
         {
             bool person = _atomType == "Person";
-            string text = "<b>Selbsttest</b>\n";
-            text += "  Person-Atom: " + (person ? "ja" : "NEIN (" + _atomType + ")") + "\n";
+            string text = "<b>Self-test</b>\n";
+            text += "  Person atom: " + (person ? "yes" : "NO (" + _atomType + ")") + "\n";
             if (!person) return text;
-            text += "  Kopf-Audio (HeadAudioSource): " + (_body != null && _body.SpeechAvailable ? "ja" : "NEIN" + Reason(_body != null ? _body.SpeechError : "Body fehlt")) + "\n";
-            text += "  Morphs (geometry): " + (_body != null && _body.MorphsAvailable ? "ja" : "NEIN" + Reason(_body != null ? _body.MorphsError : "Body fehlt")) + "\n";
+            text += "  Head audio (HeadAudioSource): " + (_body != null && _body.SpeechAvailable ? "yes" : "NO" + Reason(_body != null ? _body.SpeechError : "Body missing")) + "\n";
+            text += "  Morphs (geometry): " + (_body != null && _body.MorphsAvailable ? "yes" : "NO" + Reason(_body != null ? _body.MorphsError : "Body missing")) + "\n";
             if (_body != null) text += _body.SelfTestText();
-            text += "  PluginData beschreibbar: " + _writable + "\n";
-            text += "  Companion-App-Heartbeat: " + (_link == null ? "-" : _link.AppSeen ? "ja" : _link.AppLost ? "GETRENNT (verbindet automatisch neu)" : "noch nicht") + "\n";
+            text += "  PluginData writable: " + _writable + "\n";
+            text += "  Companion app heartbeat: " + (_link == null ? "-" : _link.AppSeen ? "yes" : _link.AppLost ? "DISCONNECTED (reconnects automatically)" : "not yet") + "\n";
             return text;
         }
 
@@ -398,10 +398,10 @@ namespace AIBody
                 {
                     case 0:
                         text = (_simpleQa.Length > 0 ? _simpleQa + "\n" : "") + (_link != null ? _link.VoiceInfoText() : "")
-                            + Section("Verbindung", _linkLive);
+                            + Section("Connection", _linkLive);
                         break;
                     case 1:
-                        text = (_body != null ? _body.CharacterInfoText() : "") + Section("Körper", _bodyLive);
+                        text = (_body != null ? _body.CharacterInfoText() : "") + Section("Body", _bodyLive);
                         break;
                     case 2:
                         text = _link != null ? _link.ClientInfoText() : "";
@@ -410,14 +410,14 @@ namespace AIBody
                         text = (_link != null ? "config.json: " + _link.SettingsPath + "\n" + _link.ChannelInfoText() + "\n" : "")
                             + (_configStatus.Length > 0 ? _configStatus + "\n" : "")
                             + SelfTest()
-                            + (Log.Verbose && Log.RecentText().Length > 0 ? "<b>Letzte Ereignisse</b> (Verbose log)\n" + Log.RecentText() : "")
-                            + "<b>Start-Protokoll</b>\n" + (_diag != null ? _diag.Text : "");
+                            + (Log.Verbose && Log.RecentText().Length > 0 ? "<b>Recent events</b> (Verbose log)\n" + Log.RecentText() : "")
+                            + "<b>Startup log</b>\n" + (_diag != null ? _diag.Text : "");
                         break;
                 }
             }
             catch (Exception e)
             {
-                text = "Info fehlgeschlagen: " + Diag.Describe(e) + "\n";
+                text = "Info failed: " + Diag.Describe(e) + "\n";
             }
             if (text.Length > 0 && !text.EndsWith("\n")) text += "\n";
             return "<b>Info: " + Tabs[_tab] + "</b>\n" + text;
@@ -432,9 +432,9 @@ namespace AIBody
         private string StartLine()
         {
             if (_diag == null) return "";
-            if (_diag.FailureCount == 0) return _initialized ? "Start: ok\n" : "Start läuft ...\n";
-            return "<color=red>Start: " + _diag.FailureCount + " Fehler (" + string.Join(", ", ToArray(_diag.FailedPhases))
-                + ")</color> - Details im Tab Config\n";
+            if (_diag.FailureCount == 0) return _initialized ? "Startup: ok\n" : "Starting ...\n";
+            return "<color=red>Startup: " + _diag.FailureCount + " error(s) (" + string.Join(", ", ToArray(_diag.FailedPhases))
+                + ")</color> - details in the tab Config\n";
         }
 
         private static string Reason(string error)
@@ -449,7 +449,7 @@ namespace AIBody
             try { if (containingAtom != null) uid = containingAtom.uid; }
             catch (Exception) { }
             // Version 16: only the open tab's info (self test, recent events and start log: tab Config).
-            _statusJson.val = "<b>AIBody " + PluginVersion + "</b> auf '" + uid + "' - " + StartLine()
+            _statusJson.val = "<b>AIBody " + PluginVersion + "</b> on '" + uid + "' - " + StartLine()
                 + TabInfo();
         }
 
@@ -462,12 +462,12 @@ namespace AIBody
             if (_link != null && !_linkBroken)
             {
                 try { _link.Update(dt); }   // may hand body commands to _body synchronously
-                catch (Exception e) { _linkBroken = true; _diag.Fail("AppLink.Update (Verbindung angehalten)", e); }
+                catch (Exception e) { _linkBroken = true; _diag.Fail("AppLink.Update (connection stopped)", e); }
             }
             if (_body != null && !_bodyBroken)
             {
                 try { _body.Update(dt); }
-                catch (Exception e) { _bodyBroken = true; _diag.Fail("Body.Update (Körper angehalten)", e); }
+                catch (Exception e) { _bodyBroken = true; _diag.Fail("Body.Update (body stopped)", e); }
             }
 
             try { UpdateSettings(dt); }
@@ -490,7 +490,7 @@ namespace AIBody
             }
             catch (Exception e)
             {
-                _linkLive = "Statusanzeige fehlgeschlagen: " + Diag.Describe(e) + "\n";
+                _linkLive = "Status display failed: " + Diag.Describe(e) + "\n";
             }
         }
 

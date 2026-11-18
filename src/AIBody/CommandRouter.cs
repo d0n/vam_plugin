@@ -62,7 +62,7 @@ namespace AIBody
             string type = Protocol.GetString(msg, "type", "");
             string id = Protocol.GetString(msg, "id", "");
             if (type != Protocol.CmdPing)
-                Log.Debug("Befehl " + type + " " + id + (Protocol.Has(msg, "audio") ? " audio=" + Protocol.GetString(msg, "audio", "") : ""));
+                Log.Debug("Command " + type + " " + id + (Protocol.Has(msg, "audio") ? " audio=" + Protocol.GetString(msg, "audio", "") : ""));
             string error;
             try
             {
@@ -76,7 +76,7 @@ namespace AIBody
 
             if (error != null)
             {
-                Log.Debug("Befehl " + type + " " + id + " fehlgeschlagen: " + error);
+                Log.Debug("Command " + type + " " + id + " failed: " + error);
                 _send(Protocol.NewError(id, "command_failed", error));
             }
             else if (AckAll || Protocol.GetBool(msg, "ack", false))
@@ -105,15 +105,15 @@ namespace AIBody
                 }
                 if (type == Protocol.CmdGesture || type == Protocol.CmdPose || type == Protocol.CmdTrigger)
                 {
-                    if (_poses == null) return "Posen/Gesten nicht verfügbar (PoseController fehlt)";
+                    if (_poses == null) return "Poses/gestures not available (PoseController missing)";
                 }
-                else if (_expressions == null) return "Ausdrücke nicht verfügbar (keine Morphs auf dieser Figur)";
+                else if (_expressions == null) return "Expressions not available (no morphs on this character)";
             }
             switch (type)
             {
                 case Protocol.CmdSpeak:
                 {
-                    if (_speech == null) return "Sprachausgabe nicht verfügbar (SpeechPlayer fehlt)";
+                    if (_speech == null) return "Speech output not available (SpeechPlayer missing)";
                     string utteranceId = id.Length > 0 ? id : "utt-" + DateTime.UtcNow.Ticks;
                     bool interrupt = Protocol.GetString(msg, "queue", "append") == "interrupt";
                     string error = _speech.Enqueue(utteranceId, Protocol.GetString(msg, "audio", ""), interrupt);
@@ -171,13 +171,13 @@ namespace AIBody
                     return _poses.Trigger(msg);
 
                 case Protocol.CmdIdle:
-                    if (_idle == null) return "Kopfbewegung nicht verfügbar";
+                    if (_idle == null) return "Head motion not available";
                     _idle.Enabled = Protocol.GetBool(msg, "enabled", _idle.Enabled);
                     _idle.Intensity = Protocol.GetFloat(msg, "intensity", _idle.Intensity);
                     return null;
 
                 case Protocol.CmdBreathing:
-                    if (_breathing == null) return "Atmung nicht verfügbar (keine Morphs)";
+                    if (_breathing == null) return "Breathing not available (no morphs)";
                     _breathing.Enabled = Protocol.GetBool(msg, "enabled", _breathing.Enabled);
                     _breathing.Rate = Protocol.GetFloat(msg, "rate", _breathing.Rate);
                     _breathing.Depth = Protocol.GetFloat(msg, "depth", _breathing.Depth);

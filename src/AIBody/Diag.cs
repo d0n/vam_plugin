@@ -27,7 +27,7 @@ namespace AIBody
 
         public void Warn(string text)
         {
-            _lines.Add("WARNUNG: " + text);
+            _lines.Add("WARNING: " + text);
             Log.Error(text);
             Notify();
         }
@@ -53,7 +53,7 @@ namespace AIBody
         public void Fail(string phase, Exception e)
         {
             _failed.Add(phase);
-            string line = "FEHLER in " + phase + ": " + Describe(e);
+            string line = "ERROR in " + phase + ": " + Describe(e);
             _lines.Add(line);
             Log.Error(line + "\n" + e);
             Notify();

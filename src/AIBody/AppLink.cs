@@ -41,9 +41,9 @@ namespace AIBody
         private float _appAge = 999f;
         private string _appSession;
         private string _appVersion = "";
-        private JSONClass _engineStatus;   // kind -> engine -> "bereit ..." / "nicht konfiguriert: ..."
+        private JSONClass _engineStatus;   // kind -> engine -> "ready ..." / "not configured: ..."
         private JSONClass _engineActive;   // kind -> engine that really runs (fallback if not configured)
-        private readonly JSONStorableString _engineInfoJson = new JSONStorableString("Engine status", "Engines: warte auf die Companion-App ...");
+        private readonly JSONStorableString _engineInfoJson = new JSONStorableString("Engine status", "Engines: waiting for the companion app ...");
         private JSONClass _modeInfo;       // companion heartbeat "mode": requested / active / status
         private JSONClass _proactiveInfo;  // companion heartbeat "proactive": enabled / idle_seconds / status
         private JSONClass _audioOut;       // companion heartbeat "audio_out": folder / auto / note
@@ -67,7 +67,7 @@ namespace AIBody
         private JSONStorableString _xaiKeyFileJson;
         private JSONStorableString _elevenKeyFileJson;
         private JSONClass _keyInfo;                          // companion heartbeat "keys"
-        private readonly JSONStorableString _keyStatusJson = new JSONStorableString("API key status", "API-Keys: warte auf die Companion-App ...");
+        private readonly JSONStorableString _keyStatusJson = new JSONStorableString("API key status", "API keys: waiting for the companion app ...");
         private string _keyWarning;
 
         /// <summary>Set by the plugin once Init is complete; settings callbacks restart only then.</summary>
@@ -123,7 +123,7 @@ namespace AIBody
                 ModeQa, "AI mode", (string v) => { SyncRealtimeToggle(); MarkConfigDirty(); });
             _plugin.RegisterStringChooser(_aiModeJson);
             // Not registered: only a view of "AI mode" (on = auto, off = qa), so nothing new is saved.
-            _realtimeJson = new JSONStorableBool("Echtzeit (Realtime) verwenden", false, SetRealtime);
+            _realtimeJson = new JSONStorableBool("Use realtime voice", false, SetRealtime);   // not registered (not saved)
             _proactiveJson = new JSONStorableBool("Proactive", true, (bool v) => MarkConfigDirty());
             _plugin.RegisterBool(_proactiveJson);
             _proactiveIdleJson = new JSONStorableFloat("Proactive idle (s)", 90f, (float v) => MarkConfigDirty(), 15f, 3600f);
@@ -141,7 +141,7 @@ namespace AIBody
 
             MicConfig mic = new MicConfig(_plugin, Send);
             mic.DecorateConfig = AddEngines;
-            _diag.Run("Mikrofon-Einstellungen (Storables)", mic.CreateStorables);
+            _diag.Run("Microphone settings (storables)", mic.CreateStorables);
             _mic = mic;
 
             _plugin.RegisterAction(new JSONStorableAction("Reconnect", Restart));
@@ -161,8 +161,8 @@ namespace AIBody
             if (LooksLikeKey(value))
             {
                 field.val = "";   // never keep a key in the scene
-                _keyWarning = "Das sah wie ein API-Key aus und wurde NICHT gespeichert. Hier gehört der PFAD einer "
-                    + "Textdatei hin, in der der Key steht (z. B. C:/Users/<du>/keys/xai.txt).";
+                _keyWarning = "That looked like an API key and was NOT saved. Enter the PATH of a text file "
+                    + "that contains the key (e.g. C:/Users/<you>/keys/xai.txt).";
                 Log.Error(_keyWarning);
                 UpdateKeyStatus();
                 return;
@@ -194,7 +194,7 @@ namespace AIBody
             configEvent["engines"] = engines;
             configEvent["ai"] = BuildAiJson();
             JSONClass advanced = new JSONClass();
-            advanced["verbose_log"].AsBool = Log.Verbose;   // Erweitert > Verbose log: companion turn trace too
+            advanced["verbose_log"].AsBool = Log.Verbose;   // Config > Verbose log: companion turn trace too
             configEvent["advanced"] = advanced;
         }
 
@@ -276,11 +276,11 @@ namespace AIBody
 
         // ---------------------------------------------------------------- tabs (see AIBodyPlugin)
 
-        /// <summary>"Latenz: 2.4 s (Ø 2.6 s, 5 Runden) – STT 0.80 · …": end of speech -> first sound.</summary>
+        /// <summary>"Latency to first sound: 2.4 s (avg 2.6 s, 5 turns) – STT 0.80 · …": end of speech -> first sound.</summary>
         private string LatencyLine()
         {
-            string text = "Latenz bis zum ersten Ton: " + Protocol.GetFloat(_latency, "last_s", 0f).ToString("0.0") + " s (Ø "
-                + Protocol.GetFloat(_latency, "avg_s", 0f).ToString("0.0") + " s, " + _latency["n"].Value + " Runden)";
+            string text = "Latency to first sound: " + Protocol.GetFloat(_latency, "last_s", 0f).ToString("0.0") + " s (avg "
+                + Protocol.GetFloat(_latency, "avg_s", 0f).ToString("0.0") + " s, " + _latency["n"].Value + " turns)";
             JSONClass parts = _latency["parts"] as JSONClass;
             if (parts == null) return text;
             List<string> items = new List<string>();
@@ -296,7 +296,7 @@ namespace AIBody
             SyncRealtimeToggle();
             page.Toggle(_realtimeJson);
             page.Button("API Reconnect", ApiReconnect);
-            page.Button("Test-Ton über Companion", RequestTestTone);
+            page.Button("Test tone via companion", RequestTestTone);
         }
 
         /// <summary>
@@ -316,11 +316,11 @@ namespace AIBody
         {
             if (!_appAlive)
             {
-                _testToneStatus = "Test-Ton über Companion: App nicht verbunden";
+                _testToneStatus = "Test tone via companion: app not connected";
                 return;
             }
             Send(Protocol.NewEvent(Protocol.EvtTestTone));
-            _testToneStatus = "Test-Ton über Companion angefordert (kommt als normales speak)";
+            _testToneStatus = "Test tone via companion requested (arrives as a normal speak command)";
         }
 
         /// <summary>
@@ -345,25 +345,25 @@ namespace AIBody
             UpdateKeyStatus();
             UpdateEngineInfo();
             string text = _modeHelpJson.val + "\n" + _keyStatusJson.val + "\n";
-            if (_engineStatus != null) text += _engineInfoJson.val;   // before the first heartbeat: Live says "noch nicht gesehen"
+            if (_engineStatus != null) text += _engineInfoJson.val;   // before the first heartbeat the connection section says "not seen yet"
             return text;
         }
 
         /// <summary>Channel line for the tab "Config" (set in config.json connection.channel, not in the menu).</summary>
         public string ChannelInfoText()
         {
-            return "Kanal: " + Channel + " (" + ChannelDir + "; ändern: config.json connection.channel oder --channel)";
+            return "Channel: " + Channel + " (" + ChannelDir + "; change via config.json connection.channel or --channel)";
         }
 
         public const string ModeQa = "qa";
 
         private readonly JSONStorableString _modeHelpJson = new JSONStorableString("AI mode help",
-            "AI mode: qa = Spracherkennung -> Grok -> Stimme (nur Sprache). auto / realtime = Grok Voice direkt "
-            + "(Fallback: Kette). chain = die Engines unter Voice > AI Character.");
+            "AI mode: qa = speech recognition -> Grok -> voice (speech only). auto / realtime = Grok Voice directly "
+            + "(falls back to the chain). chain = the engines under Voice > AI Character.");
 
-        /// <summary>Button "Einfacher Q&amp;A-Modus": AI mode qa (body control is switched off by the plugin).</summary>
+        /// <summary>Button "Simple Q&amp;A mode": AI mode qa (body control is switched off by the plugin).</summary>
         /// <summary>
-        /// Voice Mode > "Echtzeit (Realtime) verwenden": on = AI mode auto (Grok Voice, falls back to
+        /// Voice Mode > "Use realtime voice": on = AI mode auto (Grok Voice, falls back to
         /// the chain), off = qa (the default). Shows on while AI mode is auto or realtime.
         /// </summary>
         private void SetRealtime(bool on)
@@ -394,14 +394,14 @@ namespace AIBody
         {
             string text = "";
             if (_keyWarning != null) text += "<color=red>" + _keyWarning + "</color>\n";
-            if (_keyInfo == null) text += "API-Keys: warte auf die Companion-App ...\n";
+            if (_keyInfo == null) text += "API keys: waiting for the companion app ...\n";
             else
             {
                 text += KeyLine("xAI", "xai") + KeyLine("ElevenLabs", "elevenlabs");
             }
             // Version 17: the environment variable hint only while a key is missing or refused.
             if (_keyInfo == null || !KeyConfigured("xai") || !KeyConfigured("elevenlabs"))
-                text += "Key auch per Umgebungsvariable XAI_API_KEY / ELEVENLABS_API_KEY vor dem App-Start (gewinnt).";
+                text += "Keys can also come from XAI_API_KEY / ELEVENLABS_API_KEY set before starting the app (takes precedence).";
             _keyStatusJson.val = text;
         }
 
@@ -416,10 +416,10 @@ namespace AIBody
             JSONClass k = _keyInfo[provider] as JSONClass;
             if (k == null) return label + ": ?\n";
             string state = k["state"].Value;
-            string shown = state == "configured" ? "konfiguriert" : state == "rejected" ? "<color=red>abgelehnt</color>" : "fehlt";
+            string shown = state == "configured" ? "configured" : state == "rejected" ? "<color=red>rejected</color>" : "missing";
             string detail = k["detail"].Value;
-            string line = label + "-Key: " + shown + (detail.Length > 0 ? " – " + detail : "") + "\n";
-            // e.g. "nötig: API-Key von console.x.ai ... ein Grok-Abo / grok.com-Token funktioniert nicht"
+            string line = label + " key: " + shown + (detail.Length > 0 ? " – " + detail : "") + "\n";
+            // e.g. "needed: an API key from console.x.ai ... a Grok subscription / grok.com token does not work"
             string hint = k["hint"].Value;
             if (state != "configured" && hint.Length > 0) line += "  " + (state == "rejected" ? "<color=red>" + hint + "</color>" : hint) + "\n";
             return line;
@@ -430,10 +430,10 @@ namespace AIBody
         {
             if (_engineStatus == null)
             {
-                _engineInfoJson.val = "Engines: warte auf die Companion-App ...";
+                _engineInfoJson.val = "Engines: waiting for the companion app ...";
                 return;
             }
-            string text = "<b>Engine-Status</b> (von der Companion-App)\n";
+            string text = "<b>Engine status</b> (from the companion app)\n";
             text += ModeLine() + ProactiveLine();
             text += EngineLine("Speech-to-text", "stt", _sttJson);
             text += EngineLine("Language model", "llm", _llmJson);
@@ -441,14 +441,14 @@ namespace AIBody
             _engineInfoJson.val = text;
         }
 
-        /// <summary>"Modus: realtime – Realtime verbunden ..." from the heartbeat (empty for an older app).</summary>
+        /// <summary>"Mode: realtime – Realtime connected ..." from the heartbeat (empty for an older app).</summary>
         private string ModeLine()
         {
             if (_modeInfo == null) return "";
             string requested = _modeInfo["requested"].Value, active = _modeInfo["active"].Value;
-            string line = "Modus: " + active;
-            if (requested == ModeQa) line = "Modus: Einfacher Q&A";
-            else if (!string.IsNullOrEmpty(requested) && requested != active) line += " (gewählt: " + requested + ")";
+            string line = "Mode: " + active;
+            if (requested == ModeQa) line = "Mode: Simple Q&A";
+            else if (!string.IsNullOrEmpty(requested) && requested != active) line += " (selected: " + requested + ")";
             string status = _modeInfo["status"].Value;
             if (!string.IsNullOrEmpty(status)) line += " – " + status;
             return line + "\n";
@@ -458,7 +458,7 @@ namespace AIBody
         {
             if (_proactiveInfo == null) return "";
             bool on = Protocol.GetBool(_proactiveInfo, "enabled", false);
-            string line = "Proaktiv: " + (on ? "an, nach " + Protocol.GetFloat(_proactiveInfo, "idle_seconds", 0f).ToString("0") + " s Stille" : "aus");
+            string line = "Proactive: " + (on ? "on, after " + Protocol.GetFloat(_proactiveInfo, "idle_seconds", 0f).ToString("0") + " s of silence" : "off");
             string status = _proactiveInfo["status"].Value;
             if (!string.IsNullOrEmpty(status)) line += " – " + status;
             return line + "\n";
@@ -472,14 +472,14 @@ namespace AIBody
             string state = states != null ? states[selected].Value : "";
             string line = label + ": " + selected;
             if (!string.IsNullOrEmpty(state)) line += " – " + state;
-            if (!string.IsNullOrEmpty(active) && active != selected) line += "\n    läuft stattdessen: " + active + " (Fallback)";
+            if (!string.IsNullOrEmpty(active) && active != selected) line += "\n    running instead: " + active + " (fallback)";
             return line + "\n";
         }
 
         /// <summary>Tab "Client Character": the user's microphone and push-to-talk, voice barge-in.</summary>
         public void BuildClientCharacterTab(UiPage page)
         {
-            page.Header("<b>Client Character: Mikrofon und Push-to-Talk</b>");
+            page.Header("<b>Client Character: microphone and push-to-talk</b>");
             if (_mic != null) _mic.BuildTab(page);
             page.Toggle(_bargeInJson);
         }
@@ -490,7 +490,7 @@ namespace AIBody
             return _mic != null ? _mic.InfoText() : "";
         }
 
-        /// <summary>Tab "Config" (former Config + Erweitert): the shared config.json and the file link.</summary>
+        /// <summary>Tab "Config" (former Config + Advanced): the shared config.json and the file link.</summary>
         public void BuildConfigTab(UiPage page, UnityEngine.Events.UnityAction reload)
         {
             page.Button("Reload Config JSON", reload);
@@ -567,8 +567,8 @@ namespace AIBody
             GesturesPath = gestures;
             // No path display in the menu (it only shows what can be set); the paths go to the log once.
             string pathsText = "Settings file: " + SettingsPath + " (" + note + ")\nExpressions: " + ExpressionsPath
-                + "\nGestures: " + GesturesPath + "\nAudio (von der Companion-App geschrieben): "
-                + (AudioFolder.Length > 0 ? AudioFolder : "Custom/Sounds/AIBody/" + Channel + " (automatisch; falls VaM dort nicht laden kann: "
+                + "\nGestures: " + GesturesPath + "\nAudio (written by the companion app): "
+                + (AudioFolder.Length > 0 ? AudioFolder : "Custom/Sounds/AIBody/" + Channel + " (automatic; if VaM cannot load from there: "
                    + ChannelDir + "/audio)");
             if (pathsText != _pathsText)
             {
@@ -667,7 +667,7 @@ namespace AIBody
                 List<string> choices = new List<string>(_voiceJson.choices);
                 choices.Add(voice);
                 try { _voiceJson.choices = choices; }   // choices refresh: E9, E24, E25
-                catch (Exception e) { _diag.Fail("Stimmen-Liste erweitern", e); }
+                catch (Exception e) { _diag.Fail("Extend voice list", e); }
             }
             _voiceJson.val = voice;
         }
@@ -683,7 +683,7 @@ namespace AIBody
             {
                 FileManagerSecure.CreateDirectory(ChannelDir);
                 FileManagerSecure.WriteAllText(path, "AIBody self test");
-                if (!FileManagerSecure.FileExists(path)) return "Testdatei nicht gefunden: " + path;
+                if (!FileManagerSecure.FileExists(path)) return "Test file not found: " + path;
                 FileManagerSecure.DeleteFile(path);
                 return null;
             }
@@ -894,7 +894,7 @@ namespace AIBody
             {
                 if (_choicesWarned) return;
                 _choicesWarned = true;
-                _diag.Fail("Engine-Auswahl aktualisieren", e);
+                _diag.Fail("Update engine choices", e);
             }
         }
 
@@ -940,6 +940,18 @@ namespace AIBody
             if (_mic != null) _mic.Update(dt, connected);
         }
 
+        /// <summary>
+        /// Turn status lines from the companion that describe a problem (shown red). English since
+        /// version 18; the German prefixes of older companion versions are still recognised.
+        /// </summary>
+        public static bool IsProblemTurn(string turn)
+        {
+            if (string.IsNullOrEmpty(turn)) return false;
+            string[] prefixes = { "Nothing", "No ", "Realtime", "Nichts", "Keine" };
+            for (int i = 0; i < prefixes.Length; i++) if (turn.StartsWith(prefixes[i])) return true;
+            return turn.Contains("error") || turn.Contains("Error") || turn.Contains("Fehler");
+        }
+
         public string StatusText()
         {
             if (_transport == null) return "Link: " + (Active ? "off" : "inactive (Active is off)") + "\n";
@@ -949,22 +961,22 @@ namespace AIBody
             if (_appAlive)
             {
                 // Version 17: modes and engines only once, in the engine status above (no second summary).
-                text += "Companion app: verbunden, " + _appVersion + " (Heartbeat vor " + _appAge.ToString("0.0") + " s)\n";
+                text += "Companion app: connected, " + _appVersion + " (last heartbeat " + _appAge.ToString("0.0") + " s ago)\n";
                 if (_audioOut != null)
                 {
-                    text += "Audio-Ordner: " + _audioOut["folder"].Value + "\n";
+                    text += "Audio folder: " + _audioOut["folder"].Value + "\n";
                     string note = _audioOut["note"].Value;
                     if (!string.IsNullOrEmpty(note)) text += "<color=red>" + note + "</color>\n";
                 }
                 if (!string.IsNullOrEmpty(_turn))
                 {
-                    bool bad = _turn.Contains("Fehler") || _turn.StartsWith("Nichts") || _turn.StartsWith("Realtime") || _turn.StartsWith("Keine");
-                    text += "Letzte Runde: " + (bad ? "<color=red>" + _turn + "</color>" : _turn) + "\n";
+                    bool bad = IsProblemTurn(_turn);
+                    text += "Last turn: " + (bad ? "<color=red>" + _turn + "</color>" : _turn) + "\n";
                 }
                 if (_latency != null) text += LatencyLine() + "\n";
             }
-            else if (_lastSession != null) text += "Companion app: GETRENNT – verbindet automatisch neu, sobald die App wieder läuft\n";
-            else text += "Companion app: noch nicht gesehen – starten: python -m aibody_companion --vam-root \"<VaM>\" --channel " + Channel + "\n";
+            else if (_lastSession != null) text += "Companion app: DISCONNECTED – reconnects automatically as soon as the app runs again\n";
+            else text += "Companion app: not seen yet – start it: python -m aibody_companion --vam-root \"<VaM>\" --channel " + Channel + "\n";
             return text;
         }
     }

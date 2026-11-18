@@ -17,8 +17,8 @@
 //
 // Utterances play strictly in order; the next ones are queued for loading while one plays.
 //
-// Status for the user (live status box): Status = "Lade: <file>" / "Spreche: <file> (2.3 s)" /
-// "Fertig: <file>"; LastError = "Audio-Fehler: <reason>" with the step that failed (file missing,
+// Status for the user (live status box): Status = "Loading: <file>" / "Speaking: <file> (2.3 s)" /
+// "Done: <file>"; LastError = "Audio error: <reason>" with the step that failed (file missing,
 // QueueClip, no head audio, clip never started), so a silent body shows where it breaks.
 using System;
 using System.Collections.Generic;
@@ -71,7 +71,7 @@ namespace AIBody
         /// <summary>What the speech output does right now (for the status box).</summary>
         public string Status { get; private set; }
 
-        /// <summary>The last audio error ("Audio-Fehler: ..."), null if none since start.</summary>
+        /// <summary>The last audio error ("Audio error: ..."), null if none since start.</summary>
         public string LastError { get; private set; }
         private float _lastErrorAge;
 
@@ -80,7 +80,7 @@ namespace AIBody
 
         private void SetError(string message)
         {
-            LastError = "Audio-Fehler: " + message;
+            LastError = "Audio error: " + message;
             _lastErrorAge = 0f;
             Status = LastError;
             Log.Error(LastError);
@@ -88,7 +88,7 @@ namespace AIBody
 
         private static string FileName(string path)
         {
-            if (string.IsNullOrEmpty(path)) return "(kein Pfad)";
+            if (string.IsNullOrEmpty(path)) return "(no path)";
             int slash = Math.Max(path.LastIndexOf('/'), path.LastIndexOf('\\'));
             return slash >= 0 ? path.Substring(slash + 1) : path;
         }
@@ -121,7 +121,7 @@ namespace AIBody
                     if (_warned) Log.Info("HeadAudioSource found; speech output enabled.");
                     return true;
                 }
-                LookupError = _control == null ? "kein Storable 'HeadAudioSource'" : "HeadAudioSource ohne audioSource";
+                LookupError = _control == null ? "no storable 'HeadAudioSource'" : "HeadAudioSource without audioSource";
             }
             catch (Exception e)
             {
@@ -156,13 +156,13 @@ namespace AIBody
         {
             if (!Resolve())
             {
-                string why = "kein Kopf-Audio (HeadAudioSource) auf dieser Figur: " + LookupError;
+                string why = "no head audio (HeadAudioSource) on this character: " + LookupError;
                 SetError(why);
                 return "No HeadAudioSource on this atom (" + LookupError + ")";
             }
             if (string.IsNullOrEmpty(path))
             {
-                SetError("speak ohne 'audio'-Pfad");
+                SetError("speak without an 'audio' path");
                 return "speak needs 'audio' (a file path below the VaM folder)";
             }
             // Plain paths below the VaM folder can be checked (E10); package paths ("pkg:/...") cannot.
@@ -175,12 +175,12 @@ namespace AIBody
             }
             if (missing)
             {
-                SetError("Datei fehlt: " + path + " (schreibt die Companion-App in denselben VaM-Ordner? --vam-root prüfen)");
+                SetError("File missing: " + path + " (does the companion app write to the same VaM folder? Check --vam-root)");
                 return "audio file not found: " + path;
             }
             if (interrupt) StopAll("interrupted");
             _queue.Add(new Utterance { Id = id, Path = path });
-            if (_current == null) Status = "Lade: " + FileName(path);
+            if (_current == null) Status = "Loading: " + FileName(path);
             return null;
         }
 
@@ -221,7 +221,7 @@ namespace AIBody
                 _queue.RemoveAt(0);
                 if (next.Clip == null)
                 {
-                    SetError((next.Error ?? "QueueClip ging nicht") + " – " + next.Path);
+                    SetError((next.Error ?? "QueueClip failed") + " – " + next.Path);
                     Fire(OnError, next.Id, next.Error ?? "audio could not be queued");
                     Fire(OnEnded, next.Id, "failed");
                 }
@@ -238,15 +238,15 @@ namespace AIBody
                 URLAudioClip queued = URLAudioClipManager.singleton.QueueClip(url);
                 if (queued == null)
                 {
-                    u.Error = "QueueClip lieferte nichts (Pfad '" + url + "' nicht ladbar?)";
+                    u.Error = "QueueClip returned nothing (path '" + url + "' not loadable?)";
                     return;
                 }
                 u.Clip = URLAudioClipManager.singleton.GetClip(queued.uid);
-                if (u.Clip == null) u.Error = "GetClip fand den geladenen Clip nicht (uid " + queued.uid + ")";
+                if (u.Clip == null) u.Error = "GetClip did not find the loaded clip (uid " + queued.uid + ")";
             }
             catch (Exception e)
             {
-                u.Error = "Laden fehlgeschlagen: " + Diag.Describe(e);
+                u.Error = "Loading failed: " + Diag.Describe(e);
             }
         }
 
@@ -255,7 +255,7 @@ namespace AIBody
             _current = u;
             u.PreviousClip = _audio.clip;
             _control.volume = _volume;
-            Status = "Lade: " + FileName(u.Path) + (_volume < 0.01f ? " (Achtung: Speech volume ist 0)" : "");
+            Status = "Loading: " + FileName(u.Path) + (_volume < 0.01f ? " (note: Speech volume is 0)" : "");
             u.Plays++;
             Log.Debug("PlayNow " + u.Id + ": " + u.Path);
             _control.PlayNow(u.Clip);
@@ -272,16 +272,16 @@ namespace AIBody
                 {
                     u.Started = true;
                     u.StartedClip = clip;
-                    Status = "Spreche: " + FileName(u.Path) + " (" + clip.length.ToString("0.0") + " s"
-                        + (_volume < 0.01f ? ", Speech volume ist 0 – nichts zu hören" : "") + ")";
-                    Log.Debug("Spricht " + u.Id + " (" + clip.length.ToString("0.0") + " s, " + u.Plays + "x PlayNow)");
+                    Status = "Speaking: " + FileName(u.Path) + " (" + clip.length.ToString("0.0") + " s"
+                        + (_volume < 0.01f ? ", Speech volume is 0 – nothing audible" : "") + ")";
+                    Log.Debug("Speaking " + u.Id + " (" + clip.length.ToString("0.0") + " s, " + u.Plays + "x PlayNow)");
                     if (OnStarted != null) OnStarted(u.Id, clip.length);
                     return;
                 }
                 if (u.PlayTime > StartTimeout)
                 {
-                    SetError("Clip startete nicht in " + StartTimeout.ToString("0") + " s (" + u.Plays
-                        + "x PlayNow) – Datei nicht ladbar (Format/Pfad) oder Kopf-Audio blockiert: " + u.Path);
+                    SetError("Clip did not start within " + StartTimeout.ToString("0") + " s (" + u.Plays
+                        + "x PlayNow) – file not loadable (format/path) or head audio blocked: " + u.Path);
                     Fire(OnError, u.Id, "did not start playing within " + StartTimeout.ToString("0") + " s: " + u.Path);
                     Finish("failed");
                     return;
@@ -303,9 +303,9 @@ namespace AIBody
         {
             Utterance done = _current;
             _current = null;
-            if (reason != "failed") Status = (reason == "completed" ? "Fertig: " : "Abgebrochen (" + reason + "): ") + FileName(done.Path);
+            if (reason != "failed") Status = (reason == "completed" ? "Done: " : "Cancelled (" + reason + "): ") + FileName(done.Path);
             Release(done);
-            Log.Debug("Ende " + done.Id + ": " + reason);
+            Log.Debug("End " + done.Id + ": " + reason);
             Fire(OnEnded, done.Id, reason);
         }
 

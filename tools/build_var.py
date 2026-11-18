@@ -4,7 +4,7 @@
   dist/d0n.AIBody.<N>.var
     meta.json
     Custom/Scripts/d0n/AIBody/AIBody.cslist   (+ the .cs files it lists, same folder)
-    Custom/Scripts/d0n/AIBody/AIBodyTest.wav  (test tone for the plugin's "Test-Ton abspielen")
+    Custom/Scripts/d0n/AIBody/AIBodyTest.wav  (test tone for the plugin's "Play test tone")
 
 meta.json is packaging/meta.json (unchanged, incl. licenseType) with the overrides from
 packaging/AIBody.json, which also sets the package version <N>. The script folder is assembled by

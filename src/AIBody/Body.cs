@@ -60,9 +60,9 @@ namespace AIBody
 
         // Self test (looked up lazily, so these also turn true once VaM finished loading the atom).
         public bool SpeechAvailable { get { return _speech != null && _speech.Available; } }
-        public string SpeechError { get { return _speech != null ? _speech.LookupError : "SpeechPlayer fehlt"; } }
+        public string SpeechError { get { return _speech != null ? _speech.LookupError : "SpeechPlayer missing"; } }
         public bool MorphsAvailable { get { return _morphs != null && _morphs.Available; } }
-        public string MorphsError { get { return _morphs != null ? _morphs.LookupError : "MorphHelper fehlt"; } }
+        public string MorphsError { get { return _morphs != null ? _morphs.LookupError : "MorphHelper missing"; } }
 
         // In-game checks for the TODO(verify) points (T3, T5): computed at most every 5 s.
         private float _selfTestAge = 999f;
@@ -80,7 +80,7 @@ namespace AIBody
             JSONClass t = new JSONClass();
             try
             {
-                string storage = _poses != null ? _poses.CheckPoseStorage() : "PoseController fehlt";
+                string storage = _poses != null ? _poses.CheckPoseStorage() : "PoseController missing";
                 t["pose_storage"] = storage ?? "ok";
                 t["pose_files"].AsInt = _poses != null ? _poses.PoseFileCount : 0;
                 t["poses"].AsInt = _poses != null ? _poses.PoseNames.Count : 0;
@@ -115,23 +115,23 @@ namespace AIBody
         public string SelfTestText()
         {
             JSONClass t = SelfTestJson();
-            if (Protocol.Has(t, "error")) return "  Körper-Prüfung: FEHLER " + t["error"].Value + "\n";
+            if (Protocol.Has(t, "error")) return "  Body check: ERROR " + t["error"].Value + "\n";
             string storage = t["pose_storage"].Value;
-            string text = "  Pose-Speicher (PosePresets): " + (storage == "ok" ? "ja" : "NEIN (" + storage + ")") + "\n";
-            text += "  Posen: " + t["poses"].AsInt + " (davon Dateien in Custom/Atom/Person/Pose: " + t["pose_files"].AsInt + ")\n";
-            text += "  Atem-Morph '" + t["breath_morph"].Value + "': " + (t["breath_morph_found"].AsBool ? "gefunden" : "NICHT gefunden (Tab AI Character > Breath morph)") + "\n";
+            string text = "  Pose storage (PosePresets): " + (storage == "ok" ? "yes" : "NO (" + storage + ")") + "\n";
+            text += "  Poses: " + t["poses"].AsInt + " (files in Custom/Atom/Person/Pose: " + t["pose_files"].AsInt + ")\n";
+            text += "  Breath morph '" + t["breath_morph"].Value + "': " + (t["breath_morph_found"].AsBool ? "found" : "NOT found (tab AI Character > Breath morph)") + "\n";
             int found = t["expression_morphs_found"].AsInt, total = t["expression_morphs_total"].AsInt;
-            text += "  Ausdrucks-Morphs: " + (total == 0 ? "-" : found + " von " + total + " gefunden");
+            text += "  Expression morphs: " + (total == 0 ? "-" : found + " of " + total + " found");
             JSONArray missing = t["expression_morphs_missing"] as JSONArray;
             if (missing != null && missing.Count > 0)
             {
                 List<string> names = new List<string>();
                 for (int i = 0; i < missing.Count && i < 6; i++) names.Add(missing[i].Value);
-                text += " – fehlen: " + string.Join(", ", names.ToArray()) + (missing.Count > 6 ? ", …" : "");
+                text += " – missing: " + string.Join(", ", names.ToArray()) + (missing.Count > 6 ? ", …" : "");
             }
             text += "\n";
             if (t["timeline_gestures"].AsInt > 0)
-                text += "  Timeline für " + t["timeline_gestures"].AsInt + " Geste(n): " + (t["timeline"].AsBool ? "ja" : "NEIN (Timeline-Plugin fehlt auf dieser Person)") + "\n";
+                text += "  Timeline for " + t["timeline_gestures"].AsInt + " gesture(s): " + (t["timeline"].AsBool ? "yes" : "NO (Timeline plugin missing on this Person)") + "\n";
             return text;
         }
 
@@ -179,7 +179,7 @@ namespace AIBody
             // Each controller on its own: a failing one disables only its feature. Atom lookups
             // (HeadAudioSource, geometry, headControl) are lazy and retried, see the controllers.
             _diag.Run("Morphs (MorphHelper)", () => _morphs = new MorphHelper(_atom));
-            _diag.Run("Sprachausgabe (SpeechPlayer)", () =>
+            _diag.Run("Speech output (SpeechPlayer)", () =>
             {
                 SpeechPlayer speech = new SpeechPlayer(_atom);
                 speech.OnStarted = OnSpeechStarted;
@@ -193,8 +193,8 @@ namespace AIBody
             });
             if (_morphs != null)
             {
-                _diag.Run("Ausdrücke (ExpressionController)", () => _expressions = new ExpressionController(_morphs));
-                _diag.Run("Atmung (BreathingController)", () =>
+                _diag.Run("Expressions (ExpressionController)", () => _expressions = new ExpressionController(_morphs));
+                _diag.Run("Breathing (BreathingController)", () =>
                 {
                     BreathingController breathing = new BreathingController(_morphs, _breathMorphJson != null ? _breathMorphJson.val : "Breath1");
                     if (_breathingJson != null) breathing.Enabled = _breathingJson.val;
@@ -203,18 +203,18 @@ namespace AIBody
                     _breathing = breathing;
                 });
             }
-            _diag.Run("Kopfbewegung (IdleController)", () =>
+            _diag.Run("Head motion (IdleController)", () =>
             {
                 IdleController idle = new IdleController(_atom);
                 if (_idleJson != null) idle.Enabled = _idleJson.val;
                 if (_idleIntensityJson != null) idle.Intensity = _idleIntensityJson.val;
                 _idle = idle;
             });
-            _diag.Run("Posen/Gesten (PoseController)", () => _poses = new PoseController(_atom, _idle));
-            _diag.Run("Befehle (CommandRouter)", () =>
+            _diag.Run("Poses/gestures (PoseController)", () => _poses = new PoseController(_atom, _idle));
+            _diag.Run("Commands (CommandRouter)", () =>
                 _router = new CommandRouter(_send, _speech, _expressions, _poses, _idle, _breathing,
                     () => BodyControl));
-            _diag.Run("Config-Dateien laden", ReloadConfigFiles);
+            _diag.Run("Load config files", ReloadConfigFiles);
         }
 
         /// <summary>Speech controls on the left, body settings on the right (below the mic menu).</summary>
@@ -225,7 +225,7 @@ namespace AIBody
         /// <summary>Sound test in the tab "Voice", section "Voice Mode".</summary>
         public void BuildVoiceModeTab(UiPage page)
         {
-            page.Button("Test-Ton abspielen", () => { _testStatus = PlayTestTone(); });
+            page.Button("Play test tone", () => { _testStatus = PlayTestTone(); });
             page.Button("Stop speaking", StopSpeaking);
         }
 
@@ -243,22 +243,22 @@ namespace AIBody
         public void BuildCharacterTab(UiPage page)
         {
             RefreshCharacterChoices();
-            page.Header("<b>Posen</b> (per Sprache über die KI, oder hier)");
-            // No empty menu (version 16): without poses only "Posen neu laden"; the reason is in the info field.
+            page.Header("<b>Poses</b> (by voice through the AI, or here)");
+            // No empty menu (version 16): without poses only "Reload poses"; the reason is in the info panel.
             if (_poses != null && _poses.PoseNames.Count > 0)
             {
                 page.ScrollablePopup(_poseChoiceJson);
-                page.Button("Pose anwenden", ApplyChosenPose);
+                page.Button("Apply pose", ApplyChosenPose);
             }
-            page.Button("Posen neu laden", () => { ReloadGestures(); RefreshCharacterChoices(); RebuildTab = true; });
-            page.Header("<b>Ausdruck und Geste</b>");
+            page.Button("Reload poses", () => { ReloadGestures(); RefreshCharacterChoices(); RebuildTab = true; });
+            page.Header("<b>Expression and gesture</b>");
             page.Popup(_expressionChoiceJson);
-            page.Button("Ausdruck zeigen", ShowChosenExpression);
+            page.Button("Show expression", ShowChosenExpression);
             page.Button("Reset expression", () => { if (_expressions != null) _expressions.Reset(0.4f); });
-            page.Button("Ausdrücke neu laden (expressions.json)", ReloadExpressions);
+            page.Button("Reload expressions (expressions.json)", ReloadExpressions);
             page.Popup(_gestureChoiceJson);
-            page.Button("Geste abspielen", PlayChosenGesture);
-            page.Header("<b>Körper</b> (nur diese Person)");
+            page.Button("Play gesture", PlayChosenGesture);
+            page.Header("<b>Body</b> (this Person only)");
             page.Toggle(_bodyControlJson);
             page.Slider(_volumeJson);
             page.Toggle(_idleJson);
@@ -266,16 +266,16 @@ namespace AIBody
             page.Toggle(_breathingJson);
             page.Slider(_breathRateJson);
             page.Slider(_breathDepthJson);
-            page.Header("Atem-Morph: Name des Brust-Morphs (Feld darunter)");
+            page.Header("Breath morph: name of the chest morph (field below)");
             if (!page.TextInput(_breathMorphJson))
-                _diag.Warn("Feld 'Breath morph' ist nur lesbar (InputField ging nicht).");
+                _diag.Warn("Field 'Breath morph' is read-only (InputField failed).");
         }
 
         /// <summary>Info for the tab "AI Character" in the big field on the left.</summary>
         public string CharacterInfoText()
         {
-            string text = "Posen: " + (_poses != null ? _poses.PoseNames.Count + " im Menü und für die KI (" + _poses.PoseScanNote + ")" : "PoseController fehlt") + "\n";
-            text += "Body control aus = nur Sprache, die KI steuert den Körper nicht. Atem-Morph: Name aus dem Morphs-Tab der Figur.\n";
+            string text = "Poses: " + (_poses != null ? _poses.PoseNames.Count + " in the menu and available to the AI (" + _poses.PoseScanNote + ")" : "PoseController missing") + "\n";
+            text += "Body control off = speech only, the AI does not move the body. Breath morph: a name from the character's Morphs tab.\n";
             return text;
         }
 
@@ -302,27 +302,27 @@ namespace AIBody
 
         private void ApplyChosenPose()
         {
-            if (_poses == null) { CharacterNote = "Pose: PoseController fehlt"; return; }
+            if (_poses == null) { CharacterNote = "Pose: PoseController missing"; return; }
             string name = _poseChoiceJson.val;
             string error = _poses.ApplyPose(name);
-            CharacterNote = error == null ? "Pose angewendet: " + name : "<color=red>Pose '" + name + "': " + error + "</color>";
+            CharacterNote = error == null ? "Pose applied: " + name : "<color=red>Pose '" + name + "': " + error + "</color>";
             Log.Debug(CharacterNote);
         }
 
         private void ShowChosenExpression()
         {
-            if (_expressions == null) { CharacterNote = "Ausdruck: keine Morphs auf dieser Figur"; return; }
+            if (_expressions == null) { CharacterNote = "Expression: no morphs on this character"; return; }
             string name = _expressionChoiceJson.val;
             CharacterNote = _expressions.SetExpression(name, 1f, 0.4f, -1f)
-                ? "Ausdruck: " + name : "<color=red>Ausdruck '" + name + "' unbekannt</color>";
+                ? "Expression: " + name : "<color=red>Unknown expression '" + name + "'</color>";
         }
 
         private void PlayChosenGesture()
         {
-            if (_poses == null) { CharacterNote = "Geste: PoseController fehlt"; return; }
+            if (_poses == null) { CharacterNote = "Gesture: PoseController missing"; return; }
             string name = _gestureChoiceJson.val;
             string error = _poses.PlayGesture(name, 0f, 0f);
-            CharacterNote = error == null ? "Geste: " + name : "<color=red>Geste '" + name + "': " + error + "</color>";
+            CharacterNote = error == null ? "Gesture: " + name : "<color=red>Gesture '" + name + "': " + error + "</color>";
         }
 
         // ---------------------------------------------------------------- config.json "body"
@@ -377,7 +377,7 @@ namespace AIBody
             if (_poses == null) return;
             _poses.LoadGestureFile(GesturesPath);
             _poses.ScanPoseFiles();
-            Log.Info(_poses.PoseScanNote + "; " + _poses.PoseNames.Count + " Posen im Menü / für die KI");
+            Log.Info(_poses.PoseScanNote + "; " + _poses.PoseNames.Count + " poses in the menu / available to the AI");
             _selfTestAge = 999f;
         }
 
@@ -387,11 +387,11 @@ namespace AIBody
         /// </summary>
         public string PlayTestTone()
         {
-            if (_speech == null) return "Test-Ton: Sprachausgabe fehlt";
+            if (_speech == null) return "Test tone: speech output missing";
             string folder = null;
             try { folder = PluginFolder != null ? PluginFolder() : null; }
-            catch (Exception e) { return "Test-Ton: Plugin-Ordner nicht gefunden (" + Diag.Describe(e) + ")"; }
-            if (string.IsNullOrEmpty(folder)) return "Test-Ton: Plugin-Ordner nicht gefunden";
+            catch (Exception e) { return "Test tone: plugin folder not found (" + Diag.Describe(e) + ")"; }
+            if (string.IsNullOrEmpty(folder)) return "Test tone: plugin folder not found";
             string path = folder + "/" + TestToneFile;
             string error = _speech.Enqueue(LocalPrefix + "test-" + DateTime.UtcNow.Ticks, path, true);
             return error == null ? "Test-Ton: " + path : "Test-Ton: " + error;
@@ -486,12 +486,12 @@ namespace AIBody
             if (_speech != null)
             {
                 text += "Speaking: " + (_speech.IsSpeaking ? "yes" : "no") + ", queued: " + _speech.QueueLength
-                    + (_volumeJson != null && _volumeJson.val < 0.01f ? " – Speech volume ist 0!" : "") + "\n";
-                text += "Audio: " + (_speech.Status ?? "noch nichts abgespielt") + "\n";
+                    + (_volumeJson != null && _volumeJson.val < 0.01f ? " – Speech volume is 0!" : "") + "\n";
+                text += "Audio: " + (_speech.Status ?? "nothing played yet") + "\n";
                 if (_speech.LastError != null && _speech.LastError != _speech.Status && _speech.LastErrorAge < 300f)
-                    text += "<color=red>" + _speech.LastError + "</color> (vor " + _speech.LastErrorAge.ToString("0") + " s)\n";
+                    text += "<color=red>" + _speech.LastError + "</color> (" + _speech.LastErrorAge.ToString("0") + " s ago)\n";
             }
-            if (!BodyControl) text += "Body control: aus (nur Sprache)\n";
+            if (!BodyControl) text += "Body control: off (speech only)\n";
             if (_testStatus != null) text += _testStatus + "\n";
             if (CharacterNote.Length > 0) text += CharacterNote + "\n";
             if (_expressions != null) text += "Expression: " + _expressions.Current + "\n";

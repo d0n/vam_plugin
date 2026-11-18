@@ -74,9 +74,9 @@ class PluginMenuTests(unittest.TestCase):
         show = method_body(source("AIBody.cs"), "private void ShowTab(int index)")
         self.assertNotIn('_page.Header("<b>" + name', show, "tab title header (a field that only says the tab name)")
 
-    def test_pose_section_is_called_posen(self):
+    def test_pose_section_is_called_poses(self):
         body = method_body(source("Body.cs"), "public void BuildCharacterTab(UiPage page)")
-        self.assertIn('"<b>Posen</b>', body)
+        self.assertIn('"<b>Poses</b>', body)
 
 
 class Version16MenuTests(unittest.TestCase):
@@ -89,14 +89,14 @@ class Version16MenuTests(unittest.TestCase):
         self.assertIn("MicDeviceList.Build(", method_body(mic, "public void HandleDevices(JSONClass msg)"))
         self.assertIn("EnsureDeviceChoices();", method_body(mic, "public void BuildTab(UiPage page)"))
         self.assertIn("MicDeviceList.cs", source("AIBody.cslist"))
-        self.assertIn('"Standard (System-Mikrofon)"', source("MicDeviceList.cs"))
+        self.assertIn('"System default microphone"', source("MicDeviceList.cs"))
 
     def test_mic_info_shows_count_source_time_and_menu_entries(self):
         mic = source("MicConfig.cs")
         handle = method_body(mic, "public void HandleDevices(JSONClass msg)")
-        for part in ('" empfangen von der Companion-App"', '" (Host-API "', 'DateTime.Now.ToString("HH:mm:ss")'):
+        for part in ('" received from the companion app"', '" (host API "', 'DateTime.Now.ToString("HH:mm:ss")'):
             self.assertIn(part, handle)
-        self.assertIn('"Menü Mic device: "', method_body(mic, "private string MenuEntriesText()"))
+        self.assertIn('"Mic device menu: "', method_body(mic, "private string MenuEntriesText()"))
         self.assertIn("MenuEntriesText()", method_body(mic, "private void RefreshStatus()"))
 
     def test_info_field_is_larger_and_per_tab(self):
@@ -104,11 +104,11 @@ class Version16MenuTests(unittest.TestCase):
         height = re.search(r"status\.height = (\d+)f;", plugin)
         self.assertGreaterEqual(int(height.group(1)), 1800, "version 17: even taller than 1600")
         refresh = method_body(plugin, "private void RefreshStatus()")
-        for moved in ("SelfTest()", "Start-Protokoll", "Letzte Ereignisse", "<b>Live</b>"):
+        for moved in ("SelfTest()", "Startup log", "Recent events", "<b>Live</b>"):
             self.assertNotIn(moved, refresh, "only the open tab's info in the field")
         info = method_body(plugin, "private string TabInfo()")
         self.assertIn("SelfTest()", info)
-        self.assertIn("Start-Protokoll", info)
+        self.assertIn("Startup log", info)
 
     def test_no_empty_pose_menu(self):
         body = method_body(source("Body.cs"), "public void BuildCharacterTab(UiPage page)")
@@ -138,8 +138,30 @@ class Version17MenuTests(unittest.TestCase):
     def test_reload_expressions_sits_with_the_expressions(self):
         body = method_body(source("Body.cs"), "public void BuildCharacterTab(UiPage page)")
         reload = body.index("ReloadExpressions")
-        self.assertLess(body.index("<b>Ausdruck und Geste</b>"), reload)
-        self.assertLess(reload, body.index("<b>Körper</b>"))
+        self.assertLess(body.index("<b>Expression and gesture</b>"), reload)
+        self.assertLess(reload, body.index("<b>Body</b>"))
+
+
+class Version18MenuTests(unittest.TestCase):
+    """Leon, 18.11.2026: plugin UI in English; old scenes and old companion texts keep working."""
+
+    def test_old_german_mic_default_is_migrated(self):
+        mic_list = source("MicDeviceList.cs")
+        self.assertIn('LegacyDefaultV16 = "Standard (System-Mikrofon)"', mic_list)
+        update = method_body(source("MicConfig.cs"), "public void Update(float deltaTime, bool connected)")
+        self.assertIn("IsLegacyDefault(", update)
+
+    def test_problem_turns_red_for_old_and_new_companion_texts(self):
+        body = method_body(source("AppLink.cs"), "public static bool IsProblemTurn(string turn)")
+        for prefix in ('"Nothing"', '"No "', '"Nichts"', '"Keine"', '"Fehler"', '"error"'):
+            self.assertIn(prefix, body)
+
+    def test_menu_labels_are_english(self):
+        body = method_body(source("Body.cs"), "public void BuildCharacterTab(UiPage page)")
+        for label in ('"Apply pose"', '"Reload poses"', '"Show expression"', '"Play gesture"'):
+            self.assertIn(label, body)
+        for german in ("Pose anwenden", "Ausdruck zeigen", "Geste abspielen", "Körper"):
+            self.assertNotIn(german, body)
 
 
 if __name__ == "__main__":

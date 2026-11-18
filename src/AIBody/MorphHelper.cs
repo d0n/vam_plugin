@@ -37,8 +37,8 @@ namespace AIBody
                 DAZCharacterSelector selector = _atom.GetStorableByID("geometry") as DAZCharacterSelector;
                 // morphsControlUI follows the currently selected character's gender.
                 if (selector != null) _morphsUI = selector.morphsControlUI;
-                LookupError = selector == null ? "kein DAZCharacterSelector 'geometry'"
-                    : (_morphsUI == null ? "morphsControlUI ist leer" : null);
+                LookupError = selector == null ? "no DAZCharacterSelector 'geometry'"
+                    : (_morphsUI == null ? "morphsControlUI is empty" : null);
             }
             catch (Exception e)
             {
