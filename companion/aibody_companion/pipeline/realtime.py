@@ -36,6 +36,9 @@ from .http import is_key_rejection
 from .sentences import SentenceSplitter
 from .websocket import WebSocket, WebSocketError
 
+# Start of last_error when the server refused the key (the orchestrator marks the xAI key as rejected).
+KEY_REJECTED = "API key rejected"
+
 log = logging.getLogger(__name__)
 
 PCM_RATES = (8000, 16000, 22050, 24000, 32000, 44100, 48000)
@@ -229,7 +232,7 @@ class RealtimeClient:
             except WebSocketError as e:
                 self.last_error = self._describe(e)
             except Exception as e:  # noqa: BLE001 - keep the thread alive
-                self.last_error = f"Fehler: {e}"
+                self.last_error = f"Error: {e}"
                 log.exception("Realtime connection failed")
             was_ready = self.ready
             self.ready = self.connected = False
@@ -240,23 +243,23 @@ class RealtimeClient:
             self.failures = 0 if was_ready else self.failures + 1
             delay = self._backoff[min(max(self.failures - 1, 0), len(self._backoff) - 1)]
             self.next_attempt_at = self._clock() + delay
-            log.warning("Realtime: %s - neuer Versuch in %.0f s", self.last_error or "getrennt", delay)
+            log.warning("Realtime: %s - retrying in %.0f s", self.last_error or "disconnected", delay)
             self._stop.wait(delay)
 
     @staticmethod
     def _describe(e: WebSocketError) -> str:
         if is_key_rejection(e.status, str(e)):
-            return f"API-Key abgelehnt (HTTP {e.status})"
+            return f"{KEY_REJECTED} (HTTP {e.status})"
         return str(e)
 
     def _connect_and_read(self) -> None:
         if not self._key:
-            raise WebSocketError("nicht konfiguriert (kein xAI-Key)")
+            raise WebSocketError("not configured (no xAI API key)")
         ws = self._connector(self.url, {"Authorization": f"Bearer {self._key}"}, self._connect_timeout)
         self._ws = ws
         self.connected = True
         self.last_error = ""
-        log.info("Realtime: verbunden mit %s", self.url)
+        log.info("Realtime: connected to %s", self.url)
         ws.send_text(json.dumps({"type": "session.update", "session": self._session()}))
         while not self._stop.is_set():
             msg = ws.recv(timeout=0.2)

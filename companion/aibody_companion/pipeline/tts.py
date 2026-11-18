@@ -40,7 +40,7 @@ def test_tone_pcm(seconds: float = 1.5, rate: int = 22050) -> bytes:
     return bytes(frames)
 
 
-LAST_WRITE_S = {"s": 0.0}  # how long the last WAV write took (latency breakdown "Datei")
+LAST_WRITE_S = {"s": 0.0}  # how long the last WAV write took (latency breakdown "file write")
 
 
 def write_pcm_wav(pcm16: bytes, sample_rate: int, out_path: Path, channels: int = 1) -> float:

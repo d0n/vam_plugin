@@ -7,7 +7,7 @@ Verbose (config.json advanced.verbose_log, the plugin's "Verbose log" toggle in 
 --verbose) switches on the turn trace: one line per step of every turn with a turn id and the
 time since the turn started, e.g.
 
-  [t0003 +0.84s] stt: engine=xai ms=812 text='Wie spät ist es?'
+  [t0003 +0.84s] stt: engine=xai ms=812 text='What time is it?'
 
 Normal operation logs INFO only. --verbose also shows DEBUG of all modules.
 
@@ -118,8 +118,8 @@ def set_verbose(on: bool) -> bool:
     _state["verbose"] = on
     trace_log.setLevel(logging.INFO if on else logging.WARNING)
     if changed:
-        logging.getLogger(__name__).info("Verbose log %s%s", "an (Turn-Trace)" if on else "aus",
-                                         f" - Logdatei {_state['file']}" if _state["file"] else "")
+        logging.getLogger(__name__).info("Verbose log %s%s", "on (turn trace)" if on else "off",
+                                         f" - log file {_state['file']}" if _state["file"] else "")
     return changed
 
 

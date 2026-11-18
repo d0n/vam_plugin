@@ -290,8 +290,8 @@ class RealtimeSessionTests(RealtimeSim):
         self.start()
         self.assertTrue(self.pump(lambda: self.server.attempts >= 2, timeout=3))
         self.assertEqual(self.app.active_mode, "chain")
-        self.assertIn("API-Key abgelehnt", self.app.mode_note)
-        self.assertIn("Fallback Chain", self.app.mode_note)
+        self.assertIn("API key rejected", self.app.mode_note)
+        self.assertIn("falling back to the chain", self.app.mode_note)
         self.assertEqual(self.app.engine_set.key_info()["xai"]["state"], "rejected", "key status in the AI tab")
         # mic frames go to the local VAD meanwhile
         for _ in range(3):
@@ -305,7 +305,7 @@ class ModeSelectionTests(RealtimeSim):
         self.pump(timeout=0.2)
         self.assertEqual(self.app.active_mode, "chain")
         self.assertIsNone(self.app.realtime)
-        self.assertIn("kein xAI-Key", self.app.mode_note)
+        self.assertIn("no xAI API key", self.app.mode_note)
 
     def test_auto_with_elevenlabs_is_chain(self):
         app = self.start()
@@ -322,7 +322,7 @@ class ModeSelectionTests(RealtimeSim):
         self.assertEqual(app.apply_ai({"mode": "bogus"})[0], "ai.mode: must be one of qa, auto, realtime, chain")
         app.shutdown()
         self.app = self.start(mode="realtime", env={})
-        self.assertIn("Realtime nicht konfiguriert", self.app.mode_note)
+        self.assertIn("Realtime not configured", self.app.mode_note)
 
 
 class ProactiveTests(RealtimeSim):

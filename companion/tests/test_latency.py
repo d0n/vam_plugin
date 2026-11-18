@@ -83,12 +83,12 @@ class ChainLatencyTests(QaFlowTests):
         self.assertEqual(lat["n"], 1)
         self.assertEqual(lat["kind"], "chain")
         self.assertGreaterEqual(lat["last_s"], 1.6, "STT 0.8 + LLM 0.5 + TTS 0.3 at least")
-        self.assertEqual(list(lat["parts"])[:4], ["STT", "LLM erstes Token", "erster Satz", "TTS"])
+        self.assertEqual(list(lat["parts"])[:4], ["STT", "LLM first token", "first sentence", "TTS"])
         self.assertAlmostEqual(lat["parts"]["STT"], 0.8, places=2)
-        self.assertAlmostEqual(lat["parts"]["LLM erstes Token"], 0.5, places=2)
-        self.assertIn("Plugin-Start", lat["parts"])
+        self.assertAlmostEqual(lat["parts"]["LLM first token"], 0.5, places=2)
+        self.assertIn("plugin start", lat["parts"])
         self.assertAlmostEqual(sum(lat["parts"].values()), lat["last_s"], places=2)
-        self.assertIn("Latenz t", self.stream.getvalue(), "one INFO line per turn, also without verbose")
+        self.assertIn("Latency t", self.stream.getvalue(), "one INFO line per turn, also without verbose")
 
     def test_typed_turn_has_no_stt_part_and_average_is_rolling(self):
         self.start()
@@ -113,8 +113,8 @@ class RealtimeLatencyTests(RealtimeSim):
         self.assertTrue(self.pump(lambda: self.app.latency.info() is not None))
         info = self.app.latency.info()
         self.assertEqual(info["kind"], "realtime")
-        self.assertIn("Server erstes Audio", info["parts"])
-        self.assertIn("Plugin-Start", info["parts"])
+        self.assertIn("server first audio", info["parts"])
+        self.assertIn("plugin start", info["parts"])
 
 
 del QaFlowTests, RealtimeSim

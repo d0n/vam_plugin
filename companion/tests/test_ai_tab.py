@@ -57,7 +57,7 @@ class AiTabTests(unittest.TestCase):
     def test_key_status_says_a_console_key_is_needed_not_a_grok_subscription(self):
         hint = self.beat()["keys"]["xai"]["hint"]
         self.assertIn("console.x.ai", hint)
-        self.assertIn("Grok-Abo", hint)
+        self.assertIn("Grok subscription", hint)
         key_file = self.root / "xai.txt"
         key_file.write_text(KEY)
         self.plugin.key_files["xai"] = str(key_file)

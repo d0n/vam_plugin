@@ -227,7 +227,7 @@ class FakePlugin:
                   ai=self.build_ai_json(), advanced={"verbose_log": self.ui["advanced"]["verbose_log"]})
 
     def set_verbose(self, on: bool) -> None:
-        """Erweitert > "Verbose log": saved to config.json and sent to the app (config event)."""
+        """Config > "Verbose log": saved to config.json and sent to the app (config event)."""
         self.ui["advanced"]["verbose_log"] = on
         self.write_settings()
         self.send_config()
@@ -417,8 +417,8 @@ class FakePlugin:
     @property
     def status(self) -> str:
         if self.app_alive:
-            return "verbunden"
-        return "GETRENNT" if self.last_session else "noch nicht gesehen"
+            return "connected"
+        return "DISCONNECTED" if self.last_session else "not seen yet"
 
 
 PLUGIN_VERSION = "17"  # AIBody.cs PluginVersion

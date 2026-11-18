@@ -24,13 +24,13 @@ SCHEMA_PATH = ROOT / "protocol" / "schema" / "config.schema.json"
 EXAMPLE_PATH = ROOT / "examples" / "config.json"
 
 DESCRIPTIONS = {
-    ("connection",): "Tab 'Verbindung': channel (folder below Saves/PluginData/AIBody), link on/off, data file paths "
+    ("connection",): "Connection (link on/off in tab 'Voice'): channel (folder below Saves/PluginData/AIBody), data file paths "
                      "(relative to the VaM folder, below Saves/ or Custom/)",
-    ("engines",): "Tab 'Engines': stt null|xai, llm echo|xai, tts tone|xai|elevenlabs. A cloud engine without API key "
+    ("engines",): "Tab 'Voice', section 'Voice > AI Character': stt null|xai, llm echo|xai, tts tone|xai|elevenlabs. A cloud engine without API key "
                   "stays selected but the fallback (ai.fallback) runs",
-    ("mic",): "Tab 'Mikrofon & PTT': captured by the companion app; push-to-talk state itself is never saved",
-    ("body",): "Tab 'Körper'",
-    ("advanced",): "Tab 'Erweitert'",
+    ("mic",): "Tab 'Client Character': captured by the companion app; push-to-talk state itself is never saved",
+    ("body",): "Tab 'AI Character', section 'Body (this Person only)'",
+    ("advanced",): "Tab 'Config' (file poll interval, verbose log)",
     ("ai",): "Companion app only (no tab; the plugin keeps this section unchanged). NEVER put an API key here: "
              "use XAI_API_KEY / ELEVENLABS_API_KEY or the PATH of a key file (key_file)",
     ("ai", "persona"): "Persona / system prompt for the language model (xAI: 'instructions')",

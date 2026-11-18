@@ -88,7 +88,7 @@ class LevelAndFileTests(unittest.TestCase):
         self.assertIn(f"[{turn.id} +0.00s] start: kind='text' text='zwei'", text)
         self.assertIn("stt: engine='xai' ms=812 text='Wie spät ist es?'", text)
         self.assertIn(f"[{turn.id}] plugin: speech_started: duration=1.5", text)
-        self.assertIn("Verbose log an (Turn-Trace) - Logdatei", text)
+        self.assertIn("Verbose log on (turn trace) - log file", text)
         self.assertRegex(text, r"^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d\.\d{3} INFO ")
 
     def test_debug_forces_the_trace_on(self):

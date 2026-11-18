@@ -76,7 +76,7 @@ class _XaiBase:
 
     def _headers(self) -> dict[str, str]:
         if not self.key:
-            raise ApiError(self.service, 0, "nicht konfiguriert (kein API-Key)")
+            raise ApiError(self.service, 0, "not configured (no API key)")
         return {"Authorization": f"Bearer {self.key}"}
 
 

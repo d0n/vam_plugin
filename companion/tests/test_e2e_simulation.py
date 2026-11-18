@@ -103,12 +103,12 @@ class ConfigRoundTripTests(unittest.TestCase):
         self.assertEqual(applied["mic"]["gain"], 2.5)
         self.assertFalse(applied["mic"]["ptt_interrupts"])
         self.assertEqual(applied["engines"]["llm"], "xai")
-        self.assertTrue(any("nicht konfiguriert" in e for e in acks[-1]["errors"]), acks[-1]["errors"])
+        self.assertTrue(any("not configured" in e for e in acks[-1]["errors"]), acks[-1]["errors"])
         self.assertFalse([e for e in acks[-1]["errors"] if "must be" in e], "no type errors from VaM strings")
         self.assertEqual(app.engine_set.active_names["llm"], "echo", "no key: fallback runs")
         beat = self.sim.sent(self.plugin, "companion_heartbeat")[-1]
         self.assertEqual(beat["engines_active"]["llm"], "echo")
-        self.assertTrue(beat["engines_status"]["llm"]["xai"].startswith("nicht konfiguriert"))
+        self.assertTrue(beat["engines_status"]["llm"]["xai"].startswith("not configured"))
 
         # 4. Push-to-talk arrives as "true"/"false" strings and still works.
         self.plugin.press_ptt(True)
@@ -165,15 +165,15 @@ class ReconnectTests(unittest.TestCase):
         app = self.sim.start_app()
         self.plugin.start()
         self.sim.run(self.plugin, 5)
-        self.assertEqual(self.plugin.status, "verbunden")
+        self.assertEqual(self.plugin.status, "connected")
         first_session = app.session_id
         app.say("A long sentence that is still playing when the app dies.")
         self.sim.run(self.plugin, 0.5)
         self.assertTrue(self.plugin.playing)
 
-        # The app crashes: no more ticks. After 6 s the plugin shows GETRENNT, logged once.
+        # The app crashes: no more ticks. After 6 s the plugin shows DISCONNECTED, logged once.
         self.sim.run(self.plugin, 60, app=False)
-        self.assertEqual(self.plugin.status, "GETRENNT")
+        self.assertEqual(self.plugin.status, "DISCONNECTED")
         self.assertEqual(self.plugin.log.count("Companion app disconnected"), 1)
         self.assertLessEqual(len(list(self.plugin.outbox.glob("*.json"))), 21, "outbox pruned while away")
 
@@ -183,7 +183,7 @@ class ReconnectTests(unittest.TestCase):
         self.assertNotEqual(app2.session_id, first_session)
         self.assertFalse(list(self.plugin.outbox.glob("*.json")), "stale events cleared by the app")
         self.sim.run(self.plugin, 5)
-        self.assertEqual(self.plugin.status, "verbunden")
+        self.assertEqual(self.plugin.status, "connected")
         self.assertIn("app restarted", self.plugin.log)
         self.assertFalse(self.plugin.playing, "old speech stopped after the app restart")
         readies_after = [m for m in self.plugin.received if m.get("type") == "config_ack"]
@@ -211,7 +211,7 @@ class ReconnectTests(unittest.TestCase):
         self.plugin.start()
         self.sim.run(self.plugin, 5)
         self.assertTrue(app.transport.connected)
-        self.assertEqual(self.plugin.status, "verbunden")
+        self.assertEqual(self.plugin.status, "connected")
         self.assertFalse([m for m in self.plugin.received[-20:] if m.get("type") == "speak"],
                          "no replay of the old speech")
 

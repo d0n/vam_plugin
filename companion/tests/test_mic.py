@@ -344,8 +344,8 @@ class MicTestToolTests(unittest.TestCase):
             rc = tool.main(["--vam-root", tmp, "--channel", "default"], out_dir=Path(tmp))
             self.assertEqual(rc, 0)
             text = (Path(tmp) / "mic_test_output.txt").read_text(encoding="utf-8")
-            for section in ("== Host-APIs ==", "== Alle Geräte, roh (24) ==", "== Eingabegeräte pro Host-API ==",
-                            "Windows WASAPI: 4", "Liste, die die Companion-App an das Plugin schickt (4)"):
+            for section in ("== Host-APIs ==", "== All devices, raw (24) ==", "== Input devices per host API ==",
+                            "Windows WASAPI: 4", "List the companion app sends to the plugin (4)"):
                 self.assertIn(section, text)
             message = json.loads((Path(tmp) / "mic_test_devices.json").read_text(encoding="utf-8"))
             self.assertEqual(protocol.validate_command(message), [])

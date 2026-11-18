@@ -178,7 +178,7 @@ class RealtimeVoice:
         if self._waiting_since is not None and not self.responding and self.client.ready \
                 and self.c._clock() - self._waiting_since > ANSWER_TIMEOUT_S:
             self._waiting_since = None
-            self.c.realtime_unresponsive(f"keine Antwort {ANSWER_TIMEOUT_S:.0f} s nach dem Sprechen")
+            self.c.realtime_unresponsive(f"no answer {ANSWER_TIMEOUT_S:.0f} s after speaking")
             return
         if self.client.ready and not self.responding and not self.user_speaking \
                 and time.monotonic() - self._last_instructions >= INSTRUCTIONS_REFRESH_S:

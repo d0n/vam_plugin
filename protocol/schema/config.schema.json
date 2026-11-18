@@ -65,7 +65,7 @@
           }
         }
       },
-      "description": "Tab 'Verbindung': channel (folder below Saves/PluginData/AIBody), link on/off, data file paths (relative to the VaM folder, below Saves/ or Custom/)"
+      "description": "Connection (link on/off in tab 'Voice'): channel (folder below Saves/PluginData/AIBody), data file paths (relative to the VaM folder, below Saves/ or Custom/)"
     },
     "engines": {
       "type": "object",
@@ -84,7 +84,7 @@
           "default": "tone"
         }
       },
-      "description": "Tab 'Engines': stt null|xai, llm echo|xai, tts tone|xai|elevenlabs. A cloud engine without API key stays selected but the fallback (ai.fallback) runs"
+      "description": "Tab 'Voice', section 'Voice > AI Character': stt null|xai, llm echo|xai, tts tone|xai|elevenlabs. A cloud engine without API key stays selected but the fallback (ai.fallback) runs"
     },
     "mic": {
       "type": "object",
@@ -238,7 +238,7 @@
           "default": true
         }
       },
-      "description": "Tab 'Mikrofon & PTT': captured by the companion app; push-to-talk state itself is never saved"
+      "description": "Tab 'Client Character': captured by the companion app; push-to-talk state itself is never saved"
     },
     "body": {
       "type": "object",
@@ -356,7 +356,7 @@
           "default": "Breath1"
         }
       },
-      "description": "Tab 'Körper'"
+      "description": "Tab 'AI Character', section 'Body (this Person only)'"
     },
     "advanced": {
       "type": "object",
@@ -394,7 +394,7 @@
           "default": false
         }
       },
-      "description": "Tab 'Erweitert'"
+      "description": "Tab 'Config' (file poll interval, verbose log)"
     },
     "ai": {
       "type": "object",

@@ -5,10 +5,10 @@ Enter of a typed line, or realtime's input_audio_buffer.speech_stopped. End: the
 speech_started for the first WAV of the answer (VaM really plays it). All times on the
 companion's clock; the breakdown is the time between the steps that happened, in this order:
 
-  chain:    STT, LLM erstes Token, erster Satz, TTS, Datei, an Plugin, Plugin-Start
-  realtime: Server erstes Audio, Segment, an Plugin, Plugin-Start
+  chain:    STT, LLM first token, first sentence, TTS, file write, to plugin, plugin start
+  realtime: server first audio, segment, to plugin, plugin start
 
-"an Plugin" = until the speak command is written, "Plugin-Start" = from there until VaM plays
+"to plugin" = until the speak command is written, "plugin start" = from there until VaM plays
 (file pickup, loading the WAV, start of the head audio).
 """
 from __future__ import annotations
@@ -19,14 +19,14 @@ from typing import Any
 
 STEPS = [
     ("stt", "STT"),
-    ("llm_first_token", "LLM erstes Token"),
-    ("first_sentence", "erster Satz"),
+    ("llm_first_token", "LLM first token"),
+    ("first_sentence", "first sentence"),
     ("tts", "TTS"),
-    ("write", "Datei"),
-    ("first_audio", "Server erstes Audio"),
-    ("segment", "Segment"),
-    ("speak_sent", "an Plugin"),
-    ("play", "Plugin-Start"),
+    ("write", "file write"),
+    ("first_audio", "server first audio"),
+    ("segment", "segment"),
+    ("speak_sent", "to plugin"),
+    ("play", "plugin start"),
 ]
 LABELS = dict(STEPS)
 KEEP = 10

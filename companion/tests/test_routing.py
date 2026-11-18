@@ -111,7 +111,7 @@ class RoutingTests(unittest.TestCase):
         self.assertEqual(len(beats), 1)
         self.assertEqual(beats[0]["session"], self.c.session_id)
         self.assertEqual(beats[0]["engines_available"]["tts"], ["tone", "xai", "elevenlabs"])
-        self.assertTrue(beats[0]["engines_status"]["tts"]["elevenlabs"].startswith("nicht konfiguriert"))
+        self.assertTrue(beats[0]["engines_status"]["tts"]["elevenlabs"].startswith("not configured"))
         self.assertEqual(beats[0]["engines_active"], {"stt": "null", "llm": "echo", "tts": "tone"})
         self.c.tick()
         self.assertEqual(self.t.types().count("companion_heartbeat"), 1)

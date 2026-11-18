@@ -6,7 +6,7 @@ Documented endpoint (elevenlabs.io/docs, checked 17.11.2026):
   https://elevenlabs.io/docs/api-reference/text-to-speech/convert
 output_format pcm_* is raw 16-bit PCM, wrapped into a WAV here (VaM plays WAV; pcm_44100 and
 pcm_48000 need a Pro subscription according to the docs). Key: ELEVENLABS_API_KEY or
-ai.elevenlabs.key_file. Without a key the engine is "nicht konfiguriert" and the app uses the
+ai.elevenlabs.key_file. Without a key the engine is "not configured" and the app uses the
 fallback TTS.
 
 Tested against a fake server only. TODO(verify): run once with the real key.
@@ -43,7 +43,7 @@ class ElevenLabsTts:
 
     def synthesize(self, text: str, out_path: Path) -> float:
         if not self.key:
-            raise ApiError(self.service, 0, "nicht konfiguriert (kein API-Key)")
+            raise ApiError(self.service, 0, "not configured (no API key)")
         voice_id = urllib.parse.quote(str(self.settings.get("voice_id") or ""), safe="")
         if not voice_id:
             raise ApiError(self.service, 0, "ai.elevenlabs.voice_id is empty")

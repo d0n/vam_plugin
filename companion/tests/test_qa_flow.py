@@ -99,11 +99,11 @@ class QaFlowTests(unittest.TestCase):
             self.assert_played(s)
         self.assertEqual(self.sim.sent(self.plugin, "expression") + self.sim.sent(self.plugin, "gesture"), [],
                          "simple Q&A: speech only, the <<happy nod>> tag is dropped")
-        self.assertIn("Antwort (2 Satz/Sätze, xai -> xai)", self.plugin.turn)
+        self.assertIn("Answer (2 sentence(s), xai -> xai)", self.plugin.turn)
         beat = self.sim.sent(self.plugin, "companion_heartbeat")[-1]
         self.assertEqual(beat["mode"]["requested"], "qa")
-        self.assertIn("Einfacher Q&A", beat["mode"]["status"])
-        self.assertEqual(beat["proactive"]["status"], "pausiert im Einfachen Q&A-Modus")
+        self.assertIn("Simple Q&A", beat["mode"]["status"])
+        self.assertEqual(beat["proactive"]["status"], "paused in Simple Q&A mode")
         self.assertEqual(beat["audio_out"], {"folder": "Custom/Sounds/AIBody/default", "auto": True})
 
     def test_typed_text_takes_the_same_path_without_speech_to_text(self):
@@ -123,7 +123,7 @@ class QaFlowTests(unittest.TestCase):
         data = json.loads(settings_file.settings_path(self.tmp.name).read_text())
         self.assertEqual(data["ai"]["mode"], "qa")
         self.assertEqual(data["connection"]["paths"]["audio"], "")
-        # a scene from 0.7.1 (mode auto) + the button "Einfacher Q&A-Modus"
+        # a scene from 0.7.1 (mode auto) + the button "Simple Q&A mode"
         self.app = Sim(self.tmp.name, self.clock, self.http, env={"XAI_API_KEY": KEY}, mode="auto").start_app()
         self.plugin = FakePlugin(self.root, self.clock, mode="auto")
         self.plugin.start()
@@ -143,14 +143,14 @@ class QaFlowTests(unittest.TestCase):
         self.speak_mic_question()
         self.assertEqual(self.requests("/responses"), [], "no question, no model request")
         self.assertEqual(self.speaks(), [])
-        self.assertIn("Nichts verstanden", self.plugin.turn)
+        self.assertIn("Nothing understood", self.plugin.turn)
 
     def test_speech_to_text_error_is_reported(self):
         self.http.route("/stt", lambda r: http_error(r.full_url, 500, {"error": "stt down"}))
         self.start()
         self.speak_mic_question()
         self.assertEqual(self.speaks(), [])
-        self.assertIn("Spracherkennung-Fehler", self.plugin.turn)
+        self.assertIn("Speech recognition error", self.plugin.turn)
         self.assertIn("stt down", self.plugin.turn)
 
     def test_language_model_error_is_said_aloud(self):
@@ -161,8 +161,8 @@ class QaFlowTests(unittest.TestCase):
         speaks = self.speaks()
         self.assertEqual([s["text"] for s in speaks], [LLM_ERROR_SAY["de"]])
         self.assert_played(speaks[0])
-        self.assertIn("Sprachmodell-Fehler", self.plugin.turn)
-        self.assertIn("Ersatzantwort", self.plugin.turn)
+        self.assertIn("Language model error", self.plugin.turn)
+        self.assertIn("fallback answer", self.plugin.turn)
 
     def test_language_model_network_error_is_not_silent(self):
         def boom(r):
@@ -172,7 +172,7 @@ class QaFlowTests(unittest.TestCase):
         self.app.handle_user_text("Hallo")
         self.sim.run(self.plugin, 3)
         self.assertEqual([s["text"] for s in self.speaks()], [LLM_ERROR_SAY["de"]])
-        self.assertIn("Sprachmodell-Fehler", self.plugin.turn)
+        self.assertIn("Language model error", self.plugin.turn)
 
     def test_text_to_speech_error_plays_the_fallback_tone(self):
         self.http.route("/tts", lambda r: http_error(r.full_url, 500, {"error": "tts down"}))
@@ -184,8 +184,8 @@ class QaFlowTests(unittest.TestCase):
         for s in speaks:
             self.assertGreater(s["duration"], 0.3)
             self.assertIn(("started", s["id"]), self.plugin.speech_events)
-        self.assertIn("Sprachausgabe-Fehler", self.plugin.turn)
-        self.assertIn("Ersatzton (tone)", self.plugin.turn)
+        self.assertIn("Text-to-speech error", self.plugin.turn)
+        self.assertIn("fallback tone (tone)", self.plugin.turn)
 
     def test_without_key_the_test_engines_run_and_the_status_says_why(self):
         self.start(env={})
@@ -194,9 +194,9 @@ class QaFlowTests(unittest.TestCase):
         self.sim.run(self.plugin, 3)
         self.assertEqual([s["text"] for s in self.speaks()], ["You said: Hallo"])
         beat = self.sim.sent(self.plugin, "companion_heartbeat")[-1]
-        self.assertIn("ohne xAI-Key", beat["mode"]["status"])
+        self.assertIn("without an xAI API key", beat["mode"]["status"])
         self.speak_mic_question()
-        self.assertIn("Spracherkennung 'null'", self.plugin.turn)
+        self.assertIn("speech recognition 'null'", self.plugin.turn)
 
     # -- audio folder ----------------------------------------------------------------------------
 
@@ -212,7 +212,7 @@ class QaFlowTests(unittest.TestCase):
         self.assertTrue((self.root / speaks[1]["audio"]).is_file())
         self.assertIn(("started", speaks[1]["id"]), self.plugin.speech_events)
         self.assertEqual(self.plugin.audio_out["folder"], "Saves/PluginData/AIBody/default/audio")
-        self.assertIn("gewechselt", self.plugin.audio_out["note"])
+        self.assertIn("switched", self.plugin.audio_out["note"])
         # the answers now go to the new folder
         self.app.handle_user_text("Hallo")
         self.sim.run(self.plugin, 3)
@@ -225,7 +225,7 @@ class QaFlowTests(unittest.TestCase):
         self.plugin.request_test_tone()
         self.sim.run(self.plugin, 3)
         self.assertEqual(len(self.speaks()), 2)
-        self.assertIn("weder aus", self.plugin.audio_out["note"])
+        self.assertIn("neither from", self.plugin.audio_out["note"])
 
     def test_fixed_audio_folder_is_not_switched(self):
         self.sim = Sim(self.tmp.name, self.clock, self.http, env={"XAI_API_KEY": KEY}, mode="qa")
@@ -243,7 +243,7 @@ class QaFlowTests(unittest.TestCase):
         self.plugin.request_test_tone()
         self.sim.run(self.plugin, 3)
         self.assertEqual(len(self.speaks()), 1)
-        self.assertIn("fest eingestellt", self.plugin.audio_out["note"])
+        self.assertIn("is fixed", self.plugin.audio_out["note"])
 
 
 class RealtimeFallbackTests(RealtimeSim):
@@ -258,8 +258,8 @@ class RealtimeFallbackTests(RealtimeSim):
         conn.send({"type": "input_audio_buffer.speech_stopped", "item_id": "u1", "audio_end_ms": 900})
         self.assertTrue(self.pump(lambda: bool(self.app.realtime_off), timeout=10), self.app.mode_note)
         self.assertEqual(self.app.active_mode, "chain")
-        self.assertIn("Realtime aus", self.app.mode_note)
-        self.assertTrue(self.pump(lambda: "Realtime antwortete nicht" in self.plugin.turn))
+        self.assertIn("Realtime off", self.app.mode_note)
+        self.assertTrue(self.pump(lambda: "Realtime did not respond" in self.plugin.turn))
         # typed text is answered by the chain with xai (the menus still say echo / tone)
         self.app.handle_user_text("Hallo")
         self.assertTrue(self.pump(lambda: bool(self.speaks())))

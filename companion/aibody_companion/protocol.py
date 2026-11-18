@@ -38,7 +38,7 @@ COMMANDS: dict[str, tuple[set[str], set[str]]] = {
     "mic_state": ({"enabled", "capturing"}, {"device", "mode", "ptt_active", "error"}),
     "mic_level": ({"rms"}, {"speech", "gate_open"}),
     # liveness + identity of the companion app (lets the plugin detect restarts over files)
-    # engines_status: kind -> engine -> "bereit" / "nicht konfiguriert: ..."; engines_active: kind -> engine
+    # engines_status: kind -> engine -> "ready" / "not configured: ..."; engines_active: kind -> engine
     # that really runs (the fallback when the selected one is not configured).
     # mode: {requested: qa|auto|realtime|chain, active: realtime|chain, status: text};
     # proactive: {enabled, idle_seconds, status?}; audio_out: {folder, auto, note?} (speech WAV folder);

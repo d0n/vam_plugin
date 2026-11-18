@@ -50,15 +50,15 @@ def build_stack(cfg: Config, use_mic: bool = True) -> Companion:
             log.info("Engine %s/%s: %s", kind, name, state)
     companion = Companion(cfg, build_transport(cfg), gate=EchoGate(), mic=mic, engines=engines,
                           background_turns=True)
-    log.info("Modus: %s -> %s (%s)", companion.mode_requested, companion.active_mode, companion.mode_note)
-    log.info("Audio-Ordner: %s%s", cfg.audio_rel_dir,
-             " (automatisch; wechselt einmal nach Saves/PluginData, falls VaM dort nicht laden kann)"
+    log.info("Mode: %s -> %s (%s)", companion.mode_requested, companion.active_mode, companion.mode_note)
+    log.info("Audio folder: %s%s", cfg.audio_rel_dir,
+             " (automatic; switches once to Saves/PluginData if VaM cannot load from there)"
              if cfg.audio_auto else " (connection.paths.audio)")
     p = companion.proactive
     if p.enabled and companion.speech_only:
-        log.info("Proaktiv: pausiert im Einfachen Q&A-Modus (die KI spricht nur, wenn sie gefragt wird)")
+        log.info("Proactive: paused in Simple Q&A mode (the AI only speaks when asked)")
     else:
-        log.info("Proaktiv: %s, nach %.0f s Stille", "an" if p.enabled else "aus", p.idle_seconds)
+        log.info("Proactive: %s, after %.0f s of silence", "on" if p.enabled else "off", p.idle_seconds)
     return companion
 
 
@@ -117,7 +117,7 @@ def main(argv: list[str] | None = None) -> int:
             log.error(e)
         return 2
     log_path = logsetup.setup(cfg.vam_root, debug=args.verbose)
-    log.info("AIBody companion %s, Logdatei: %s", __version__, log_path or "keine (Ordner nicht beschreibbar)")
+    log.info("AIBody companion %s, log file: %s", __version__, log_path or "none (folder not writable)")
     for problem in settings_file.apply_to_config(cfg, channel_from_cli=args.channel is not None):
         log.warning("config.json: %s", problem)
     logsetup.set_verbose(cfg.verbose_log)
@@ -129,7 +129,7 @@ def main(argv: list[str] | None = None) -> int:
 
     companion = build_stack(cfg, use_mic=not args.no_mic)
     if not companion.engine_set.key("xai"):
-        log.warning("Kein xAI-Key: nur Test-Engines (Echo + Ton). %s; XAI_API_KEY setzen oder Key-Datei "
+        log.warning("No xAI API key: test engines only (echo + tone). %s; set XAI_API_KEY or a key file "
                     "in config.json (ai.xai.key_file).", KEY_HINT["xai"])
     companion.transport.start()
     try:

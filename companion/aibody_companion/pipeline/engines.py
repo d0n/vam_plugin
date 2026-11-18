@@ -6,7 +6,7 @@ section, and falls back when an engine cannot run.
   llm   echo (offline test model)         | xai (Grok, Responses API, streaming)
   tts   tone (offline test tone)          | xai | elevenlabs
 
-A cloud engine without an API key is "nicht konfiguriert": it stays selectable (so the plugin
+A cloud engine without an API key is "not configured": it stays selectable (so the plugin
 can keep the choice until the key arrives), but the configured fallback (ai.fallback, default
 null / echo / tone) runs instead, and the status says so. Keys come from the environment
 (XAI_API_KEY, ELEVENLABS_API_KEY) or from a key file named in config.json; refresh() re-reads
@@ -35,16 +35,17 @@ log = logging.getLogger(__name__)
 
 KINDS = ("stt", "llm", "tts")
 OFFLINE = {"stt": "null", "llm": "echo", "tts": "tone"}
-READY = "bereit"
-NOT_CONFIGURED = "nicht konfiguriert"
+READY = "ready"
+NOT_CONFIGURED = "not configured"
 
 # engine name -> (environment variable, settings section) for engines that need a key
 KEYED = {"xai": (xai.ENV_KEY, "xai"), "elevenlabs": (elevenlabs.ENV_KEY, "elevenlabs")}
 # What kind of key works. xAI: an API key from console.x.ai (pay-as-you-go API credit); the login /
 # subscription of grok.com or the X app (SuperGrok, Premium) is no API key and is refused by api.x.ai.
 KEY_HINT = {
-    "xai": "nötig: API-Key von console.x.ai (beginnt mit xai-) - ein Grok-Abo / grok.com-Token funktioniert nicht",
-    "elevenlabs": "nötig: API-Key von elevenlabs.io (Profil -> API Keys)",
+    "xai": ("needed: an API key from console.x.ai (starts with xai-) - "
+            "a Grok subscription / grok.com token does not work"),
+    "elevenlabs": "needed: an API key from elevenlabs.io (Profile -> API Keys)",
 }
 
 
@@ -97,7 +98,7 @@ class EngineSet:
             return
         provider = str(getattr(error, "service", "")).lower()
         if provider in KEYED:
-            self.rejected[provider] = f"vom Server abgelehnt (HTTP {status})"
+            self.rejected[provider] = f"rejected by the server (HTTP {status})"
             log.warning("%s API key rejected (HTTP %s) - %s", provider, status, KEY_HINT[provider])
 
     def key_info(self) -> dict[str, dict[str, str]]:
@@ -161,7 +162,7 @@ class EngineSet:
     def select(self, kind: str, name: str) -> list[str]:
         """Selects an engine. Returns notes for the user (empty if it runs as selected)."""
         if name not in ENGINES_AVAILABLE[kind]:
-            return [f"{kind}: {name!r} gibt es nicht (verfügbar: {', '.join(ENGINES_AVAILABLE[kind])})"]
+            return [f"{kind}: {name!r} does not exist (available: {', '.join(ENGINES_AVAILABLE[kind])})"]
         self.requested[kind] = name
         return self._activate(kind)
 

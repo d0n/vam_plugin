@@ -183,10 +183,10 @@ class ElevenLabsTests(unittest.TestCase):
     def test_missing_key_does_not_block(self):
         engines = EngineSet({}, http=HttpClient(self.http), env={})
         notes = engines.select("tts", "elevenlabs")
-        self.assertTrue(notes and "nicht konfiguriert" in notes[0])
+        self.assertTrue(notes and "not configured" in notes[0])
         self.assertEqual(engines.active_names["tts"], "tone")
         self.assertEqual(engines.requested["tts"], "elevenlabs")
-        self.assertTrue(engines.status()["tts"]["elevenlabs"].startswith("nicht konfiguriert"))
+        self.assertTrue(engines.status()["tts"]["elevenlabs"].startswith("not configured"))
         self.assertFalse(self.http.requests, "no request without a key")
 
     def test_key_file_added_later_is_picked_up(self):
@@ -197,7 +197,7 @@ class ElevenLabsTests(unittest.TestCase):
         key_file.write_text(KEY + "\n")
         self.assertTrue(engines.refresh())
         self.assertEqual(engines.active_names["tts"], "elevenlabs")
-        self.assertIn("Key-Datei", engines.status()["tts"]["elevenlabs"])
+        self.assertIn("key file", engines.status()["tts"]["elevenlabs"])
         self.assertNotIn(KEY, json.dumps(engines.status()))
 
 
@@ -209,7 +209,7 @@ class KeyTests(unittest.TestCase):
             self.assertEqual(resolve_key("XAI_API_KEY", f.name, {"XAI_API_KEY": "from-env"})[0], "from-env")
             key, where = resolve_key("XAI_API_KEY", f.name, {})
             self.assertEqual(key, "from-file")
-            self.assertIn("Key-Datei", where)
+            self.assertIn("key file", where)
         finally:
             os.unlink(f.name)
 
