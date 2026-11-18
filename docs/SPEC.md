@@ -98,6 +98,7 @@ Vereinbarter Stand, was gilt. Status (umgesetzt/offen): [`ANFORDERUNGEN.md`](ANF
 - Pro Runde eine Logzeile; letzter Wert und Mittel der letzten 10 im Statusfeld (*Live*, „Latency to first sound“).
 
 ## Änderungen
+- 18.11.2026 (nach Version 20, noch nicht umgesetzt): Knopf „Simple Q&A mode“ heißt „Question and Answer“, zweizeilig mittig „Question“ / „& Answer“; Funktion unverändert (Leon).
 - 18.11.2026 (nach Version 20, noch nicht umgesetzt): Feld „XAI API Token“ ist ein einfaches Freitextfeld ohne Formatprüfung, im Tab Voice, Abschnitt Voice Mode, bei API Reconnect; Hinweis „(beware: scenes save it)“ darunter; bisherige Ablehnung eingefügter Keys entfällt dafür (Leon).
 - 18.11.2026 (nach Version 20, noch nicht umgesetzt): Die zwei Infotextfelder unten im Tab AI Character wandern ins große Infofeld links; rechts stehen nur Bedienelemente (Leon).
 - 18.11.2026 (nach Version 19, noch nicht umgesetzt): xAI-API-Token wird ingame über ein Freitextfeld „XAI API Token“ gesetzt (Hauptweg); `setx XAI_API_KEY` nur optionale Alternative; kein Feld für ElevenLabs; kurzer englischer Hinweis in Klammern am Feld, dass der Token im Klartext in Szene/config.json gespeichert wird, z. B. „(beware: scenes save it)“ (Leon).
