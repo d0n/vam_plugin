@@ -82,6 +82,9 @@ Stand: 17.11.2026, Version 12. Übersicht, was umgesetzt ist und was offen ist; 
 
 ## 2. Noch offen / zu tun
 
+### Nächste Version (noch nicht umgesetzt)
+- Alle Posen-Einträge (Apply pose, Reload poses und alles weitere zu Posen) gehören in einen Unterpunkt „Poses“ im Tab AI Character, nicht in Config. Grund: Posen gehören zu einer Figur und sind nur für den AI Character sinnvoll, nicht für den Client Character (Leon, 18.11.2026). Stand im Code seit Version 15: Apply pose und Reload poses liegen schon im Abschnitt Poses im Tab AI Character; Config enthält nur Reload Config JSON, File poll interval, Verbose log. In VaM prüfen, ob dort noch Posen-Einträge unter Config erscheinen (ggf. ältere Paketversion geladen).
+
 ### Test in VaM (Anleitung `docs/TESTPROTOKOLL.md`)
 - T1: Laden aus der `.var`, Nachfrage zu Plugins aus dem Paket, alte Pakete entfernt.
 - T2: `ReadAllText`/`DeleteFile` akzeptieren die Pfade aus `GetFiles`.
