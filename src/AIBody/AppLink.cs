@@ -352,14 +352,14 @@ namespace AIBody
         /// <summary>Channel line for the tab "Config" (set in config.json connection.channel, not in the menu).</summary>
         public string ChannelInfoText()
         {
-            return "Kanal: " + Channel + " (Ordner " + ChannelDir + "; änderbar in config.json connection.channel oder mit --channel der Begleit-App)";
+            return "Kanal: " + Channel + " (" + ChannelDir + "; ändern: config.json connection.channel oder --channel)";
         }
 
         public const string ModeQa = "qa";
 
         private readonly JSONStorableString _modeHelpJson = new JSONStorableString("AI mode help",
-            "qa = Einfacher Q&A: Spracherkennung -> Grok -> Stimme (xAI), nur Sprache, keine proaktiven Sätze. "
-            + "auto / realtime = Grok Voice direkt (Fallback: Kette). chain = genau die Engines unter Voice > AI Character.");
+            "AI mode: qa = Spracherkennung -> Grok -> Stimme (nur Sprache). auto / realtime = Grok Voice direkt "
+            + "(Fallback: Kette). chain = die Engines unter Voice > AI Character.");
 
         /// <summary>Button "Einfacher Q&amp;A-Modus": AI mode qa (body control is switched off by the plugin).</summary>
         /// <summary>
@@ -399,8 +399,16 @@ namespace AIBody
             {
                 text += KeyLine("xAI", "xai") + KeyLine("ElevenLabs", "elevenlabs");
             }
-            text += "Oder Umgebungsvariable XAI_API_KEY / ELEVENLABS_API_KEY vor dem App-Start (gewinnt).";
+            // Version 17: the environment variable hint only while a key is missing or refused.
+            if (_keyInfo == null || !KeyConfigured("xai") || !KeyConfigured("elevenlabs"))
+                text += "Key auch per Umgebungsvariable XAI_API_KEY / ELEVENLABS_API_KEY vor dem App-Start (gewinnt).";
             _keyStatusJson.val = text;
+        }
+
+        private bool KeyConfigured(string provider)
+        {
+            JSONClass k = _keyInfo != null ? _keyInfo[provider] as JSONClass : null;
+            return k != null && k["state"].Value == "configured";
         }
 
         private string KeyLine(string label, string provider)
@@ -466,22 +474,6 @@ namespace AIBody
             if (!string.IsNullOrEmpty(state)) line += " – " + state;
             if (!string.IsNullOrEmpty(active) && active != selected) line += "\n    läuft stattdessen: " + active + " (Fallback)";
             return line + "\n";
-        }
-
-        /// <summary>One line for the live status: the engines that really run.</summary>
-        private string EngineSummary()
-        {
-            if (_engineActive == null) return "";
-            string mode = _modeInfo != null ? "Modus: " + _modeInfo["active"].Value + "\n" : "";
-            bool qa = _modeInfo != null && _modeInfo["requested"].Value == ModeQa;
-            if (qa) mode = "Modus: Einfacher Q&A\n";
-            else if (_modeInfo != null && _modeInfo["active"].Value == "realtime") return mode;
-            string stt = _engineActive["stt"].Value, llm = _engineActive["llm"].Value, tts = _engineActive["tts"].Value;
-            // with an xAI key the app runs xai instead of the test engines (null / echo / tone): not a fallback
-            bool fallback = (_sttJson != null && stt != _sttJson.val && stt != "xai") || (_llmJson != null && llm != _llmJson.val && llm != "xai")
-                || (_ttsJson != null && tts != _ttsJson.val && tts != "xai");
-            return mode + "Engines aktiv: STT " + stt + ", LLM " + llm + ", TTS " + tts
-                + (fallback ? " (Fallback – siehe Voice > AI Character)" : "") + "\n";
         }
 
         /// <summary>Tab "Client Character": the user's microphone and push-to-talk, voice barge-in.</summary>
@@ -953,13 +945,11 @@ namespace AIBody
             if (_transport == null) return "Link: " + (Active ? "off" : "inactive (Active is off)") + "\n";
             string text = "Link: " + _transport.Name + " - " + _transport.State + "\n";
             if (!string.IsNullOrEmpty(_transport.LastError)) text += "Last error: " + _transport.LastError + "\n";
-            text += "Folder: " + ChannelDir + "\n";
             if (_testToneStatus != null) text += _testToneStatus + "\n";
             if (_appAlive)
             {
-                text += "Companion app: verbunden, " + _appVersion + " (Heartbeat vor " + _appAge.ToString("0.0") + " s)\n" + EngineSummary();
-                if (_modeInfo != null && _modeInfo["requested"].Value == ModeQa && !string.IsNullOrEmpty(_modeInfo["status"].Value))
-                    text += _modeInfo["status"].Value + "\n";
+                // Version 17: modes and engines only once, in the engine status above (no second summary).
+                text += "Companion app: verbunden, " + _appVersion + " (Heartbeat vor " + _appAge.ToString("0.0") + " s)\n";
                 if (_audioOut != null)
                 {
                     text += "Audio-Ordner: " + _audioOut["folder"].Value + "\n";

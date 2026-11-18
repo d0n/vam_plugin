@@ -80,11 +80,13 @@ namespace AIBody
             // 1. Header and status box before anything that could fail.
             try
             {
-                UiHelper.Header(this, "<b>AIBody " + PluginVersion + "</b> (needs the companion app running)", false);
+                // Version 17: no header line above the field any more (it only repeated the version and the
+                // hint that the companion app must run; both are in the field's first line / tab Voice).
                 UIDynamicTextField status = CreateTextField(_statusJson);
-                // The one big info field (no small text fields in the tabs). Version 16: taller and only the
-                // open tab's info, so it needs less scrolling. TODO(verify): visible height in VaM.
-                status.height = 1600f;
+                // The one big info field (no small text fields in the tabs), only the open tab's info.
+                // Version 17: 1800, about the height of the longest tab on the right (AI Character with the
+                // tab buttons), so the left column needs no extra scrolling. TODO(verify): height in VaM.
+                status.height = 1800f;
             }
             catch (Exception e)
             {
@@ -447,7 +449,7 @@ namespace AIBody
             try { if (containingAtom != null) uid = containingAtom.uid; }
             catch (Exception) { }
             // Version 16: only the open tab's info (self test, recent events and start log: tab Config).
-            _statusJson.val = "AIBody " + PluginVersion + " auf '" + uid + "' - " + StartLine()
+            _statusJson.val = "<b>AIBody " + PluginVersion + "</b> auf '" + uid + "' - " + StartLine()
                 + TabInfo();
         }
 

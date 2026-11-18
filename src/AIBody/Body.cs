@@ -255,6 +255,7 @@ namespace AIBody
             page.Popup(_expressionChoiceJson);
             page.Button("Ausdruck zeigen", ShowChosenExpression);
             page.Button("Reset expression", () => { if (_expressions != null) _expressions.Reset(0.4f); });
+            page.Button("Ausdrücke neu laden (expressions.json)", ReloadExpressions);
             page.Popup(_gestureChoiceJson);
             page.Button("Geste abspielen", PlayChosenGesture);
             page.Header("<b>Körper</b> (nur diese Person)");
@@ -265,17 +266,16 @@ namespace AIBody
             page.Toggle(_breathingJson);
             page.Slider(_breathRateJson);
             page.Slider(_breathDepthJson);
-            page.Header("Atem-Morph (Name des Morphs, Feld darunter editierbar):");
+            page.Header("Atem-Morph: Name des Brust-Morphs (Feld darunter)");
             if (!page.TextInput(_breathMorphJson))
                 _diag.Warn("Feld 'Breath morph' ist nur lesbar (InputField ging nicht).");
-            page.Button("Reload Expressions", ReloadExpressions);
         }
 
         /// <summary>Info for the tab "AI Character" in the big field on the left.</summary>
         public string CharacterInfoText()
         {
             string text = "Posen: " + (_poses != null ? _poses.PoseNames.Count + " im Menü und für die KI (" + _poses.PoseScanNote + ")" : "PoseController fehlt") + "\n";
-            text += "Body control aus = nur Sprache, die KI bekommt keine Körper-Werkzeuge. Atem-Morph: Name eines Brust-Morphs der Figur (Tab Morphs).\n";
+            text += "Body control aus = nur Sprache, die KI steuert den Körper nicht. Atem-Morph: Name aus dem Morphs-Tab der Figur.\n";
             return text;
         }
 

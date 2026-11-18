@@ -101,7 +101,8 @@ class Version16MenuTests(unittest.TestCase):
 
     def test_info_field_is_larger_and_per_tab(self):
         plugin = source("AIBody.cs")
-        self.assertIn("status.height = 1600f;", plugin)
+        height = re.search(r"status\.height = (\d+)f;", plugin)
+        self.assertGreaterEqual(int(height.group(1)), 1800, "version 17: even taller than 1600")
         refresh = method_body(plugin, "private void RefreshStatus()")
         for moved in ("SelfTest()", "Start-Protokoll", "Letzte Ereignisse", "<b>Live</b>"):
             self.assertNotIn(moved, refresh, "only the open tab's info in the field")
@@ -113,6 +114,32 @@ class Version16MenuTests(unittest.TestCase):
         body = method_body(source("Body.cs"), "public void BuildCharacterTab(UiPage page)")
         guard = body.index("PoseNames.Count > 0")
         self.assertLess(guard, body.index("page.ScrollablePopup(_poseChoiceJson)"))
+
+
+class Version17MenuTests(unittest.TestCase):
+    """Leon, 18.11.2026: larger info field, no hint line around it, clear section labels."""
+
+    def test_no_hint_header_on_the_left(self):
+        plugin = source("AIBody.cs")
+        self.assertNotIn("needs the companion app running", plugin)
+        init = method_body(plugin, "public override void Init()")
+        self.assertNotIn("UiHelper.Header(", init, "nothing above or below the info field on the left")
+        self.assertEqual(init.count("CreateTextField("), 1, "the info field is the only left element")
+
+    def test_live_text_says_engines_only_once(self):
+        link = source("AppLink.cs")
+        self.assertNotIn("EngineSummary", link)
+        self.assertNotIn('"Folder: "', link)
+
+    def test_env_hint_only_while_a_key_is_missing(self):
+        body = method_body(source("AppLink.cs"), "private void UpdateKeyStatus()")
+        self.assertIn("KeyConfigured(", body)
+
+    def test_reload_expressions_sits_with_the_expressions(self):
+        body = method_body(source("Body.cs"), "public void BuildCharacterTab(UiPage page)")
+        reload = body.index("ReloadExpressions")
+        self.assertLess(body.index("<b>Ausdruck und Geste</b>"), reload)
+        self.assertLess(reload, body.index("<b>Körper</b>"))
 
 
 if __name__ == "__main__":
