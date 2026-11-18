@@ -25,7 +25,8 @@
 // Tabs (version 15): Voice (Voice Mode: link, Simple Q&A mode, realtime, API Reconnect, sound
 // test; Voice > AI Character: AI mode, voice, engines, proactive) | AI Character (poses, expression
 // and gesture, body of this Person) | Client Character (microphone, push-to-talk, voice barge-in)
-// | Config (Reload Config JSON, file poll interval, verbose log).
+// | Config (Reload Config JSON, Companion inbox poll interval = storable "File poll interval (s)",
+// how often the companion inbox is read; verbose log).
 //
 // config.json (Saves/PluginData/AIBody/config.json, one global file) is shared with the companion
 // app, one object per tab category (docs/CONFIG.md). The plugin UI (saved with the scene) wins
@@ -407,7 +408,8 @@ namespace AIBody
                         text = _link != null ? _link.ClientInfoText() : "";
                         break;
                     default:
-                        text = (_link != null ? "config.json: " + _link.SettingsPath + "\n" + _link.ChannelInfoText() + "\n" : "")
+                        text = (_link != null ? "config.json: " + _link.SettingsPath + "\n" + _link.ChannelInfoText() + "\n"
+                                + _link.FilePollInfoText() + "\n" : "")
                             + (_configStatus.Length > 0 ? _configStatus + "\n" : "")
                             + SelfTest()
                             + (Log.Verbose && Log.RecentText().Length > 0 ? "<b>Recent events</b> (Verbose log)\n" + Log.RecentText() : "")

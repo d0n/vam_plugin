@@ -10,7 +10,8 @@ README.md section 4. Categories (kept from the first schema; they no longer matc
   mic         microphone + push-to-talk settings (tab Client Character; audio/mic_settings.py)
   body        speech_volume, body_control, idle_motion, idle_intensity, breathing,
               breaths_per_minute, breath_depth, breath_morph (tab AI Character)
-  advanced    file_poll_interval_s, verbose_log (tab Config)
+  advanced    file_poll_interval_s (slider "Companion inbox poll interval (s)": how often the
+              plugin reads the companion inbox, not config.json), verbose_log (tab Config)
 
 plus one category this app owns (the plugin keeps it unchanged when it writes, except the keys
 it has controls for):

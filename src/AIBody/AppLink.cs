@@ -355,6 +355,20 @@ namespace AIBody
             return "Channel: " + Channel + " (" + ChannelDir + "; change via config.json connection.channel or --channel)";
         }
 
+        /// <summary>
+        /// Shown label of the storable "File poll interval (s)" (version 19). The stored name stays
+        /// unchanged so saved scenes keep their value; config.json key: advanced.file_poll_interval_s.
+        /// </summary>
+        public const string FilePollLabel = "Companion inbox poll interval (s)";
+
+        /// <summary>Config tab hint: what the poll interval polls (the companion app's messages, not config.json).</summary>
+        public string FilePollInfoText()
+        {
+            return "Companion inbox poll interval: how often the plugin checks the companion app's inbox folder ("
+                + ChannelDir + "/inbox/) for messages (speech, poses, expressions). Does not reload config.json; "
+                + "use Reload Config JSON for that.";
+        }
+
         public const string ModeQa = "qa";
 
         private readonly JSONStorableString _modeHelpJson = new JSONStorableString("AI mode help",
@@ -494,7 +508,7 @@ namespace AIBody
         public void BuildConfigTab(UiPage page, UnityEngine.Events.UnityAction reload)
         {
             page.Button("Reload Config JSON", reload);
-            page.Slider(_filePollJson);
+            page.Slider(_filePollJson, FilePollLabel);
         }
 
         // ---------------------------------------------------------------- shared settings file
@@ -590,7 +604,7 @@ namespace AIBody
             return fallback;
         }
 
-        /// <summary>Adds connection, engines, mic and advanced (file poll) to config.json.</summary>
+        /// <summary>Adds connection, engines, mic and advanced (companion inbox poll interval, verbose log) to config.json.</summary>
         public void WriteSettings(JSONClass root)
         {
             JSONClass connection = new JSONClass();

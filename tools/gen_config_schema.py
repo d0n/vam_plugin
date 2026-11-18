@@ -30,7 +30,11 @@ DESCRIPTIONS = {
                   "stays selected but the fallback (ai.fallback) runs",
     ("mic",): "Tab 'Client Character': captured by the companion app; push-to-talk state itself is never saved",
     ("body",): "Tab 'AI Character', section 'Body (this Person only)'",
-    ("advanced",): "Tab 'Config' (file poll interval, verbose log)",
+    ("advanced",): "Tab 'Config' (companion inbox poll interval, verbose log)",
+    ("advanced", "file_poll_interval_s"): "Slider 'Companion inbox poll interval (s)' (stored name 'File poll interval (s)'): "
+                                          "how often the plugin checks the companion app's inbox folder "
+                                          "Saves/PluginData/AIBody/<channel>/inbox/ for messages (speech, poses, "
+                                          "expressions). Does not reload config.json",
     ("ai",): "Companion app only (no tab; the plugin keeps this section unchanged). NEVER put an API key here: "
              "use XAI_API_KEY / ELEVENLABS_API_KEY or the PATH of a key file (key_file)",
     ("ai", "persona"): "Persona / system prompt for the language model (xAI: 'instructions')",

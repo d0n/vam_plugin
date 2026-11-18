@@ -374,7 +374,8 @@
               "pattern": "^\\s*-?[0-9]+(\\.[0-9]+)?([eE][-+]?[0-9]+)?\\s*$"
             }
           ],
-          "default": 0.1
+          "default": 0.1,
+          "description": "Slider 'Companion inbox poll interval (s)' (stored name 'File poll interval (s)'): how often the plugin checks the companion app's inbox folder Saves/PluginData/AIBody/<channel>/inbox/ for messages (speech, poses, expressions). Does not reload config.json"
         },
         "verbose_log": {
           "anyOf": [
@@ -394,7 +395,7 @@
           "default": false
         }
       },
-      "description": "Tab 'Config' (file poll interval, verbose log)"
+      "description": "Tab 'Config' (companion inbox poll interval, verbose log)"
     },
     "ai": {
       "type": "object",

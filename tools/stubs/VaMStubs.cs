@@ -89,7 +89,7 @@ public class JSONStorableAction
 
 public class UIDynamic : MonoBehaviour { public float height; }
 public class UIDynamicToggle : UIDynamic { }
-public class UIDynamicSlider : UIDynamic { }
+public class UIDynamicSlider : UIDynamic { public string label; }   // label: E26 (TittyMagic, ExpressionRND)
 public class UIDynamicPopup : UIDynamic { }
 public class UIDynamicButton : UIDynamic { public Button button; }
 public class UIDynamicTextField : UIDynamic { public Text UItext; }   // E14

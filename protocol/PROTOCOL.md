@@ -67,7 +67,9 @@ Saves/PluginData/AIBody/<channel>/audio/    its fallback if VaM cannot load the 
 - The plugin cannot rename through `FileManagerSecure`, so it writes `*.json` in place; the
   companion retries files that fail to parse for 2 s before dropping them.
 - The reader deletes each file after processing. The companion clears both folders on start.
-- The plugin polls every 0.1 s ("File poll interval"). It sends `ready`, its `config` and
+- The plugin polls its inbox every 0.1 s (slider "Companion inbox poll interval (s)" in the Config tab;
+  stored name "File poll interval (s)", config.json `advanced.file_poll_interval_s`). This is only
+  the companion message inbox; config.json is never reloaded automatically. It sends `ready`, its `config` and
   `list_devices` on start and a `heartbeat` every 2 s.
 - The companion counts the plugin as connected while it received an event in the last 5 s, and
   while connected sends `companion_heartbeat` every 2 s. The plugin counts the companion as

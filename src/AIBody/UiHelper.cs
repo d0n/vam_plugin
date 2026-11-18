@@ -66,6 +66,18 @@ namespace AIBody
 
         public void Toggle(JSONStorableBool p) { if (p != null) _toggles.Add(_plugin.CreateToggle(p, _right)); }
         public void Slider(JSONStorableFloat p) { if (p != null) _sliders.Add(_plugin.CreateSlider(p, _right)); }
+
+        /// <summary>
+        /// Slider with a shown label that differs from the storable name (the stored name stays, so
+        /// saved scenes keep working). Setting UIDynamicSlider.label after CreateSlider: E26.
+        /// </summary>
+        public void Slider(JSONStorableFloat p, string label)
+        {
+            if (p == null) return;
+            UIDynamicSlider slider = _plugin.CreateSlider(p, _right);
+            if (slider != null && !string.IsNullOrEmpty(label)) slider.label = label;
+            _sliders.Add(slider);
+        }
         public void Popup(JSONStorableStringChooser p) { if (p != null) _popups.Add(_plugin.CreatePopup(p, _right)); }
 
         /// <summary>Popup with a scrolling list (long device lists), as Collider Editor uses it.</summary>

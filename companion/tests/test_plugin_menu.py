@@ -164,5 +164,24 @@ class Version18MenuTests(unittest.TestCase):
             self.assertNotIn(german, body)
 
 
+class Version19MenuTests(unittest.TestCase):
+    """Leon, 18.11.2026: the poll slider is about the companion inbox, not config.json."""
+
+    def test_poll_slider_shows_companion_inbox_label_but_keeps_stored_name(self):
+        link = source("AppLink.cs")
+        self.assertIn('new JSONStorableFloat("File poll interval (s)"', link, "stored name unchanged")
+        self.assertIn('FilePollLabel = "Companion inbox poll interval (s)"', link)
+        config_tab = method_body(link, "public void BuildConfigTab(UiPage page, UnityEngine.Events.UnityAction reload)")
+        self.assertIn("page.Slider(_filePollJson, FilePollLabel);", config_tab)
+        self.assertIn("slider.label = label;", source("UiHelper.cs"))
+
+    def test_config_info_names_the_inbox_and_says_config_json_is_not_reloaded(self):
+        hint = method_body(source("AppLink.cs"), "public string FilePollInfoText()")
+        for part in ("Companion inbox poll interval", '"/inbox/', "speech, poses, expressions",
+                     "Does not reload config.json", "Reload Config JSON"):
+            self.assertIn(part, hint)
+        self.assertIn("FilePollInfoText()", method_body(source("AIBody.cs"), "private string TabInfo()"))
+
+
 if __name__ == "__main__":
     unittest.main()

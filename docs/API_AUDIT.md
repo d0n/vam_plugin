@@ -45,6 +45,7 @@ Enforcement:
 | E23 | [VaM Japan glossary: Scene Audio](https://vamjapan.com/glossary/scene-audio/) (user documentation) | VaM's Scene Audio atom: **Browse** opens `Custom\Sounds` in the file browser; audio files to play are placed below that folder |
 | E24 | [vam-collider-editor ColliderEditor.cs](https://github.com/acidbubbles/vam-collider-editor/blob/00d54b06d5aa579d42404684244aad821d35060f/src/ColliderEditor.cs) (Acid Bubbles) | `CreateScrollablePopup(jssc, rightSide)` (L359), `chooser.choices = ...` together with `chooser.displayChoices = ...` on a shown popup (L414-415, L448-449), `popupPanelHeight` (L283) |
 | E25 | [vam-embody Embody.cs](https://github.com/acidbubbles/vam-embody/blob/e09e364f818b0389aa97d84c54ba5c65ad1183d6/src/Embody.cs) (L77, L950) and [vam-timeline SequencingScreen.cs](https://github.com/acidbubbles/vam-timeline/blob/54e294256d7b73ec7d00d4216fcc7f01bc9d8133/src/UI/Screens/SequencingScreen.cs) (L257-264, L500) (Acid Bubbles) | `chooser.popupOpenCallback = ...` refills `choices` when the menu opens; `choices = ...` on a popup that is on screen |
+| E26 | [TittyMagic WindowBase.cs](https://github.com/everlasterVR/TittyMagic/blob/eca6d093450994cf589e51e148ceaadf9adfbc79/src/UI/WindowBase.cs) (everlaster, L46-48) and [ExpressionRandomizer.cs](https://github.com/everlasterVR/Extraltodeus-ExpressionRND/blob/cd6c9c584ce87c1a52e9e30c2e75310df89ccc71/src/ExpressionRandomizer.cs) (L582-583, L597-598) | `UIDynamicSlider slider = CreateSlider(jsf, rightSide); slider.label = "...";`: a shown slider label that differs from the storable name; also `sliderDynamic.label = name` in [Dollmaster UI.cs](https://github.com/vamdeluxe/DeluxePlugin/blob/e606e780e79af214b2b4be0a53b1e7b45ecf59b7/Dollmaster/src/UI.cs) (L74) |
 
 ## Kept
 
@@ -288,3 +289,11 @@ from `Exception.ToString()`, not from reflection. The only additions outside the
 - No new VaM API. One `CreateTextField` less (the left header line); the info field is 1800 high
   (TODO(verify): visible height in VaM). Button label changes only (`CreateButton` text), no
   storable names changed. No `foreach` over Dictionary `.Keys`/`.Values` (CS584 rule).
+
+## Version 19: shown slider label
+
+- One new member: `UIDynamicSlider.label` set right after `CreateSlider` (E26: TittyMagic,
+  ExpressionRND, Dollmaster), in `UiPage.Slider(JSONStorableFloat, string label)`. Used once: the
+  storable "File poll interval (s)" is shown as "Companion inbox poll interval (s)". The storable
+  name (saved in scenes) and the polling behaviour are unchanged; the compile stub declares the
+  member with the E26 tag. No `foreach` over Dictionary `.Keys`/`.Values` (CS584 rule).

@@ -23,6 +23,7 @@ SLIDERS = {
     "Idle intensity": RANGES[("body", "idle_intensity")],
     "Breaths per minute": RANGES[("body", "breaths_per_minute")],
     "Breath depth": RANGES[("body", "breath_depth")],
+    # storable name (stored in scenes); shown as "Companion inbox poll interval (s)" since version 19
     "File poll interval (s)": RANGES[("advanced", "file_poll_interval_s")],
     "Proactive idle (s)": RANGES[("ai", "proactive", "idle_seconds")],
 }
