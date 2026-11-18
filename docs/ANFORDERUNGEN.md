@@ -84,6 +84,7 @@ Stand: 17.11.2026, Version 12. Übersicht, was umgesetzt ist und was offen ist; 
 
 ### Nächste Version (noch nicht umgesetzt)
 - Alle Posen-Einträge (Apply pose, Reload poses und alles weitere zu Posen) gehören in einen Unterpunkt „Poses“ im Tab AI Character, nicht in Config. Grund: Posen gehören zu einer Figur und sind nur für den AI Character sinnvoll, nicht für den Client Character (Leon, 18.11.2026). Stand im Code seit Version 15: Apply pose und Reload poses liegen schon im Abschnitt Poses im Tab AI Character; Config enthält nur Reload Config JSON, File poll interval, Verbose log. In VaM prüfen, ob dort noch Posen-Einträge unter Config erscheinen (ggf. ältere Paketversion geladen).
+- Expression and gesture samt allem, was im Menü darunter hängt (z. B. Body), sichtbar dem AI Character zuordnen, damit klar ist, welche Figur gesteuert wird. Genaues Layout egal, Hauptsache figurgebundene Steuerung ist eindeutig dem AI Character zugeordnet (Leon, 18.11.2026). Stand im Code: Expression and gesture und Body (this Person only) liegen schon im Tab AI Character, haben aber keine sichtbare gemeinsame Zuordnung.
 
 ### Test in VaM (Anleitung `docs/TESTPROTOKOLL.md`)
 - T1: Laden aus der `.var`, Nachfrage zu Plugins aus dem Paket, alte Pakete entfernt.
