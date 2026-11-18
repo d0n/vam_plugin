@@ -86,6 +86,7 @@ Stand: 17.11.2026, Version 12. Übersicht, was umgesetzt ist und was offen ist; 
 ### Nächste Version (noch nicht umgesetzt)
 - Alle Posen-Einträge (Apply pose, Reload poses und alles weitere zu Posen) gehören in einen Unterpunkt „Poses“ im Tab AI Character, nicht in Config. Grund: Posen gehören zu einer Figur und sind nur für den AI Character sinnvoll, nicht für den Client Character (Leon, 18.11.2026). Stand im Code seit Version 15: Apply pose und Reload poses liegen schon im Abschnitt Poses im Tab AI Character; Config enthält nur Reload Config JSON, Companion inbox poll interval (s) (bis Version 18 „File poll interval (s)“), Verbose log. In VaM prüfen, ob dort noch Posen-Einträge unter Config erscheinen (ggf. ältere Paketversion geladen).
 - Alles, was in Leons Ansicht unter Config hängt („eigentlich quasi alles, was unter Config kommt“), insbesondere Expression and gesture und was darunter folgt (z. B. Body), unter den AI Character verschieben bzw. dort gruppieren, damit figurgebundene Steuerung eindeutig dem AI Character zugeordnet ist. Genaues Layout egal (Leon, 18.11.2026). Stand im Code seit Version 15: Expression and gesture und Body liegen schon im Tab AI Character; der Tab Config enthält nur Reload Config JSON, Companion inbox poll interval (s) und Verbose log (nicht figurgebunden). Klären, welche Version Leon in VaM sieht.
+- xAI-API-Token ingame setzen: Freitextfeld im Menü mit der Beschriftung „XAI API Token“ ist der Hauptweg; `setx XAI_API_KEY` (Windows-Konsole) darf keine Voraussetzung sein, bleibt nur als optionale Alternative dokumentiert. Kein Freitextfeld für ElevenLabs (Leon, 18.11.2026). Damit ist die offene Frage „Direktes API-Key-Feld“ entschieden.
 
 ### Test in VaM (Anleitung `docs/TESTPROTOKOLL.md`)
 - T1: Laden aus der `.var`, Nachfrage zu Plugins aus dem Paket, alte Pakete entfernt.
@@ -115,7 +116,7 @@ Stand: 17.11.2026, Version 12. Übersicht, was umgesetzt ist und was offen ist; 
 - Sichtbare Höhe des Infofelds (1800) in VaM.
 
 ### Offene Fragen an Leon
-- Direktes API-Key-Feld im Plugin (Klartext in Szene/config.json)? Nicht gebaut, siehe Backlog.
+- ~~Direktes API-Key-Feld im Plugin?~~ Entschieden 18.11.2026: ja, Feld „XAI API Token“ (siehe Nächste Version).
 - Key-Datei-Pfad wieder im Menü (beschriftet)? Seit Version 15 nur in config.json, weil die Felder als leere Kästen erschienen; siehe Backlog.
 - „Delay“: was soll verzögert werden? Platzhalter seit Version 15 aus dem Menü entfernt, siehe Backlog.
 - Session-Config vs. Person-Config: zurückgestellt bis nach den Tests, siehe Backlog.
