@@ -97,7 +97,7 @@ Vereinbarter Stand, was gilt. Status (umgesetzt/offen): [`ANFORDERUNGEN.md`](ANF
 - Pro Runde eine Logzeile; letzter Wert und Mittel der letzten 10 im Statusfeld (*Live*, „Latency to first sound“).
 
 ## Änderungen
-- 18.11.2026 (nach Version 19, noch nicht umgesetzt): xAI-API-Token wird ingame über ein Freitextfeld „XAI API Token“ gesetzt (Hauptweg); `setx XAI_API_KEY` nur optionale Alternative; kein Feld für ElevenLabs (Leon).
+- 18.11.2026 (nach Version 19, noch nicht umgesetzt): xAI-API-Token wird ingame über ein Freitextfeld „XAI API Token“ gesetzt (Hauptweg); `setx XAI_API_KEY` nur optionale Alternative; kein Feld für ElevenLabs; kurzer englischer Hinweis in Klammern am Feld, dass der Token im Klartext in Szene/config.json gespeichert wird, z. B. „(beware: scenes save it)“ (Leon).
 - 17.11.2026 (v0.7.4): Erste Fassung des Spec-Logs.
 - 17.11.2026: README auf Deutsch (Zweck, Szene, zwei Figuren, vollständige Einstellungsreferenz, Hinweise für den Hub); bisheriger README-Inhalt nach `docs/TECHNIK.md`.
 - 17.11.2026 (Version 12): Versionsschema Version = Paketnummer; Szene mit zwei Personen (AI Character weiblich mit AIBody, Client Character männlich mit Camera Background Color); Regler im Plugin decken die vollen config.json-Bereiche ab.
