@@ -80,7 +80,7 @@ class PluginMenuTests(unittest.TestCase):
 
 
 class Version16MenuTests(unittest.TestCase):
-    """Leon, 18.11.2026: mic menu empty in VaM."""
+    """Leon, 18.11.2026: mic menu empty in VaM; larger per-tab info field; no empty menus."""
 
     def test_mic_menu_has_plain_choices_and_always_standard(self):
         mic = source("MicConfig.cs")
@@ -98,6 +98,21 @@ class Version16MenuTests(unittest.TestCase):
             self.assertIn(part, handle)
         self.assertIn('"Menü Mic device: "', method_body(mic, "private string MenuEntriesText()"))
         self.assertIn("MenuEntriesText()", method_body(mic, "private void RefreshStatus()"))
+
+    def test_info_field_is_larger_and_per_tab(self):
+        plugin = source("AIBody.cs")
+        self.assertIn("status.height = 1600f;", plugin)
+        refresh = method_body(plugin, "private void RefreshStatus()")
+        for moved in ("SelfTest()", "Start-Protokoll", "Letzte Ereignisse", "<b>Live</b>"):
+            self.assertNotIn(moved, refresh, "only the open tab's info in the field")
+        info = method_body(plugin, "private string TabInfo()")
+        self.assertIn("SelfTest()", info)
+        self.assertIn("Start-Protokoll", info)
+
+    def test_no_empty_pose_menu(self):
+        body = method_body(source("Body.cs"), "public void BuildCharacterTab(UiPage page)")
+        guard = body.index("PoseNames.Count > 0")
+        self.assertLess(guard, body.index("page.ScrollablePopup(_poseChoiceJson)"))
 
 
 if __name__ == "__main__":

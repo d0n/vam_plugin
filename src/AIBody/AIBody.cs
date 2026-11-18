@@ -53,7 +53,8 @@ namespace AIBody
         private float _uiTimer;
         private string _atomType = "?";
         private string _writable = "noch nicht geprüft";
-        private string _live = "";
+        private string _linkLive = "";   // connection / companion live lines (tab Voice)
+        private string _bodyLive = "";   // speech / body live lines (tab AI Character)
 
         // Tab names: self-explanatory, never just "AI" / "Client" (Leon, 17.11.2026). The former tabs
         // AI, Post and Erweitert are gone (docs/BACKLOG.md "Entfernte Menüeinträge").
@@ -81,7 +82,9 @@ namespace AIBody
             {
                 UiHelper.Header(this, "<b>AIBody " + PluginVersion + "</b> (needs the companion app running)", false);
                 UIDynamicTextField status = CreateTextField(_statusJson);
-                status.height = 1200f;   // the one big info field (no small text fields in the tabs)
+                // The one big info field (no small text fields in the tabs). Version 16: taller and only the
+                // open tab's info, so it needs less scrolling. TODO(verify): visible height in VaM.
+                status.height = 1600f;
             }
             catch (Exception e)
             {
@@ -392,17 +395,21 @@ namespace AIBody
                 switch (_tab)
                 {
                     case 0:
-                        text = _simpleQa + "\n" + (_link != null ? _link.VoiceInfoText() : "");
+                        text = (_simpleQa.Length > 0 ? _simpleQa + "\n" : "") + (_link != null ? _link.VoiceInfoText() : "")
+                            + Section("Verbindung", _linkLive);
                         break;
                     case 1:
-                        text = _body != null ? _body.CharacterInfoText() : "";
+                        text = (_body != null ? _body.CharacterInfoText() : "") + Section("Körper", _bodyLive);
                         break;
                     case 2:
                         text = _link != null ? _link.ClientInfoText() : "";
                         break;
                     default:
                         text = (_link != null ? "config.json: " + _link.SettingsPath + "\n" + _link.ChannelInfoText() + "\n" : "")
-                            + (_configStatus.Length > 0 ? _configStatus + "\n" : "");
+                            + (_configStatus.Length > 0 ? _configStatus + "\n" : "")
+                            + SelfTest()
+                            + (Log.Verbose && Log.RecentText().Length > 0 ? "<b>Letzte Ereignisse</b> (Verbose log)\n" + Log.RecentText() : "")
+                            + "<b>Start-Protokoll</b>\n" + (_diag != null ? _diag.Text : "");
                         break;
                 }
             }
@@ -412,6 +419,20 @@ namespace AIBody
             }
             if (text.Length > 0 && !text.EndsWith("\n")) text += "\n";
             return "<b>Info: " + Tabs[_tab] + "</b>\n" + text;
+        }
+
+        private static string Section(string title, string body)
+        {
+            return string.IsNullOrEmpty(body) ? "" : "<b>" + title + "</b>\n" + body;
+        }
+
+        /// <summary>One line on every tab: start result; failures in red (details in the tab Config).</summary>
+        private string StartLine()
+        {
+            if (_diag == null) return "";
+            if (_diag.FailureCount == 0) return _initialized ? "Start: ok\n" : "Start läuft ...\n";
+            return "<color=red>Start: " + _diag.FailureCount + " Fehler (" + string.Join(", ", ToArray(_diag.FailedPhases))
+                + ")</color> - Details im Tab Config\n";
         }
 
         private static string Reason(string error)
@@ -425,12 +446,9 @@ namespace AIBody
             string uid = "?";
             try { if (containingAtom != null) uid = containingAtom.uid; }
             catch (Exception) { }
-            _statusJson.val = "AIBody " + PluginVersion + " auf '" + uid + "'\n"
-                + TabInfo()
-                + SelfTest()
-                + (_live.Length > 0 ? "<b>Live</b>\n" + _live : "")
-                + (Log.Verbose && Log.RecentText().Length > 0 ? "<b>Letzte Ereignisse</b> (Verbose log)\n" + Log.RecentText() : "")
-                + "<b>Start-Protokoll</b>\n" + (_diag != null ? _diag.Text : "");
+            // Version 16: only the open tab's info (self test, recent events and start log: tab Config).
+            _statusJson.val = "AIBody " + PluginVersion + " auf '" + uid + "' - " + StartLine()
+                + TabInfo();
         }
 
         // ---------------------------------------------------------------- frame loop
@@ -453,20 +471,24 @@ namespace AIBody
             try { UpdateSettings(dt); }
             catch (Exception e) { _settingsChecked = true; _diag.Fail("config.json", e); }
 
+            if (_body != null && _body.RebuildTab)
+            {
+                _body.RebuildTab = false;   // next frame, not inside the button's own click handler
+                if (_tab == 1) ShowTab(_tab);
+            }
+
             _uiTimer += dt;
             if (_uiTimer < 0.5f) return;
             _uiTimer = 0f;
             try
             {
-                string live = "";
-                if (_link != null) live += _link.StatusText();
-                if (_body != null) live += _body.StatusText();
-                _live = live;
+                _linkLive = _link != null ? _link.StatusText() : "";
+                _bodyLive = _body != null ? _body.StatusText() : "";
                 RefreshStatus();
             }
             catch (Exception e)
             {
-                _live = "Statusanzeige fehlgeschlagen: " + Diag.Describe(e) + "\n";
+                _linkLive = "Statusanzeige fehlgeschlagen: " + Diag.Describe(e) + "\n";
             }
         }
 

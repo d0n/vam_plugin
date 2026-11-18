@@ -236,14 +236,21 @@ namespace AIBody
             if (_bodyControlJson != null) _bodyControlJson.val = on;
         }
 
+        /// <summary>Set when the pose menu may have to appear or vanish; the plugin rebuilds the tab next frame.</summary>
+        public bool RebuildTab;
+
         /// <summary>Body part of the tab "AI Character" (this Person, i.e. this plugin instance).</summary>
         public void BuildCharacterTab(UiPage page)
         {
             RefreshCharacterChoices();
             page.Header("<b>Posen</b> (per Sprache über die KI, oder hier)");
-            page.ScrollablePopup(_poseChoiceJson);
-            page.Button("Pose anwenden", ApplyChosenPose);
-            page.Button("Posen neu laden", () => { ReloadGestures(); RefreshCharacterChoices(); });
+            // No empty menu (version 16): without poses only "Posen neu laden"; the reason is in the info field.
+            if (_poses != null && _poses.PoseNames.Count > 0)
+            {
+                page.ScrollablePopup(_poseChoiceJson);
+                page.Button("Pose anwenden", ApplyChosenPose);
+            }
+            page.Button("Posen neu laden", () => { ReloadGestures(); RefreshCharacterChoices(); RebuildTab = true; });
             page.Header("<b>Ausdruck und Geste</b>");
             page.Popup(_expressionChoiceJson);
             page.Button("Ausdruck zeigen", ShowChosenExpression);
