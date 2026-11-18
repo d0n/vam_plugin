@@ -4,6 +4,7 @@ Protocol.cs
 UiHelper.cs
 ITransport.cs
 FileTransport.cs
+MicDeviceList.cs
 MicConfig.cs
 AppLink.cs
 MorphHelper.cs

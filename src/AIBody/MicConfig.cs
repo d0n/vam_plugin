@@ -16,8 +16,7 @@ namespace AIBody
     {
         public const string ModeVad = "Voice activation";
         public const string ModePtt = "Push-to-talk";
-        public const string DefaultDevice = "(system default)";   // saved value: "" in config.json
-        public const string DefaultDeviceLabel = "Standard (System-Mikrofon)";
+        public const string DefaultDevice = MicDeviceList.DefaultChoice;   // saved value: "" in config.json
 
         private readonly MVRScript _plugin;
         private readonly Action<JSONClass> _send;
@@ -46,9 +45,14 @@ namespace AIBody
         private string _ackText = "";
         private string _levelText = "";
         private float _levelAge = 999f;
-        private string _devicesText = "Mikrofone: noch keine Liste (Companion-App starten)";
+        private string _devicesText = "Mikrofon-Liste: noch keine Antwort (Companion-App starten)";
         private float _devicesAsked = -1f;      // seconds since the last list_devices, -1 = none pending
         private float _sinceDevicesAsked = 999f;
+        // Diagnostics for the info field (version 16): what was asked, what came back, what the menu holds.
+        private int _requests;
+        private string _requestedAt = "";
+        private string _receivedText = "";
+        private string _defaultName = "";
 
         public MicConfig(MVRScript plugin, Action<JSONClass> send)
         {
@@ -67,9 +71,9 @@ namespace AIBody
             Mode = new JSONStorableStringChooser("Mic mode", new List<string> { ModeVad, ModePtt }, ModeVad, "Mic mode",
                 (string v) => MarkDirty());
             _plugin.RegisterStringChooser(Mode);
+            // Plain choices, no displayChoices (version 16, see MicDeviceList.cs). "Standard" is always in.
             Device = new JSONStorableStringChooser("Mic device", new List<string> { DefaultDevice }, DefaultDevice,
                 "Mic device", (string v) => MarkDirty());
-            Device.displayChoices = new List<string> { DefaultDeviceLabel };
             // Opening the menu asks the companion app for the current list (Embody / Timeline pattern).
             Device.popupOpenCallback = RequestDevicesSoon;
             _plugin.RegisterStringChooser(Device);
@@ -105,7 +109,10 @@ namespace AIBody
         {
             page.Toggle(Enabled);
             page.Popup(Mode);
+            EnsureDeviceChoices();
             page.ScrollablePopup(Device);
+            // Set the list once more on the popup that now exists (choices refresh a shown popup: E24, E25).
+            Device.choices = new List<string>(Device.choices);
             page.Button("Mikrofone neu laden", RequestDevices);
             page.Toggle(_pttActive);
             page.Toggle(PttInterrupts);
@@ -145,6 +152,8 @@ namespace AIBody
             _sinceChange += deltaTime;
             _levelAge += deltaTime;
             _sinceDevicesAsked += deltaTime;
+            // Scenes saved up to version 15 hold "(system default)": shown as "Standard" now.
+            if (Device.val == MicDeviceList.LegacyDefault) Device.val = DefaultDevice;
             if (_devicesAsked >= 0f)
             {
                 _devicesAsked += deltaTime;
@@ -152,8 +161,8 @@ namespace AIBody
                 {
                     _devicesAsked = -1f;
                     _devicesText = connected
-                        ? "Mikrofone: keine Antwort der Companion-App auf 'Mikrofone neu laden' (läuft sie? Konsole prüfen)"
-                        : "Mikrofone: Companion-App nicht verbunden - Liste kommt, sobald sie läuft";
+                        ? "<color=red>Mikrofon-Liste: keine Antwort der Companion-App</color> (Konsole prüfen)"
+                        : "Mikrofon-Liste: Companion-App nicht verbunden - Liste kommt, sobald sie läuft";
                 }
             }
             // Debounce slider drags: send 0.3 s after the last change.
@@ -177,7 +186,7 @@ namespace AIBody
             JSONClass mic = new JSONClass();
             mic["enabled"].AsBool = Enabled.val;
             mic["mode"] = Mode.val == ModePtt ? "ptt" : "vad";
-            mic["device"] = Device.val == DefaultDevice ? "" : Device.val;
+            mic["device"] = MicDeviceList.ToConfig(Device.val);
             mic["vad_threshold"].AsFloat = Threshold.val;
             mic["end_silence_ms"].AsInt = Mathf.RoundToInt(SilenceMs.val);
             mic["min_utterance_ms"].AsInt = Mathf.RoundToInt(MinUtteranceMs.val);
@@ -197,8 +206,8 @@ namespace AIBody
             if (Protocol.Has(mic, "mode")) Mode.val = Protocol.GetString(mic, "mode", "vad") == "ptt" ? ModePtt : ModeVad;
             if (Protocol.Has(mic, "device"))
             {
-                string device = Protocol.GetString(mic, "device", "");
-                Device.val = device.Length > 0 ? device : DefaultDevice;
+                Device.val = MicDeviceList.ToChoice(Protocol.GetString(mic, "device", ""));
+                EnsureDeviceChoices();
             }
             Threshold.val = Protocol.GetFloat(mic, "vad_threshold", Threshold.val);
             SilenceMs.val = Protocol.GetFloat(mic, "end_silence_ms", SilenceMs.val);
@@ -229,7 +238,9 @@ namespace AIBody
         {
             _sinceDevicesAsked = 0f;
             _devicesAsked = 0f;
-            _devicesText = "Mikrofone: Liste angefordert ...";
+            _requests++;
+            _requestedAt = DateTime.Now.ToString("HH:mm:ss");
+            _devicesText = "Mikrofon-Liste: angefordert um " + _requestedAt + " (Anfrage " + _requests + ") ...";
             Log.Debug("list_devices gesendet");
             _send(Protocol.NewEvent(Protocol.EvtListDevices));
         }
@@ -245,41 +256,51 @@ namespace AIBody
         public void HandleDevices(JSONClass msg)
         {
             _devicesAsked = -1f;
-            List<string> choices = new List<string> { DefaultDevice };
-            List<string> labels = new List<string> { DefaultDeviceLabel };
+            List<string> names = new List<string>();
             string api = "";
+            _defaultName = "";
             JSONArray devices = msg["devices"] as JSONArray;
+            int received = devices != null ? devices.Count : 0;
             if (devices != null)
             {
                 for (int i = 0; i < devices.Count; i++)
                 {
                     JSONClass d = devices[i] as JSONClass;
                     string name = d != null ? d["name"].Value : devices[i].Value;
-                    if (string.IsNullOrEmpty(name) || choices.Contains(name)) continue;
-                    choices.Add(name);
-                    labels.Add(d != null && Protocol.GetBool(d, "default", false) ? name + " (Windows-Standard)" : name);
-                    if (api.Length == 0 && d != null) api = d["hostapi"].Value;
+                    names.Add(name);
+                    if (d == null) continue;
+                    if (api.Length == 0) api = d["hostapi"].Value;
+                    if (_defaultName.Length == 0 && Protocol.GetBool(d, "default", false)) _defaultName = name;
                 }
             }
-            int found = choices.Count - 1;
-            // Keep a saved device visible even if it is currently unplugged.
-            if (!choices.Contains(Device.val))
-            {
-                choices.Add(Device.val);
-                labels.Add(Device.val + " (nicht gefunden)");
-            }
-            // choices + displayChoices together, as Collider Editor does; setting choices refreshes a
-            // popup that is already shown (Timeline's SequencingScreen does it while visible).
-            Device.choices = choices;
-            Device.displayChoices = labels;
+            int found;
+            bool missing;
+            List<string> choices = MicDeviceList.Build(names, Device.val, out found, out missing);
+            Device.choices = choices;   // refreshes a shown popup (E24, E25)
+            if (MicDeviceList.IsDefault(Device.val) && Device.val != DefaultDevice) Device.val = DefaultDevice;
             string error = Protocol.GetString(msg, "error", "");
-            if (found > 0)
-                _devicesText = "Mikrofone: " + found + " gefunden" + (api.Length > 0 ? " (" + api + ")" : "")
-                    + ", Auswahl: " + (Device.val == DefaultDevice ? DefaultDeviceLabel : Device.val);
-            else
-                _devicesText = "<color=red>Mikrofone: 0 gefunden" + (error.Length > 0 ? " - " + error : "")
-                    + "</color> (Standard-Mikrofon bleibt wählbar)";
-            Log.Debug("devices: " + found + " Mikrofone" + (error.Length > 0 ? ", Fehler: " + error : ""));
+            _receivedText = "Mikrofon-Liste: " + received + " empfangen von der Companion-App"
+                + (api.Length > 0 ? " (Host-API " + api + ")" : "") + " um " + DateTime.Now.ToString("HH:mm:ss")
+                + (_requestedAt.Length > 0 ? ", angefordert " + _requestedAt : "")
+                + (found != received ? ", davon " + found + " verwendbar" : "");
+            _devicesText = found > 0
+                ? _receivedText
+                : "<color=red>" + _receivedText + (error.Length > 0 ? " - " + error : "") + "</color> (Standard bleibt wählbar)";
+            if (missing) _devicesText += "\n<color=red>Gespeichertes Mikrofon nicht in der Liste: " + Device.val + "</color>";
+            Log.Info("Mikrofon-Liste: " + received + " empfangen" + (api.Length > 0 ? " (" + api + ")" : "")
+                + ", Menü hat " + Device.choices.Count + " Einträge" + (error.Length > 0 ? ", Fehler: " + error : ""));
+        }
+
+        /// <summary>Makes sure "Standard" and the current selection are in the menu (before any list arrived).</summary>
+        private void EnsureDeviceChoices()
+        {
+            List<string> current = Device.choices != null ? Device.choices : new List<string>();
+            List<string> names = new List<string>();
+            for (int i = 0; i < current.Count; i++) names.Add(current[i]);
+            int found;
+            bool missing;
+            List<string> choices = MicDeviceList.Build(names, Device.val, out found, out missing);
+            if (choices.Count != current.Count || missing) Device.choices = choices;
         }
 
         public void HandleMicState(JSONClass msg)
@@ -336,9 +357,19 @@ namespace AIBody
             return Mathf.Clamp(Mathf.RoundToInt((db + 60f) / 60f * width), 0, width);
         }
 
+        /// <summary>What the menu holds right now (read back from the chooser), for screenshots.</summary>
+        private string MenuEntriesText()
+        {
+            List<string> choices = Device.choices;
+            int count = choices != null ? choices.Count : 0;
+            string text = "Menü Mic device: " + count + " Einträge" + (count > 0 ? ": " + string.Join(", ", choices.ToArray()) : "");
+            text += "\nAuswahl: " + Device.val + (_defaultName.Length > 0 ? " | Windows-Standard: " + _defaultName : "");
+            return text;
+        }
+
         private void RefreshStatus()
         {
-            string text = _devicesText + "\nMic: " + _micState;
+            string text = _devicesText + "\n" + MenuEntriesText() + "\nMic: " + _micState;
             if (_ackText.Length > 0) text += "\nSettings: " + _ackText;
             if (LevelMeter.val)
             {

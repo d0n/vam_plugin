@@ -79,5 +79,26 @@ class PluginMenuTests(unittest.TestCase):
         self.assertIn('"<b>Posen</b>', body)
 
 
+class Version16MenuTests(unittest.TestCase):
+    """Leon, 18.11.2026: mic menu empty in VaM."""
+
+    def test_mic_menu_has_plain_choices_and_always_standard(self):
+        mic = source("MicConfig.cs")
+        self.assertIsNone(re.search(r"\.displayChoices\s*=", mic),
+                          "the only chooser with displayChoices showed an empty list")
+        self.assertIn("MicDeviceList.Build(", method_body(mic, "public void HandleDevices(JSONClass msg)"))
+        self.assertIn("EnsureDeviceChoices();", method_body(mic, "public void BuildTab(UiPage page)"))
+        self.assertIn("MicDeviceList.cs", source("AIBody.cslist"))
+        self.assertIn('"Standard (System-Mikrofon)"', source("MicDeviceList.cs"))
+
+    def test_mic_info_shows_count_source_time_and_menu_entries(self):
+        mic = source("MicConfig.cs")
+        handle = method_body(mic, "public void HandleDevices(JSONClass msg)")
+        for part in ('" empfangen von der Companion-App"', '" (Host-API "', 'DateTime.Now.ToString("HH:mm:ss")'):
+            self.assertIn(part, handle)
+        self.assertIn('"Menü Mic device: "', method_body(mic, "private string MenuEntriesText()"))
+        self.assertIn("MenuEntriesText()", method_body(mic, "private void RefreshStatus()"))
+
+
 if __name__ == "__main__":
     unittest.main()

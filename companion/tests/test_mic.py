@@ -263,3 +263,93 @@ class DeviceListTests(unittest.TestCase):
         self.assertIn("no input device", error)
         with unittest.mock.patch.object(self.capture, "_sounddevice", lambda: None):
             self.assertIn("sounddevice is not installed", self.capture.list_input_devices()[1])
+
+
+class WindowsDeviceListTests(unittest.TestCase):
+    """Version 16: typical Windows lists (4 mics under MME, DirectSound, WASAPI, WDM-KS)."""
+
+    def _sd(self, default_in, hostapi_default=0):
+        names = ["Mikrofon (Realtek(R) Audio)", "Headset (Jabra Evolve 65)", "Webcam C920", "Line In (Realtek)"]
+        apis = ["MME", "Windows DirectSound", "Windows WASAPI", "Windows WDM-KS"]
+        devices = []
+        for a in range(len(apis)):
+            devices.append({"name": "Microsoft Sound Mapper - Input" if a == 0 else "Primärer Soundaufnahmetreiber",
+                            "hostapi": a, "max_input_channels": 2 if a < 2 else 0})
+            for n in names:
+                devices.append({"name": n[:31] if a == 0 else n, "hostapi": a, "max_input_channels": 2})
+            devices.append({"name": "Lautsprecher", "hostapi": a, "max_input_channels": 0, "max_output_channels": 2})
+
+        class Sd:
+            class default:  # noqa: N801 - sounddevice name
+                device = [default_in, -1]
+                hostapi = hostapi_default
+
+            def query_hostapis(self):
+                return [{"name": n} for n in apis]
+
+            def query_devices(self):
+                return devices
+
+        return Sd()
+
+    def _list(self, sd):
+        from unittest import mock
+
+        from aibody_companion.audio import capture
+
+        with mock.patch.object(capture, "_sounddevice", lambda: sd):
+            return capture.list_input_devices()
+
+    def test_mme_default_lists_every_mic_once(self):
+        devices, error = self._list(self._sd(default_in=1))
+        self.assertIsNone(error)
+        self.assertEqual(len(devices), 5, [d["name"] for d in devices])  # 4 mics + Sound Mapper
+        self.assertEqual({d["hostapi"] for d in devices}, {"MME"})
+        self.assertEqual([d["default"] for d in devices], [False, True, False, False, False])
+
+    def test_no_default_input_falls_back_to_the_default_host_api(self):
+        devices, error = self._list(self._sd(default_in=-1, hostapi_default=2))
+        self.assertIsNone(error)
+        self.assertEqual([d["name"] for d in devices], ["Mikrofon (Realtek(R) Audio)", "Headset (Jabra Evolve 65)",
+                                                        "Webcam C920", "Line In (Realtek)"])
+
+    def test_host_api_without_inputs_falls_back_to_all_inputs_once_per_name(self):
+        devices, _ = self._list(self._sd(default_in=-1, hostapi_default=99))
+        names = [d["name"] for d in devices]
+        self.assertEqual(len(names), len(set(names)))
+        self.assertIn("Webcam C920", names)
+
+
+class MicTestToolTests(unittest.TestCase):
+    """tools/mic_test.py: prints the lists and writes the plugin's "devices" message."""
+
+    def test_writes_output_json_and_inbox_message(self):
+        import importlib.util
+        import json
+        import tempfile
+        from pathlib import Path
+        from unittest import mock
+
+        from aibody_companion import protocol
+        from aibody_companion.audio import capture
+
+        root = Path(__file__).resolve().parents[2]
+        spec = importlib.util.spec_from_file_location("mic_test", root / "tools" / "mic_test.py")
+        tool = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(tool)
+        sd = WindowsDeviceListTests()._sd(default_in=13)
+        sd.get_portaudio_version = lambda: (1, "PortAudio V19.7.0-fake")
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.object(capture, "_sounddevice", lambda: sd), \
+                mock.patch("builtins.print"):
+            rc = tool.main(["--vam-root", tmp, "--channel", "default"], out_dir=Path(tmp))
+            self.assertEqual(rc, 0)
+            text = (Path(tmp) / "mic_test_output.txt").read_text(encoding="utf-8")
+            for section in ("== Host-APIs ==", "== Alle Geräte, roh (24) ==", "== Eingabegeräte pro Host-API ==",
+                            "Windows WASAPI: 4", "Liste, die die Companion-App an das Plugin schickt (4)"):
+                self.assertIn(section, text)
+            message = json.loads((Path(tmp) / "mic_test_devices.json").read_text(encoding="utf-8"))
+            self.assertEqual(protocol.validate_command(message), [])
+            self.assertEqual(len(message["devices"]), 4)
+            inbox = list((Path(tmp) / "Saves/PluginData/AIBody/default/inbox").glob("*.json"))
+            self.assertEqual(len(inbox), 1)
+            self.assertEqual(json.loads(inbox[0].read_text(encoding="utf-8"))["devices"], message["devices"])
