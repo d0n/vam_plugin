@@ -130,7 +130,7 @@ namespace AIBody
             _realtimeJson = new JSONStorableBool("Use realtime voice", false, SetRealtime);   // not registered (not saved)
             _proactiveJson = new JSONStorableBool("Proactive", true, (bool v) => MarkConfigDirty());
             _plugin.RegisterBool(_proactiveJson);
-            _proactiveIdleJson = new JSONStorableFloat("Proactive idle (s)", 90f, (float v) => MarkConfigDirty(), 0f, 3600f);   // 0 = proactive speech off
+            _proactiveIdleJson = new JSONStorableFloat("Speech delay timer (s)", 90f, (float v) => MarkConfigDirty(), 0f, 3600f);   // 0 = proactive speech off; config.json key ai.proactive.idle_seconds; was "Proactive idle (s)" up to version 22
             _plugin.RegisterFloat(_proactiveIdleJson);
             _bargeInJson = new JSONStorableBool("Voice barge-in (headphones)", false, (bool v) => MarkConfigDirty());
             _plugin.RegisterBool(_bargeInJson);
@@ -501,9 +501,9 @@ namespace AIBody
             if (_proactiveInfo == null) return "";
             bool toggle = Protocol.GetBool(_proactiveInfo, "enabled", false);
             float idle = Protocol.GetFloat(_proactiveInfo, "idle_seconds", 0f);
-            bool on = toggle && idle >= 1f;   // idle 0 s = off, like the toggle (the app never nudges then)
-            string line = "Proactive: " + (on ? "on, after " + idle.ToString("0") + " s of silence"
-                : toggle ? "off (idle " + idle.ToString("0") + " s)" : "off");
+            bool on = toggle && idle >= 1f;   // timer 0 s = off, like the toggle (the app never nudges then)
+            string line = "Proactive: " + (on ? "on, speech delay timer " + idle.ToString("0") + " s"
+                : toggle ? "off (speech delay timer " + idle.ToString("0") + " s)" : "off");
             string status = _proactiveInfo["status"].Value;
             if (!string.IsNullOrEmpty(status)) line += " – " + status;
             return line + "\n";

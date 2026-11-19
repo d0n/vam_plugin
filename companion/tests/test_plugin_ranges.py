@@ -25,7 +25,7 @@ SLIDERS = {
     "Breath depth": RANGES[("body", "breath_depth")],
     # storable name (stored in scenes); shown as "Companion inbox poll interval (s)" since version 19
     "File poll interval (s)": RANGES[("advanced", "file_poll_interval_s")],
-    "Proactive idle (s)": RANGES[("ai", "proactive", "idle_seconds")],
+    "Speech delay timer (s)": RANGES[("ai", "proactive", "idle_seconds")],
 }
 
 FLOAT = re.compile(r'new JSONStorableFloat\("([^"]+)",\s*[-\d.]+f,.*?,\s*([-\d.]+)f,\s*([-\d.]+)f\)')

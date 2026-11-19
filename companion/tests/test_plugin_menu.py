@@ -162,13 +162,16 @@ class Version19MenuTests(unittest.TestCase):
 
 
 class ProactiveIdleZeroTests(unittest.TestCase):
-    """Leon, 19.11.2026: "Proactive idle (s)" can go down to 0 = proactive speech off."""
+    """Leon, 19.11.2026: "Speech delay timer (s)" (was "Proactive idle (s)") can go down to 0 = proactive speech off."""
 
     def test_slider_minimum_is_zero_and_the_info_line_says_off(self):
         link = source("AppLink.cs")
-        self.assertIn('new JSONStorableFloat("Proactive idle (s)", 90f, (float v) => MarkConfigDirty(), 0f, 3600f)', link)
+        self.assertIn('new JSONStorableFloat("Speech delay timer (s)", 90f, (float v) => MarkConfigDirty(), 0f, 3600f)', link)
         line = method_body(link, "private string ProactiveLine()")
-        self.assertIn('"off (idle "', line)
+        self.assertIn('"off (speech delay timer "', line)
+        self.assertIn('"on, speech delay timer "', line)
+        self.assertNotIn("Proactive idle", "".join(source(f.name) for f in sorted(SRC.glob("*.cs")))
+                         .replace('was "Proactive idle (s)" up to version 22', ""))
         self.assertIn("idle >= 1f", line)
 
 

@@ -308,7 +308,7 @@ with `xai` on the chain path (typed text, the realtime fallback); the engine men
 If realtime is connected but gives no answer within 12 s after the user spoke, the app gives it up
 until **API Reconnect** (or a mode change) and the chain answers.
 
-- **Proactive:** after 90 s of silence (`ai.proactive.idle_seconds`, tab *Voice*) the AI may say
+- **Proactive:** after the *Speech delay timer (s)* (default 90 s of silence; `ai.proactive.idle_seconds`, tab *Voice*) the AI may say
   something by itself, or stay silent (`[silent]`, nothing is played). Needs realtime or `llm: xai`;
   paused in `qa`. `idle_seconds` 0 switches it off (`ProactiveTimer.active`; below 1 s counts as 0),
   so there is never a nudge on every tick.
