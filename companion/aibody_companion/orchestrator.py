@@ -824,6 +824,9 @@ class Companion:
             if kind == "audio":
                 t = turn.elapsed()
                 text = self._transcribe(data)
+                # always on the console (INFO), before the answer starts, so the log shows what the
+                # app reacted to; the turn trace below only appears with the verbose log
+                log.info("Heard (STT %s): %r", self.engine_set.active_names["stt"], text)
                 if turn.latency:
                     turn.latency.mark("stt", self._clock())
                 turn.step("stt", engine=self.engine_set.active_names["stt"],
