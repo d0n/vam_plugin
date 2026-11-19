@@ -310,7 +310,8 @@ until **API Reconnect** (or a mode change) and the chain answers.
 
 - **Proactive:** after 90 s of silence (`ai.proactive.idle_seconds`, tab *Voice*) the AI may say
   something by itself, or stay silent (`[silent]`, nothing is played). Needs realtime or `llm: xai`;
-  paused in `qa`.
+  paused in `qa`. `idle_seconds` 0 switches it off (`ProactiveTimer.active`; below 1 s counts as 0),
+  so there is never a nudge on every tick.
 - **Time context:** the AI has no clock. Each user turn and nudge carries the local date/time and
   the time since the last exchange.
 - **Echo:** without echo cancellation the mic sends silence while the body talks; to interrupt by

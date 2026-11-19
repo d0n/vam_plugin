@@ -157,7 +157,7 @@ RANGES: dict[tuple[str, str], tuple[float, float]] = {
     ("ai", "realtime", "first_segment_s"): (0.3, 5.0),
     ("ai", "realtime", "max_segment_s"): (1.0, 20.0),
     ("ai", "realtime", "connect_timeout_s"): (3.0, 60.0),
-    ("ai", "proactive", "idle_seconds"): (15.0, 3600.0),
+    ("ai", "proactive", "idle_seconds"): (0.0, 3600.0),  # 0 = nudges off (proactive.py MIN_ACTIVE_S)
 }
 
 # Allowed values for some strings.

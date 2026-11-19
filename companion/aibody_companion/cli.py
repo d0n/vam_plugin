@@ -55,7 +55,9 @@ def build_stack(cfg: Config, use_mic: bool = True) -> Companion:
              " (automatic; switches once to Saves/PluginData if VaM cannot load from there)"
              if cfg.audio_auto else " (connection.paths.audio)")
     p = companion.proactive
-    if p.enabled and companion.speech_only:
+    if p.enabled and not p.active:
+        log.info("Proactive: off (idle %.0f s)", p.idle_seconds)
+    elif p.enabled and companion.speech_only:
         log.info("Proactive: paused in Question and Answer mode (the AI only speaks when asked)")
     else:
         log.info("Proactive: %s, after %.0f s of silence", "on" if p.enabled else "off", p.idle_seconds)

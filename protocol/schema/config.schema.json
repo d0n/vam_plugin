@@ -594,7 +594,7 @@
               "anyOf": [
                 {
                   "type": "number",
-                  "minimum": 15.0,
+                  "minimum": 0.0,
                   "maximum": 3600.0
                 },
                 {

@@ -128,7 +128,7 @@ Spalte „Wo“: Tab im Plugin-Menü; „nur Datei“ = kein Bedienelement. Bere
 | `ai.realtime.max_segment_s` | number | 6.0 | [1–20] | längere Stücke ohne Satzende werden an der leisesten Stelle geschnitten | nur Datei |
 | `ai.realtime.connect_timeout_s` | number | 15 | [3–60] | Verbindungs-Timeout | nur Datei |
 | `ai.proactive.enabled` | bool | true | | KI darf nach Stille von sich aus sprechen (Realtime oder `llm` = `xai`; pausiert in `qa`) | Voice > AI Character: **Proactive** |
-| `ai.proactive.idle_seconds` | number | 90 | [15–3600]; im Plugin auf ganze Sekunden gerundet | Stille bis zum Anstoß; verdoppelt sich bei unbeantworteten Anstößen (bis 8×) | Voice > AI Character: **Proactive idle (s)** |
+| `ai.proactive.idle_seconds` | number | 90 | [0–3600]; im Plugin auf ganze Sekunden gerundet; **0 = Anstöße aus** (wie Proactive aus; alles unter 1 s zählt als 0) | Stille bis zum Anstoß; verdoppelt sich bei unbeantworteten Anstößen (bis 8×) | Voice > AI Character: **Proactive idle (s)** |
 | `ai.proactive.prompt` | string | „The user has been quiet for a while. … answer with exactly [silent] …“ | frei | Hinweis bei jedem Anstoß; Antwort `[silent]` = nichts abspielen | nur Datei |
 | `ai.xai.base_url` | string | `https://api.x.ai/v1` | | REST-Basis für STT, LLM, TTS | nur Datei |
 | `ai.xai.key_hint` | string | englischer Hinweistext | beliebiger Text | Notiz für den Leser der Datei (JSON hat keine Kommentare): ein xAI-API-Key ist nötig, auf drei Wegen (Plugin-Feld **XAI API Token**, `XAI_API_KEY`, `ai.xai.key_file`). Wird von der App nicht benutzt; die App ergänzt ihn in bestehenden `config.json` | nur Datei |

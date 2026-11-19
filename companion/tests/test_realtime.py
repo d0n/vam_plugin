@@ -111,6 +111,39 @@ class UnitTests(unittest.TestCase):
         p.configure(False, 60)
         self.assertFalse(p.due(True))
 
+    def test_idle_zero_switches_the_nudges_off(self):
+        """Leon, 19.11.2026: slider "Proactive idle (s)" at 0 = off. Never a nudge on every tick."""
+        for idle in (0, 0.0, 0.5, -3):
+            clock = FakeClock()
+            p = ProactiveTimer(True, idle, clock)
+            self.assertFalse(p.active, idle)
+            for _ in range(3):
+                self.assertFalse(p.due(True), idle)
+                clock.advance(100000)
+            self.assertFalse(p.due(True), f"not even after a very long idle (idle_seconds={idle})")
+        clock = FakeClock()
+        p = ProactiveTimer(True, 60, clock)
+        self.assertTrue(p.active)
+        p.configure(True, 0)
+        clock.advance(10000)
+        self.assertFalse(p.active)
+        self.assertFalse(p.due(True))
+        p.configure(True, 30)  # back from 0: counts from now, no instant nudge
+        self.assertTrue(p.active)
+        self.assertFalse(p.due(True))
+        clock.advance(31)
+        self.assertTrue(p.due(True))
+
+    def test_idle_range_allows_zero(self):
+        from aibody_companion import settings_file
+
+        self.assertEqual(settings_file.RANGES[("ai", "proactive", "idle_seconds")][0], 0.0)
+        data, errors = settings_file.validate({"ai": {"proactive": {"idle_seconds": 0}}})
+        self.assertEqual(errors, [])
+        self.assertEqual(data["ai"]["proactive"]["idle_seconds"], 0.0)
+        data, _ = settings_file.validate({"ai": {"proactive": {"idle_seconds": -5}}})
+        self.assertEqual(data["ai"]["proactive"]["idle_seconds"], 0.0, "negative values clamp to 0 = off")
+
 
 class RealtimeSim(unittest.TestCase):
     """Companion in realtime mode against the fake server, fake plugin on the file channel."""
@@ -364,6 +397,33 @@ class ProactiveTests(RealtimeSim):
         self.sim.run(self.plugin, 100)
         self.assertNotIn("response.create", self.server.conn.types())
         self.assertFalse(self.sim.sent(self.plugin, "companion_heartbeat")[-1]["proactive"]["enabled"])
+
+    def test_idle_zero_never_nudges_in_realtime_after_a_long_silence(self):
+        self.start(ai={"proactive": {"idle_seconds": 0}})
+        self.connect()
+        self.wall[0] = NOW + timedelta(hours=3)
+        self.sim.run(self.plugin, 600)
+        self.assertNotIn("response.create", self.server.conn.types())
+        beat = self.sim.sent(self.plugin, "companion_heartbeat")[-1]["proactive"]
+        self.assertEqual(beat["idle_seconds"], 0)
+        self.assertNotIn("status", beat)
+        # live: the slider dragged to 0 while a nudge was due
+        self.app.apply_ai({"proactive": {"idle_seconds": 30}})
+        self.app.apply_ai({"proactive": {"idle_seconds": 0}})
+        self.sim.run(self.plugin, 600)
+        self.assertNotIn("response.create", self.server.conn.types())
+
+    def test_idle_zero_never_nudges_in_the_chain_path(self):
+        http = FakeHttp()
+        http.route("/responses", lambda r: FakeResponse(text_stream(["Hey?"], "resp-1"), "text/event-stream"))
+        http.route("/tts", lambda r: FakeResponse(b"\x01\x00" * 24000, "audio/pcm"))
+        self.start(mode="chain", http=http, ai={"proactive": {"idle_seconds": 0}})
+        self.plugin.ui["engines"] = {"stt": "null", "llm": "xai", "tts": "xai"}
+        self.pump(lambda: bool(self.plugin.app_alive))
+        self.sim.run(self.plugin, 1000)
+        self.assertTrue(self.app.wait_turns())
+        self.assertEqual([r for r in http.requests if r.full_url.endswith("/responses")], [])
+        self.assertEqual(self.speaks(), [])
 
     def test_chain_nudge_and_time_context(self):
         http = FakeHttp()

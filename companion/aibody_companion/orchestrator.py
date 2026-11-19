@@ -331,9 +331,11 @@ class Companion:
 
     def proactive_info(self) -> dict[str, Any]:
         info: dict[str, Any] = {"enabled": self.proactive.enabled, "idle_seconds": self.proactive.idle_seconds}
-        if self.proactive.enabled and self.speech_only:
+        if self.proactive.enabled and not self.proactive.active:
+            pass  # idle 0 s: off; the plugin shows "Proactive: off (idle 0 s)"
+        elif self.proactive.active and self.speech_only:
             info["status"] = "paused in Question and Answer mode"
-        elif self.proactive.enabled and not self._can_nudge_engine():
+        elif self.proactive.active and not self._can_nudge_engine():
             info["status"] = "waiting: needs realtime or language model xai"
         return info
 

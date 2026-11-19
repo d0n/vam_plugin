@@ -3,6 +3,9 @@ nudges the AI so it may say something on its own (or stay silent).
 
 Each nudge in a row that the user does not answer doubles the wait (up to 8x), so a silent room
 does not get a remark every minute. User speech resets that; AI speech only restarts the wait.
+
+idle_seconds 0 (anything below MIN_ACTIVE_S) switches the nudges OFF, like enabled=false: the wait would
+be zero, i.e. a nudge on every tick.
 """
 from __future__ import annotations
 
@@ -10,6 +13,7 @@ import time
 from collections.abc import Callable
 
 MAX_BACKOFF_STEPS = 3  # 1x, 2x, 4x, 8x
+MIN_ACTIVE_S = 1.0  # idle_seconds below this (0 = slider at its minimum) means: no nudges at all
 
 
 class ProactiveTimer:
@@ -22,10 +26,11 @@ class ProactiveTimer:
         self.streak = 0  # nudges since the user last spoke
 
     def configure(self, enabled: bool, idle_seconds: float) -> None:
-        if enabled and not self.enabled:
-            self.last_activity = self._clock()  # switched on: count from now
+        was_active = self.active
         self.enabled = enabled
         self.idle_seconds = float(idle_seconds)
+        if self.active and not was_active:
+            self.last_activity = self._clock()  # switched on: count from now
 
     def user_activity(self) -> None:
         self.last_activity = self._clock()
@@ -35,6 +40,11 @@ class ProactiveTimer:
         self.last_activity = self._clock()
 
     @property
+    def active(self) -> bool:
+        """True only if nudges can happen: the toggle is on AND the idle time is at least MIN_ACTIVE_S."""
+        return bool(self.enabled) and self.idle_seconds >= MIN_ACTIVE_S
+
+    @property
     def wait_s(self) -> float:
         return self.idle_seconds * (2 ** min(self.streak, MAX_BACKOFF_STEPS))
 
@@ -42,7 +52,7 @@ class ProactiveTimer:
         return max(0.0, self.wait_s - (self._clock() - self.last_activity))
 
     def due(self, can_speak: bool) -> bool:
-        return self.enabled and can_speak and self._clock() - self.last_activity >= self.wait_s
+        return self.active and can_speak and self._clock() - self.last_activity >= self.wait_s
 
     def fired(self) -> None:
         self.streak += 1

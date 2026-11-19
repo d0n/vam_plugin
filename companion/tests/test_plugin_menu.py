@@ -161,6 +161,17 @@ class Version19MenuTests(unittest.TestCase):
         self.assertIn("FilePollInfoText()", method_body(source("AIBody.cs"), "private string TabInfo()"))
 
 
+class ProactiveIdleZeroTests(unittest.TestCase):
+    """Leon, 19.11.2026: "Proactive idle (s)" can go down to 0 = proactive speech off."""
+
+    def test_slider_minimum_is_zero_and_the_info_line_says_off(self):
+        link = source("AppLink.cs")
+        self.assertIn('new JSONStorableFloat("Proactive idle (s)", 90f, (float v) => MarkConfigDirty(), 0f, 3600f)', link)
+        line = method_body(link, "private string ProactiveLine()")
+        self.assertIn('"off (idle "', line)
+        self.assertIn("idle >= 1f", line)
+
+
 class NoMicSelectionTests(unittest.TestCase):
     """Leon, 19.11.2026: the microphone device selection is gone, the companion always uses the system default."""
 
