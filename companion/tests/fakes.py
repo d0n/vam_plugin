@@ -144,7 +144,12 @@ class FakePlugin:
                                          "expression_morphs_found": 9, "expression_morphs_total": 9,
                                          "expression_morphs_missing": [], "timeline_gestures": 0, "timeline": False}
         self.ai_ui: dict[str, Any] = {"mode": mode, "proactive": {"enabled": True, "idle_seconds": 90.0},
-                                      "realtime": {"send_while_speaking": False}}
+                                      "realtime": {"send_while_speaking": False},
+                                      "persona_name": "", "memory": {"enabled": False}}  # version 27: menu Persona / Memory
+        self.personas: list[str] = []  # companion heartbeat "personas" (the Persona menu's choices after "(none)")
+        self.persona_in_use = ""       # companion heartbeat "persona"
+        self.persona_note = ""         # companion heartbeat "persona_note"
+        self.memory_info: dict[str, Any] = {}  # companion heartbeat "memory"
         self.voice = "eve"  # AI Character tab "Voice" -> ai.realtime.voice + ai.xai.voice
         self.xai_token = ""  # field "XAI API Token" (version 21): in the scene, sent in the config event only
         self.key_files = {"xai": "", "elevenlabs": ""}  # key file paths (from config.json; no menu field since 15)
@@ -264,6 +269,22 @@ class FakePlugin:
             ai["elevenlabs"] = {"key_file": self.key_files["elevenlabs"]}
         return ai
 
+    def choose_persona(self, name: str) -> None:
+        """Voice tab > Persona (AppLink: MarkConfigDirty -> saved + config event); "" = "(none)"."""
+        self.ai_ui["persona_name"] = name
+        self.write_settings()
+        self.send_config()
+
+    def set_memory(self, on: bool) -> None:
+        """Voice tab > Memory."""
+        self.ai_ui["memory"]["enabled"] = on
+        self.write_settings()
+        self.send_config()
+
+    def forget_memory(self) -> None:
+        """Voice tab > button "Forget memory" (AppLink.ForgetMemory)."""
+        self.send("memory_forget")
+
     def request_reconnect(self) -> None:
         """AppLink.ApiReconnect (button "API Reconnect")."""
         self.send("reconnect")
@@ -329,7 +350,8 @@ class FakePlugin:
                 # AppLink.MergeAi: the UI keys go into the kept "ai" section (as VaM strings)
                 ui = self.build_ai_json()
                 ai["mode"] = ui["mode"]
-                for section in ("proactive", "realtime", "xai", "elevenlabs"):
+                ai["persona_name"] = ui["persona_name"]
+                for section in ("proactive", "realtime", "xai", "elevenlabs", "memory"):
                     if section not in ui:
                         continue
                     if not isinstance(ai.get(section), dict):
@@ -376,6 +398,10 @@ class FakePlugin:
             self.app_age = 0.0
             self.turn = msg.get("turn", self.turn)
             self.audio_out = msg.get("audio_out", self.audio_out)
+            self.personas = list(msg.get("personas", self.personas))
+            self.persona_in_use = str(msg.get("persona", ""))
+            self.persona_note = str(msg.get("persona_note", ""))
+            self.memory_info = dict(msg.get("memory", {}))
             session = msg.get("session")
             if session != self.app_session:
                 restarted = self.last_session is not None and session != self.last_session

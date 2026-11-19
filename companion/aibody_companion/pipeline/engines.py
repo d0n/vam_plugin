@@ -32,6 +32,7 @@ from ..config import ENGINES_AVAILABLE
 from . import elevenlabs, xai
 from .http import HttpClient, is_key_rejection
 from ..logsetup import add_secret
+from ..personas import Persona, memory_block
 from .keys import resolve_key
 from .llm import EchoLlm
 from .stt import NullStt
@@ -85,6 +86,8 @@ class EngineSet:
         self.ui_keys: dict[str, str] = {}  # provider -> token typed into the plugin (xai only)
         self.rejected: dict[str, str] = {}  # provider -> why the server refused its key (401/403)
         self.override: dict[str, str] | None = None  # kind -> engine run instead of the selection
+        self.persona: Persona | None = None  # selected persona (personas.py); its prompt / language / voice win
+        self.memory_facts: list[str] = []  # notes about the user (memory.json), put into the instructions
         self._read_keys()
         for kind in KINDS:
             self.fallbacks[kind] = self._create(kind, self.fallback_name(kind))
@@ -157,6 +160,41 @@ class EngineSet:
         self.active_names[kind] = ""
         self._activate(kind)
 
+    # -- persona (prompt, language and voice of the selected persona win over config.json) -----------------
+
+    def persona_text(self) -> str:
+        """The AI's character text: persona prompt (or ai.persona), the name, and the memory notes."""
+        p = self.persona
+        base = (p.prompt if p and p.prompt else str(self.ai.get("persona") or "")).strip()
+        parts = [f"Your name is {p.display_name}." if p and p.display_name else "", base,
+                 memory_block(self.memory_facts)]
+        return "\n\n".join(x for x in parts if x)
+
+    def language(self) -> str:
+        return (self.persona.language if self.persona and self.persona.language else "") \
+            or str(self.ai.get("language") or "auto")
+
+    def xai_settings(self) -> dict[str, Any]:
+        """ai.xai; with a persona voice a copy with that voice (else the live dict, so menu changes still count)."""
+        if self.persona and self.persona.voice:
+            return {**self.ai["xai"], "voice": self.persona.voice}
+        return self.ai["xai"]
+
+    def realtime_settings(self) -> dict[str, Any]:
+        if self.persona and self.persona.voice:
+            return {**self.ai["realtime"], "voice": self.persona.voice}
+        return self.ai["realtime"]
+
+    def elevenlabs_settings(self) -> dict[str, Any]:
+        if self.persona and self.persona.elevenlabs_voice_id:
+            return {**self.ai["elevenlabs"], "voice_id": self.persona.elevenlabs_voice_id}
+        return self.ai["elevenlabs"]
+
+    def memory_llm(self) -> Any:
+        """A language model for memory summaries (xAI with the key there is), or None."""
+        key = self.key("xai")
+        return xai.XaiLlm(self.ai["xai"], key, self.http) if key else None
+
     def key(self, name: str) -> str | None:
         return self._keys.get(name, (None, ""))[0]
 
@@ -181,18 +219,18 @@ class EngineSet:
     # -- building --------------------------------------------------------------------------
 
     def _create(self, kind: str, name: str) -> Any:
-        language = str(self.ai.get("language") or "auto")
+        language = self.language()
         if name == OFFLINE[kind]:
             return {"stt": NullStt, "llm": EchoLlm, "tts": ToneTts}[kind]()
         if name == "xai":
-            settings, key = self.ai["xai"], self.key("xai")
+            settings, key = self.xai_settings(), self.key("xai")
             if kind == "stt":
                 return xai.XaiStt(settings, key, self.http, language=language)
             if kind == "llm":
-                return xai.XaiLlm(settings, key, self.http, persona=str(self.ai.get("persona") or ""))
+                return xai.XaiLlm(settings, key, self.http, persona=self.persona_text())
             return xai.XaiTts(settings, key, self.http, language=language)
         if name == "elevenlabs" and kind == "tts":
-            return elevenlabs.ElevenLabsTts(self.ai["elevenlabs"], self.key("elevenlabs"), self.http,
+            return elevenlabs.ElevenLabsTts(self.elevenlabs_settings(), self.key("elevenlabs"), self.http,
                                             language=language)
         raise ValueError(f"unknown {kind} engine {name!r}")
 

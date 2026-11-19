@@ -47,7 +47,7 @@ COMMANDS: dict[str, tuple[set[str], set[str]]] = {
     # turn: last question / answer step or problem as text (status box)
     "companion_heartbeat": ({"session"}, {"version", "engines_available", "engines_status", "engines_active",
                                           "mic_capturing", "mode", "proactive", "keys", "audio_out", "turn",
-                                          "latency"}),
+                                          "latency", "personas", "persona", "persona_note", "memory"}),
 }
 
 # Commands for the plugin's body (everything else is handled by its app link).
@@ -80,6 +80,7 @@ EVENTS = {
     "speech_ended",
     "gesture_done",
     "scene_event",
+    "memory_forget",
     "shutdown",
 }
 

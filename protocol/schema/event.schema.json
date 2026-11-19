@@ -24,6 +24,7 @@
         "speech_ended",
         "gesture_done",
         "scene_event",
+        "memory_forget",
         "shutdown",
         "config",
         "ptt",

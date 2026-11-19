@@ -48,7 +48,7 @@ from .audio import (
     MicSettings,
     apply_mic_config,
 )
-from .config import ENGINES_AVAILABLE, Config
+from .config import ENGINES_AVAILABLE, PLUGIN_DATA_SUBDIR, Config
 from .emotion import EmotionDirector, offered as offered_expressions
 from .latency import LatencyStats, LatencyTrace, describe
 from .logsetup import Turn
@@ -60,6 +60,7 @@ from .pipeline.http import ApiError
 from .pipeline.realtime import KEY_REJECTED as REALTIME_KEY_REJECTED
 from .pipeline.tts import test_tone_pcm, write_pcm_wav
 from .pipeline.xai import ToolCall
+from . import personas as personas_module
 from .proactive import ProactiveTimer
 from .realtime_voice import RealtimeVoice
 from .settings_file import CHOICES, DEFAULTS, RANGES, _check_value
@@ -203,6 +204,18 @@ class Companion:
         proactive = self.engine_set.ai["proactive"]
         self.proactive = ProactiveTimer(bool(proactive["enabled"]), float(proactive["idle_seconds"]), clock)
         self.emotion = EmotionDirector(self.engine_set.ai["emotion"], clock)  # fallback expression, fade, listening
+        # personas and memory (personas.py): files below Saves/PluginData/AIBody/personas
+        self.personas = personas_module.PersonaStore(Path(config.vam_root or ".") / PLUGIN_DATA_SUBDIR / personas_module.PERSONAS_SUBDIR)
+        self.persona_note = ""  # why the chosen persona is not in use
+        self.memory_note = ""  # last memory problem (shown in the plugin)
+        self._mem_cursor = 0  # history[_mem_cursor:] = the conversation not yet summarized
+        self._memory_lock = threading.Lock()  # one summary at a time
+        self._persona_names: tuple[float, list[str]] = (-1e9, [])
+        self._load_persona()
+        if (self.engine_set.persona or self.engine_set.memory_facts) and llm is None:
+            self.engine_set.rebuild("llm")  # built before the persona was known
+        if self.engine_set.persona and tts is None:
+            self.engine_set.rebuild("tts")  # the persona's voice / language
         self._update_mode()
 
     # -- engines -------------------------------------------------------------------------
@@ -242,6 +255,7 @@ class Companion:
         self._maybe_nudge()
         self._maybe_scene_event()
         self._maybe_emotion()
+        self._maybe_memory()
         now = self._clock()
         if now - self._last_key_check >= KEY_REFRESH_S:
             self._last_key_check = now
@@ -405,6 +419,151 @@ class Companion:
         if item.gesture:
             self.send(self.body_command("gesture", name=item.gesture))
 
+    # -- personas and memory ----------------------------------------------------------------
+
+    PERSONA_LIST_REFRESH_S = 5.0
+
+    @property
+    def persona_in_use(self) -> str:
+        p = self.engine_set.persona
+        return p.name if p else ""
+
+    def persona_names(self) -> list[str]:
+        now = self._clock()
+        if now - self._persona_names[0] >= self.PERSONA_LIST_REFRESH_S:
+            self._persona_names = (now, self.personas.names())
+        return list(self._persona_names[1])
+
+    def _load_persona(self) -> None:
+        """Loads the persona named in ai.persona_name (and its memory) into the engine settings."""
+        name = str(self.engine_set.ai.get("persona_name") or "").strip()
+        persona, problems = (None, []) if not name else self.personas.load(name)
+        for problem in problems:
+            log.warning("Persona: %s", problem)
+        self.persona_note = "; ".join(problems) if name and persona is None else ""
+        if persona is not None:
+            log.info("Persona: %s (voice %s, language %s)", persona.label, persona.voice or "from the menu",
+                     persona.language or self.engine_set.ai.get("language"))
+        self.engine_set.persona = persona
+        self._load_memory()
+
+    def switch_persona(self) -> None:
+        """The plugin's Persona menu changed: save what was learned, then start over as the new persona."""
+        self.finish_memory_session("the persona changes")
+        self._load_persona()
+        self.history.clear()
+        self._mem_cursor = 0
+        for kind in ("llm", "tts"):
+            self.engine_set.rebuild(kind)  # new instructions (a new conversation), voice and language
+        if self.realtime is not None:
+            self.realtime.stop()  # instructions, voice and language are part of the session
+            self.realtime = None
+        self._last_heartbeat = -HEARTBEAT_INTERVAL_S
+
+    def _memory_cfg(self) -> dict[str, Any]:
+        return self.engine_set.ai["memory"]
+
+    def memory_enabled(self) -> bool:
+        p = self.engine_set.persona
+        return bool(self._memory_cfg()["enabled"]) and (p is None or p.memory)
+
+    def _memory_key(self) -> str:
+        return self.persona_in_use or personas_module.DEFAULT_MEMORY_KEY
+
+    def _load_memory(self) -> None:
+        facts: list[str] = []
+        if self.memory_enabled():
+            facts = personas_module.load_facts(self.personas.memory_path(self._memory_key()),
+                                               int(self._memory_cfg()["max_facts"]))
+            if facts:
+                log.info("Memory: %d notes about the user loaded (%s)", len(facts),
+                         self.personas.memory_path(self._memory_key()))
+        self.engine_set.memory_facts = facts
+
+    def memory_info(self) -> dict[str, Any]:
+        info: dict[str, Any] = {"enabled": self.memory_enabled(), "facts": len(self.engine_set.memory_facts)}
+        if self.memory_note:
+            info["note"] = self.memory_note
+        return info
+
+    def _session_exchanges(self) -> int:
+        return sum(1 for item in self.history[self._mem_cursor:] if item.get("role") == "user")
+
+    def _maybe_memory(self) -> None:
+        """A conversation counts as over after session_idle_minutes of silence: summarize it."""
+        if not self.memory_enabled() or self._last_exchange is None:
+            return
+        cfg = self._memory_cfg()
+        if self._session_exchanges() < int(cfg["min_exchanges"]) or not self._can_speak_now():
+            return
+        if self._clock() - self._last_exchange >= float(cfg["session_idle_minutes"]) * 60:
+            self.finish_memory_session("silence")
+
+    def finish_memory_session(self, reason: str, wait: bool = False) -> None:
+        """Summarizes the conversation since the last summary into the memory file (on a thread; with
+        wait=True, when the app stops, right here)."""
+        if not self.memory_enabled() or self._session_exchanges() < int(self._memory_cfg()["min_exchanges"]):
+            return
+        snippet = list(self.history[self._mem_cursor:])
+        self._mem_cursor = len(self.history)
+        key, max_facts = self._memory_key(), int(self._memory_cfg()["max_facts"])
+        log.info("Memory: updating the notes about the user (%s)", reason)
+        if self.background_turns and not wait:
+            threading.Thread(target=self._memory_job, args=(key, snippet, max_facts, 60.0), daemon=True,
+                             name="aibody-memory").start()
+        else:
+            self._memory_job(key, snippet, max_facts, 15.0 if wait else 60.0)
+
+    def _memory_job(self, key: str, snippet: list[dict[str, str]], max_facts: int, timeout: float) -> None:
+        with self._memory_lock:
+            path = self.personas.memory_path(key)
+            old = personas_module.load_facts(path, max_facts)
+            llm = self.engine_set.memory_llm()
+            if llm is None:
+                self.memory_note = "no xAI key: memory not updated"
+                log.info("Memory: %s", self.memory_note)
+                return
+            try:
+                instructions, text = personas_module.summary_request(old, snippet, max_facts)
+                answer = llm.complete(instructions, text, timeout=timeout)
+            except Exception as e:  # noqa: BLE001 - network / API errors: the old notes stay
+                if isinstance(e, ApiError):
+                    self.engine_set.note_api_error(e)
+                self.memory_note = f"memory not updated: {_short(str(e), 100)}"
+                log.warning("Memory: %s", self.memory_note)
+                return
+            facts = personas_module.parse_facts(answer, max_facts)
+            if facts is None or (not facts and old):
+                # no list, or an empty one that would wipe the notes: keep them (forgetting = the Forget memory button)
+                self.memory_note = "memory not updated: the answer was not a usable list"
+                log.warning("Memory: %s", self.memory_note)
+                return
+            try:
+                personas_module.save_facts(path, facts)
+            except OSError as e:
+                self.memory_note = f"memory not saved: {e}"
+                log.warning("Memory: %s", self.memory_note)
+                return
+            self.memory_note = ""
+            if key == self._memory_key() and self.memory_enabled():
+                self.engine_set.memory_facts = facts  # the notes in the next instructions (realtime refreshes them)
+            log.info("Memory: %d notes about the user saved (%s)", len(facts), path)
+
+    def forget_memory(self) -> None:
+        """Button "Forget memory": deletes the memory file of the persona in use and starts a fresh conversation."""
+        with self._memory_lock:
+            deleted = personas_module.forget(self.personas.memory_path(self._memory_key()))
+        self.engine_set.memory_facts = []
+        self.memory_note = ""
+        self.history.clear()
+        self._mem_cursor = 0
+        self.engine_set.rebuild("llm")  # the old conversation still holds the notes in its instructions
+        if self.realtime is not None:
+            self.realtime.stop()
+            self.realtime = None
+        log.info("Memory: forgotten (%s)", "file deleted" if deleted else "there was none")
+        self._last_heartbeat = -HEARTBEAT_INTERVAL_S
+
     # -- proactive -------------------------------------------------------------------------
 
     def _can_nudge_engine(self) -> bool:
@@ -518,6 +677,8 @@ class Companion:
                 self.handle_ptt(bool(as_bool(event.get("active"))))
             elif type_ == "test_tone":
                 self.play_test_tone()
+            elif type_ == "memory_forget":
+                self.forget_memory()
             elif type_ == "reconnect":
                 self.reconnect_api()
             elif type_ == "error":
@@ -563,6 +724,8 @@ class Companion:
             mic_capturing=bool(self.mic and self.mic.capturing),
             mode=self.mode_info(), proactive=self.proactive_info(), keys=self.engine_set.key_info(),
             audio_out=self.audio_info(), turn=self.turn_status, latency=self.latency.info(),
+            personas=self.persona_names(), persona=self.persona_in_use, persona_note=self.persona_note,
+            memory=self.memory_info(),
         ))
 
     def audio_info(self) -> dict[str, Any]:
@@ -595,7 +758,7 @@ class Companion:
     # ai keys the plugin's tabs may change live (AI, AI Character, Client Character)
     AI_LIVE_KEYS = {("mode",), ("proactive", "enabled"), ("proactive", "idle_seconds"),
                     ("realtime", "send_while_speaking"), ("realtime", "voice"), ("xai", "voice"),
-                    ("xai", "key_file"), ("elevenlabs", "key_file")}
+                    ("xai", "key_file"), ("elevenlabs", "key_file"), ("persona_name",), ("memory", "enabled")}
 
     def reconnect_api(self) -> None:
         """Plugin button "API Reconnect": re-read the keys and open the realtime connection anew."""
@@ -660,6 +823,11 @@ class Companion:
             self.realtime_off = ""  # a new mode choice gives realtime a new chance
         p = ai["proactive"]
         self.proactive.configure(bool(p["enabled"]), float(p["idle_seconds"]))
+        if ("persona_name",) in changed:
+            self.switch_persona()
+        elif ("memory", "enabled") in changed:
+            self._load_memory()
+            self.engine_set.rebuild("llm")  # the notes are part of the instructions
         if ("xai", "key_file") in changed or ("elevenlabs", "key_file") in changed:
             self.engine_set.refresh()
         if ("xai", "voice") in changed:
@@ -970,9 +1138,9 @@ class Companion:
 
     def _voice_of(self, tts: str) -> str | None:
         if tts == "xai":
-            return str(self.engine_set.ai["xai"]["voice"])
+            return str(self.engine_set.xai_settings()["voice"])
         if tts == "elevenlabs":
-            return str(self.engine_set.ai["elevenlabs"]["voice_id"])
+            return str(self.engine_set.elevenlabs_settings()["voice_id"])
         return None
 
     def _directive_steps(self, item: Directive):
@@ -1034,7 +1202,7 @@ class Companion:
             if produced or nudge:
                 return
         if self.speech_only:
-            language = str(self.engine_set.ai.get("language") or "auto")
+            language = self.engine_set.language()
             yield LLM_ERROR_SAY["en" if language.startswith("en") else "de"]
             return
         yield from self._reply_items(fallback, user_text)
@@ -1244,6 +1412,7 @@ class Companion:
         if self.realtime:
             self.realtime.stop()
         self.cancel_turns()
+        self.finish_memory_session("the app stops", wait=True)
         self._jobs.put(None)
         if self.mic:
             self.mic.stop()

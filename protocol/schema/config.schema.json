@@ -495,6 +495,75 @@
           "default": "auto",
           "description": "'auto' or a language code (de, en, ...): STT bias and TTS language"
         },
+        "persona_name": {
+          "type": "string",
+          "default": ""
+        },
+        "memory": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "true",
+                    "false",
+                    "True",
+                    "False"
+                  ]
+                }
+              ],
+              "default": false
+            },
+            "max_facts": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 100
+                },
+                {
+                  "type": "string",
+                  "pattern": "^\\s*-?[0-9]+(\\.[0-9]+)?([eE][-+]?[0-9]+)?\\s*$"
+                }
+              ],
+              "default": 30
+            },
+            "session_idle_minutes": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 240
+                },
+                {
+                  "type": "string",
+                  "pattern": "^\\s*-?[0-9]+(\\.[0-9]+)?([eE][-+]?[0-9]+)?\\s*$"
+                }
+              ],
+              "default": 10
+            },
+            "min_exchanges": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 50
+                },
+                {
+                  "type": "string",
+                  "pattern": "^\\s*-?[0-9]+(\\.[0-9]+)?([eE][-+]?[0-9]+)?\\s*$"
+                }
+              ],
+              "default": 2
+            }
+          }
+        },
         "fallback": {
           "type": "object",
           "additionalProperties": false,

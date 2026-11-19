@@ -100,7 +100,7 @@ class RealtimeVoice:
 
     def instructions(self) -> str:
         expressions, gestures = self._lists()
-        persona = str(self.c.engine_set.ai.get("persona") or "").strip()
+        persona = self.c.engine_set.persona_text()
         rules = REALTIME_RULES.format(expressions=", ".join(expressions), gestures=", ".join(gestures) or "none")
         if self.c.offered_tools():
             rules += "\n" + body_tools.rules(self.c.body_lists())
@@ -113,7 +113,7 @@ class RealtimeVoice:
         s = self.settings
         session: dict[str, Any] = {
             "instructions": self.instructions(),
-            "voice": str(s["voice"]),
+            "voice": str(self.c.engine_set.realtime_settings()["voice"]),
             "turn_detection": {"type": "server_vad"},
             "tools": self.c.offered_tools(),
             "audio": {
@@ -124,7 +124,7 @@ class RealtimeVoice:
         speed = float(s["speed"])
         if abs(speed - 1.0) > 1e-6:
             session["audio"]["output"]["speed"] = speed
-        language = str(self.c.engine_set.ai.get("language") or "auto")
+        language = self.c.engine_set.language()
         if language != "auto":
             session["audio"]["input"]["transcription"] = {"language_hint": language}
         if s.get("reasoning_effort"):

@@ -270,6 +270,19 @@ class XaiLlm(_XaiBase):
                     text = err.get("message") if isinstance(err, dict) else str(err)
                     raise ApiError(self.service, 200, f"stream error: {text}")
 
+    def complete(self, instructions: str, text: str, max_tokens: int = 2000, timeout: float | None = None) -> str:
+        """One plain, non-streaming request without a conversation (memory summaries). `store: false`
+        (documented: the response is not kept on the server). Returns the answer text."""
+        payload = {"model": self.model, "instructions": instructions, "input": [{"role": "user", "content": text}],
+                   "max_output_tokens": max_tokens, "store": False, "temperature": 0.2}
+        body, _ = self.http.post_json(self.service, f"{self.base_url}/responses", self._headers(), payload,
+                                      timeout or self.timeout)
+        try:
+            data = json.loads(body.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            raise ApiError(self.service, 200, "answer is not JSON") from None
+        return _output_text(data) if isinstance(data, dict) else ""
+
     def _tool_call(self, item: dict[str, Any], seen: set[str]) -> ToolCall | None:
         if item.get("type") != "function_call":
             return None

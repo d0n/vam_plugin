@@ -39,6 +39,7 @@ namespace AIBody
         public const string EvtSpeechEnded = "speech_ended";
         public const string EvtGestureDone = "gesture_done";
         public const string EvtSceneEvent = "scene_event";   // since version 26: a scene trigger set "Scene event"
+        public const string EvtMemoryForget = "memory_forget";   // since version 27: button "Forget memory"
         public const string EvtShutdown = "shutdown";
         public const string EvtConfig = "config";
         public const string EvtPtt = "ptt";

@@ -16,9 +16,9 @@ README.md section 4. Categories (kept from the first schema; they no longer matc
 plus one category this app owns (the plugin keeps it unchanged when it writes, except the keys
 it has controls for):
 
-  ai          mode, persona, language, fallback {stt, llm, tts}, realtime {...}, proactive {...},
+  ai          mode, persona, persona_name, memory {...}, emotion {...}, language, fallback {stt, llm, tts}, realtime {...}, proactive {...},
               xai {...}, elevenlabs {...}
-              plugin controls: mode (tab Voice), proactive.enabled /
+              plugin controls: mode (tab Voice), persona_name and memory.enabled (tab Voice), proactive.enabled /
               idle_seconds (tab Voice), realtime.send_while_speaking (tab Client Character),
               realtime.voice + xai.voice (tab Voice), xai.key_file /
               elevenlabs.key_file (no menu field since version 15; the plugin keeps the path it read)
@@ -116,6 +116,18 @@ DEFAULTS: dict[str, dict[str, Any]] = {
         "persona": "You are a friendly, curious character living in a 3D scene. You talk with the user "
                    "face to face. Answer briefly and naturally, in the language the user speaks.",
         "language": "auto",  # "auto" or a language code such as "de" / "en" (STT bias, TTS language)
+        # Persona folder below Saves/PluginData/AIBody/personas ("" = none: the persona text above). The plugin's
+        # menu "Persona" sets it; a persona.json can replace persona text, language and voice (personas.py).
+        "persona_name": "",
+        # Memory (opt-in, menu switch "Memory"): facts the user told the AI, kept in personas/<name>/memory.json and
+        # given to the AI as notes. Updated after session_idle_minutes of silence (at least min_exchanges questions),
+        # on a persona change and when the app stops.
+        "memory": {
+            "enabled": False,
+            "max_facts": 30,
+            "session_idle_minutes": 10,
+            "min_exchanges": 2,
+        },
         # Used when the selected engine is not configured (no API key) or a request fails.
         "fallback": {"stt": "null", "llm": "echo", "tts": "tone"},
         "realtime": {
@@ -190,6 +202,9 @@ RANGES: dict[tuple[str, str], tuple[float, float]] = {
     ("ai", "realtime", "first_segment_s"): (0.3, 5.0),
     ("ai", "realtime", "max_segment_s"): (1.0, 20.0),
     ("ai", "realtime", "connect_timeout_s"): (3.0, 60.0),
+    ("ai", "memory", "max_facts"): (1, 100),
+    ("ai", "memory", "session_idle_minutes"): (1, 240),
+    ("ai", "memory", "min_exchanges"): (1, 50),
     ("ai", "emotion", "fade_after_s"): (1.0, 120.0),
     ("ai", "emotion", "fade_seconds"): (0.2, 10.0),
     ("ai", "proactive", "idle_seconds"): (0.0, 3600.0),  # 0 = nudges off (proactive.py MIN_ACTIVE_S)

@@ -58,6 +58,13 @@ namespace AIBody
         private JSONStorableFloat _proactiveIdleJson;
         private JSONStorableBool _bargeInJson;
         private JSONStorableStringChooser _voiceJson;       // ai.realtime.voice + ai.xai.voice
+        // Version 27: persona (folder in Saves/PluginData/AIBody/personas, listed by the companion app) and memory
+        public const string PersonaNone = "(none)";
+        private JSONStorableStringChooser _personaJson;     // ai.persona_name ("(none)" = "")
+        private JSONStorableBool _memoryJson;               // ai.memory.enabled
+        private string _personaInUse = "";                  // companion heartbeat "persona"
+        private string _personaNote = "";                   // companion heartbeat "persona_note"
+        private JSONClass _memoryInfo;                      // companion heartbeat "memory"
 
         // API keys: only the PATH of a key file (the key itself would be saved readably in the scene
         // and in config.json). TODO(user decision): a direct key field was asked about; not built.
@@ -149,6 +156,12 @@ namespace AIBody
             _voiceJson = new JSONStorableStringChooser("Voice", new List<string> { "eve", "ara", "rex", "sal", "leo" },
                 "eve", "Voice", (string v) => MarkConfigDirty());
             _plugin.RegisterStringChooser(_voiceJson);
+            // The persona list comes from the companion app's heartbeat; "(none)" = the plain ai.persona text of config.json.
+            _personaJson = new JSONStorableStringChooser("Persona", new List<string> { PersonaNone }, PersonaNone, "Persona",
+                (string v) => MarkConfigDirty());
+            _plugin.RegisterStringChooser(_personaJson);
+            _memoryJson = new JSONStorableBool("Memory", false, (bool v) => MarkConfigDirty());
+            _plugin.RegisterBool(_memoryJson);
             // No format check on purpose (Leon, 18.11.2026): whatever is typed or pasted is sent as is.
             _xaiTokenJson = new JSONStorableString(XaiTokenLabel, "", OnTokenEdited);
             _plugin.RegisterString(_xaiTokenJson);
@@ -323,6 +336,10 @@ namespace AIBody
             realtime["send_while_speaking"].AsBool = _bargeInJson.val;
             realtime["voice"] = _voiceJson.val;
             ai["realtime"] = realtime;
+            ai["persona_name"] = PersonaName;
+            JSONClass memory = new JSONClass();
+            memory["enabled"].AsBool = _memoryJson.val;
+            ai["memory"] = memory;
             JSONClass xai = new JSONClass();
             xai["voice"] = _voiceJson.val;
             // Key file paths only when set, so an empty field never wipes a path entered in config.json.
@@ -371,6 +388,8 @@ namespace AIBody
         {
             if (target == null || ui == null) return;
             target["mode"] = ui["mode"].Value;
+            target["persona_name"] = ui["persona_name"].Value;
+            MergeSection(target, ui, "memory", "enabled");
             MergeSection(target, ui, "proactive", "enabled");
             MergeSection(target, ui, "proactive", "idle_seconds");
             MergeSection(target, ui, "realtime", "send_while_speaking");
@@ -458,11 +477,37 @@ namespace AIBody
         {
             page.Popup(_aiModeJson);
             page.Popup(_voiceJson);
+            page.Popup(_personaJson);
             page.Popup(_sttJson);
             page.Popup(_llmJson);
             page.Popup(_ttsJson);
             page.Toggle(_proactiveJson);
             page.Slider(_proactiveIdleJson);
+            page.Toggle(_memoryJson);
+            page.Button("Forget memory", ForgetMemory);
+        }
+
+        /// <summary>Button "Forget memory": the companion app deletes the notes about the user and starts a fresh conversation.</summary>
+        public void ForgetMemory()
+        {
+            if (_appAlive) Send(Protocol.NewEvent(Protocol.EvtMemoryForget));
+        }
+
+        /// <summary>Persona and memory lines for the Voice tab's info field.</summary>
+        private string PersonaInfoText()
+        {
+            string text = "<b>Persona and memory</b>\n";
+            if (PersonaName.Length == 0) text += "Persona: none (the text ai.persona from config.json). Personas are folders in Saves/PluginData/AIBody/personas/<name>/ with a persona.json (docs/PERSONAS.md); pick one in the Persona menu.\n";
+            else if (_appAlive && _personaInUse != PersonaName) text += "Persona: '" + PersonaName + "' is not in use: " + (_personaNote.Length > 0 ? _personaNote : "the companion app has not confirmed it yet") + "\n";
+            else text += "Persona: " + PersonaName + " (its prompt, language and voice replace ai.persona, config.json language and the Voice menu).\n";
+            if (!_memoryJson.val) text += "Memory: off. On = the AI keeps short notes about what you tell it (personas/<name>/memory.json, local; the summary request goes to xAI) and uses them next time.\n";
+            else
+            {
+                string facts = _memoryInfo != null && Protocol.Has(_memoryInfo, "facts") ? _memoryInfo["facts"].Value : "?";
+                text += "Memory: on, " + facts + " notes about you. Updated after the conversation (10 minutes of silence, a persona change or when the app stops); 'Forget memory' deletes them.\n";
+                if (_memoryInfo != null && Protocol.Has(_memoryInfo, "note")) text += "Memory problem: " + _memoryInfo["note"].Value + "\n";
+            }
+            return text;
         }
 
         /// <summary>Info for the tab "Voice" in the big field on the left: mode help, key and engine status.</summary>
@@ -470,7 +515,7 @@ namespace AIBody
         {
             UpdateKeyStatus();
             UpdateEngineInfo();
-            string text = XaiTokenWarning + "\n\n" + _modeHelpJson.val + "\n" + _keyStatusJson.val + "\n";
+            string text = XaiTokenWarning + "\n\n" + _modeHelpJson.val + "\n" + _keyStatusJson.val + "\n" + PersonaInfoText();
             if (_engineStatus != null) text += _engineInfoJson.val;   // before the first heartbeat the connection section says "not seen yet"
             return text;
         }
@@ -786,6 +831,9 @@ namespace AIBody
             {
                 string mode = Protocol.GetString(ai, "mode", _aiModeJson.val);
                 if (mode == ModeQa || mode == "auto" || mode == "realtime" || mode == "chain") _aiModeJson.val = mode;
+                if (Protocol.Has(ai, "persona_name")) SetPersona(ai["persona_name"].Value);
+                JSONClass memory = ai["memory"] as JSONClass;
+                if (memory != null) _memoryJson.val = Protocol.GetBool(memory, "enabled", _memoryJson.val);
                 JSONClass proactive = ai["proactive"] as JSONClass;
                 if (proactive != null)
                 {
@@ -808,6 +856,41 @@ namespace AIBody
             if (_mic != null) _mic.ApplyMicJson(root["mic"] as JSONClass);
             JSONClass advanced = root["advanced"] as JSONClass;
             if (advanced != null) _filePollJson.val = Protocol.GetFloat(advanced, "file_poll_interval_s", _filePollJson.val);
+        }
+
+        /// <summary>The persona's folder name for config.json and the companion app ("" = none).</summary>
+        private string PersonaName { get { return _personaJson.val == PersonaNone ? "" : _personaJson.val; } }
+
+        private void SetPersona(string name)
+        {
+            if (string.IsNullOrEmpty(name)) return;
+            if (!_personaJson.choices.Contains(name))
+            {
+                List<string> choices = new List<string>(_personaJson.choices);
+                choices.Add(name);
+                try { _personaJson.choices = choices; }   // choices refresh: E9, E24, E25
+                catch (Exception e) { _diag.Fail("Extend persona list", e); }
+            }
+            _personaJson.val = name;
+        }
+
+        /// <summary>The persona list from the companion app: "(none)" first, then the folders; the chosen one is kept.</summary>
+        private void SetPersonaChoices(JSONArray names)
+        {
+            if (names == null || _personaJson == null) return;
+            List<string> choices = new List<string> { PersonaNone };
+            for (int i = 0; i < names.Count; i++) if (!choices.Contains(names[i].Value)) choices.Add(names[i].Value);
+            if (!choices.Contains(_personaJson.val)) choices.Add(_personaJson.val);
+            bool same = choices.Count == _personaJson.choices.Count;
+            for (int i = 0; same && i < choices.Count; i++) same = choices[i] == _personaJson.choices[i];
+            if (same) return;
+            try { _personaJson.choices = choices; }   // choices refresh: E24, E25
+            catch (Exception e)
+            {
+                if (_choicesWarned) return;
+                _choicesWarned = true;
+                _diag.Fail("Update persona choices", e);
+            }
         }
 
         private void SetVoice(string voice)
@@ -1014,6 +1097,11 @@ namespace AIBody
                 SetChoices(_llmJson, available["llm"] as JSONArray);
                 SetChoices(_ttsJson, available["tts"] as JSONArray);
             }
+            SetPersonaChoices(msg["personas"] as JSONArray);
+            _personaInUse = msg["persona"].Value;
+            _personaNote = msg["persona_note"].Value;
+            JSONClass memoryInfo = msg["memory"] as JSONClass;
+            if (memoryInfo != null) _memoryInfo = memoryInfo;
             JSONClass status = msg["engines_status"] as JSONClass;
             if (status != null) _engineStatus = status;
             JSONClass active = msg["engines_active"] as JSONClass;

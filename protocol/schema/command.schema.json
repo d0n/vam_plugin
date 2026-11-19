@@ -309,6 +309,25 @@
       "type": "object",
       "description": "companion_heartbeat: time from the end of the user's speech to the first sound {last_s, avg_s, n, parts}"
     },
+    "personas": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "companion_heartbeat: names of the persona folders (Saves/PluginData/AIBody/personas/<name>/persona.json); fills the plugin's Persona menu"
+    },
+    "persona": {
+      "type": "string",
+      "description": "companion_heartbeat: the persona in use (\"\" = none: the plain ai.persona text)"
+    },
+    "persona_note": {
+      "type": "string",
+      "description": "companion_heartbeat: why the chosen persona is not used (not found, unreadable), else empty"
+    },
+    "memory": {
+      "type": "object",
+      "description": "companion_heartbeat: memory state {enabled, facts (number of remembered facts), note}"
+    },
     "target": {
       "enum": [
         "client",
