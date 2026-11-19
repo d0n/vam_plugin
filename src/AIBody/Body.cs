@@ -25,6 +25,12 @@ namespace AIBody
         private JSONStorableFloat _breathDepthJson;
         private JSONStorableString _breathMorphJson;
         private JSONStorableBool _bodyControlJson;
+        private JSONStorableBool _gazeControlJson;
+        private JSONStorableStringChooser _gazeDefaultJson;
+        private JSONStorableBool _gazeFollowJson;
+
+        /// <summary>True while the user is talking (set by the plugin from the companion's level reports).</summary>
+        public Func<bool> UserSpeaking;
 
         /// <summary>The test WAV shipped next to the .cslist (written by tools/build_var.py).</summary>
         public const string TestToneFile = "AIBodyTest.wav";
@@ -41,6 +47,10 @@ namespace AIBody
         private BreathingController _breathing;
         private IdleController _idle;
         private PoseController _poses;
+        private GazeController _gaze;
+        private bool _gazeBroken;
+        private List<string> _gazeAtoms = new List<string>();
+        private float _gazeAtomsAge = 999f;
         private JSONStorableStringChooser _poseChoiceJson;
         private JSONStorableStringChooser _expressionChoiceJson;
         private JSONStorableStringChooser _gestureChoiceJson;
@@ -169,6 +179,15 @@ namespace AIBody
             _expressionChoiceJson.popupOpenCallback = RefreshCharacterChoices;
             _gestureChoiceJson = new JSONStorableStringChooser("Gesture", new List<string>(), "", "Gesture", (string v) => { });
             _gestureChoiceJson.popupOpenCallback = RefreshCharacterChoices;
+            // Gaze (tab AI Character > Gaze): where the eyes look. Saved with the scene like the other body settings.
+            _gazeControlJson = new JSONStorableBool("Gaze control", true, (bool v) => { if (_gaze != null) _gaze.Enabled = v; });
+            _plugin.RegisterBool(_gazeControlJson);
+            _gazeDefaultJson = new JSONStorableStringChooser("Default gaze", GazeFixedChoices(), GazeLabelDefault, "Default gaze",
+                (string v) => { if (_gaze != null) _gaze.SetDefault(GazeKey(v)); });
+            _gazeDefaultJson.popupOpenCallback = RefreshGazeChoices;
+            _plugin.RegisterStringChooser(_gazeDefaultJson);
+            _gazeFollowJson = new JSONStorableBool("Gaze follows speaker", false, (bool v) => { if (_gaze != null) _gaze.FollowsSpeaker = v; });
+            _plugin.RegisterBool(_gazeFollowJson);
             _plugin.RegisterAction(new JSONStorableAction("Stop speaking", StopSpeaking));
             _plugin.RegisterAction(new JSONStorableAction("Reset expression", () => { if (_expressions != null) _expressions.Reset(0.4f); }));
             _plugin.RegisterAction(new JSONStorableAction("Reload config files", ReloadConfigFiles));
@@ -211,8 +230,16 @@ namespace AIBody
                 _idle = idle;
             });
             _diag.Run("Poses/gestures (PoseController)", () => _poses = new PoseController(_atom, _idle));
+            _diag.Run("Gaze (GazeController)", () =>
+            {
+                GazeController gaze = new GazeController(_atom);
+                if (_gazeControlJson != null) gaze.Enabled = _gazeControlJson.val;
+                if (_gazeFollowJson != null) gaze.FollowsSpeaker = _gazeFollowJson.val;
+                if (_gazeDefaultJson != null) gaze.SetDefault(GazeKey(_gazeDefaultJson.val));
+                _gaze = gaze;
+            });
             _diag.Run("Commands (CommandRouter)", () =>
-                _router = new CommandRouter(_send, _speech, _expressions, _poses, _idle, _breathing,
+                _router = new CommandRouter(_send, _speech, _expressions, _poses, _idle, _breathing, _gaze,
                     () => BodyControl));
             _diag.Run("Load config files", ReloadConfigFiles);
         }
@@ -258,6 +285,10 @@ namespace AIBody
             page.Button("Reload expressions (expressions.json)", ReloadExpressions);
             page.Popup(_gestureChoiceJson);
             page.Button("Play gesture", PlayChosenGesture);
+            page.Header("<b>Gaze</b> (where the eyes look)");
+            page.Toggle(_gazeControlJson);
+            page.ScrollablePopup(_gazeDefaultJson);
+            page.Toggle(_gazeFollowJson);
             page.Header("<b>Body</b> (this Person only)");
             page.Toggle(_bodyControlJson);
             page.Slider(_volumeJson);
@@ -276,7 +307,65 @@ namespace AIBody
         {
             string text = "Poses: " + (_poses != null ? _poses.PoseNames.Count + " in the menu and available to the AI (" + _poses.PoseScanNote + ")" : "PoseController missing") + "\n";
             text += "Body control off = speech only, the AI does not move the body. Breath morph: a name from the character's Morphs tab.\n";
+            text += GazeInfoText();
             return text;
+        }
+
+        // ---------------------------------------------------------------- gaze
+
+        private const string GazeLabelDefault = "VaM default";
+        private const string GazeLabelClient = "Client Character";
+        private const string GazeLabelCamera = "Camera / player";
+        private const string GazeLabelForward = "Straight ahead";
+        private const string GazeLabelAtom = "Atom: ";
+
+        private static List<string> GazeFixedChoices()
+        {
+            return new List<string> { GazeLabelDefault, GazeLabelClient, GazeLabelCamera, GazeLabelForward };
+        }
+
+        /// <summary>Menu text -> config key ("default", "client", "camera", "forward", "atom:&lt;uid&gt;").</summary>
+        public static string GazeKey(string label)
+        {
+            if (label == GazeLabelClient) return GazeController.KeyClient;
+            if (label == GazeLabelCamera) return GazeController.KeyCamera;
+            if (label == GazeLabelForward) return GazeController.KeyForward;
+            if (label != null && label.StartsWith(GazeLabelAtom)) return GazeController.AtomPrefix + label.Substring(GazeLabelAtom.Length);
+            return GazeController.KeyDefault;
+        }
+
+        public static string GazeLabel(string key)
+        {
+            if (key == GazeController.KeyClient) return GazeLabelClient;
+            if (key == GazeController.KeyCamera) return GazeLabelCamera;
+            if (key == GazeController.KeyForward) return GazeLabelForward;
+            if (key != null && key.StartsWith(GazeController.AtomPrefix)) return GazeLabelAtom + key.Substring(GazeController.AtomPrefix.Length);
+            return GazeLabelDefault;
+        }
+
+        /// <summary>The "Default gaze" menu: the fixed targets plus the atoms in the scene (refilled when it opens).</summary>
+        public void RefreshGazeChoices()
+        {
+            if (_gazeDefaultJson == null) return;
+            List<string> choices = GazeFixedChoices();
+            if (_gaze != null && !_gazeBroken)
+            {
+                List<string> atoms = _gaze.ListAtoms();
+                for (int i = 0; i < atoms.Count; i++) choices.Add(GazeLabelAtom + atoms[i]);
+            }
+            if (!choices.Contains(_gazeDefaultJson.val)) choices.Add(_gazeDefaultJson.val);
+            _gazeDefaultJson.choices = choices;   // E9, E25
+        }
+
+        /// <summary>Gaze help and live state for the big info field (tab AI Character).</summary>
+        public string GazeInfoText()
+        {
+            string text = "Gaze: the AI can look at the client, at the camera (you in VR or on the screen), straight ahead, away, or at an atom by name. "
+                + "Default gaze is where the eyes look when the AI gave no order; 'VaM default' leaves the eyes alone. "
+                + "Gaze follows speaker: look at the client while someone is talking (needs the level meter of tab Client Character). "
+                + "Gaze control off: AIBody never moves the eyes. If the Glance plugin is on this Person, AIBody stays out of the eyes.\n";
+            if (_gaze == null || _gazeBroken) return text + "Gaze now: not available (see the log)\n";
+            return text + "Gaze now: " + _gaze.Status + "\n";
         }
 
         /// <summary>Fills the pose / expression / gesture menus from what this body really has.</summary>
@@ -339,6 +428,9 @@ namespace AIBody
             body["breaths_per_minute"].AsFloat = _breathRateJson.val;
             body["breath_depth"].AsFloat = _breathDepthJson.val;
             body["breath_morph"] = _breathMorphJson.val;
+            body["gaze_control"].AsBool = _gazeControlJson.val;
+            body["gaze_default"] = GazeKey(_gazeDefaultJson.val);
+            body["gaze_follows_speaker"].AsBool = _gazeFollowJson.val;
             root["body"] = body;
         }
 
@@ -354,6 +446,9 @@ namespace AIBody
             _breathRateJson.val = Protocol.GetFloat(body, "breaths_per_minute", _breathRateJson.val);
             _breathDepthJson.val = Protocol.GetFloat(body, "breath_depth", _breathDepthJson.val);
             _breathMorphJson.val = Protocol.GetString(body, "breath_morph", _breathMorphJson.val);
+            _gazeControlJson.val = Protocol.GetBool(body, "gaze_control", _gazeControlJson.val);
+            _gazeDefaultJson.val = GazeLabel(Protocol.GetString(body, "gaze_default", GazeKey(_gazeDefaultJson.val)));
+            _gazeFollowJson.val = Protocol.GetBool(body, "gaze_follows_speaker", _gazeFollowJson.val);
         }
 
         /// <summary>Set from config.json (connection.paths) by the plugin.</summary>
@@ -437,6 +532,10 @@ namespace AIBody
             if (_poses != null) foreach (string n in _poses.PoseNames) poses.Add(new JSONData(n));
             s["poses"] = poses;
             s["body_control"].AsBool = BodyControl;   // off: the companion offers the AI no body tools
+            s["gaze_control"].AsBool = _gaze != null && !_gazeBroken && _gaze.AiMayDirect;   // off: no look_at tool
+            JSONArray gazeAtoms = new JSONArray();
+            for (int i = 0; i < _gazeAtoms.Count; i++) gazeAtoms.Add(new JSONData(_gazeAtoms[i]));
+            s["gaze_atoms"] = gazeAtoms;   // atoms the AI may look at by name
             s["selftest"] = SelfTestJson();   // in-game checks, logged by the companion when they change
         }
 
@@ -469,6 +568,7 @@ namespace AIBody
             bool speaking = _speech != null && _speech.IsSpeaking;
             if (_expressions != null) _expressions.Update(dt);
             if (_breathing != null) _breathing.Update(dt, speaking);
+            UpdateGaze(dt, speaking);
             if (_idle == null) return;
             string finishedGesture = _idle.Update(dt, speaking,
                 _breathing != null ? _breathing.Cycle : 0f, _breathing != null ? _breathing.CurrentDepth : 0f);
@@ -477,6 +577,27 @@ namespace AIBody
                 JSONClass done = Protocol.NewEvent(Protocol.EvtGestureDone);
                 done["name"] = finishedGesture;
                 _send(done);
+            }
+        }
+
+        private void UpdateGaze(float dt, bool speaking)
+        {
+            if (_gaze == null || _gazeBroken) return;
+            try
+            {
+                _gaze.Update(dt, speaking, UserSpeaking != null && UserSpeaking());
+                _gazeAtomsAge += dt;
+                if (_gazeAtomsAge > 3f)
+                {
+                    _gazeAtomsAge = 0f;
+                    _gazeAtoms = _gaze.ListAtoms();
+                }
+            }
+            catch (Exception e)
+            {
+                _gazeBroken = true;   // only the gaze stops; the rest of the body keeps working
+                try { _gaze.Release(); } catch (Exception) { }
+                _diag.Fail("Gaze.Update (gaze stopped)", e);
             }
         }
 
@@ -507,6 +628,7 @@ namespace AIBody
             if (_expressions != null) _expressions.RestoreNow();
             if (_breathing != null) _breathing.RestoreNow();
             if (_idle != null) _idle.RestoreNow();
+            if (_gaze != null) _gaze.RestoreNow();
         }
     }
 }

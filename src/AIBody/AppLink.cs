@@ -91,6 +91,9 @@ namespace AIBody
         /// <summary>Adds the body's state to ready / heartbeat / pong.</summary>
         public Action<JSONClass> DecorateStatus;
 
+        /// <summary>True while the user is talking (companion level reports; used for "Gaze follows speaker").</summary>
+        public bool UserSpeaking { get { return _mic != null && _mic.UserSpeaking; } }
+
         public AppLink(MVRScript plugin, string pluginVersion, Diag diag)
         {
             _plugin = plugin;

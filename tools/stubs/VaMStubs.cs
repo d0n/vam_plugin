@@ -3,7 +3,7 @@
 // Only members with public evidence of use in sandboxed VaM plugins are declared here, so the
 // compile check fails if the plugin starts using anything else. Each group names its evidence
 // (keys E1..E20 = links in docs/API_AUDIT.md). Deliberately NOT declared: NamedAudioClip.clipToPlay,
-// JSONStorable.GetActionNames, FileManagerSecure.GetFiles(dir, pattern), SuperController.GetAtoms,
+// JSONStorable.GetActionNames, FileManagerSecure.GetFiles(dir, pattern),
 // UnityEngine.Networking / UnityWebRequest (no stub file exists for them at all).
 #pragma warning disable 0067, 0649, 0169, 1591
 using System;
@@ -19,10 +19,16 @@ public class SuperController : MonoBehaviour
     public static void LogError(string m) { }                         // E9, E12
     public string NormalizeMediaPath(string path) { return path; }    // E1, E3 (before QueueClip)
     public string NormalizePath(string path) { return path; }         // E7 (preset browse path)
+    public CameraTarget centerCameraTarget;                           // E12 L647 (the player's view; .transform)
+    public List<Atom> GetAtoms() { return null; }                     // E12 L180, L759, L797
 }
+
+public class CameraTarget : MonoBehaviour { }                          // E12 L647
 
 public class Atom : MonoBehaviour
 {
+    public FreeControllerV3[] freeControllers;                        // E12 L164, L178; E28 L83
+    public FreeControllerV3 mainController;                           // E12 L812, L957
     public string uid;
     public string type;                                               // E12 ("Person" check)
     public JSONStorable GetStorableByID(string id) { return null; }   // E1, E4, E6, E12
@@ -140,6 +146,13 @@ public class FreeControllerV3 : JSONStorable                          // E6 (hea
 {
     public enum RotationState { On, Off, Following, Hold, Lock, ParentLink, PhysicsLink }
     public RotationState currentRotationState;                        // E2
+    public Transform control;                                         // E12 L678, L704; E28 L109, L209 (control.position)
+}
+
+public class EyesControl : JSONStorable                               // E12 L159; E28 L79 (GetStorableByID("Eyes"))
+{
+    public enum LookMode { Target, Custom }                           // E12 L681, L686 (the real enum has more values; only evidenced ones are declared)
+    public LookMode currentLookMode;                                  // E12 L652, L681, L732; E28 L108, L116, L167
 }
 
 namespace MVR.FileManagementSecure                                    // E15 (official), E10, E11
