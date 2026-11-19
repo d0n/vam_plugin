@@ -179,7 +179,7 @@
             {
                "id": "PluginManager",
                "plugins": {
-                  "plugin#0": "d0n.AIBody.30:/Custom/Scripts/d0n/AIBody/AIBody.cslist"
+                  "plugin#0": "d0n.AIBody.31:/Custom/Scripts/d0n/AIBody/AIBody.cslist"
                }
             }
          ]

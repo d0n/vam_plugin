@@ -316,3 +316,26 @@ class NoMicSelectionTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class Version31LayoutTests(unittest.TestCase):
+    """REQUIREMENTS 'Next version' menu-layout points (Leon, 18.11.2026), closed in version 31 with a source check:
+    character-bound controls (poses, expression, gesture, body, gaze) are in the tab AI Character, Config holds only
+    what is not character-bound, and no info text fields are left in the tabs."""
+
+    def test_config_tab_holds_only_what_is_not_character_bound(self):
+        config = method_body(source("AppLink.cs"), "public void BuildConfigTab(UiPage page")
+        self.assertEqual(re.findall(r'page\.(\w+)\(', config), ["Button", "Toggle", "Slider"])
+        self.assertIn('"Reload Config JSON"', config)
+        for word in ("pose", "Pose", "xpression", "esture", "Body", "Gaze"):
+            self.assertNotIn(word, config)
+
+    def test_poses_expression_gesture_and_body_are_in_the_ai_character_tab(self):
+        tab = method_body(source("Body.cs"), "public void BuildCharacterTab(UiPage page)")
+        for needed in ("Apply pose", "Reload poses", "Show expression", "Play gesture", "_gazeControlJson", "_bodyControlJson"):
+            self.assertIn(needed, tab)
+
+    def test_no_info_text_fields_in_the_right_hand_tabs(self):
+        for file, sig in BUILDERS:
+            body = method_body(source(file), sig)
+            self.assertNotIn(".Text(", body, f"{file} {sig}")

@@ -140,8 +140,8 @@ emptying the field in the plugin also empties `ai.xai.api_key` and falls back to
 reconnects realtime. There is no ElevenLabs field.
 
 **Security notice:** anyone who can read `config.json` can read the token: do not share or publish the file.
-Scenes keep only the masked token, but a scene saved with version 21 to 23 still contains the full token
-(plain text): do not publish such a scene. The notice is also shown at the top of the info field on the left
+Since version 31 no scene holds the token any more (the field is not saved with the scene), but a scene saved with
+version 21 to 23 still contains the full token (plain text): do not publish such a scene. The notice is also shown at the top of the info field on the left
 (tab *Voice*) and in `config.json` (`ai.xai.api_key_warning`).
 
 **Plugging in a key from the environment or a file** (example ElevenLabs, the same for xAI):
@@ -209,6 +209,10 @@ With the Glance plugin on the same Person AIBody does not touch the eyes. See TE
 - `connection.network_active` (default `true`, version 30): the plugin toggle **Network Active** (tab *Config*), mirrored here. On = the loopback link described in TECHNICAL.md ("Network Active") is used, with the file channel as automatic fallback; off = files only and no network code runs in the plugin.
 - `connection.network_port` (default `38437`, version 30, file only): the UDP port on `127.0.0.1` where the companion app listens; `0` = no listener (files only). Only the loopback address can be used.
 - `ui.first_run_hint_dismissed` (default `false`, version 30): set by the plugin when the first-run note was closed or a token exists; the note is never shown again.
+- `remote.enabled` (default `false`, version 31, file only): `true` = the companion app opens the remote control (web page and HTTP API, optional OSC) at the next start. Loopback only (`127.0.0.1`). See [REMOTE.md](REMOTE.md).
+- `remote.http_port` (default `38438`, 1024-65535): TCP port of the web page and HTTP API.
+- `remote.osc_port` (default `0`, 0-65535): UDP port of the OSC listener; `0` = no OSC (OSC has no token).
+- `remote.token` (default empty): secret for the HTTP API; empty = the app writes a random one here when `remote.enabled` is `true`. Never share a `config.json` that holds it. The plugin keeps the whole `remote` section unchanged when it saves.
 - Removed in version 30 (one character per app): `ai.channels`, the plugin's `Channel` value and `--channel` lists. Old files and scenes that still hold them are read without error and the values are ignored.
 - `ai.persona_name` (default `""`), `ai.memory.{enabled,max_facts,session_idle_minutes,min_exchanges}` and `ai.emotion.{fallback,fade,fade_after_s,fade_seconds,listening}`: version 27, see [PERSONAS.md](PERSONAS.md). The plugin owns `ai.persona_name` (menu **Persona**) and `ai.memory.enabled` (switch **Memory**) and writes them back; the rest is file only.
 - `ai.scene_events.enabled` (default true) and `ai.scene_events.prompt` (default text with `{event}`): what the AI is told when a scene trigger sets the plugin's string **Scene event** (see PROTOCOL.md, "Scene events"). File only, no menu field.

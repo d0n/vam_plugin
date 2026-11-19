@@ -40,7 +40,7 @@ namespace AIBody
 {
     public class AIBodyPlugin : MVRScript
     {
-        public const string PluginVersion = "30";   // = package number d0n.AIBody.30.var (scheme since version 12)
+        public const string PluginVersion = "31";   // = package number d0n.AIBody.31.var (scheme since version 12)
 
         private AppLink _link;
         private Body _body;
@@ -347,7 +347,7 @@ namespace AIBody
                 string text = root.ToString();
                 string path = _link.SettingsPath;
                 if (text == _lastSettingsText && path == _lastSettingsPath) return;
-                // Keep the companion-only section ("ai": persona, engine settings, key FILE paths)
+                // Keep the companion-only sections ("ai": persona, engine settings, key FILE paths; "remote": remote control)
                 // that the companion app and the user maintain; the plugin has no UI for it.
                 // The UI's ai keys (mode, proactive, voice barge-in) are merged into it.
                 JSONClass existing = _link.ReadSettingsRoot();
@@ -359,6 +359,9 @@ namespace AIBody
                         AppLink.MergeAi(ai, root["ai"] as JSONClass);
                         root["ai"] = ai;
                     }
+                    // "remote" (version 31): owned by the app and the user (enabled, ports, token), kept unchanged.
+                    JSONClass remote = existing["remote"] as JSONClass;
+                    if (remote != null) root["remote"] = remote;
                 }
                 FileManagerSecure.CreateDirectory(AppLink.DataRoot);
                 FileManagerSecure.WriteAllText(path, root.ToString());

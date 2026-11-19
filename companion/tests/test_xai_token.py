@@ -292,7 +292,7 @@ class PluginSourceTests(unittest.TestCase):
         self.assertNotIn("LooksLikeKey(XaiToken", link)
         self.assertNotIn("LooksLikeKey(_xaiTokenJson", link)
         self.assertNotIn("LooksLikeKey(typed", link)
-        self.assertIn("_plugin.RegisterString(_xaiTokenJson)", link, "the field (its mask) is kept with the scene; old scenes migrate")
+        self.assertNotIn("RegisterString(_xaiTokenJson)", link, "version 31: the field is not registered, so the scene never holds the token")
         edited = method_body(link, "private void OnTokenEdited(string v)")
         self.assertIn("Trim()", edited)
         self.assertNotRegex(edited, r"Regex|StartsWith|Length >=")

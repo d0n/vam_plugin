@@ -123,15 +123,18 @@ Status: 19.11.2026, version 30. Overview of what is done and what is open; updat
 - **One character:** the multi-character feature of version 28 (channel lists, `ai.channels`, Channel field, routing by name, per-channel state, `docs/FIGUREN.md`, test step T17) was removed; the fixed folder is `default`. Old keys and scene values are tolerated and ignored.
 - **Token masking by focus:** first and last 4 characters visible with stars between them, no masking while the field has focus (`InputField.isFocused`), config.json keeps the full token; the 4-second timer is gone. TODO(verify): `docs/TEST_PROTOCOL.md` T20.
 - **First-run note:** one short text at the top of the plugin UI with ONE field and ONE button (Close / OK), shown only until a token exists or the note was closed (`ui.first_run_hint_dismissed`). TODO(verify): `docs/TEST_PROTOCOL.md` T21.
+- **Remote control (version 31, `docs/REMOTE.md`):** local web page and HTTP API (token) and an optional OSC listener of the companion app, off by default (`remote.enabled`), bound to `127.0.0.1` only, ONE character; actions say / ask / expression / gesture / pose / look / stop / event / ptt. TODO(verify): `docs/TEST_PROTOCOL.md` T22.
+- **Plugin preset (version 31):** `Custom/Atom/Person/Plugins/AIBody/Preset_AIBody.vap` in the package adds the one `.cslist` to a Person. TODO(verify): `docs/TEST_PROTOCOL.md` T23.
+- **Token never in a scene (version 31):** the token field's storable is not registered with VaM any more (closes the T20 caveat).
 
 ## 2. Still open / to do
 
 ### Next version
 _Version 21 implemented the field "XAI API Token" and the button "Question and Answer" (see above, AI and speech)._
-- All pose entries (Apply pose, Reload poses and everything else about poses) belong in a sub-section "Poses" in the tab AI Character, not in Config. Reason: poses belong to one character and make sense only for the AI Character, not for the Client Character (Leon, 18.11.2026). State in the code since version 15: Apply pose and Reload poses are already in the section Poses in the tab AI Character; Config contains only Reload Config JSON, Companion inbox poll interval (s) (until version 18 "File poll interval (s)"), Network Active (since version 30), Verbose log. Check in VaM whether pose entries still appear under Config (perhaps an older package version was loaded).
-- Everything that hangs under Config in Leon's view ("basically everything that comes under Config"), in particular Expression and gesture and what follows below it (e.g. Body), move under the AI Character or group it there, so that character-bound controls are clearly assigned to the AI Character. The exact layout does not matter (Leon, 18.11.2026). State in the code since version 15: Expression and gesture and Body are already in the tab AI Character; the tab Config contains only Reload Config JSON, Companion inbox poll interval (s), Network Active and Verbose log (not character-bound). Clarify which version Leon sees in VaM.
-- Move the two info text fields at the bottom of the tab AI Character into the large info field on the left (only controls on the right; rule: configurable things in the menu and mirrored in config.json, info on the left) (Leon, 18.11.2026). Which two fields exactly: determine when implementing, from Leon's view in version 20.
-- Open again after the v30 release build (unfinished, so not part of it): **companion web / OSC remote** (localhost only, off by default) and **plugin presets** (chunk 3 of the 19.11.2026 plan). Also still open: trigger UI stage 2, Hub publishing and the demo scene (parked).
+- ~~All pose entries (Apply pose, Reload poses and everything else about poses) belong in a sub-section "Poses" in the tab AI Character, not in Config. Reason: poses belong to one character and make sense only for the AI Character, not for the Client Character (Leon, 18.11.2026). State in the code since version 15: Apply pose and Reload poses are already in the section Poses in the tab AI Character; Config contains only Reload Config JSON, Companion inbox poll interval (s) (until version 18 "File poll interval (s)"), Network Active (since version 30), Verbose log. Check in VaM whether pose entries still appear under Config (perhaps an older package version was loaded).~~ Closed in version 31 with a source test (`Version31LayoutTests`); if Leon still sees pose entries under Config, an old package is loaded.
+- ~~Everything that hangs under Config in Leon's view ("basically everything that comes under Config"), in particular Expression and gesture and what follows below it (e.g. Body), move under the AI Character or group it there, so that character-bound controls are clearly assigned to the AI Character. The exact layout does not matter (Leon, 18.11.2026). State in the code since version 15: Expression and gesture and Body are already in the tab AI Character; the tab Config contains only Reload Config JSON, Companion inbox poll interval (s), Network Active and Verbose log (not character-bound). Clarify which version Leon sees in VaM.~~ Closed in version 31 (same source test).
+- ~~Move the two info text fields at the bottom of the tab AI Character into the large info field on the left (only controls on the right; rule: configurable things in the menu and mirrored in config.json, info on the left) (Leon, 18.11.2026). Which two fields exactly: determine when implementing, from Leon's view in version 20.~~ Closed in version 31: no `Text(` field is left in any right-hand tab (source test); all help and status texts are in the left info field.
+- ~~Companion web / OSC remote~~ and ~~plugin presets~~: done in version 31 (`docs/REMOTE.md`; preset `Custom/Atom/Person/Plugins/AIBody/Preset_AIBody.vap`); VaM tests T22 / T23 are open. Still open, all Backlog: trigger UI stage 2, Hub publishing and the demo scene (parked).
 
 ### Test in VaM (instructions `docs/TEST_PROTOCOL.md`)
 - T1: loading from the `.var`, prompt about plugins from the package, old packages removed.
@@ -148,7 +151,7 @@ _Version 21 implemented the field "XAI API Token" and the button "Question and A
 - T12: field "XAI API Token" (pasting, status, saving / loading the scene), button "Question and Answer" two lines centered (since version 21).
 - T13–T16, T18: voice detection and echo gate, gaze, natural gaze / blinking / scene hooks, emotions / personas / memory, local engines.
 - T19: Network Active (toggle on / off, VaM's network switch off → file fallback, companion not running).
-- T20: token masking by focus. T21: first-run note.
+- T20: token masking by focus. T21: first-run note. T22: remote control (web page, HTTP, OSC). T23: plugin preset (Load Preset).
 - The engines have never run against the real xAI / ElevenLabs APIs (only a rebuilt server).
 
 ### TODO(verify) in the code
@@ -175,7 +178,6 @@ _Version 21 implemented the field "XAI API Token" and the button "Question and A
 ### Not yet implemented (agreed)
 - Demo / tutorial scene.
 - Documentation and publication on the VaM Hub ("Plugins + Scripts", with tags).
-- Companion web / OSC remote and plugin presets (see "Next version").
 - Deferred (formerly "we want", details in BACKLOG): session / person split with session connection and bootstrap plugin, client on its own atom.
 
 ## 3. Ideas and spec
@@ -184,7 +186,7 @@ _Version 21 implemented the field "XAI API Token" and the button "Question and A
 
 ## Fixed constraints
 - Sandbox rule and only evidenced APIs (see SPEC).
-- Internet access only in the companion app; the plugin may use one loopback socket to the companion app (Network Active, `SocketLink.cs`).
+- Internet access only in the companion app; the plugin may use one loopback socket to the companion app (Network Active, `SocketLink.cs`). The remote control (version 31) lives in the companion app and binds `127.0.0.1` only.
 - Do not touch LICENSE and `licenseType` "FC" in `meta.json`; the license question is out of scope.
 - No secrets in the repository.
 - Push directly to `main` in meaningful, individually green commits.

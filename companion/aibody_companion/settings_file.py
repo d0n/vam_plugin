@@ -13,8 +13,11 @@ README.md section 4. Categories (kept from the first schema; they no longer matc
   advanced    file_poll_interval_s (slider "Companion inbox poll interval (s)": how often the
               plugin reads the companion inbox, not config.json), verbose_log (tab Config)
 
-plus one category this app owns (the plugin keeps it unchanged when it writes, except the keys
+plus two categories this app owns (the plugin keeps them unchanged when it writes, except the "ai" keys
 it has controls for):
+
+  remote      enabled, http_port, osc_port, token (file only, version 31): local web page / HTTP API / OSC, off by
+              default, 127.0.0.1 only (docs/REMOTE.md)
 
   ai          mode, persona, persona_name, memory {...}, emotion {...}, language, fallback {stt, llm, tts}, realtime {...}, proactive {...},
               xai {...}, elevenlabs {...}
@@ -43,6 +46,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import secrets
 from pathlib import Path
 from typing import Any
 
@@ -70,7 +74,7 @@ KEY_HINT_TEXT = (
 KEY_WARNING_TEXT = (
     "SECURITY NOTICE: Your xAI token is stored as plain text in config.json (ai.xai.api_key). "
     "Anyone who can read that file can read your token, so do not share or publish it. "
-    "Scenes keep only the masked token, but a scene saved with AIBody version 21 to 23 still contains the full token: "
+    "Since version 31 no scene holds the token any more, but a scene saved with AIBody version 21 to 23 still contains the full token: "
     "do not publish such a scene.")
 
 DEFAULTS: dict[str, dict[str, Any]] = {
@@ -108,6 +112,15 @@ DEFAULTS: dict[str, dict[str, Any]] = {
     "advanced": {"file_poll_interval_s": 0.1, "verbose_log": False},
     # Plugin UI state (version 30): the first-run note about the xAI token was closed or answered once.
     "ui": {"first_run_hint_dismissed": False},
+    # Remote control (version 31; this app only, file only, off by default): a local web page / HTTP API and an
+    # optional OSC listener. Both bind 127.0.0.1 only. The HTTP API needs the token (generated into this file on
+    # the first start with enabled = true); OSC has no token. Changes apply when the app starts. See docs/REMOTE.md.
+    "remote": {
+        "enabled": False,
+        "http_port": 38438,
+        "osc_port": 0,  # 0 = no OSC listener
+        "token": "",  # secret for the HTTP API; empty = the app generates one when remote.enabled is true
+    },
     # Companion app; the plugin's tabs set only mode, proactive.enabled / idle_seconds,
     # realtime.send_while_speaking / voice, xai.voice and the key file paths (xai / elevenlabs
     # key_file), and keep the rest of this section.
@@ -214,6 +227,8 @@ DEFAULTS: dict[str, dict[str, Any]] = {
 
 RANGES: dict[tuple[str, str], tuple[float, float]] = {
     ("connection", "network_port"): (0, 65535),
+    ("remote", "http_port"): (1024, 65535),
+    ("remote", "osc_port"): (0, 65535),
     ("body", "speech_volume"): (0.0, 1.0),
     ("body", "idle_intensity"): (0.0, 1.0),
     ("body", "breaths_per_minute"): (4.0, 40.0),
@@ -256,7 +271,7 @@ CHOICES: dict[tuple[str, ...], tuple[str, ...]] = {
 
 CATEGORIES = tuple(DEFAULTS)
 PLUGIN_CATEGORIES = ("connection", "engines", "mic", "body", "advanced", "ui")  # written by the plugin
-COMPANION_CATEGORIES = ("ai",)  # read only by this app, preserved by the plugin
+COMPANION_CATEGORIES = ("ai", "remote")  # read only by this app, preserved by the plugin
 
 
 def settings_path(vam_root: str | Path) -> Path:
@@ -444,6 +459,41 @@ def add_missing_companion_sections(path: Path) -> list[str]:
     return added
 
 
+MIN_REMOTE_TOKEN_CHARS = 16
+
+
+def ensure_remote_token(path: Path, cfg_remote: dict[str, Any]) -> str:
+    """The HTTP token of the remote control: remote.token from config.json, or a new random one that is written
+    there (atomically, the rest of the file unchanged). Returns "" (and does not write) if the file is unreadable."""
+    token = str(cfg_remote.get("token") or "").strip()
+    if token:
+        return token
+    path = Path(path)
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return ""
+    if not isinstance(data, dict):
+        return ""
+    section = data.get("remote")
+    if not isinstance(section, dict):
+        section = json.loads(json.dumps(DEFAULTS["remote"]))
+        data["remote"] = section
+    existing = section.get("token")
+    if isinstance(existing, str) and existing.strip():  # written meanwhile (plugin or user)
+        add_secret(existing.strip())
+        cfg_remote["token"] = existing.strip()
+        return existing.strip()
+    token = secrets.token_urlsafe(24)
+    section["token"] = token
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    os.replace(tmp, path)
+    add_secret(token)
+    cfg_remote["token"] = token
+    return token
+
+
 def apply_to_config(cfg: Any) -> list[str]:
     """Creates config.json if missing, then copies its mic and engine settings into cfg. They override the app's own --config file: config.json holds
     the plugin's last values. Returns problems."""
@@ -468,6 +518,8 @@ def apply_to_config(cfg: Any) -> list[str]:
             errors.append(f"engines.{kind} {name!r} is not available here (have: {ENGINES_AVAILABLE[kind]}); "
                           f"using {getattr(cfg, kind)!r}")
     cfg.ai = json.loads(json.dumps(data["ai"]))
+    cfg.remote = dict(data["remote"])
+    add_secret(str(cfg.remote.get("token") or ""))
     cfg.verbose_log = bool(data["advanced"]["verbose_log"])
     add_secret(str(data["ai"]["xai"].get("api_key") or ""))  # before anything can log it
     log.info("Settings from %s: engines %s, mic mode %s", path, data["engines"], data["mic"]["mode"])

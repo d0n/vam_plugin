@@ -87,7 +87,8 @@ namespace AIBody
         // Version 21: saved with the scene only. Version 24: the real token lives in _xaiToken and is
         // saved in config.json (ai.xai.api_key, plain text, at Leon's explicit request); the storable
         // _xaiTokenJson is only what the field SHOWS: the masked token ("xai-****...****abcd") once it is saved,
-        // so the scene keeps the mask and the mask never overwrites the token (see OnTokenEdited).
+        // and the mask never overwrites the token (see OnTokenEdited). Version 31: the storable is NOT registered
+        // with VaM, so no scene ever holds the token, not even the raw text typed or pasted into the field.
         // The token is sent to the companion app in the config event (files in the channel folders)
         // and is never logged.
         private JSONStorableString _xaiTokenJson;
@@ -249,8 +250,8 @@ namespace AIBody
             _memoryJson = new JSONStorableBool("Memory", false, (bool v) => MarkConfigDirty());
             _plugin.RegisterBool(_memoryJson);
             // No format check on purpose (Leon, 18.11.2026): whatever is typed or pasted is sent as is.
+            // Not registered (version 31): same as the first-run note's field; the token lives in config.json only.
             _xaiTokenJson = new JSONStorableString(XaiTokenLabel, "", OnTokenEdited);
-            _plugin.RegisterString(_xaiTokenJson);
             _xaiKeyFileJson = new JSONStorableString("xAI key file", "", (string v) => CheckKeyFile(_xaiKeyFileJson, v));
             _plugin.RegisterString(_xaiKeyFileJson);
             _elevenKeyFileJson = new JSONStorableString("ElevenLabs key file", "", (string v) => CheckKeyFile(_elevenKeyFileJson, v));
@@ -273,7 +274,7 @@ namespace AIBody
         /// </summary>
         public const string XaiTokenWarning = "SECURITY NOTICE: Your xAI token is stored as plain text in config.json (ai.xai.api_key). "
             + "Anyone who can read that file can read your token, so do not share or publish it. "
-            + "Scenes keep only the masked token, but a scene saved with AIBody version 21 to 23 still contains the full token: "
+            + "Since version 31 no scene holds the token any more, but a scene saved with AIBody version 21 to 23 still contains the full token: "
             + "do not publish such a scene.";
         /// <summary>One short hint in the big info field on the left (version 30): the toggle depends on VaM's own setting.</summary>
         public const string NetworkNotice = "NETWORK: The option 'Network Active' needs VaM's global setting 'Allow Plugins Network Access' "
@@ -313,7 +314,7 @@ namespace AIBody
             }
             if (!_tokenReady)
             {
-                // Scene restore before config.json was read: an old scene (version 21-23) may carry the real token.
+                // Typed before config.json was read: keep it, it is written once the file was read.
                 if (typed.Length > 0) _xaiToken = typed;
                 return;
             }
@@ -346,7 +347,7 @@ namespace AIBody
 
         /// <summary>
         /// On start (and "Reload Config JSON") the token comes from config.json ai.xai.api_key and fills the field.
-        /// If the file has none, a token an older scene restored into the field is kept and written to the file.
+        /// If the file has none, a token typed before the file was read is kept and written to the file.
         /// </summary>
         public void AdoptToken(JSONClass root)
         {

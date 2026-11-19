@@ -5,6 +5,7 @@
     meta.json
     Custom/Scripts/d0n/AIBody/AIBody.cslist   (+ the .cs files it lists, same folder)
     Custom/Scripts/d0n/AIBody/AIBodyTest.wav  (test tone for the plugin's "Play test tone")
+    Custom/Atom/Person/Plugins/AIBody/Preset_AIBody.vap  (plugin preset, version 31: adds the plugin to a Person)
 
 meta.json is packaging/meta.json (unchanged, incl. licenseType) with the overrides from
 packaging/AIBody.json, which also sets the package version <N>. The script folder is assembled by
@@ -30,6 +31,16 @@ ROOT = Path(__file__).resolve().parents[1]
 STAGE = ROOT / "build" / "var" / "AIBody"
 SCRIPT_FOLDER = "AIBody"
 TEST_TONE = "AIBodyTest.wav"  # Body.TestToneFile
+PRESET_PATH = "Custom/Atom/Person/Plugins/AIBody/Preset_AIBody.vap"  # VaM's folder for Person plugin presets
+
+
+def plugin_preset(creator: str, package: str, version: int, script_dir: str) -> str:
+    """The plugin preset (.vap, JSON): the Person's PluginManager storable with ONE plugin, the package's .cslist.
+    Only the plugin list is stored: the plugin keeps all its settings in config.json, so no parameter values are
+    written and the preset cannot overwrite anything of the scene. TODO(verify) in VaM: the preset appears in the
+    Person's Plugins tab > Load Preset, and the package-qualified path "<creator>.<package>.<version>:/..." is accepted."""
+    cslist = f"{creator}.{package}.{version}:/{script_dir}/AIBody.cslist"
+    return json.dumps({"storables": [{"id": "PluginManager", "plugins": {"plugin#0": cslist}}]}, indent=3) + "\n"
 
 
 def test_tone_wav(seconds: float = 1.5, rate: int = 22050) -> bytes:
@@ -80,18 +91,19 @@ def build(version_override: int | None = None) -> Path:
     files = assemble()
     (STAGE / TEST_TONE).write_bytes(test_tone_wav())
     files.append(TEST_TONE)
-    meta["contentList"] = [f"{script_dir}/{f}" for f in files]
+    meta["contentList"] = [f"{script_dir}/{f}" for f in files] + [PRESET_PATH]
     out = ROOT / "dist" / f"{creator}.{meta['packageName']}.{version}.var"
     out.parent.mkdir(exist_ok=True)
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
         z.writestr("meta.json", json.dumps(meta, indent=2))
         for f in files:
             z.write(STAGE / f, f"{script_dir}/{f}")
+        z.writestr(PRESET_PATH, plugin_preset(creator, meta["packageName"], version, script_dir))
     problems = scan_var(out)
     if problems:
         out.unlink()
         raise SystemExit("forbidden APIs inside the .var (deleted):\n" + "\n".join(problems))
-    print(f"Wrote {out.relative_to(ROOT)} ({len(files)} files); strict scan of the .var: 0 forbidden matches")
+    print(f"Wrote {out.relative_to(ROOT)} ({len(files) + 1} files); strict scan of the .var: 0 forbidden matches")
     return out
 
 

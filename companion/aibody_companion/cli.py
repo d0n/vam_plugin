@@ -12,6 +12,7 @@ from . import __version__, logsetup, settings_file
 from .audio import EchoGate, MicController
 from .config import Config, load_config
 from .orchestrator import Companion
+from .remote import RemoteControl
 from .pipeline.engines import KEY_HINT, EngineSet
 from .transport import FileTransport, HybridTransport, SocketTransport, Transport
 
@@ -70,6 +71,20 @@ def build_stack(cfg: Config, use_mic: bool = True) -> Companion:
         log.info("Proactive talking: on - after %.0f s of silence the AI may speak on its own "
                  "(speech delay timer, not the answer delay)", p.idle_seconds)
     return companion
+
+
+def start_remote(cfg: Config, companion: Companion) -> RemoteControl | None:
+    """Remote control (version 31): off unless config.json remote.enabled is true. Returns the running object or None."""
+    remote = RemoteControl(cfg.remote)
+    if not remote.enabled:
+        return None
+    remote.token = settings_file.ensure_remote_token(settings_file.settings_path(cfg.vam_root), cfg.remote)
+    companion.remote = remote
+    for line in remote.start():
+        log.info(line)
+    for problem in remote.errors:
+        log.warning("Remote control: %s", problem)
+    return remote
 
 
 def start_stdin_reader() -> queue.Queue[str | None]:
@@ -146,11 +161,14 @@ def main(argv: list[str] | None = None) -> int:
                     "VaM - it reaches this app as soon as the plugin connects - or set the XAI_API_KEY environment "
                     "variable, or a key file in config.json (ai.xai.key_file).", KEY_HINT["xai"])
     companion.transport.start()
+    remote = start_remote(cfg, companion)
     try:
         run(companion, read_stdin=not args.no_stdin, poll_interval=cfg.poll_interval_s)
     except KeyboardInterrupt:
         pass
     finally:
+        if remote is not None:
+            remote.stop()
         companion.shutdown()
         companion.transport.stop()
     return 0

@@ -1,10 +1,10 @@
 # AIBody
 
-Virt-A-Mate plugin (VaM 1.22) with a Python companion app that gives an AI a body in a VaM scene. Status: version 30, package `d0n.AIBody.30.var`, release `v30`. Version 14 loads in VaM 1.22 without errors (init done, 200 poses); the functions have not yet been fully checked in VaM.
+Virt-A-Mate plugin (VaM 1.22) with a Python companion app that gives an AI a body in a VaM scene. Status: version 31, package `d0n.AIBody.31.var`, release `v31`. Version 14 loads in VaM 1.22 without errors (init done, 200 poses); the functions have not yet been fully checked in VaM.
 
 Version scheme since version 12: version = package number of the `.var` (plugin display, companion app, Git tag `v<N>`). Version 12 follows 0.7.4 (= package 11); older tags stay unchanged.
 
-More documents: [SPEC](docs/SPEC.md) (agreed scope) · [REQUIREMENTS](docs/REQUIREMENTS.md) (done / open) · [BACKLOG](docs/BACKLOG.md) (deferred ideas) · [TEST_PROTOCOL](docs/TEST_PROTOCOL.md) · [TECHNICAL](docs/TECHNICAL.md) (architecture, protocol, sandbox) · [API_AUDIT](docs/API_AUDIT.md) · [Releases](https://github.com/d0n/vam_plugin/releases) (installation and quick start per version in the release notes).
+More documents: [SPEC](docs/SPEC.md) (agreed scope) · [REQUIREMENTS](docs/REQUIREMENTS.md) (done / open) · [BACKLOG](docs/BACKLOG.md) (deferred ideas) · [TEST_PROTOCOL](docs/TEST_PROTOCOL.md) · [TECHNICAL](docs/TECHNICAL.md) (architecture, protocol, sandbox) · [REMOTE](docs/REMOTE.md) · [API_AUDIT](docs/API_AUDIT.md) · [Releases](https://github.com/d0n/vam_plugin/releases) (installation and quick start per version in the release notes).
 
 ## Getting started
 
@@ -21,6 +21,7 @@ python -m aibody_companion --vam-root "D:\VaM"
 - **Python:** version 3.10 or newer.
 - **xAI key:** in the plugin, tab **Voice** > *Voice Mode*, field **XAI API Token** (below *API Reconnect*); on the very first start a short note at the top of the plugin asks for it. The token is then saved in `config.json` (`ai.xai.api_key`, **plain text**, see the security notice below); alternatively the environment variable `XAI_API_KEY` or `ai.xai.key_file`; more below.
 - **Get a new version:** `git pull` in the repository folder, otherwise the app reports an old version (the app prints `AIBody companion <version>` on start).
+- **Remote control (version 31, optional):** a local web page / HTTP API and OSC for this one character, off by default, `127.0.0.1` only: [docs/REMOTE.md](docs/REMOTE.md). **Plugin preset:** the package also holds `Custom/Atom/Person/Plugins/AIBody/Preset_AIBody.vap`, which adds the plugin to a Person (Person > Plugins > Load Preset; not yet tested in VaM).
 - **Network:** the plugin and the app talk through files and, by default, through a loopback socket (toggle **Network Active**, see below). The socket needs VaM's global setting *User Preferences > Security > Allow Plugins Network Access*; without it everything still works through the files.
 
 ## 1. Purpose and use
@@ -31,11 +32,11 @@ python -m aibody_companion --vam-root "D:\VaM"
   - Companion app `aibody_companion` (Python, runs next to VaM on the same PC): microphone, speech recognition, language model, speech output, connection to xAI (optionally ElevenLabs). **One app controls exactly one character.**
 - Connection: files under `<VaM>/Saves/PluginData/AIBody/default/` and, on top, an optional UDP link on `127.0.0.1`; speech as WAV under `<VaM>/Custom/Sounds/AIBody/default/`.
 - Flow: load the plugin on the AI character → start the companion app by hand (`python -m aibody_companion --vam-root "D:\VaM"`, section "Getting started", with an xAI key) → speak (or type in the console) → the character answers.
-- Quick install: `d0n.AIBody.30.var` into `<VaM>/AddonPackages/`, delete older `d0n.AIBody.*`, `d0n.AIBodySession.*`, `d0n.AIBodyPerson.*`, `d0n.AIBodyPerson2.*`; select the Person > tab Plugins > Add Plugin > `AddonPackages > d0n.AIBody.30:/Custom/Scripts/d0n/AIBody/AIBody.cslist`; companion app: see "Getting started" (`cd companion`, `pip install sounddevice`, then start). Details and step by step: release notes.
+- Quick install: `d0n.AIBody.31.var` into `<VaM>/AddonPackages/`, delete older `d0n.AIBody.*`, `d0n.AIBodySession.*`, `d0n.AIBodyPerson.*`, `d0n.AIBodyPerson2.*`; select the Person > tab Plugins > Add Plugin > `AddonPackages > d0n.AIBody.31:/Custom/Scripts/d0n/AIBody/AIBody.cslist`; companion app: see "Getting started" (`cd companion`, `pip install sounddevice`, then start). Details and step by step: release notes.
 
 ## 2. What it is designed for / specification
 
-- Bundled scene: [`examples/scenes/AIBody_GreenScreen.json`](examples/scenes/AIBody_GreenScreen.json), guide [`docs/SCENE_GREENSCREEN.md`](docs/SCENE_GREENSCREEN.md). Content: two people looking at each other 1.2 m apart: `AI Character` (female, VaM standard figure `Female 3`) with AIBody (`d0n.AIBody.30`) in the Plugins tab, and `Client Character` (male, `Male 1`) with Sally's *Camera Background Color* (`Sally.CameraBackgroundColor.7`, color #00FF00, skybox off) directly in the Plugins tab of this Person; two invisible lights, no room, no scene plugin. Dependency: `Sally.CameraBackgroundColor.7.var` from the VaM Hub. Meant for passthrough by chroma key in a headset / streaming program; VaM itself only shows green. Not tested in VaM.
+- Bundled scene: [`examples/scenes/AIBody_GreenScreen.json`](examples/scenes/AIBody_GreenScreen.json), guide [`docs/SCENE_GREENSCREEN.md`](docs/SCENE_GREENSCREEN.md). Content: two people looking at each other 1.2 m apart: `AI Character` (female, VaM standard figure `Female 3`) with AIBody (`d0n.AIBody.31`) in the Plugins tab, and `Client Character` (male, `Male 1`) with Sally's *Camera Background Color* (`Sally.CameraBackgroundColor.7`, color #00FF00, skybox off) directly in the Plugins tab of this Person; two invisible lights, no room, no scene plugin. Dependency: `Sally.CameraBackgroundColor.7.var` from the VaM Hub. Meant for passthrough by chroma key in a headset / streaming program; VaM itself only shows green. Not tested in VaM.
 - AIBody also works in other scenes, as long as it sits on the AI's Person.
 - Short version of the specification (complete: [SPEC.md](docs/SPEC.md)):
   - VaM sandbox: no `UnityWebRequest` / internet, `System.IO`, reflection or microphone code in the plugin; only evidenced APIs; file access only through `FileManagerSecure`; sockets only in the one file `SocketLink.cs` (loopback only).
@@ -121,6 +122,10 @@ Column "Where": tab in the plugin menu; "file only" = no control. Range in squar
 | `advanced.file_poll_interval_s` | number | 0.1 | [0.02–2] | how often the plugin checks the companion app's inbox (`Saves/PluginData/AIBody/default/inbox/`) for messages (speech, poses, expressions); does not reload config.json (use **Reload Config JSON** for that); a change restarts the connection | Config: **Companion inbox poll interval (s)** (stored name "File poll interval (s)") |
 | `advanced.verbose_log` | bool | false | | turn trace in the console and `Saves/PluginData/AIBody/logs/companion.log` (1 MB × 5, keys redacted), `[debug]` lines in the VaM log, *Recent events* in the status field; takes effect at once | Config: **Verbose log**; CLI `-v` |
 | `ui.first_run_hint_dismissed` | bool | false | | version 30: set by the plugin once the first-run note was closed or a token exists; the note is never shown again | written by the plugin |
+| `remote.enabled` | bool | false | | version 31: the companion app opens the remote control (web page / HTTP API, optional OSC) at the next start; loopback only, see [docs/REMOTE.md](docs/REMOTE.md) | file only |
+| `remote.http_port` | int | 38438 | [1024–65535] | version 31: TCP port of the web page and HTTP API on `127.0.0.1` | file only |
+| `remote.osc_port` | int | 0 | [0–65535] | version 31: UDP port of the OSC listener on `127.0.0.1`; `0` = no OSC (OSC has no token) | file only |
+| `remote.token` | string | "" | | version 31: secret the HTTP API requires; empty = the app generates one into the file when `remote.enabled` is true; never share the file with it | file only |
 | `ai.mode` | string | `qa` | `qa`, `auto`, `realtime`, `chain` | `qa` = simple Q&A: STT → Grok → TTS, with an xAI key `xai` instead of the test engines, speech only, no body tools, no proactive speaking. `auto` = realtime with an xAI key (except with `engines.tts` = `elevenlabs`), else the chain. `realtime` = Grok Voice speech to speech, the chain as fallback (also if no answer comes 12 s after speaking). `chain` = exactly the engines from `engines` | Voice > AI Character: **AI mode**; Voice > Voice Mode: **Question and Answer** (sets `qa` and Body control off), **Use realtime voice** (on = `auto`, off = `qa`) |
 | `ai.persona` | string | "You are a friendly, curious character …" | free | system prompt (xAI: `instructions` of the first request of a conversation; realtime: part of the instructions) | file only |
 | `ai.language` | string | `auto` | `auto` or a language code (`de`, `en`, …) | language hint for STT and TTS | file only |

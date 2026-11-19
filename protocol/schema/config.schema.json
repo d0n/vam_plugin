@@ -523,6 +523,66 @@
       },
       "description": "Plugin UI state: first_run_hint_dismissed = the short note about the xAI token at the top of the plugin UI was closed or answered, so it is not shown again"
     },
+    "remote": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "true",
+                "false",
+                "True",
+                "False"
+              ]
+            }
+          ],
+          "default": false,
+          "description": "true = the app opens the remote control (web page and HTTP API on http_port, OSC on osc_port if above 0). Default false"
+        },
+        "http_port": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1024,
+              "maximum": 65535
+            },
+            {
+              "type": "string",
+              "pattern": "^\\s*-?[0-9]+(\\.[0-9]+)?([eE][-+]?[0-9]+)?\\s*$"
+            }
+          ],
+          "default": 38438,
+          "description": "TCP port of the web page and HTTP API on 127.0.0.1 (1024-65535, default 38438)"
+        },
+        "osc_port": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 65535
+            },
+            {
+              "type": "string",
+              "pattern": "^\\s*-?[0-9]+(\\.[0-9]+)?([eE][-+]?[0-9]+)?\\s*$"
+            }
+          ],
+          "default": 0,
+          "description": "UDP port of the OSC listener on 127.0.0.1; 0 = no OSC listener (default). OSC has no token"
+        },
+        "token": {
+          "type": "string",
+          "default": "",
+          "description": "Secret the HTTP API requires (Authorization: Bearer <token>). Empty = the app generates one into this file when remote.enabled is true. Never share this file with a token in it"
+        }
+      },
+      "description": "Remote control (version 31, file only, no tab; the plugin keeps this section unchanged): a local web page / HTTP API and an optional OSC listener of the companion app, off by default, bound to 127.0.0.1 only. Applies when the app starts. See docs/REMOTE.md"
+    },
     "ai": {
       "type": "object",
       "additionalProperties": false,
@@ -1007,7 +1067,7 @@
             },
             "api_key_warning": {
               "type": "string",
-              "default": "SECURITY NOTICE: Your xAI token is stored as plain text in config.json (ai.xai.api_key). Anyone who can read that file can read your token, so do not share or publish it. Scenes keep only the masked token, but a scene saved with AIBody version 21 to 23 still contains the full token: do not publish such a scene.",
+              "default": "SECURITY NOTICE: Your xAI token is stored as plain text in config.json (ai.xai.api_key). Anyone who can read that file can read your token, so do not share or publish it. Since version 31 no scene holds the token any more, but a scene saved with AIBody version 21 to 23 still contains the full token: do not publish such a scene.",
               "description": "Note for the reader (JSON has no comments): security notice for api_key. Not used by the app; the plugin keeps it"
             },
             "key_file": {

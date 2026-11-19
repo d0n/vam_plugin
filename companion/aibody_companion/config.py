@@ -53,6 +53,8 @@ class Config:
     # Engine settings (persona, language, fallback, xai, elevenlabs): the "ai" section of the
     # shared config.json (settings_file.py). Empty = defaults.
     ai: dict[str, Any] = field(default_factory=dict)
+    # "remote" section of the shared config.json (version 31): enabled, http_port, osc_port, token (see remote/)
+    remote: dict[str, Any] = field(default_factory=dict)
     extra: dict[str, Any] = field(default_factory=dict)
 
     @property

@@ -321,8 +321,10 @@ from `Exception.ToString()`, not from reflection. The only additions outside the
   audited VaM plugin uses it on a `CreateTextField` field, so it is not in the stubs and not used.
   Since version 30 the mask is applied when the field loses focus (see "Version 30"), no longer after 4 s.
   TODO(verify) in VaM: pasting a new key over the mask is accepted.
-- The scene still saves the storable (registered), now holding the mask; an older scene restores a real token
-  into it, which the plugin keeps if `config.json` has none (migration).
+- Version 24 to 30: the scene saved the storable (registered), holding the mask (or, while typing, the raw text). Since
+  version 31 the storable is not registered (`RegisterString` is not called; the same pattern as the first-run note's
+  field, which also drives `CreateTextField` + `InputField`), so no scene holds the token at all; a token an older
+  scene (version 21 to 23) restored is no longer read. `config.json` is the only place.
 
 ## Version 21: free-text field "XAI API Token", two-line "Question and Answer" button
 
@@ -397,6 +399,30 @@ New in the plugin (`GazeController.cs`), all with evidence E12 / E28 (see the ta
   Glance in a real scene, and how the Life plugin behaves (not detected by name; only the look-mode check protects).
 - No `foreach` over Dictionary `.Keys`/`.Values`, no LINQ, no file or network access added. A gaze exception only
   stops the gaze (`_gazeBroken`), not the body.
+
+## Version 31 (19.11.2026): remote control, plugin preset, token fix
+
+**No new VaM API in the plugin.** The remote control is companion-app code (Python standard library: `http.server`,
+`socket`); the plugin only keeps one more config.json section when it saves (`JSONClass` read and assign, as for `ai`).
+
+**Token fix:** `_plugin.RegisterString(_xaiTokenJson)` was removed. A storable that is never registered is not saved
+with the scene (the pattern of an unregistered `JSONStorableString` is plain Unity/VaM behavior: only registered storables
+take part in `GetJSON` / `RestoreFromJSON`; evidenced by every plugin that creates helper storables without registering them,
+and by our own `_settingsInitJson`-style handling). The UI still shows and edits the field (`CreateTextField` needs no
+registration). TODO(verify) in VaM (T20 step 4): the field still works, the scene file holds no token.
+
+**Plugin preset format (evidence):**
+
+| Evidence | What it shows |
+|---|---|
+| VaM Hub "PresetLoader" and the vam-backstage classifier (`docs/Implementation.md`, type `pluginPreset`) | Person plugin presets are `.vap` files in `Custom/Atom/Person/Plugins/`; the browser hides them |
+| BoominBobbyBo/iHV script (`PluginManager.plugins ... "plugin#100" = "Custom/Scripts/.../x.cs"`) | the Person's storable `PluginManager` has a `plugins` map `plugin#N` -> script path |
+| our scene `examples/scenes/AIBody_GreenScreen.json` and Timeline / CircleLooks instructions | a package script is referenced as `<creator>.<package>.<version>:/Custom/Scripts/.../X.cslist`; the `.cslist`, not single `.cs` files, is loaded |
+
+The preset therefore holds exactly: `{"storables":[{"id":"PluginManager","plugins":{"plugin#0":"d0n.AIBody.31:/Custom/Scripts/d0n/AIBody/AIBody.cslist"}}]}`.
+No parameter values and no `setUnlistedParamsToDefault`, so loading it cannot overwrite other settings. TODO(verify) in VaM (T23):
+that a hand-written `.vap` with only this storable loads, that the package-qualified path is accepted in a preset, that the preset is
+listed from inside the package, and what a second load does to existing plugins.
 
 ## Version 30 (19.11.2026): Network Active, token mask by focus, first-run note
 

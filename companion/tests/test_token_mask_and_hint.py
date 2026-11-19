@@ -73,7 +73,7 @@ class MaskTests(unittest.TestCase):
         self.assertNotRegex(show, r"_xaiTokenJson\.val = _xaiToken")
         # the first-run note's field is never registered with VaM, so it is never part of a scene
         self.assertNotIn("RegisterString(_hintTokenJson)", self.link)
-        self.assertIn("RegisterString(_xaiTokenJson)", self.link)
+        self.assertNotIn("RegisterString(_xaiTokenJson)", self.link, "version 31: no scene ever holds the token, not even raw text while typing")
 
     def test_the_new_unity_ui_member_is_audited_and_stubbed(self):
         audit = (ROOT / "docs" / "API_AUDIT.md").read_text(encoding="utf-8")

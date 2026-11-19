@@ -32,6 +32,15 @@ DESCRIPTIONS = {
     ("body",): "Tab 'AI Character', section 'Body (this Person only)'",
     ("ui",): "Plugin UI state: first_run_hint_dismissed = the short note about the xAI token at the top of the plugin UI was closed or answered, "
              "so it is not shown again",
+    ("remote",): "Remote control (version 31, file only, no tab; the plugin keeps this section unchanged): a local web page / "
+                 "HTTP API and an optional OSC listener of the companion app, off by default, bound to 127.0.0.1 only. "
+                 "Applies when the app starts. See docs/REMOTE.md",
+    ("remote", "enabled"): "true = the app opens the remote control (web page and HTTP API on http_port, OSC on osc_port if above 0). "
+                           "Default false",
+    ("remote", "http_port"): "TCP port of the web page and HTTP API on 127.0.0.1 (1024-65535, default 38438)",
+    ("remote", "osc_port"): "UDP port of the OSC listener on 127.0.0.1; 0 = no OSC listener (default). OSC has no token",
+    ("remote", "token"): "Secret the HTTP API requires (Authorization: Bearer <token>). Empty = the app generates one into this "
+                         "file when remote.enabled is true. Never share this file with a token in it",
     ("advanced",): "Tab 'Config' (companion inbox poll interval, verbose log)",
     ("advanced", "file_poll_interval_s"): "Slider 'Companion inbox poll interval (s)' (stored name 'File poll interval (s)'): "
                                           "how often the plugin checks the companion app's inbox folder "

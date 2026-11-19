@@ -54,7 +54,7 @@ from .config import ENGINES_AVAILABLE, PLUGIN_DATA_SUBDIR, Config
 from .emotion import EmotionDirector, offered as offered_expressions
 from .latency import LatencyStats, LatencyTrace, describe
 from .logsetup import Turn
-from .pipeline import Directive, LanguageModel, SpeechToText, TextToSpeech
+from .pipeline import Directive, LanguageModel, SentenceSplitter, SpeechToText, TextToSpeech
 from .pipeline import tts as tts_module
 from .pipeline.context import clean_scene_event, is_silent, nudge_text, scene_event_text, time_context
 from .pipeline.engines import EngineSet
@@ -161,6 +161,7 @@ class Companion:
             if instance is not None:  # explicit engines (tests, custom setups)
                 self.engine_set.instances[kind] = instance
         self._clock = clock
+        self.remote: Any = None  # remote.RemoteControl (version 31, off by default); its queue is run from tick()
         settings, errors = apply_mic_config(MicSettings(), config.mic)
         for e in errors:
             log.warning("config 'mic': %s", e)
@@ -244,6 +245,8 @@ class Companion:
     # -- main loop -----------------------------------------------------------------------
 
     def tick(self) -> None:
+        if self.remote is not None:
+            self.remote.process(self)
         self.process_events()
         self._watch_connection()
         self._update_mode()
@@ -371,6 +374,10 @@ class Companion:
         return info
 
     # -- time / activity -------------------------------------------------------------------
+
+    def clock_now(self) -> float:
+        """The app's monotonic clock in seconds (a fake clock in tests)."""
+        return self._clock()
 
     def now(self) -> datetime:
         return self._wall()
@@ -1003,6 +1010,19 @@ class Companion:
         for step in self._turn("text", text, self._generation, t0):
             self._apply(step)
 
+    def say_text(self, text: str, interrupt: bool = False) -> None:
+        """Speaks exactly this text (remote control): text to speech -> VaM, no language model. Runs like a turn
+        (worker thread), so a slow speech engine never blocks the link."""
+        text = text.strip()
+        if not text:
+            return
+        self.on_user_activity()
+        if self.background_turns:
+            self._submit("say", (text, interrupt))
+            return
+        for step in self._turn("say", (text, interrupt), self._generation):
+            self._apply(step)
+
     # -- turns: STT -> LLM -> TTS ----------------------------------------------------------
 
     def _submit(self, kind: str, data: Any, t0: float | None = None) -> None:
@@ -1064,6 +1084,9 @@ class Companion:
     def _turn(self, kind: str, data: Any, generation: int, t0: float | None = None):
         """Yields steps: ("heard", text), ("command", cmd), ("speak", id, text, path, duration),
         ("status", text) for the plugin's status box."""
+        if kind == "say":
+            yield from self._say_steps(*data)
+            return
         turn = Turn(kind, **(_pcm_stats(data, self.cfg.sample_rate) if kind == "audio" and logsetup.is_verbose()
                              else {"text": str(data)} if kind == "text" else {}))
         if t0 is not None:
@@ -1173,6 +1196,23 @@ class Companion:
         except _CancelledError:
             turn.step("end", result="cancelled (barge-in)")
             log.info("Answer cancelled")
+
+    def _say_steps(self, text: str, interrupt: bool):
+        """Remote control "say": the sentences of the text are synthesized one after the other and spoken as given."""
+        splitter = SentenceSplitter()
+        sentences = [x.strip() for x in splitter.feed(text) + splitter.flush() if x.strip()] or [text]
+        problems: list[str] = []
+        spoken = 0
+        for sentence in sentences:
+            utterance_id = protocol.new_id("utt")
+            path = self.cfg.audio_abs_path(f"{utterance_id}.wav")
+            duration = self._synthesize(sentence, path, problems)
+            yield ("speak", utterance_id, sentence, path, duration, interrupt and spoken == 0)
+            spoken += 1
+        if problems:
+            yield ("status", " | ".join(dict.fromkeys(problems)))
+        else:
+            yield ("status", f"Said (remote, {spoken} sentence(s)): {_short(text)}")
 
     def _voice_of(self, tts: str) -> str | None:
         if tts == "xai":
@@ -1291,8 +1331,8 @@ class Companion:
         elif kind == "command":
             self.send(step[1])
         elif kind == "speak":
-            _, utterance_id, text, path, duration = step
-            self._queue_speech(utterance_id, text, path, duration)
+            _, utterance_id, text, path, duration, *rest = step
+            self._queue_speech(utterance_id, text, path, duration, bool(rest and rest[0]))
 
     # -- audio folder --------------------------------------------------------------------
 

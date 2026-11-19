@@ -6,9 +6,9 @@ English [README](../README.md).
 
 ## Load flow (the whole setup)
 
-1. Copy `d0n.AIBody.30.var` to `<VaM>/AddonPackages/` (remove older AIBody packages, see below).
+1. Copy `d0n.AIBody.31.var` to `<VaM>/AddonPackages/` (remove older AIBody packages, see below).
 2. In VaM select the AI character's Person atom > **Plugins** tab > **Add Plugin** > choose
-   `AddonPackages > d0n.AIBody.30:/Custom/Scripts/d0n/AIBody/AIBody.cslist`.
+   `AddonPackages > d0n.AIBody.31:/Custom/Scripts/d0n/AIBody/AIBody.cslist`.
 3. Start the companion app: `python -m aibody_companion --vam-root "D:\VaM"`.
 
 That's it. The plugin's status box shows "Companion app: running ..." once both sides see each
@@ -150,22 +150,22 @@ tools/                     assemble_plugins.py (plugin folder), build_var.py (pa
 
 ### Install the package
 
-Download `d0n.AIBody.30.var` from the [releases](https://github.com/d0n/vam_plugin/releases), or
-build it with `python tools/build_var.py` (writes `dist/d0n.AIBody.30.var`), and copy it to:
+Download `d0n.AIBody.31.var` from the [releases](https://github.com/d0n/vam_plugin/releases), or
+build it with `python tools/build_var.py` (writes `dist/d0n.AIBody.31.var`), and copy it to:
 
 ```
-<VaM>/AddonPackages/d0n.AIBody.30.var
+<VaM>/AddonPackages/d0n.AIBody.31.var
 ```
 
 Remove all older AIBody packages from `AddonPackages`: `d0n.AIBody.1.var`, `d0n.AIBody.2.var`,
 `d0n.AIBody.3.var` to `d0n.AIBody.28.var`, `d0n.AIBodySession.*.var`, `d0n.AIBodyPerson.*.var`,
 `d0n.AIBodyPerson2.*.var`. Scenes saved with an older package point at that package's path, so
-remove the old plugin entry from the character and add `d0n.AIBody.30` again, then save.
+remove the old plugin entry from the character and add `d0n.AIBody.31` again, then save.
 
 Contents:
 
 ```
-d0n.AIBody.30.var
+d0n.AIBody.31.var
 ├── meta.json
 └── Custom/Scripts/d0n/AIBody/
     ├── AIBody.cslist
@@ -625,6 +625,19 @@ event or a saved scene, and an old plugin's `list_devices` event are ignored qui
 - **Code:** `SocketLink.cs` (sockets, threads), `NetworkTransport.cs` (hybrid transport over file + socket),
   `companion/aibody_companion/transport/{socket_transport,hybrid}.py` (companion side), tests
   `companion/tests/test_network.py` (real sockets) and a .NET harness that compiles `SocketLink.cs`.
+
+### Remote control (since version 31)
+
+- **Where:** `companion/aibody_companion/remote/`: `core.py` (action table, `parse_action` validation, `RemoteControl`: bounded queue of 50, status snapshot, `process(app)` called from `Companion.tick()`), `http_server.py` (`ThreadingHTTPServer` on `127.0.0.1`), `osc.py` (UDP listener, OSC 1.0 parser with bundles), `panel.py` (the web page, one self-contained document). Wiring in `cli.start_remote`; settings in `settings_file.py` (`remote` category, `ensure_remote_token`).
+- **Threads:** the two servers run on their own daemon threads. They only validate and put `(action, params, source)` into the queue; `process()` runs on the main loop thread, so the same single-threaded rules as for plugin events hold. Names of expressions / gestures / poses are checked against the lists of the last status snapshot and mapped to the plugin's spelling.
+- **Actions run as:** `say` -> `Companion.say_text` (a "say" turn on the worker thread: sentences -> text to speech -> `speak`, no language model; the emotion fallback still applies), `ask` -> `handle_user_text`, `event` -> `handle_scene_event`, `stop` -> `cancel_turns` + `stop_speaking`, `ptt` -> `handle_ptt` (mode `ptt` only), `expression` -> command `expression` (needs Body control), `gesture` / `pose` / `look` -> `tool_commands` (the AI's own resolution and switches).
+- **Security:** see `REMOTE.md` "Protection". Bind address fixed to `127.0.0.1`; token compare `hmac.compare_digest`; `Host` / `Origin` allow-list; no CORS; token only in headers (never in the address, so it cannot land in a log); the token is registered with `logsetup.add_secret`.
+- **config.json:** the `remote` section is owned by the app and the user; the plugin copies the existing `remote` object into the file it writes (`AIBody.WriteSettings`), like `ai`. `ensure_remote_token` writes a generated token atomically and keeps everything else.
+- **Tests:** `companion/tests/test_remote.py` (real HTTP and UDP sockets on ephemeral ports, main-loop integration with the fake plugin).
+
+### Plugin preset (since version 31)
+
+`tools/build_var.py` writes `Custom/Atom/Person/Plugins/AIBody/Preset_AIBody.vap` into the `.var` (and into `contentList`): the PluginManager's `plugins` map with one entry, the package's `.cslist` with the package version of this build. See `API_AUDIT.md` "Version 31" for the evidence and the open VaM check (T23). Test: `companion/tests/test_plugin_preset.py`.
 
 ### First-run note and token mask (since version 30)
 

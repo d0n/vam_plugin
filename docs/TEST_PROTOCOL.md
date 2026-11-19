@@ -15,7 +15,7 @@ in order and enter the result (✅ / ❌ / unclear). Duration: about 20 minutes.
 - Close VaM. In `<VaM main folder>/AddonPackages/` delete all old AIBody packages:
   `d0n.AIBody.1.var` to `d0n.AIBody.29.var`, `d0n.AIBodySession.*`, `d0n.AIBodyPerson.*`,
   `d0n.AIBodyPerson2.*`. Also remove loose files under `Custom/Scripts/d0n/AIBody/`.
-- Copy `d0n.AIBody.30.var` to `<VaM main folder>/AddonPackages/`.
+- Copy `d0n.AIBody.31.var` to `<VaM main folder>/AddonPackages/`.
 - Have the companion app ready (do **not** start it yet):
   `python -m aibody_companion --vam-root "D:\VaM"` (adjust the path to your own VaM folder).
   For T9 enter the xAI key in the plugin (tab **Voice** > field **XAI API Token**, from version 21) or set it before starting: `set XAI_API_KEY=xai-...` (cmd) or `$env:XAI_API_KEY="xai-..."` (PowerShell); the field wins.
@@ -26,12 +26,12 @@ in order and enter the result (✅ / ❌ / unclear). Duration: about 20 minutes.
 
 1. Start VaM, open a scene with a female standard figure (or a new scene + Person).
 2. Select the figure (Person atom) > tab **Plugins** > **Add Plugin** >
-   `AddonPackages > d0n.AIBody.30:/Custom/Scripts/d0n/AIBody/AIBody.cslist`.
+   `AddonPackages > d0n.AIBody.31:/Custom/Scripts/d0n/AIBody/AIBody.cslist`.
    **Not** under *Session Plugins* or *Scene Plugins*.
 3. If VaM asks whether to allow plugins from the package: allow it and note that it asked.
 4. Open **Open Custom UI** (plugin window).
 
-Report: Does only `d0n.AIBody.30` still show up in the package list? Did VaM ask for permission?
+Report: Does only `d0n.AIBody.31` still show up in the package list? Did VaM ask for permission?
 Screenshot of the window; red "AIBody:" lines. Expected: *Self-test* "Person atom: yes",
 the Startup log ends with "Init complete, no errors."
 
@@ -310,7 +310,7 @@ Needs VaM with the AI Character (AIBody) and the companion app (AI mode not Ques
 
 ## T19 – Network Active (version 30)
 
-Needs VaM with the AI Character (AIBody 30) and the companion app from this version. The companion listens on `127.0.0.1:38437` (`connection.network_port`). VaM's *User Preferences > Security > Allow Plugins Network Access* has to be on for steps 1-4 and off for step 5.
+Needs VaM with the AI Character (AIBody 31) and the companion app from this version. The companion listens on `127.0.0.1:38437` (`connection.network_port`). VaM's *User Preferences > Security > Allow Plugins Network Access* has to be on for steps 1-4 and off for step 5.
 
 1. **Default:** add the plugin, start the companion app. Tab **Config**: **Network Active** is on. The info field shows `Network: connected` within a few seconds (it may say `connecting ...` first). The console of the app says that the plugin linked up over the network. Type a sentence into the app console: the answer is spoken as usual. Report the `Network:` line and whether the delay is the same as or shorter than before.
 2. **Off:** switch **Network Active** off: the info field says `Network: off`, the companion console reports that the link dropped, everything keeps working through the files (type a sentence: it is spoken). Switch it on again: `connected` returns without restarting anything.
@@ -322,17 +322,17 @@ Needs VaM with the AI Character (AIBody 30) and the companion app from this vers
 
 ## T20 – Token masking by focus (version 30)
 
-Needs VaM with the AI Character (AIBody 30). Use a harmless fake token such as `xai-0123456789abcdefghij` for steps 1-3.
+Needs VaM with the AI Character (AIBody 31). Use a harmless fake token such as `xai-0123456789abcdefghij` for steps 1-3.
 
 1. Tab **Voice** > field **XAI API Token**: click into it and paste the fake token. While the field has focus you see the whole text (no mask, no timer).
 2. Click outside the field (another control or another tab and back): the field shows the first 4 and the last 4 characters with stars between them (`xai-****ghij`). Click into the field again: the real text is shown again while it has focus.
 3. Type into the masked field without first selecting everything: the real token must not be overwritten by the mask text (`****` is ignored); after leaving the field the mask returns.
-4. Save the scene, open the scene file in a text editor: the token field holds the mask, not the full token (while you were typing it may briefly hold the raw text; report if the raw token ends up in the saved file). `config.json` holds the full token in `ai.xai.api_key`.
+4. Save the scene while the field is focused and the full text is typed (and once more after clicking away), open the scene file in a text editor and search for the fake token and for `XAI API Token`: since version 31 neither the token nor the mask is in the scene (the field is not registered with VaM); report if either shows up. `config.json` holds the full token in `ai.xai.api_key`.
 5. Report: does `InputField.isFocused` work on VaM's field (does the mask appear when you click away)? Is the text cursor visible (known problem, see BACKLOG: cursor fix, low priority)?
 
 ## T21 – First-run note (version 30)
 
-Needs VaM with the AI Character (AIBody 30). Start without a token: no `ai.xai.api_key` in `config.json` (or move the file away), no `XAI_API_KEY`, and `ui.first_run_hint_dismissed` not set.
+Needs VaM with the AI Character (AIBody 31). Start without a token: no `ai.xai.api_key` in `config.json` (or move the file away), no `XAI_API_KEY`, and `ui.first_run_hint_dismissed` not set.
 
 1. Add the plugin and open the tab **Voice**: at the very top there is one short note "An xAI API token is required. Paste it here, or later in Voice > XAI API Token.", ONE text field and ONE button. The button says **Close** while the field is empty.
 2. Paste a fake token into the note's field: the button changes to **OK**, and the field follows the masking rules of T20 (full text while focused, mask when not).
@@ -340,3 +340,25 @@ Needs VaM with the AI Character (AIBody 30). Start without a token: no `ai.xai.a
 4. Remove the token (empty the field in the tab Voice and delete `ai.xai.api_key`), reset `ui.first_run_hint_dismissed` to `false`: the note shows again. This time press **Close** with the field empty: it disappears, points at the token field in the tab Voice and does not come back.
 5. With a token already present from the start, the note never appears.
 6. Report: look and size of the note, whether the button label changes while typing, VaM error log lines with `AIBody:`.
+
+## T22 – Remote control (version 31)
+
+Needs VaM with the AI Character (AIBody 31) and the companion app from this version. Edit `Saves/PluginData/AIBody/config.json` section `remote`: `"enabled": true` (leave `token` empty), restart the app. The remote is off until you do this.
+
+1. The console shows `Remote control: web page and HTTP API on http://127.0.0.1:38438/ (this computer only; ...)`, and `config.json` now has a `remote.token` (copy it). Without `enabled` nothing is opened.
+2. Open `http://127.0.0.1:38438/#token=<token>` in a browser on this computer: the status shows `Plugin: connected`, the expressions / gestures / poses of the character appear as buttons. Type a sentence and press **Say exactly this**: the character speaks it. **Ask the AI** answers like a typed question. **Stop** stops speech.
+3. Click an expression, a gesture and a pose button: they show on the character (with *Body control* on in the tab AI Character). With *Body control* off the page shows `FAILED - body control is off in the plugin` under Remote.
+4. From a console on the same computer: `curl -H "Authorization: Bearer <token>" -H "Content-Type: application/json" -d "{\"text\":\"Hello\"}" http://127.0.0.1:38438/api/say` speaks; the same call without the header or with a wrong token answers HTTP 401.
+5. Save and reload the scene, change something in the plugin menu, wait 2 s: `config.json` still holds the `remote` section with your token (the plugin keeps it).
+6. Optional OSC: set `"osc_port": 9000`, restart, send `/aibody/say "Hello"` from any OSC tool on this computer (for example `python -m pip install python-osc` and `SimpleUDPClient("127.0.0.1", 9000).send_message("/aibody/say", "Hello")`): the character speaks. Report that OSC works without a token.
+7. Not reachable from elsewhere: from another computer in the network, `http://<this computer's IP>:38438/` must not connect.
+8. Report the red `AIBody:` lines in VaM and the companion console output.
+
+## T23 – Plugin preset (version 31)
+
+Needs VaM with `d0n.AIBody.31.var` in `AddonPackages`, a Person atom WITHOUT the AIBody plugin.
+
+1. Select the Person > tab **Plugins** > **Load Preset** (Plugins tab, preset browser). Look for `Preset_AIBody` under the package `d0n.AIBody.31` (the browser hides some plugin presets; also try *Packages* and the folder `Custom/Atom/Person/Plugins/AIBody`). Take a screenshot of what you see.
+2. Load it: the plugin `AIBody` (from `d0n.AIBody.31:/Custom/Scripts/d0n/AIBody/AIBody.cslist`) appears in the Plugins tab, exactly once, and its UI opens as usual. Report the `AIBody:` startup lines.
+3. Load the preset a second time on the same Person: report whether a second copy of the plugin appears (and, if you had other plugins on the Person, whether the preset removed them).
+4. Report anything VaM complains about in the red log lines.
