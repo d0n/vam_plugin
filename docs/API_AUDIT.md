@@ -398,6 +398,12 @@ New in the plugin (`GazeController.cs`), all with evidence E12 / E28 (see the ta
 - No `foreach` over Dictionary `.Keys`/`.Values`, no LINQ, no file or network access added. A gaze exception only
   stops the gaze (`_gazeBroken`), not the body.
 
+## Version 27 (19.11.2026): emotions, personas, memory
+
+- **No new VaM API.** Plugin additions are the existing evidenced kinds only: `JSONStorableStringChooser` (like "Voice", refreshed with `choices = ...`: E9, E24, E25), `JSONStorableBool`, `UiPage.Popup` / `Toggle` / `Button`, the existing event path. The new expression preset `listening` uses morph names the other presets already use (`Brow Inner Up`, `Mouth Smile Simple`); the stubs got nothing new.
+- **Files:** persona and memory files are written and read only by the companion app (ordinary files below `Saves/PluginData/AIBody/personas/`); the plugin never touches them (FileManagerSecure rule unaffected).
+- **xAI Responses API:** the memory summary uses `POST /v1/responses` with `stream: false` and `store: false` (documented parameter, docs.x.ai comparison table "store: control server-side storage (default true)"). TODO(verify): the real model answers a plain JSON array when asked for exactly that (the app takes the first `[...]` in the answer and drops everything that is not a string).
+
 ## Version 26 (19.11.2026): natural gaze, blinking, scene hooks
 
 - **Natural gaze** (`GazeController`): no new VaM call, only more of the evidenced Unity math: `Vector3` minus (Glance L1278), `magnitude` (L1279), `normalized` (L1280), `Vector3.Cross` (L1554), `Vector3.up` (L1158), `Random.Range` (L1179). The eyes are driven exactly like the fixed gaze targets (E12 / E28). TODO(verify): that the offsets look natural (about 3 degrees of small movement, glances 35 degrees to the side, "thinking" glance 18 degrees up).

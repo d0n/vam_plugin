@@ -20,6 +20,15 @@ Die drei Listen sind getrennt: **Umgesetzt** (steht im Code, mit Version), **Won
 - **Life-Erkennung** (Life Gaze pausiert den Blick, Life Eyes das Blinzeln; echte Storable-IDs offen) – Katalog 1.
 - **Szenen-Anbindung Stufe 1** (Wert „Scene event“ → Ereignis `scene_event`, die KI darf reagieren; Werte „AI speaking“ / „User speaking“; Aktionen für Blick, Blinzeln, Ausdrücke, Gesten) – Katalog 2, „Zustände als Trigger“ (Teil), „LogicBricks-artige Reaktionen“ (Teil), Timeline-Anbindung (Eingänge).
 
+**Version 27 (19.11.2026)** – ausführlich in `SPEC.md` und `PERSONAS.md`, getestet nur mit Unit-Tests und Quelltext-Prüfungen, **nicht in VaM** (`TESTPROTOKOLL.md` T16):
+
+- **Emotions-Rückfall** (die App leitet aus jedem gesprochenen Satz einen Ausdruck ab, wenn die KI keinen wählt; die KI gewinnt immer) – Katalog 4 (a).
+- **Abklingen auf Neutral** (`ai.emotion.fade_after_s` nach der letzten Sprache, Blendzeit `fade_seconds`) – Katalog 4 (b).
+- **Zuhör-Gesicht** (sehr kleine Voreinstellung `listening`, solange der Nutzer spricht) – Katalog 4 (c), Teil: die „Mikro-Ausdrücke“ in der billigen Form; Betonung folgen bleibt Backlog.
+- **Personas** (Ordner mit `persona.json`: Prompt, Name, Sprache, Stimme, ElevenLabs-Stimme, Memory-Freigabe; Menü **Persona** mit der Liste aus der App; Wechsel = neues Gespräch) – Katalog 6, „Personas als Datenordner“ (ohne Sounds).
+- **Gedächtnis** (Schalter **Memory**, Knopf **Forget memory**, `memory.json` je Persona, Zusammenfassung per xAI nach dem Gespräch, Notizen in den Anweisungen, Schutz vor Geheimnissen und vor dem Überschreiben mit Leerem) – Katalog 6, „Persönlichkeitsprofile und Gedächtnis“.
+
+
 ### Won't work (zum späteren Neubewerten)
 
 | Eintrag | Grund | Neu bewerten, wenn … |
@@ -42,13 +51,13 @@ Die drei Listen sind getrennt: **Umgesetzt** (steht im Code, mit Version), **Won
 
 **Eigene Aktionen im Trigger-UI, LogicBricks-Stil, Timeline (Katalog 2) und „Zustände als Trigger“, „LogicBricks-artige Reaktionen“, „Story-Szenen“:** *machbar, zwei Stufen.* Stufe 1 (**umgesetzt in Version 26**, S–M, nur belegte APIs, ohne Trigger-Klasse): **Eingänge** als `JSONStorableAction` (E9, E12), die VaMs Trigger-UI, Timeline und LogicBricks als Ziel anbieten (Blick, Blinzeln, Ausdrücke, Gesten), eine Zeichenketten-Eigenschaft „Scene event“, die Szenen per Trigger setzen und die als Ereignis `scene_event` an die App geht (die KI darf darauf reagieren oder schweigen), und **Zustandswerte** (`AI speaking`, `User speaking` als Bool-Storables), die andere Plugins lesen können (E13). Stufe 2 (L): **echte ausgehende Trigger** („Beim Sprechbeginn“, „Beim Sprechende“, „Bei Hören“) mit VaMs eigenem Trigger-UI. Beleg: Timeline `CustomTrigger : Trigger` (L9, `InitTriggerUI`, `OpenTriggerActionsPanel`) und MacGruber_Utils `EventTrigger` (Hub-Plugin VamMoan, enthält eine Kopie: `new EventTrigger(this, name)`, `SimpleTriggerHandler.LoadAssets()` lädt die Panels aus VaMs AssetBundle `z_ui2`, `OpenPanelActionStart()`, `Trigger()`, Speichern über `GetJSON`/`LateRestoreFromJSON`). `MacGruber_Utils.cs` steht unter CC BY (Namensnennung nötig, Datei dürfte als eine zusätzliche Quelldatei in dieselbe `.cslist`); der Weg nutzt AssetBundle-Laden und Coroutinen, die bisher nicht im Audit stehen (nachtragen als E30). Risiko: hoch (Trigger-Panel in VaM-Version abhängig), VaM-Test zwingend. Timeline-Anbindung beider Richtungen läuft über diese Aktionen und Trigger; AIBody startet Timeline-Animationen schon heute (E8, E9). Eine eigene Story-Engine (VAMStory) ist **geht nicht** (nicht AIBodys Aufgabe); die KI als Regisseur über Szenen-Ereignisse dagegen ja.
 
-**Emotionen auf Morphs, Gestik passend zum Gesagten (Katalog 4):** *teilweise umgesetzt, Rest machbar.* Stand: Tool `express` und `pose`, voreinstellbare Ausdrücke aus `expressions.json`, Blenden, Halten. Offen: (a) **Emotions-Rückfall**: kommt in einer Antwort kein Tool-Aufruf, wird der Ausdruck aus der Antwort abgeleitet (Schlagwort-Regeln oder ein Emotions-Tag der KI), in der Begleit-App, S–M; (b) **Abklingen** auf Neutral nach dem Sprechen (Leerlauf-Ausdruck), S; (c) **Mikro-Ausdrücke** beim Zuhören (Brauen), M. Kein neuer VaM-Aufruf, VaM-Test nur für Stärke und Morphnamen.
+**Emotionen auf Morphs, Gestik passend zum Gesagten (Katalog 4):** *Rückfall, Abklingen und Zuhör-Gesicht seit Version 27 umgesetzt (siehe „Umgesetzt“); Rest machbar.* Offen: **Mikro-Ausdrücke mit Betonung** (Brauen beim Zuhören auf Lautstärkesprünge, M, Risiko: wirkt zappelig, braucht Eindruck in VaM), **eigene Schlagwörter** je Sprache oder Persona in `config.json` (S) und **Ausdrücke und Gesten je Persona** (eine `expressions.json` je Persona-Ordner, S–M; das Plugin liest heute eine Datei je Pfad, es bräuchte eine Umschaltung per Befehl). Gesten passend zum Gesagten (Nicken bei „ja“) wären dieselbe Regelmaschine für den Befehl `gesture` (S, nur Begleit-App). VaM-Test: Stärke und Morphnamen (T16).
 
 **Komfortable UI à la MacGruber Utils, Bedienung in VR (Katalog 5, 6):** *teilweise machbar.* Wir nutzen VaMs eigene `UIDynamic`-Bausteine (E16–E18, E24–E27); `MacGruber_Utils.cs` bietet darüber hinaus vor allem `EventTrigger` (siehe oben), Slider/Button-Helfer sind schon gleichwertig vorhanden. Komfort lässt sich ohne die Bibliothek heben (S): Abschnittsüberschriften, kurze Hilfe im Infofeld, „Gaze now“-Zeilen, Voreinstellungsgruppen. In VR funktionieren die Plugin-Menüs wie jede VaM-Oberfläche; die Menügröße ist begrenzt. **Push-to-Talk** gibt es schon als Aktionen (`Push-to-talk start/stop/toggle`), die jeder VR-Controller-Trigger, Keybindings oder Logic-Brick auslösen kann (TODO(verify) in VR). Mikrofon: immer das Systemstandard-Eingabegerät, in VR also das Headset-Mikrofon als Windows-Standard setzen. Blick auf „Camera / player“ nutzt `centerCameraTarget` und damit die VR-Kopfposition (E12). Offen: Texteingabe in VR (die Eingabefelder brauchen die VaM-Tastatur, TODO(verify)). VaM-Test in VR nötig.
 
 **Mehrere Figuren, Kanal im Menü, Session-/Person-Config (Katalog 6):** *machbar, M–L.* Ansatz A (läuft heute schon, nur dokumentieren, S): je Figur ein Plugin mit eigenem Kanal (`Channel`), je Kanal eine Begleit-App (`--channel`); Nachteil: gleiche Mikrofone in jeder App, gemeinsame `config.json`. Ansatz B (besser, L): **eine App, mehrere Figuren**: je Kanal ein Gespräch mit eigener Persona, ein Mikrofon, Wer-antwortet-Regel (Anrede mit dem Namen der Figur, sonst die zuletzt angesprochene) und optional ein „Regie“-Tool, mit dem eine Figur die andere anspricht. Braucht Personas (siehe unten) und ein Kanalfeld im Menü, danach auch die Aufteilung Session-/Person-Config (Einstellungen je Persona). Risiko: Mikrofon-Zuordnung, Echo zwischen Figuren, doppelte Audiodateien. VaM-Test mit zwei Personen nötig.
 
-**Personas als Datenordner, Persönlichkeitsprofile und Gedächtnis (Katalog 6):** *machbar, M, nur in der Begleit-App.* Ordner `Saves/PluginData/AIBody/personas/<name>/` mit `persona.json` (Prompt, Sprache, Stimme, Ausdrücke, Tool-Freigaben) und `memory.json`. Gedächtnis ohne neue APIs: nach jeder Sitzung fasst die KI die wichtigsten Fakten über den Nutzer zusammen (Zusammenfassung statt Rohtext), sie werden beim Start in die Anweisungen gelegt; Obergrenze für Größe und Kosten; Löschen/Anzeigen per `config.json` und Menüschalter „Memory“. Menü: Auswahl der Persona kommt als Liste aus dem Heartbeat, nicht aus dem Plugin (S). Risiken: Datenschutz (alles bleibt lokal in `Saves/PluginData`, nicht im Repository), Kosten pro Gespräch, Halluzinationen im Gedächtnis (Hinweis „nur Fakten, die der Nutzer sagte“).
+**Personas und Gedächtnis (Katalog 6):** *seit Version 27 umgesetzt (siehe „Umgesetzt“, `PERSONAS.md`).* Offen und machbar: **Sounds in Persona-Ordnern** (Begrüßungs- oder Stimmungsklänge im DollMaster-Stil; abgespielt als `speak` über die Kopf-Audioquelle, S–M), **Gedächtnis per lokalem Modell** (wenn lokale Engines da sind), **Gedächtnis-Ansicht im Menü** (die Notizen als Text im Infofeld, S; heute nur die Anzahl).
 
 **Lokale Engines (Begleit-App):** *machbar, je Engine M, keine Sandbox-Frage.* Reihenfolge nach Nutzen: LLM über Ollama (lokale HTTP-Schnittstelle, ähnlich `pipeline/http.py`; Tool-Aufrufe je nach Modell), STT mit faster-whisper, TTS mit Piper. Optionale Abhängigkeiten wie bei `webrtcvad`; Tests mit Fakes. Risiko: Modellgröße, Latenz, GPU; keine VaM-Tests.
 
@@ -66,8 +75,8 @@ Die drei Listen sind getrennt: **Umgesetzt** (steht im Code, mit Version), **Won
 
 1. ~~**Szenen-Anbindung Stufe 1** (Aktionen, „Scene event“, Zustandswerte)~~ – umgesetzt in Version 26.
 2. ~~**Natürlicher Blick und Blinzeln** samt Life-Erkennung~~ – umgesetzt in Version 26.
-3. **Emotions-Rückfall und Abklingen** – Begleit-App, kein VaM-Risiko.
-4. **Personas und Gedächtnis** – Begleit-App, Voraussetzung für mehrere Figuren.
+3. ~~**Emotions-Rückfall und Abklingen**~~ – umgesetzt in Version 27.
+4. ~~**Personas und Gedächtnis**~~ – umgesetzt in Version 27.
 5. **Mehrere Figuren** (eine App, mehrere Kanäle) und Kanal im Menü.
 6. **Demo-Szene im Paket und Hub-Beschreibung** (Entscheidung von Leon nötig).
 7. **Lokale Engines** (Ollama zuerst), **Silero per ONNX**, **Stimm-Unterbrechung per Regel**.
@@ -99,13 +108,13 @@ Die drei Listen sind getrennt: **Umgesetzt** (steht im Code, mit Version), **Won
 
 ## Figur
 - **Blicksteuerung, Rest:** Grundfunktion (Tool `look_at`, Menü „Gaze“) seit Version 25, natürlicher Blick (Zufallsblicke, Wegschauen beim Nachdenken), Blinzeln und Life-Erkennung seit Version 26 (siehe SPEC). Offen: feinere Mikro-Sakkaden wie in Glance, Wirkung der Werte in VaM prüfen (T14, T15).
-- **Personas als Datenordner** `Saves/PluginData/AIBody/personas/<name>/` (JSON + Sounds, DollMaster-Stil, lädt keine Plugins), auch männliche Personas (Jackaroos Dollmaster Male Personas) – Anforderungskatalog – Braucht Persona-Auswahl in Plugin und App.
+- **Personas als Datenordner** `Saves/PluginData/AIBody/personas/<name>/` – Anforderungskatalog – Umgesetzt in Version 27 (JSON; Sounds im Ordner und männliche Personas als Vorlagen offen: siehe „Machbarkeit“).
 - **Zustände als Trigger** (idle, hört zu, denkt, spricht) für Szenen-Logik – Anforderungskatalog – Teilweise (Version 26: lesbare Werte „AI speaking“ / „User speaking“); echte ausgehende Trigger siehe „Machbarkeit“, Stufe 2.
 - **Viseme-Lippensync** aus TTS-Zeitdaten statt VaMs Audio-Lippensync – Anforderungskatalog – Nicht begonnen.
-- **Emotionen auf Morphs**, Gestik passend zum Gesagten – Anforderungskatalog – Teilweise über Tool-Aufrufe (v0.7.4); Abbildung von Emotionen auf Morphs nicht begonnen.
+- **Emotionen auf Morphs**, Gestik passend zum Gesagten – Anforderungskatalog – Tool-Aufrufe seit v0.7.4, Rückfall aus den Worten, Abklingen und Zuhör-Gesicht seit Version 27; Betonung und Gesten aus Worten offen (siehe „Machbarkeit“).
 - **Lebendigkeit wie MacGruber Life** (Atmung mit Brustbewegung und Atemgeräusch, Herzschlag, Blinzeln, Schwanken) – Anforderungskatalog – Blinzeln und Blickverhalten seit Version 26 (siehe „Machbarkeit“); Atemgeräusche und Herzschlag: Won't work (siehe dort), dafür Life auf derselben Figur.
 - **LogicBricks-artige Reaktionen** auf Szenen-Ereignisse (Berührung, Nähe, Trigger) und Rückmeldung an die App, engere Timeline-Anbindung – Anforderungskatalog – Eingänge seit Version 26 (Scene event, Aktionen); ausgehende Trigger (Stufe 2) offen, siehe „Machbarkeit“.
-- **Persönlichkeitsprofile und Gedächtnis** der KI – Anforderungskatalog – Nicht begonnen.
+- **Persönlichkeitsprofile und Gedächtnis** der KI – Anforderungskatalog – Umgesetzt in Version 27 (Personas, Memory), siehe `PERSONAS.md`.
 
 ## Begleit-App
 - **Lokale Engines** (STT faster-whisper/Vosk, LLM über Ollama o. Ä., TTS Piper/XTTS) – Backlog v0.6.0 – Cloud-Engines xAI/ElevenLabs sind umgesetzt (v0.7.0), lokale nicht.

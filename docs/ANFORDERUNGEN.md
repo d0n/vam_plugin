@@ -109,6 +109,9 @@ Stand: 19.11.2026, Version 23. Übersicht, was umgesetzt ist und was offen ist; 
 ### Version 26 (19.11.2026)
 - **Version 26 (19.11.2026) (Katalog 1, 2: Lebendigkeit und Szenen-Anbindung, Stufe 1):** natürlicher Blick („Natural (looks around)“, Wegschauen, Aufschauen beim Nachdenken), optionales Blinzeln („Blink control“, `body.blink_control`), Erkennung von Life Gaze / Life Eyes (hält sich heraus), Szenen-Anbindung für VaMs Trigger-UI, Timeline und andere Plugins: Wert „Scene event“ (Ereignis `scene_event` an die App, die KI darf reagieren), Werte „AI speaking“ / „User speaking“, Aktionen für Blick, Blinzeln, Ausdrücke und Gesten. Die Bewertung aller Backlog-Einträge steht in `docs/BACKLOG.md` („Machbarkeit (19.11.2026)“). TODO(verify) in VaM: `docs/TESTPROTOKOLL.md` T15.
 
+### Version 27 (19.11.2026)
+- **Version 27 (19.11.2026) (Katalog 4, 6: Emotionen, Personas, Gedächtnis):** Ausdruck aus den gesprochenen Worten, wenn die KI keinen wählt (`ai.emotion.fallback`), Zurückblenden auf neutral (`fade`), kleines Zuhör-Gesicht (`listening`); Personas als Ordner mit `persona.json` (Menü **Persona**, `ai.persona_name`; Prompt, Name, Sprache, Stimme), optionales Gedächtnis über den Nutzer (Schalter **Memory**, Knopf **Forget memory**, `memory.json` je Persona, lokal, xAI-Zusammenfassung). Beschreibung: `docs/PERSONAS.md`. TODO(verify) in VaM: `docs/TESTPROTOKOLL.md` T16.
+
 ## 2. Noch offen / zu tun
 
 ### Nächste Version

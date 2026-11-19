@@ -274,6 +274,18 @@ Needs VaM with the AI Character (AIBody) and the Client Character in the example
 6. Report: where the eyes look in each step (correct / mirrored / too high / too low), whether *Straight ahead* really is
    the way the face points, the VaM error log.
 
+## T16 – Emotions, personas, memory (version 27)
+
+Needs VaM with the AI Character (AIBody 27) and the companion app from this version with an xAI key; AI mode not Question and Answer (chain or auto) for steps 1-3.
+
+1. **Expression from the words:** say or type something clearly happy ("Das ist ja wunderbar, haha"), sad, surprised. The face should follow the AI's answer even though it calls no `express` (console line `Expression from the words (the AI chose none): happy`). Report which morphs move and whether the strength (0.85) looks right.
+2. **Fade:** about 6 s after the AI has finished talking the face blends back to neutral over about 2.5 s. Change `ai.emotion.fade_after_s` / `fade_seconds` in `config.json` (restart the app) if it is too slow or too fast.
+3. **Listening face:** while you talk, a very small brow raise appears (preset `listening`); when the AI starts to answer it is replaced. Report whether it is visible at all or too much (preset values in `ExpressionController.cs`; you can override `listening` in `expressions.json`).
+4. **Persona:** copy `examples/personas/Anna` to `Saves/PluginData/AIBody/personas/Anna` (so `…/personas/Anna/persona.json`). Tab Voice > **Persona**: after a few seconds *Anna* is in the list; pick it: the voice changes to *ara*, the AI calls itself Anna, the console says `Persona: Anna`. *(none)* = back to `ai.persona`. Info field (left, tab Voice): persona and memory lines. Pick a name that does not exist (edit `ai.persona_name` in `config.json`): the info field says *not in use … not found*.
+5. **Memory:** switch **Memory** on, say "Ich heiße Leon und mag Katzen" and one more sentence, then be silent for 10 minutes (or lower `ai.memory.session_idle_minutes`, or stop the app with Ctrl+C: it summarizes first). `personas/default/memory.json` (or `personas/Anna/memory.json`) holds the notes; restart the app, ask "Wie heiße ich?". **Forget memory** deletes the file and the AI no longer knows. Report: did the summary request work (console lines `Memory: …`), are the notes correct, any invented facts?
+6. Two personas on two figures (two plugins, two channels, two apps): each plugin has its own Persona choice; see BACKLOG for the single-app version.
+7. Report the VaM error log lines with `AIBody:` and `companion.log`.
+
 ## T15 – Natural gaze, blinking, scene hooks (version 26)
 
 Needs VaM with the AI Character (AIBody) and the companion app (AI mode not Question and Answer for step 6). No Glance, no Life on the AI Character for steps 1-5.

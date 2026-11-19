@@ -24,7 +24,7 @@ python -m aibody_companion --vam-root "D:\VaM"
 
 ## 1. Wozu und wie benutzt
 
-- Der Nutzer spricht mit einer Figur in VaM. Die Figur antwortet mit Stimme und Lippensync und kann Ausdrücke, Gesten und Posen zeigen; dazu Atmung und Kopf-Leerlauf.
+- Der Nutzer spricht mit einer Figur in VaM. Die Figur antwortet mit Stimme und Lippensync und kann Ausdrücke, Gesten und Posen zeigen; dazu Atmung und Kopf-Leerlauf. Seit Version 27: Ausdrücke auch ohne Zutun der KI (aus den Worten, Zurückblenden, Zuhör-Gesicht), **Personas** (Charakter, Sprache, Stimme je Ordner) und optionales **Gedächtnis** über den Nutzer, siehe [docs/PERSONAS.md](docs/PERSONAS.md).
 - Zwei Teile, beide nötig:
   - Plugin `AIBody` (C#, ohne Netzwerkcode): wird einmal im Plugins-Tab der KI-Figur (Person-Atom) geladen; spielt Sprache ab, steuert den Körper, zeigt Status und Einstellungen.
   - Begleit-App `aibody_companion` (Python, läuft neben VaM auf demselben PC): Mikrofon, Spracherkennung, Sprachmodell, Sprachausgabe, Verbindung zu xAI (optional ElevenLabs).
@@ -122,6 +122,16 @@ Spalte „Wo“: Tab im Plugin-Menü; „nur Datei“ = kein Bedienelement. Bere
 | `ai.mode` | string | `qa` | `qa`, `auto`, `realtime`, `chain` | `qa` = Einfacher Q&A: STT → Grok → TTS, mit xAI-Key `xai` statt der Test-Engines, nur Sprache, keine Körper-Tools, kein proaktives Sprechen. `auto` = Realtime mit xAI-Key (außer bei `engines.tts` = `elevenlabs`), sonst Kette. `realtime` = Grok Voice Sprache-zu-Sprache, Kette als Fallback (auch wenn 12 s nach dem Sprechen keine Antwort kommt). `chain` = genau die Engines aus `engines` | Voice > AI Character: **AI mode**; Voice > Voice Mode: **Question and Answer** (setzt `qa` und Body control aus), **Use realtime voice** (an = `auto`, aus = `qa`) |
 | `ai.persona` | string | „You are a friendly, curious character …“ | frei | System-Prompt (xAI: `instructions` der ersten Anfrage einer Unterhaltung; Realtime: Teil der Instructions) | nur Datei |
 | `ai.language` | string | `auto` | `auto` oder Sprachcode (`de`, `en`, …) | Sprachhinweis für STT und TTS | nur Datei |
+| `ai.persona_name` | string | `""` | Ordnername unter `Saves/PluginData/AIBody/personas/` oder leer | Persona (Version 27): `persona.json` ersetzt `ai.persona`, Sprache und Stimme, siehe [docs/PERSONAS.md](docs/PERSONAS.md); leer = keine | Tab Voice > AI Character: **Persona** (Liste von der App) |
+| `ai.memory.enabled` | bool | false | | Gedächtnis (Version 27): kurze Notizen über den Nutzer in `personas/<Name>/memory.json`, nach dem Gespräch von xAI zusammengefasst, als Notizen in den Anweisungen | Tab Voice: **Memory**, Knopf **Forget memory** |
+| `ai.memory.max_facts` | int | 30 | 1–100 | höchstens so viele Notizen (je höchstens 160 Zeichen) | nur Datei |
+| `ai.memory.session_idle_minutes` | int | 10 | 1–240 | Stille, nach der ein Gespräch als beendet gilt und zusammengefasst wird | nur Datei |
+| `ai.memory.min_exchanges` | int | 2 | 1–50 | mindestens so viele Fragen, damit sich eine Zusammenfassung lohnt | nur Datei |
+| `ai.emotion.fallback` | bool | true | | Version 27: Ausdruck aus den gesprochenen Worten, wenn die KI keinen wählt | nur Datei |
+| `ai.emotion.fade` | bool | true | | Gesicht blendet nach der Sprache auf `neutral` zurück | nur Datei |
+| `ai.emotion.fade_after_s` | float | 6.0 | 1–120 | Wartezeit nach der letzten Sprache / dem letzten Ausdruck | nur Datei |
+| `ai.emotion.fade_seconds` | float | 2.5 | 0,2–10 | Blendzeit beim Zurückgehen | nur Datei |
+| `ai.emotion.listening` | bool | true | | kleines „listening“-Gesicht, solange der Nutzer spricht (braucht die Voreinstellung im Plugin ab Version 27) | nur Datei |
 | `ai.fallback.stt` / `.llm` / `.tts` | string | `null` / `echo` / `tone` | Engines wie bei `engines` | läuft, wenn die gewählte Engine keinen Key hat oder eine Anfrage scheitert | nur Datei |
 | `ai.realtime.url` | string | `wss://api.x.ai/v1/realtime` | | WebSocket-Adresse | nur Datei |
 | `ai.realtime.model` | string | `grok-voice-latest` | | Sprachmodell (Query-Parameter `model`) | nur Datei |

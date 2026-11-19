@@ -205,4 +205,5 @@ With the Glance plugin on the same Person AIBody does not touch the eyes. See TE
 
 - `body.gaze_default` accepts `natural` (menu: **Natural (looks around)**) besides `default`, `client`, `camera`, `forward`, `atom:<name>`.
 - `body.blink_control` (default false): true = AIBody blinks by itself and switches VaM's automatic blinking off meanwhile; menu: **Blink control** (tab AI Character, section Gaze and blinking). With Life's Eyes plugin or Glance on the Person AIBody leaves the eyelids alone.
+- `ai.persona_name` (default `""`), `ai.memory.{enabled,max_facts,session_idle_minutes,min_exchanges}` and `ai.emotion.{fallback,fade,fade_after_s,fade_seconds,listening}`: version 27, see [PERSONAS.md](PERSONAS.md) (German). The plugin owns `ai.persona_name` (menu **Persona**) and `ai.memory.enabled` (switch **Memory**) and writes them back; the rest is file only.
 - `ai.scene_events.enabled` (default true) and `ai.scene_events.prompt` (default text with `{event}`): what the AI is told when a scene trigger sets the plugin's string **Scene event** (see PROTOCOL.md, "Scene events"). File only, no menu field.
