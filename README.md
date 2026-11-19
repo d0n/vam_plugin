@@ -25,7 +25,7 @@ Weitere Dokumente: [SPEC](docs/SPEC.md) (vereinbarter Umfang) · [ANFORDERUNGEN]
   - Netzwerk nur in der Begleit-App.
   - Ein Plugin, eine `.cslist`, eine MVRScript-Klasse, ein Ladeschritt.
   - Datei-Transport (Protokoll v3) und eine gemeinsame `config.json`.
-  - xAI braucht einen API-Key von console.x.ai; ein Grok-Abo funktioniert nicht.
+  - xAI braucht einen API-Key von console.x.ai; ein Grok-Abo funktioniert nicht. Seit Version 21 trägst du ihn im Plugin ein: Tab **Voice**, Abschnitt *Voice Mode*, Feld **XAI API Token** (einfaches Textfeld, keine Formatprüfung; Hinweis darunter „(beware: scenes save it)“).
   - Standardmodus Einfacher Q&A (nur Sprache); Realtime optional.
   - Die KI steuert den Körper per Tool-Aufruf (nicht im Q&A-Modus, nicht bei Body control aus); Posen zusätzlich manuell im Tab AI Character.
   - Das Menü zeigt nur Einstellbares (Tabs Voice, AI Character, Client Character, Config); alle Hilfe- und Statustexte stehen in einem großen Infofeld links.
@@ -98,7 +98,7 @@ Spalte „Wo“: Tab im Plugin-Menü; „nur Datei“ = kein Bedienelement. Bere
 | `body.breath_morph` | string | `Breath1` | Morph-Name der Figur | Brust-Morph für die Atmung (kein Standard-Morph in VaM, TODO(verify)) | AI Character: **Breath morph** |
 | `advanced.file_poll_interval_s` | number | 0.1 | [0.02–2] | wie oft das Plugin den Eingang der Companion-App (`Saves/PluginData/AIBody/<Kanal>/inbox/`) auf Nachrichten prüft (Sprache, Posen, Ausdrücke); lädt config.json nicht neu (dafür **Reload Config JSON**); Änderung startet die Verbindung neu | Config: **Companion inbox poll interval (s)** (gespeicherter Name „File poll interval (s)“) |
 | `advanced.verbose_log` | bool | false | | Turn-Trace in Konsole und `Saves/PluginData/AIBody/logs/companion.log` (1 MB × 5, Keys geschwärzt), `[debug]`-Zeilen im VaM-Log, *Recent events* im Statusfeld; wirkt sofort | Config: **Verbose log**; CLI `-v` |
-| `ai.mode` | string | `qa` | `qa`, `auto`, `realtime`, `chain` | `qa` = Einfacher Q&A: STT → Grok → TTS, mit xAI-Key `xai` statt der Test-Engines, nur Sprache, keine Körper-Tools, kein proaktives Sprechen. `auto` = Realtime mit xAI-Key (außer bei `engines.tts` = `elevenlabs`), sonst Kette. `realtime` = Grok Voice Sprache-zu-Sprache, Kette als Fallback (auch wenn 12 s nach dem Sprechen keine Antwort kommt). `chain` = genau die Engines aus `engines` | Voice > AI Character: **AI mode**; Voice > Voice Mode: **Simple Q&A mode** (setzt `qa` und Body control aus), **Use realtime voice** (an = `auto`, aus = `qa`) |
+| `ai.mode` | string | `qa` | `qa`, `auto`, `realtime`, `chain` | `qa` = Einfacher Q&A: STT → Grok → TTS, mit xAI-Key `xai` statt der Test-Engines, nur Sprache, keine Körper-Tools, kein proaktives Sprechen. `auto` = Realtime mit xAI-Key (außer bei `engines.tts` = `elevenlabs`), sonst Kette. `realtime` = Grok Voice Sprache-zu-Sprache, Kette als Fallback (auch wenn 12 s nach dem Sprechen keine Antwort kommt). `chain` = genau die Engines aus `engines` | Voice > AI Character: **AI mode**; Voice > Voice Mode: **Question and Answer** (setzt `qa` und Body control aus), **Use realtime voice** (an = `auto`, aus = `qa`) |
 | `ai.persona` | string | „You are a friendly, curious character …“ | frei | System-Prompt (xAI: `instructions` der ersten Anfrage einer Unterhaltung; Realtime: Teil der Instructions) | nur Datei |
 | `ai.language` | string | `auto` | `auto` oder Sprachcode (`de`, `en`, …) | Sprachhinweis für STT und TTS | nur Datei |
 | `ai.fallback.stt` / `.llm` / `.tts` | string | `null` / `echo` / `tone` | Engines wie bei `engines` | läuft, wenn die gewählte Engine keinen Key hat oder eine Anfrage scheitert | nur Datei |
@@ -116,7 +116,7 @@ Spalte „Wo“: Tab im Plugin-Menü; „nur Datei“ = kein Bedienelement. Bere
 | `ai.proactive.idle_seconds` | number | 90 | [15–3600]; im Plugin auf ganze Sekunden gerundet | Stille bis zum Anstoß; verdoppelt sich bei unbeantworteten Anstößen (bis 8×) | Voice > AI Character: **Proactive idle (s)** |
 | `ai.proactive.prompt` | string | „The user has been quiet for a while. … answer with exactly [silent] …“ | frei | Hinweis bei jedem Anstoß; Antwort `[silent]` = nichts abspielen | nur Datei |
 | `ai.xai.base_url` | string | `https://api.x.ai/v1` | | REST-Basis für STT, LLM, TTS | nur Datei |
-| `ai.xai.key_file` | string | `""` | Pfad (absolut oder relativ zum Benutzerordner); kein Key | Datei mit dem xAI-Key; `XAI_API_KEY` gewinnt; ein eingefügter Key wird abgelehnt und nicht gespeichert | nur Datei (seit Version 15 kein Menüfeld; das Plugin behält den gelesenen Pfad) |
+| `ai.xai.key_file` | string | `""` | Pfad (absolut oder relativ zum Benutzerordner); kein Key | Datei mit dem xAI-Key; gilt erst nach dem Feld **XAI API Token** und `XAI_API_KEY`; ein hier eingefügter Key wird abgelehnt und nicht gespeichert | nur Datei (seit Version 15 kein Menüfeld; das Plugin behält den gelesenen Pfad) |
 | `ai.xai.model` | string | `grok-4.7` | | Sprachmodell | nur Datei |
 | `ai.xai.max_output_tokens` | int | 400 | [16–8000] | hält Antworten kurz | nur Datei |
 | `ai.xai.stt_model` | string | `grok-voice-transcribe-2.0` | | Spracherkennungsmodell | nur Datei |
@@ -125,7 +125,7 @@ Spalte „Wo“: Tab im Plugin-Menü; „nur Datei“ = kein Bedienelement. Bere
 | `ai.xai.sample_rate` | int | 24000 | 8000, 16000, 22050, 24000, 44100, 48000 | TTS-Abtastrate (PCM, als WAV) | nur Datei |
 | `ai.xai.timeout_s` | number | 60 | [5–600] | Anfrage-Timeout | nur Datei |
 | `ai.elevenlabs.base_url` | string | `https://api.elevenlabs.io/v1` | | REST-Basis | nur Datei |
-| `ai.elevenlabs.key_file` | string | `""` | wie `ai.xai.key_file` | Datei mit dem ElevenLabs-Key; `ELEVENLABS_API_KEY` gewinnt | nur Datei (seit Version 15 kein Menüfeld) |
+| `ai.elevenlabs.key_file` | string | `""` | wie `ai.xai.key_file` | Datei mit dem ElevenLabs-Key; `ELEVENLABS_API_KEY` gewinnt | nur Datei (seit Version 15 kein Menüfeld; auch in Version 21 kein ElevenLabs-Feld) |
 | `ai.elevenlabs.voice_id` | string | `JBFqnCBsd6RMkjVDRZzb` | | Stimme | nur Datei |
 | `ai.elevenlabs.model_id` | string | `eleven_multilingual_v2` | | TTS-Modell | nur Datei |
 | `ai.elevenlabs.output_format` | string | `pcm_24000` | `pcm_16000`, `pcm_22050`, `pcm_24000`, `pcm_44100`, `pcm_48000` | Ausgabeformat (44,1/48 kHz brauchen einen ElevenLabs-Pro-Plan) | nur Datei |
@@ -141,7 +141,7 @@ Aufbau seit Version 15 (Leon, 17.11.2026): links ein großes Infofeld, rechts vi
   - *Self-test* (Person, Kopf-Audio, Morphs, Pose-Speicher, Posen, Atem-Morph, Ausdrucks-Morphs, Timeline, PluginData, Companion; die Körper-Prüfungen stehen auch als „Plugin self-test: …“ in Konsole und `companion.log` der Begleit-App).
   - *Recent events* (bei Verbose log), Startup log.
 - Tab **Voice**:
-  - Abschnitt *Voice Mode*: **Simple Q&A mode** (Knopf, setzt `ai.mode` = `qa` und Body control aus), **Active**, **Use realtime voice** (Schalter, nicht gespeichert, Ansicht von AI mode: an = `auto`, aus = `qa`; zeigt an bei `auto`/`realtime`), **API Reconnect** (App liest Keys neu und öffnet Realtime neu; Plugin startet die Verbindung neu), **Test tone via companion**, **Play test tone** (Ton aus dem Paket, ohne App), **Stop speaking**.
+  - Abschnitt *Voice Mode*: **Question and Answer** (Knopf, zweizeilig „Question“ / „& Answer“, bis Version 20 „Simple Q&A mode“; setzt `ai.mode` = `qa` und Body control aus), **Active**, **Use realtime voice** (Schalter, nicht gespeichert, Ansicht von AI mode: an = `auto`, aus = `qa`; zeigt an bei `auto`/`realtime`), **API Reconnect** (App liest Keys neu und öffnet Realtime neu; Plugin startet die Verbindung neu), **XAI API Token** (Version 21: Freitextfeld, Klartext, keine Formatprüfung; mit der Szene gespeichert, darum der Hinweis „(beware: scenes save it)“ darunter; wird nur im `config`-Ereignis an die App geschickt, nie in `config.json` oder ins Log geschrieben), **Test tone via companion**, **Play test tone** (Ton aus dem Paket, ohne App), **Stop speaking**.
   - Abschnitt *Voice > AI Character*: **AI mode**, **Voice**, **Speech-to-text**, **Language model**, **Text-to-speech**, **Proactive**, **Proactive idle (s)**.
 - Tab **AI Character**: *Poses* (by voice through the AI, or here): **Pose** (Auswahl, nicht gespeichert; Liste = `gestures.json`-Einträge mit `kind` `pose` plus Dateien `.vap`/`.json` in `Custom/Atom/Person/Pose` und `Custom/Atom/Person/Pose/AIBody`, je Ordner oberste Ebene, max. 200, Präfix `Preset_` entfernt), **Apply pose** (beide nur, wenn Posen gefunden wurden), **Reload poses**; *Expression and gesture*: **Expression** (Auswahl) + **Show expression**, **Reset expression**, **Reload expressions (expressions.json)** (früher „Reload Expressions“ unter Körper), **Geste** (Auswahl) + **Play gesture**; *Körper*: **Body control**, **Speech volume**, **Idle head motion**, **Idle intensity**, **Breathing**, **Breaths per minute**, **Breath depth**, Atem-Morph (beschriftetes Textfeld).
 - Tab **Client Character**: *microphone and push-to-talk*: **Mic enabled**, **Mic mode**, **Mic device** (erster Eintrag immer „System default microphone“), **Refresh microphones** (Liste wird zusätzlich beim Öffnen des Menüs angefragt), **Push-to-talk active** (nicht gespeichert; solange an, hört die App zu; nur im Mic mode Push-to-talk), **Push-to-talk interrupts speech**, **Show level meter**, die Mikrofon-Regler, **Voice barge-in (headphones)**.
@@ -162,9 +162,10 @@ Aufbau seit Version 15 (Leon, 17.11.2026): links ein großes Infofeld, rechts vi
 
 ### 4.5 Umgebungsvariablen
 
-- `XAI_API_KEY`: xAI-API-Key von console.x.ai (beginnt mit `xai-`); gewinnt über `ai.xai.key_file`. Ein Grok-Abo (SuperGrok / X Premium) bzw. grok.com-Token ist kein API-Key und wird abgelehnt. Ohne Key: Warnung beim Start, Test-Engines laufen.
+- xAI-Key, Reihenfolge (Version 21): 1. Feld **XAI API Token** im Plugin (wenn nicht leer), 2. Umgebungsvariable `XAI_API_KEY`, 3. Key-Datei `ai.xai.key_file`. Ein leeres Feld fällt auf 2 und 3 zurück.
+- `XAI_API_KEY`: optional; xAI-API-Key von console.x.ai (beginnt mit `xai-`); gewinnt über `ai.xai.key_file`, verliert gegen das Feld. Ein Grok-Abo (SuperGrok / X Premium) bzw. grok.com-Token ist kein API-Key und wird abgelehnt. Ohne Key: Warnung beim Start, Test-Engines laufen.
 - `ELEVENLABS_API_KEY`: ElevenLabs-Key; gewinnt über `ai.elevenlabs.key_file`.
-- Key-Dateien werden alle 10 s neu gelesen; Umgebungsvariablen nur beim Start der App. Keys stehen nie in Szene, `config.json` oder Log.
+- Key-Dateien werden alle 10 s neu gelesen; Umgebungsvariablen nur beim Start der App. Der Token aus dem Feld steht in der Szene (Klartext, siehe Hinweis am Feld) und für Sekundenbruchteile in einer Ereignisdatei unter `Saves/PluginData/AIBody/<Kanal>/outbox/`, die die App nach dem Lesen löscht; nie in `config.json`; im Log immer geschwärzt.
 
 ### 4.6 expressions.json und gestures.json
 
@@ -182,7 +183,7 @@ Aufbau seit Version 15 (Leon, 17.11.2026): links ein großes Infofeld, rechts vi
 - Das VaM-Plugin enthält keinen Netzwerkcode und braucht „Allow Plugins Network Access“ nicht; es tauscht nur lokale Dateien mit der Begleit-App aus.
 - Die Begleit-App verbindet sich mit externen Diensten: xAI (api.x.ai) und optional ElevenLabs. Dabei werden Mikrofon-Aufnahmen bzw. getippter Text und die Antworten an diese Dienste übertragen. Es gelten deren Nutzungsbedingungen und Datenschutzbestimmungen.
 - Nötig ist ein eigener, kostenpflichtiger API-Key von console.x.ai. Ein Grok-Abo (SuperGrok / X Premium) oder ein grok.com-Login funktioniert nicht. Die API-Kosten trägt der Nutzer.
-- API-Keys liegen nur lokal (Umgebungsvariable oder Key-Datei) und werden nicht in Szene, `.var` oder `config.json` gespeichert und im Log geschwärzt.
+- API-Keys liegen nur lokal (Feld im Plugin, Umgebungsvariable oder Key-Datei), nie in `.var`, Repository oder `config.json`, und werden im Log geschwärzt. Der Token aus dem Plugin-Feld wird mit der Szene gespeichert (Klartext): Szenen mit eingetragenem Token nicht weitergeben.
 - Ohne Key läuft nur ein Offline-Testbetrieb (Echo und Summton).
 - KI-erzeugte Sprache und KI-gesteuertes Verhalten können falsch, unpassend oder unerwartet sein. Die KI ist kein Mensch und hat kein Bewusstsein.
 - Experimentell: lädt in VaM 1.22 (Version 14), Funktionen dort noch nicht vollständig geprüft; Begleit-App bisher nur gegen nachgebaute Server getestet, nicht mit einem echten Key.

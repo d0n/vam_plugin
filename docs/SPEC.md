@@ -32,7 +32,9 @@ Vereinbarter Stand, was gilt. Status (umgesetzt/offen): [`ANFORDERUNGEN.md`](ANF
 
 ## API-Keys
 - xAI braucht einen API-Key von console.x.ai; ein Grok-Abo / grok.com-Token funktioniert nicht. Statusanzeige und Hinweise sagen das.
-- Key nur über Umgebungsvariable `XAI_API_KEY` / `ELEVENLABS_API_KEY` (gewinnt) oder den Pfad einer Key-Datei (`ai.xai.key_file` / `ai.elevenlabs.key_file` in config.json); ein dort eingetragener Key wird abgelehnt und nicht gespeichert.
+- Haupteingabe seit Version 21: Freitextfeld **XAI API Token** (Tab Voice, Abschnitt Voice Mode, bei API Reconnect; Hinweis „(beware: scenes save it)“ darunter). Einfacher Klartext, keine Formatprüfung, kein ElevenLabs-Feld. Der Token wird mit der Szene gespeichert, geht nur im `config`-Ereignis (`keys.xai`) über die Dateien des Kanals an die Begleit-App, steht nie in config.json und nie ungeschwärzt im Log.
+- **Reihenfolge xAI:** 1. Feld (wenn nicht leer), 2. Umgebungsvariable `XAI_API_KEY`, 3. Key-Datei (`ai.xai.key_file`). Leeres Feld fällt auf 2 und 3 zurück. ElevenLabs: `ELEVENLABS_API_KEY` (gewinnt) oder `ai.elevenlabs.key_file`, kein Feld.
+- Ein in `key_file` eingetragener Key wird weiterhin abgelehnt und nicht gespeichert (gilt nur für diese Pfad-Felder in config.json, nicht für das Token-Feld).
 - Key-Status je Anbieter: konfiguriert / fehlt / abgelehnt (mit Grund).
 
 ## KI-Modi
@@ -79,12 +81,12 @@ Vereinbarter Stand, was gilt. Status (umgesetzt/offen): [`ANFORDERUNGEN.md`](ANF
 - „Posen“ statt „Post“: der frühere Tab „Post“ ist entfallen (die offene Frage „Post oder Port“ ist damit erledigt); Posen liegen im Tab AI Character.
 - Tabs:
   - Voice:
-    - Voice Mode: Simple Q&A mode, Active, Use realtime voice, API Reconnect, Test tone via companion, Play test tone, Stop speaking.
+    - Voice Mode: Question and Answer (Knopf, zweizeilig mittig „Question“ / „& Answer“; bis Version 20 „Simple Q&A mode“), Active, Use realtime voice, API Reconnect, XAI API Token (Textfeld) mit Hinweis „(beware: scenes save it)“ darunter, Test tone via companion, Play test tone, Stop speaking.
     - Voice > AI Character: AI mode, Voice, Speech-to-text, Language model, Text-to-speech, Proactive, Proactive idle.
   - AI Character: Poses (Auswahl, Apply pose, Reload poses; per Sprache über die KI oder hier); Expression and gesture (Auswahl, Show expression, Reset expression, Reload expressions, Play gesture); Body (this Person only) (Body control, Lautstärke, Idle, Atmung, Breath morph mit Beschriftung).
   - Client Character: microphone and push-to-talk (Mic enabled, Mic mode, Mic device, Refresh microphones, Push-to-talk active, Push-to-talk interrupts speech, Show level meter, Mikrofon-Regler), Voice barge-in (headphones).
   - Config (früher Config und Erweitert): Reload Config JSON, Companion inbox poll interval (s) (wie oft das Plugin den Eingang der Companion-App abfragt; gespeicherter Name „File poll interval (s)“), Verbose log.
-- Nur in config.json bzw. Begleit-App (kein Menüfeld): Kanal (`connection.channel`, `--channel`), Key-Datei-Pfade. Entfernte Einträge und ihre ursprüngliche Absicht: `docs/BACKLOG.md`, „Entfernte Menüeinträge (Version 15)“.
+- Nur in config.json bzw. Begleit-App (kein Menüfeld): Kanal (`connection.channel`, `--channel`), Key-Datei-Pfade (Token-Feld für xAI siehe API-Keys). Entfernte Einträge und ihre ursprüngliche Absicht: `docs/BACKLOG.md`, „Entfernte Menüeinträge (Version 15)“.
 
 ## Protokollierung
 - Verbose log (Tab Config / `advanced.verbose_log` / `-v`): pro Runde Trace mit Runden-Nummer und Zeit in Konsole und `<VaM>/Saves/PluginData/AIBody/logs/companion.log` (1 MB × 5); im Plugin `[debug]`-Zeilen und *Recent events*.
@@ -98,10 +100,11 @@ Vereinbarter Stand, was gilt. Status (umgesetzt/offen): [`ANFORDERUNGEN.md`](ANF
 - Pro Runde eine Logzeile; letzter Wert und Mittel der letzten 10 im Statusfeld (*Live*, „Latency to first sound“).
 
 ## Änderungen
-- 18.11.2026 (nach Version 20, noch nicht umgesetzt): Knopf „Simple Q&A mode“ heißt „Question and Answer“, zweizeilig mittig „Question“ / „& Answer“; Funktion unverändert (Leon).
-- 18.11.2026 (nach Version 20, noch nicht umgesetzt): Feld „XAI API Token“ ist ein einfaches Freitextfeld ohne Formatprüfung, im Tab Voice, Abschnitt Voice Mode, bei API Reconnect; Hinweis „(beware: scenes save it)“ darunter; bisherige Ablehnung eingefügter Keys entfällt dafür (Leon).
+- 19.11.2026 (Version 21): Umgesetzt (Leon, „mach bitte ein neues release das sieht alles gut aus“, 19.11.2026): (1) Feld „XAI API Token“ als einfaches Freitextfeld ohne Formatprüfung im Tab Voice, Abschnitt Voice Mode, direkt unter API Reconnect, Hinweis „(beware: scenes save it)“ darunter. Transport über das bestehende Dateiprotokoll als Feld `keys.xai` im `config`-Ereignis; die App nutzt ihn für alle xAI-Aufrufe (STT, Grok, TTS, Realtime) und verbindet bei geändertem Token Realtime neu. Reihenfolge: Feld > `XAI_API_KEY` > `ai.xai.key_file`. Klartext in der Szene, **nicht** in config.json (anders als im Hinweis-Entwurf „Szene bzw. config.json“: so liegt der Token an einer Stelle weniger); im Log immer geschwärzt, auch in abgelehnten Ereignissen. Kein ElevenLabs-Feld. (2) Der Knopf „Simple Q&A mode“ heißt „Question and Answer“, zweizeilig und mittig „Question“ / „& Answer“; Funktion unverändert; Statustexte der App und des Plugins sagen jetzt auch „Question and Answer“ statt „Simple Q&A“. Weiter offen: die zwei Infotextfelder in AI Character (braucht Leons Screenshot).
+- 18.11.2026 (nach Version 20, umgesetzt in Version 21): Knopf „Simple Q&A mode“ heißt „Question and Answer“, zweizeilig mittig „Question“ / „& Answer“; Funktion unverändert (Leon).
+- 18.11.2026 (nach Version 20, umgesetzt in Version 21): Feld „XAI API Token“ ist ein einfaches Freitextfeld ohne Formatprüfung, im Tab Voice, Abschnitt Voice Mode, bei API Reconnect; Hinweis „(beware: scenes save it)“ darunter; bisherige Ablehnung eingefügter Keys entfällt dafür (Leon).
 - 18.11.2026 (nach Version 20, noch nicht umgesetzt): Die zwei Infotextfelder unten im Tab AI Character wandern ins große Infofeld links; rechts stehen nur Bedienelemente (Leon).
-- 18.11.2026 (nach Version 19, noch nicht umgesetzt): xAI-API-Token wird ingame über ein Freitextfeld „XAI API Token“ gesetzt (Hauptweg); `setx XAI_API_KEY` nur optionale Alternative; kein Feld für ElevenLabs; kurzer englischer Hinweis in Klammern am Feld, dass der Token im Klartext in Szene/config.json gespeichert wird, z. B. „(beware: scenes save it)“ (Leon).
+- 18.11.2026 (nach Version 19, umgesetzt in Version 21): xAI-API-Token wird ingame über ein Freitextfeld „XAI API Token“ gesetzt (Hauptweg); `setx XAI_API_KEY` nur optionale Alternative; kein Feld für ElevenLabs; kurzer englischer Hinweis in Klammern am Feld, dass der Token im Klartext in Szene/config.json gespeichert wird, z. B. „(beware: scenes save it)“ (Leon).
 - 17.11.2026 (v0.7.4): Erste Fassung des Spec-Logs.
 - 17.11.2026: README auf Deutsch (Zweck, Szene, zwei Figuren, vollständige Einstellungsreferenz, Hinweise für den Hub); bisheriger README-Inhalt nach `docs/TECHNIK.md`.
 - 17.11.2026 (Version 12): Versionsschema Version = Paketnummer; Szene mit zwei Personen (AI Character weiblich mit AIBody, Client Character männlich mit Camera Background Color); Regler im Plugin decken die vollen config.json-Bereiche ab.

@@ -46,6 +46,7 @@ Enforcement:
 | E24 | [vam-collider-editor ColliderEditor.cs](https://github.com/acidbubbles/vam-collider-editor/blob/00d54b06d5aa579d42404684244aad821d35060f/src/ColliderEditor.cs) (Acid Bubbles) | `CreateScrollablePopup(jssc, rightSide)` (L359), `chooser.choices = ...` together with `chooser.displayChoices = ...` on a shown popup (L414-415, L448-449), `popupPanelHeight` (L283) |
 | E25 | [vam-embody Embody.cs](https://github.com/acidbubbles/vam-embody/blob/e09e364f818b0389aa97d84c54ba5c65ad1183d6/src/Embody.cs) (L77, L950) and [vam-timeline SequencingScreen.cs](https://github.com/acidbubbles/vam-timeline/blob/54e294256d7b73ec7d00d4216fcc7f01bc9d8133/src/UI/Screens/SequencingScreen.cs) (L257-264, L500) (Acid Bubbles) | `chooser.popupOpenCallback = ...` refills `choices` when the menu opens; `choices = ...` on a popup that is on screen |
 | E26 | [TittyMagic WindowBase.cs](https://github.com/everlasterVR/TittyMagic/blob/eca6d093450994cf589e51e148ceaadf9adfbc79/src/UI/WindowBase.cs) (everlaster, L46-48) and [ExpressionRandomizer.cs](https://github.com/everlasterVR/Extraltodeus-ExpressionRND/blob/cd6c9c584ce87c1a52e9e30c2e75310df89ccc71/src/ExpressionRandomizer.cs) (L582-583, L597-598) | `UIDynamicSlider slider = CreateSlider(jsf, rightSide); slider.label = "...";`: a shown slider label that differs from the storable name; also `sliderDynamic.label = name` in [Dollmaster UI.cs](https://github.com/vamdeluxe/DeluxePlugin/blob/e606e780e79af214b2b4be0a53b1e7b45ecf59b7/Dollmaster/src/UI.cs) (L74) |
+| E27 | [vam-timeline AnimationsScreen.cs](https://github.com/acidbubbles/vam-timeline/blob/d6f7177c/src/UI/Screens/AnimationsScreen.cs) (`btn.buttonText.alignment = TextAnchor.MiddleLeft;`, `btn.label = ...`) and [vam-embody MainScreen.cs](https://github.com/acidbubbles/vam-embody/blob/e09e364f/src/Screens/MainScreen.cs) (`triggersBtn.buttonText.alignment = TextAnchor.MiddleLeft;`) (Acid Bubbles) | `UIDynamicButton.buttonText` (a `Text`) and its `alignment` (`TextAnchor`) on a button created with `CreateButton`; the shown button text is a plain string, so a `\n` makes a second line |
 
 ## Kept
 
@@ -304,3 +305,23 @@ from `Exception.ToString()`, not from reflection. The only additions outside the
   `popupOpenCallback`, as E25 does), on "Refresh microphones" and when the tab is built (E24, E25).
   TODO(verify): why VaM showed no entry at all; the info field line "Mic device menu: N entries"
   reads the chooser back. No `foreach` over Dictionary `.Keys`/`.Values` (CS584 rule).
+
+## Version 21: free-text field "XAI API Token", two-line "Question and Answer" button
+
+- **Text field:** no new API. The field is the already audited editable text field (`CreateTextField`
+  + `InputField` bound through `storable.inputField`, E14, as used for "Breath morph" since version 15),
+  under a `Header` label and above a `Header` hint, in `UiPage.TextInput`. The storable is a
+  `JSONStorableString` registered with `RegisterString` (E9), so VaM saves it with the scene, which
+  the hint "(beware: scenes save it)" says. TODO(verify): pasting with Ctrl+V into the field in VaM
+  (the same unverified point as for "Breath morph").
+- **Button:** one new member, `UIDynamicButton.buttonText` (`Text`), used for
+  `buttonText.alignment = TextAnchor.MiddleCenter` (E27: timeline, embody). The two lines are a `\n`
+  in the label string passed to `CreateButton` (E1), the height is `UIDynamic.height` (the base
+  class of the button; the same member `Glance.cs` sets on a spacer, E12). The compile stubs declare
+  `Text.alignment`, `TextAnchor`, `UIDynamicButton.buttonText` with the E27 tag. Both settings sit in
+  one `try`/`catch` (`UiPage.Button(label, height, onClick)`): if VaM refuses either, the button still
+  works and the reason goes to the log. TODO(verify): the look in VaM (two lines, centered, not cut off at 90 px).
+- **Token transport:** unchanged file transport (`FileManagerSecure.WriteAllText` in the channel
+  outbox, E10, E11, E15); the token is an extra `keys` object in the `config` event. The plugin never
+  writes it to config.json and never logs it. No network API in the plugin, no `foreach` over
+  Dictionary `.Keys`/`.Values` (CS584 rule).

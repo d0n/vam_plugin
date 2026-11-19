@@ -53,7 +53,7 @@ keys are reported and ignored; out-of-range numbers are clamped.
 ## Modes: simple Q&A, realtime voice and chain
 
 **Simple Q&A** (`ai.mode` `qa`, the default): the chain below, made as hard to get wrong as
-possible. With an xAI key (environment `XAI_API_KEY` or a key file) the offline test engines
+possible. With an xAI key (the plugin field `XAI API Token`, environment `XAI_API_KEY` or a key file) the offline test engines
 (`null` / `echo` / `tone`) are replaced by `xai`, so STT `xai` -> Grok (streamed, split into
 sentences, the first sentence is spoken while the rest is still written) -> TTS `xai` -> WAV ->
 `speak` -> head audio; engines picked explicitly (e.g. TTS `elevenlabs`) stay. Expression /
@@ -116,7 +116,13 @@ of *Voice > AI Character*, as before.
 | `xai` | TTS | `XAI_API_KEY` or `ai.xai.key_file` | `POST https://api.x.ai/v1/tts`, `output_format: {codec: pcm}` |
 | `elevenlabs` | TTS | `ELEVENLABS_API_KEY` or `ai.elevenlabs.key_file` | `POST https://api.elevenlabs.io/v1/text-to-speech/{voice_id}?output_format=pcm_24000` |
 
-**Plugging in a key** (example ElevenLabs, the same for xAI):
+**Plugging in the xAI key (version 21):** paste it into the field **XAI API Token** (tab *Voice*,
+section *Voice Mode*, below **API Reconnect**). Plain text, no format check, saved with the scene
+(hence the hint "(beware: scenes save it)"), never written to `config.json`, masked in every log.
+Precedence: 1. the field (when not empty), 2. `XAI_API_KEY`, 3. `ai.xai.key_file`; clearing the field
+falls back to 2 / 3. A changed key also reconnects realtime. There is no ElevenLabs field.
+
+**Plugging in a key from the environment or a file** (example ElevenLabs, the same for xAI):
 
 1. Either set the environment variable before starting the app, e.g. in PowerShell
    `$env:ELEVENLABS_API_KEY = "<key>"` (or permanently via *System > Environment Variables*),
@@ -133,15 +139,16 @@ unlabeled boxes in VaM and were removed); after editing the file press **Reload 
 *Config*) or reload the scene. The key status in the info field (tab *Voice*) shows per provider **configured**,
 **missing** or **rejected** (the server refused the key with HTTP 401/403). Something that looks like
 a pasted key (starts with `xai-` / `sk_`, or a long string without `/ \ .`) is refused by the
-plugin and the app and never stored. A direct key field is not built: it would be saved readably
-in the scene and in `config.json` (open question to the user, TODO hook in `AppLink.cs`).
+plugin and the app and never stored - this rule applies to the `key_file` values only, not to the
+field **XAI API Token** (version 21), which takes anything. That field is saved readably in the
+scene (not in `config.json`).
 
 **Which key:** xAI needs an API key from console.x.ai (starts with `xai-`). A Grok subscription
 (SuperGrok / X Premium) or a grok.com login token is not an API key and is refused by `api.x.ai`.
 The key status (heartbeat `keys.xai.hint`, info field of tab *Voice*) says so when the key is missing or refused.
 
 The key itself never goes into `config.json` (a `key_file` value that looks like a key is
-refused) or into the log. Without a key nothing is blocked: the engine is "not configured"
+refused) or into the log (the token of the plugin field lives in the scene only). Without a key nothing is blocked: the engine is "not configured"
 and the fallback runs.
 
 **Real API check** (once keys exist; everything is only tested against a fake server so far):

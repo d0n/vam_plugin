@@ -4,7 +4,7 @@ Stand: 17.11.2026, Version 12. Übersicht, was umgesetzt ist und was offen ist; 
 - Vereinbarte Spezifikation (was gilt): [`docs/SPEC.md`](SPEC.md)
 - Zurückgestellte Ideen / Nice to have: [`docs/BACKLOG.md`](BACKLOG.md)
 - Testanleitung in VaM: [`docs/TESTPROTOKOLL.md`](TESTPROTOKOLL.md) · API-Belege: [`docs/API_AUDIT.md`](API_AUDIT.md)
-- Repo: https://github.com/d0n/vam_plugin · aktuelles Paket: `d0n.AIBody.20.var` (Version = Paketnummer seit 12)
+- Repo: https://github.com/d0n/vam_plugin · aktuelles Paket: `d0n.AIBody.21.var` (Version = Paketnummer seit 12)
 
 „Umgesetzt“ heißt: im Code und gegen nachgebaute Gegenstellen getestet. Was in VaM bzw. gegen die echten xAI-APIs noch nicht geprüft ist, steht zusätzlich unter 2.
 
@@ -13,7 +13,7 @@ Stand: 17.11.2026, Version 12. Übersicht, was umgesetzt ist und was offen ist; 
 ### Laden, Sandbox, Paket
 - Ein Plugin, eine `.cslist` (`Custom/Scripts/d0n/AIBody/AIBody.cslist`), eine MVRScript-Klasse, Laden in einem Schritt im Plugins-Tab der Person – v0.6.0.
 - Strenge Sandbox ohne Netzwerkcode (kein `UnityWebRequest`, `UnityEngine.Networking`, `WWW`, `System.IO`, `System.Net`, `Process`, Reflection, `DllImport`, Unity-`Microphone`); Build-Scan bricht ab – v0.6.1.
-- Nur belegte APIs, Belege in `docs/API_AUDIT.md` (E1–E25) – v0.6.1, laufend ergänzt.
+- Nur belegte APIs, Belege in `docs/API_AUDIT.md` (E1–E27) – v0.6.1, laufend ergänzt.
 - Dateizugriff nur über `FileManagerSecure`; „Allow Plugins Network Access“ bleibt aus – v0.6.1.
 - Diagnose im Plugin-Fenster: Statusfeld, Selbsttest, jede Init-Phase einzeln abgesichert – v0.6.2.
 - Eine `.var` nach `<VaM>/AddonPackages/`; Liste alter Pakete zum Löschen in README und Release-Notes – seit v0.6.0.
@@ -35,6 +35,8 @@ Stand: 17.11.2026, Version 12. Übersicht, was umgesetzt ist und was offen ist; 
 - Schalter „Use realtime voice“ (an = `auto`, aus = `qa`, Standard bleibt `qa`) – v0.7.3.
 - Abgelehnter xAI-Key (HTTP 400 „Incorrect API key“) wird als „abgelehnt“ erkannt – v0.7.3.
 - Hinweis, welcher Key funktioniert: API-Key von console.x.ai, kein Grok-Abo/grok.com-Token (Key-Status, Startwarnung der App) – v0.7.4.
+- Feld „XAI API Token“ (Tab Voice, Abschnitt Voice Mode, bei API Reconnect; Hinweis „(beware: scenes save it)“ darunter): einfaches Freitextfeld ohne Formatprüfung, kein ElevenLabs-Feld; Token geht als `keys.xai` im `config`-Ereignis über das Dateiprotokoll an die App und wird für alle xAI-Aufrufe genutzt; Reihenfolge Feld > `XAI_API_KEY` > `ai.xai.key_file`; Klartext nur in der Szene, nicht in config.json; im Log geschwärzt; `setx XAI_API_KEY` bleibt optional – Version 21 (Leon, 18./19.11.2026).
+- Knopf „Simple Q&A mode“ heißt „Question and Answer“, zweizeilig und mittig „Question“ / „& Answer“, Funktion unverändert – Version 21 (Leon, 18./19.11.2026).
 - Tool-Aufrufe → Körperbefehle (Kette: `/v1/responses` mit tools; Realtime: function_call + function_call_output): `express` (Ausdruck/Geste), `pose` (wenn Posen vorhanden); jeder Aufruf bekommt ein Ergebnis; keine Tools in `qa` und bei Body control aus – v0.7.4.
 - Latenzmessung Sprechende → erster Ton mit Aufschlüsselung (STT, LLM first token, first sentence, TTS, file write, to plugin, plugin start), Logzeile pro Runde, letzter Wert + Mittel im Statusfeld (*Live*, „Latency to first sound“) – v0.7.4.
 
@@ -85,11 +87,10 @@ Stand: 17.11.2026, Version 12. Übersicht, was umgesetzt ist und was offen ist; 
 ## 2. Noch offen / zu tun
 
 ### Nächste Version (noch nicht umgesetzt)
+_Version 21 hat das Feld „XAI API Token“ und den Knopf „Question and Answer“ umgesetzt (siehe oben, KI und Sprache)._
 - Alle Posen-Einträge (Apply pose, Reload poses und alles weitere zu Posen) gehören in einen Unterpunkt „Poses“ im Tab AI Character, nicht in Config. Grund: Posen gehören zu einer Figur und sind nur für den AI Character sinnvoll, nicht für den Client Character (Leon, 18.11.2026). Stand im Code seit Version 15: Apply pose und Reload poses liegen schon im Abschnitt Poses im Tab AI Character; Config enthält nur Reload Config JSON, Companion inbox poll interval (s) (bis Version 18 „File poll interval (s)“), Verbose log. In VaM prüfen, ob dort noch Posen-Einträge unter Config erscheinen (ggf. ältere Paketversion geladen).
 - Alles, was in Leons Ansicht unter Config hängt („eigentlich quasi alles, was unter Config kommt“), insbesondere Expression and gesture und was darunter folgt (z. B. Body), unter den AI Character verschieben bzw. dort gruppieren, damit figurgebundene Steuerung eindeutig dem AI Character zugeordnet ist. Genaues Layout egal (Leon, 18.11.2026). Stand im Code seit Version 15: Expression and gesture und Body liegen schon im Tab AI Character; der Tab Config enthält nur Reload Config JSON, Companion inbox poll interval (s) und Verbose log (nicht figurgebunden). Klären, welche Version Leon in VaM sieht.
-- xAI-API-Token ingame setzen: Freitextfeld im Menü mit der Beschriftung „XAI API Token“ ist der Hauptweg; `setx XAI_API_KEY` (Windows-Konsole) darf keine Voraussetzung sein, bleibt nur als optionale Alternative dokumentiert. Kein Freitextfeld für ElevenLabs (Leon, 18.11.2026). Am Feld ein kurzer Hinweis in Klammern auf Englisch, dass der Token im Klartext in Szene bzw. config.json gespeichert wird, z. B. „(beware: scenes save it)“ – knapp, für normale Englischsprecher verständlich (Leon, 18.11.2026). Damit ist die offene Frage „Direktes API-Key-Feld“ entschieden. Ergänzung (Leon, 18.11.2026): einfaches Freitextfeld ohne Formatprüfung (keine Regex, keine Ablehnung wegen Format); Platzierung (Sophys Wahl): Tab Voice, Abschnitt Voice Mode, direkt bei **API Reconnect**; Hinweis „(beware: scenes save it)“ darunter. Die bisherige Ablehnung eingefügter Keys in config.json entfällt für dieses Feld.
 - Die zwei Infotextfelder am unteren Rand des Tabs AI Character in das große Infofeld links übernehmen (rechts nur Bedienelemente; Regel: Konfigurierbares im Menü und in config.json gespiegelt, Infos links) (Leon, 18.11.2026). Welche zwei Felder genau: beim Umsetzen anhand von Leons Ansicht in Version 20 bestimmen.
-- Knopf „Simple Q&A mode“ (Tab Voice, Voice Mode; setzt AI mode = `qa`) umbenennen in „Question and Answer“, angezeigt zweizeilig und mittig: „Question“ / „& Answer“ (Zeilenumbruch nach „Question“, kaufmännisches Und, beide Zeilen etwa gleich lang). Funktion unverändert (Leon, 18.11.2026).
 
 ### Test in VaM (Anleitung `docs/TESTPROTOKOLL.md`)
 - T1: Laden aus der `.var`, Nachfrage zu Plugins aus dem Paket, alte Pakete entfernt.
@@ -103,6 +104,7 @@ Stand: 17.11.2026, Version 12. Übersicht, was umgesetzt ist und was offen ist; 
 - T9: Frage → hörbare Antwort im Spiel.
 - T10: Verbose log, Echtzeit-Schalter.
 - T11: Mikrofon-Menü, Posen-/Ausdrucks-Menü, Tool-Aufrufe, Latenzanzeige.
+- T12: Feld „XAI API Token“ (Einfügen, Status, Szene speichern/laden), Knopf „Question and Answer“ zweizeilig mittig (ab Version 21).
 - Engines noch nie gegen die echten xAI-/ElevenLabs-APIs gelaufen (nur nachgebauter Server).
 
 ### TODO(verify) im Code
@@ -110,7 +112,8 @@ Stand: 17.11.2026, Version 12. Übersicht, was umgesetzt ist und was offen ist; 
 - 1,5 s Wartezeit nach Szenenwechsel reicht.
 - Relativer `Saves/PluginData`-Pfad mit `NormalizeMediaPath` + Audio-Lader.
 - Atem-Morph: kein Standard-Morph in VaM, Brust-Morph auf der Figur wählen.
-- Editierbares Textfeld über `CreateTextField` (1.22).
+- Editierbares Textfeld über `CreateTextField` (1.22); Einfügen per Strg+V ins Feld „XAI API Token“.
+- Knopf „Question and Answer“: `buttonText.alignment` und `height` (90) in VaM sichtbar zweizeilig, mittig, nicht abgeschnitten (Version 21).
 - `GetFiles` auf einem `Custom/`-Ordner in der Sandbox (Posen-Dateien).
 - Storable „PosePresets“ folgt dem belegten Muster (1.22).
 - Morph-Namen für Ausdrücke an Standard-Figuren (weiblich/männlich).
@@ -119,7 +122,7 @@ Stand: 17.11.2026, Version 12. Übersicht, was umgesetzt ist und was offen ist; 
 - Sichtbare Höhe des Infofelds (1800) in VaM.
 
 ### Offene Fragen an Leon
-- ~~Direktes API-Key-Feld im Plugin?~~ Entschieden 18.11.2026: ja, Feld „XAI API Token“ (siehe Nächste Version).
+- ~~Direktes API-Key-Feld im Plugin?~~ Entschieden 18.11.2026: ja, Feld „XAI API Token“ (umgesetzt in Version 21, siehe KI und Sprache).
 - Key-Datei-Pfad wieder im Menü (beschriftet)? Seit Version 15 nur in config.json, weil die Felder als leere Kästen erschienen; siehe Backlog.
 - „Delay“: was soll verzögert werden? Platzhalter seit Version 15 aus dem Menü entfernt, siehe Backlog.
 - Session-Config vs. Person-Config: zurückgestellt bis nach den Tests, siehe Backlog.

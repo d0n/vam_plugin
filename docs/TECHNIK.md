@@ -22,11 +22,13 @@ sentence), xAI text to speech speaks it, and the Person plays the WAV on her hea
 sync. Speech only, no expressions or gestures, no proactive remarks. A few seconds of delay are normal.
 
 1. Install the package and add the plugin to the Person (steps 1 and 2 above).
-2. Start the companion app with your xAI key in the environment:
-   `set XAI_API_KEY=xai-...` (Windows `cmd`; PowerShell: `$env:XAI_API_KEY="xai-..."`), then
-   `python -m aibody_companion --vam-root "C:/VaM"`.
-3. Plugin tab *Voice* > section *Voice Mode* > **Simple Q&A mode** (sets AI mode `qa` and Body control off;
-   scenes from 0.7.1 still have `auto`).
+2. Start the companion app: `python -m aibody_companion --vam-root "C:/VaM"`.
+3. Plugin tab *Voice* > section *Voice Mode*: paste your xAI API key from console.x.ai into the
+   field **XAI API Token** (plain text; version 21). It reaches the running app within a second.
+   Alternatively start the app with the key in the environment (`set XAI_API_KEY=xai-...`, Windows
+   `cmd`; PowerShell: `$env:XAI_API_KEY="xai-..."`); the field wins when both are set.
+   Then press **Question and Answer** (until version 20 "Simple Q&A mode"; sets AI mode `qa` and Body
+   control off; scenes from 0.7.1 still have `auto`).
 4. **Play test tone** (tone from the package) and **Test tone via companion** (tone through the
    app's audio folder): both must be heard.
 5. Ask a question, or type `Hallo` + Enter in the companion console (same path without the mic).
@@ -360,8 +362,15 @@ One answer = speech to text -> language model -> text to speech, chosen in the p
   existing `expression` / `gesture` commands.
 - Every TTS engine writes 16-bit PCM WAV into the channel's `audio/` folder (VaM's audio loader
   plays WAV; WAV also gives the exact duration for the echo gate).
-- **Keys:** environment variable, or the PATH of a key file (`ai.xai.key_file`, `ai.elevenlabs.key_file` in `config.json`; no menu field since version 15). Never the key itself in `config.json` or the
-  repository. Without a key the engine stays selectable but shows **"not configured"** in the
+- **Keys:** xAI precedence (version 21): 1. the plugin field **XAI API Token** (tab Voice > Voice Mode;
+  plain text, no format check; saved with the scene; sent to the app only in the `config` event as
+  `keys.xai`, an empty field = no token and the next source applies), 2. the environment variable
+  `XAI_API_KEY`, 3. the PATH of a key file (`ai.xai.key_file` in `config.json`). ElevenLabs has no
+  menu field: `ELEVENLABS_API_KEY` or `ai.elevenlabs.key_file`. Never the key itself in `config.json`
+  or the repository; every registered key is masked in the app's log and console (config events with
+  `keys` are logged masked, the plugin logs only "keys masked"). The token passes through one event
+  file in `Saves/PluginData/AIBody/<channel>/outbox/` which the app deletes right after reading
+  (plain text on disk for that moment; the scene file holds it permanently). Without a key the engine stays selectable but shows **"not configured"** in the
   info field and the fallback (`ai.fallback`, default `null` / `echo` / `tone`) runs. A key file
   added later is picked up within 10 s; a new environment variable needs an app restart.
 - If a request fails, that sentence / answer uses the fallback engine; nothing stops.

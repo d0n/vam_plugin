@@ -18,7 +18,7 @@ nach durchgehen und das Ergebnis eintragen (✅ / ❌ / unklar). Dauer: etwa 20 
 - `d0n.AIBody.20.var` nach `<VaM-Hauptordner>/AddonPackages/` kopieren.
 - Companion-App bereithalten (noch **nicht** starten):
   `python -m aibody_companion --vam-root "C:/VaM"` (Pfad zum eigenen VaM-Ordner anpassen).
-  Für T9 vorher den xAI-Key setzen: `set XAI_API_KEY=xai-...` (cmd) bzw. `$env:XAI_API_KEY="xai-..."` (PowerShell).
+  Für T9 den xAI-Key im Plugin eintragen (Tab **Voice** > Feld **XAI API Token**, ab Version 21) oder vor dem Start setzen: `set XAI_API_KEY=xai-...` (cmd) bzw. `$env:XAI_API_KEY="xai-..."` (PowerShell); das Feld gewinnt.
 
 ---
 
@@ -118,7 +118,7 @@ Engine-Zeile nur noch einmal, im Engine-Status.) Danach wieder `tone` auswählen
 
 ## T8 – Realtime-Sprache und proaktives Sprechen (ab v0.7.1)
 
-Braucht einen xAI-Key (Umgebungsvariable `XAI_API_KEY` oder `ai.xai.key_file` in `config.json`)
+Braucht einen xAI-Key (Feld **XAI API Token**, Umgebungsvariable `XAI_API_KEY` oder `ai.xai.key_file` in `config.json`)
 und am besten ein Headset.
 
 1. Companion-App mit Key starten. Im Log der App sollte stehen: `Mode: auto -> realtime` und
@@ -144,7 +144,7 @@ mit `Realtime` oder `failed` aus dem App-Log.
 Ziel: Es soll einfach eine hörbare Antwort aus dem Kopf der Figur kommen. Körpersteuerung ist dafür
 nicht nötig.
 
-1. Tab **Voice** > **Simple Q&A mode** (setzt AI mode `qa` und Body control aus; prüfen im
+1. Tab **Voice** > **Question and Answer** (zweizeilig und mittig; bis Version 20 „Simple Q&A mode“; setzt AI mode `qa` und Body control aus; prüfen im
    Tab **AI Character**). **Speech volume** auf 1.
 2. Tab **Voice** > **Play test tone** (spielt die Datei aus dem Paket, ohne Companion-App).
    Im Statusfeld unter *Live* steht `Audio: Loading: AIBodyTest.wav`, dann `Speaking: AIBodyTest.wav (1.5 s)`, dann `Done: …`.
@@ -162,7 +162,7 @@ bitte genau abschreiben, dazu die Ausgabe der Companion-Konsole.
 - Wenn 2 klingt, 3 aber nicht: Die App wechselt nach etwa 15 s von selbst nach
   `Saves/PluginData/AIBody/default/audio/` und spielt den Ton noch einmal (rote Zeile „audio folder
   switched to …“). Bitte melden, ob er dann klingt.
-- Steht dort „without an xAI API key“: Key nicht gesetzt (gleiches Konsolenfenster wie die App?) oder in `config.json` unter
+- Steht dort „without an xAI API key“: Key nicht gesetzt (Feld **XAI API Token** im Tab **Voice** leer? Oder Umgebungsvariable nicht im selben Konsolenfenster wie die App?) oder in `config.json` unter
   `ai.xai.key_file` eine Key-Datei eintragen und im Tab **Config** **Reload Config JSON** drücken.
 
 ## T10 – Verbose log und Echtzeit-Schalter (ab v0.7.3)
@@ -198,7 +198,7 @@ bitte trotzdem kurz reinschauen) und einen Screenshot des Statusfelds mit *Recen
 3. Ausdruck wählen > **Show expression**; Geste wählen > **Play gesture**.
 4. Tab **Voice** > **Use realtime voice** an, Tab **AI Character** > **Body control** an.
    Sagen: „Lächle mal“ bzw. „Nimm eine andere Pose ein“. Konsole: `realtime tool call` bzw.
-   `llm tool call` (mit Verbose log), die Figur reagiert. Mit **Simple Q&A mode** reagiert sie nicht
+   `llm tool call` (mit Verbose log), die Figur reagiert. Mit **Question and Answer** reagiert sie nicht
    (nur Sprache, so gewollt).
 5. Nach jeder Antwort im Statusfeld (*Live*): `Latency to first sound: X s (avg Y s, n turns)` und
    darunter die Aufschlüsselung. In der Konsole: `Latenz t000N bis zum ersten Ton: …`.
@@ -207,6 +207,24 @@ bitte trotzdem kurz reinschauen) und einen Screenshot des Statusfelds mit *Recen
 
 Melden: Screenshot von Infofeld und geöffnetem Menü **Mic device**, Screenshot des Statusfelds mit der
 Latenz, Konsolenausgabe.
+
+## T12 – Feld „XAI API Token“ und Knopf „Question and Answer“ (ab Version 21)
+
+1. Tab **Voice**, Abschnitt *Voice Mode*: Der Knopf oben heißt zweizeilig **Question** / **& Answer**,
+   Text mittig, Text nicht abgeschnitten. Darunter **Active**, **Use realtime voice**, **API Reconnect**,
+   dann die Beschriftung **XAI API Token**, das Textfeld und direkt darunter „(beware: scenes save it)“.
+2. Begleit-App **ohne** `XAI_API_KEY` starten (Warnung „No xAI API key yet“ ist richtig). Infofeld links:
+   `xAI key: missing` und der Hinweis auf das Feld.
+3. In das Feld klicken, den xAI-Key (console.x.ai) einfügen (Strg+V). Erwartet: nach etwa einer Sekunde
+   Infofeld `xAI key: configured – plugin field 'XAI API Token'`; Konsole der App:
+   `XAI API Token from the plugin field set` (der Token selbst steht nirgends, auch nicht bei Verbose log).
+4. **Question and Answer** drücken, eine Frage sprechen oder tippen: hörbare Antwort. Funktion wie vorher.
+5. Feld leeren: `xAI key: missing`. Feld mit Unsinn füllen (z. B. `abc`): wird ohne Formatprüfung
+   angenommen, die erste Anfrage meldet `rejected` (HTTP 401/403).
+6. Szene speichern, neu laden: das Feld ist wieder gefüllt (Klartext in der Szene); `config.json` enthält keinen Token.
+
+Melden: Screenshot des Tabs **Voice** (Knopf, Feld, Hinweis), Infofeld links, rote `AIBody:`-Zeilen, Ausgabe der
+Begleit-App-Konsole. Wichtig: ob Einfügen per Strg+V im Feld klappt, ob der Knopf zweizeilig mittig steht.
 
 ### T11a – Mikrofon-Test ohne VaM (`tools/mic_test.py`, ab Version 16)
 
@@ -220,5 +238,5 @@ Latenz, Konsolenausgabe.
 
 Melden: `mic_test_output.txt`, Screenshot von Infofeld und geöffnetem Menü nach Schritt 2.
 
-**Ergebnis zurückschicken:** pro Punkt T1–T11 ✅/❌, die Screenshots, die roten „AIBody:“-Zeilen und
+**Ergebnis zurückschicken:** pro Punkt T1–T12 ✅/❌, die Screenshots, die roten „AIBody:“-Zeilen und
 bei Problemen mit einer Antwort die Datei `companion.log` (mit eingeschaltetem Verbose log).
