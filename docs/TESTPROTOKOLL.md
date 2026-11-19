@@ -183,9 +183,9 @@ bitte trotzdem kurz reinschauen) und einen Screenshot des Statusfelds mit *Recen
 ## T11 – Mikrofon-Menü, Posen-Menü, KI-Körpersteuerung, Latenz (ab v0.7.4)
 
 1. Tab **Client Character** (seit 19.11.2026 ohne Mikrofon-Auswahl): kein Menü **Mic device**, kein Knopf
-   **Refresh microphones**. Im Infofeld links steht `Mic: capturing | input: system default | mode: …`.
+   **Refresh microphones**. Im Infofeld links steht `Mic: capturing | microphone: system default input | mode: …`.
    Ohne laufende Begleit-App: rote Zeile
-   `Companion app not running. Start it: python -m aibody_companion --vam-root "D:\VaM"`; nach dem Start
+   `Companion app not running, so nothing is heard or spoken. Start it in a console, in the 'companion' folder: python -m aibody_companion --vam-root "D:\VaM"`; nach dem Start
    der App verschwindet sie. Sprechen (Pegel bewegt sich): die App nimmt vom Windows-Standard-Eingabegerät auf.
    Anderes Mikrofon: in Windows als Standardgerät einstellen und die App neu starten. Eine alte Szene mit
    gespeichertem „Mic device“ lädt ohne Fehler (Wert wird ignoriert).

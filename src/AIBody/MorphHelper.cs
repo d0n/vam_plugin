@@ -47,7 +47,7 @@ namespace AIBody
             if (_morphsUI == null && !_warned)
             {
                 _warned = true;
-                Log.Error("Morphs not available yet: " + LookupError + " (retrying every 5 s)");
+                Log.Error("The character's morphs are not available yet: " + LookupError + ". Expressions and breathing wait for them; the plugin keeps trying every 5 s.");
             }
             else if (_morphsUI != null && _warned)
             {
@@ -80,7 +80,7 @@ namespace AIBody
             if (morph == null)
             {
                 _missing.Add(name);
-                Log.Info("Morph not found: '" + name + "' (check the name in the Morphs tab).");
+                Log.Info("Morph '" + name + "' was not found on this character. Check the exact name in the character's Morphs tab.");
                 return null;
             }
             _cache[name] = morph;

@@ -105,15 +105,15 @@ namespace AIBody
                 }
                 if (type == Protocol.CmdGesture || type == Protocol.CmdPose || type == Protocol.CmdTrigger)
                 {
-                    if (_poses == null) return "Poses/gestures not available (PoseController missing)";
+                    if (_poses == null) return "Poses are not available: the pose part of the plugin did not start (see the Self-test in tab Config)";
                 }
-                else if (_expressions == null) return "Expressions not available (no morphs on this character)";
+                else if (_expressions == null) return "Expressions are not available: the plugin found no morphs on this character yet (see the Self-test in tab Config)";
             }
             switch (type)
             {
                 case Protocol.CmdSpeak:
                 {
-                    if (_speech == null) return "Speech output not available (SpeechPlayer missing)";
+                    if (_speech == null) return "The character cannot speak: the speech part of the plugin did not start (see the Self-test in tab Config)";
                     string utteranceId = id.Length > 0 ? id : "utt-" + DateTime.UtcNow.Ticks;
                     bool interrupt = Protocol.GetString(msg, "queue", "append") == "interrupt";
                     string error = _speech.Enqueue(utteranceId, Protocol.GetString(msg, "audio", ""), interrupt);

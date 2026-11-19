@@ -4,6 +4,7 @@ info field on the left), no removed placeholders (Post tab, Channel field, key f
 Delay, the tab title headers)."""
 import re
 import unittest
+import unittest.mock
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -184,8 +185,8 @@ class SpeechDelayTimerTextTests(unittest.TestCase):
 
     def test_voice_tab_help_explains_the_timer(self):
         link = source("AppLink.cs")
-        self.assertIn("Speech delay timer (s): how long silence must last before the AI may say something on its own", link)
-        self.assertIn("It is not the answer delay.", link)
+        self.assertIn("Speech delay timer (s): how long it must be quiet before the AI may say something on its own", link)
+        self.assertIn("It is not how long the AI takes to answer.", link)
 
     def test_startup_and_nudge_log_lines(self):
         import tempfile
@@ -212,6 +213,57 @@ class SpeechDelayTimerTextTests(unittest.TestCase):
         self.assertIn("s of silence passed (speech delay timer) - the AI may say something on its own", text)
 
 
+class PlainEnglishTextTests(unittest.TestCase):
+    """Leon, 19.11.2026: help and error texts in plain English: what went wrong, where to look, what to do."""
+
+    def test_plugin_audio_errors_say_what_to_check(self):
+        player = source("SpeechPlayer.cs")
+        for part in ("The audio did not start playing within ", "Check that it is a valid WAV",
+                     "Speech volume (tab AI Character) is above 0", "the character's head audio is not muted or blocked",
+                     "make sure its --vam-root is the VaM folder you start VaM from",
+                     "VaM would not load the audio file", "Press 'Play test tone' again",
+                     "The character cannot speak yet", "Add AIBody to a Person atom"):
+            self.assertIn(part, player)
+        for jargon in ("QueueClip returned nothing", "GetClip did not find", "QueueClip failed"):
+            self.assertNotIn(jargon, player)
+        self.assertIn('"did not start playing within " + StartTimeout.ToString("0") + " s: " + u.Path', player,
+                      "the short message sent to the companion keeps its wording")
+        router = source("CommandRouter.cs")
+        self.assertIn("see the Self-test in tab Config", router)
+        self.assertNotIn("SpeechPlayer missing", router)
+
+    def test_plugin_help_texts_are_plain(self):
+        link, plugin, mic = source("AppLink.cs"), source("AIBody.cs"), source("MicConfig.cs")
+        self.assertIn("so the character only talks", plugin)
+        self.assertIn("Proactive talking: when on, the AI may start talking by itself after a quiet moment.", link)
+        self.assertIn("paste your xAI API key (from console.x.ai) into the field", link)
+        self.assertIn("The microphone is always the system default input", mic)
+        for gone in ("speech recognition -> Grok -> voice", "Mic device", "Refresh microphones"):
+            self.assertNotIn(gone, link + plugin + mic)
+
+    def test_companion_messages_say_where_to_look(self):
+        from aibody_companion.audio import capture
+        from aibody_companion.pipeline.engines import KEY_HINT
+
+        self.assertIn("console.x.ai", KEY_HINT["xai"])
+        self.assertIn("A Grok subscription or a grok.com login does not work.", KEY_HINT["xai"])
+        with unittest.mock.patch.object(capture, "_sounddevice", lambda: None):
+            error = capture.list_input_devices()[1]
+        self.assertIn("pip install sounddevice", error)
+        self.assertIn("restart this app", error)
+        base = ROOT / "companion/aibody_companion"
+        cli_text = (base / "cli.py").read_text(encoding="utf-8")
+        self.assertIn("paste the key into the field 'XAI API Token' (tab Voice)", cli_text)
+        orch = (base / "orchestrator.py").read_text(encoding="utf-8")
+        for part in ("Try speaking louder or closer to the microphone", "'API Reconnect' (tab Voice) tries realtime again",
+                     "check your xAI key (tab Voice) and internet connection",
+                     "the app runs in text-only mode (--no-mic)"):
+            self.assertIn(part, orch)
+        transport = (base / "transport/file_transport.py").read_text(encoding="utf-8")
+        self.assertIn("is --vam-root the VaM folder you start VaM from", transport)
+        self.assertIn("not valid JSON", transport)
+
+
 class NoMicSelectionTests(unittest.TestCase):
     """Leon, 19.11.2026: the microphone device selection is gone, the companion always uses the system default."""
 
@@ -234,7 +286,8 @@ class NoMicSelectionTests(unittest.TestCase):
     def test_companion_not_running_hint_stays(self):
         mic = source("MicConfig.cs")
         update = method_body(mic, "public void Update(float deltaTime, bool connected, bool appRunning, bool linkActive)")
-        for part in ("Companion app not running. Start it: ", "StartHint", "switch on 'Active' (tab Voice)", "<color=red>"):
+        for part in ("Companion app not running, so nothing is heard or spoken. Start it in a console", "StartHint",
+                     "Turn on 'Active' in tab Voice", "<color=red>"):
             self.assertIn(part, update)
         self.assertIn("_appHint", method_body(mic, "private void RefreshStatus()"))
         self.assertIn("_mic.Update(dt, connected, _appAlive,", source("AppLink.cs"))

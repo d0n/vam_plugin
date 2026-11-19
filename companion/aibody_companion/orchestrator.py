@@ -288,13 +288,13 @@ class Companion:
 
     def realtime_unresponsive(self, reason: str) -> None:
         """Realtime connected but did not answer: give it up until "API Reconnect" / a mode change."""
-        log.warning("Realtime is not responding (%s) - using the chain from now on; 'API Reconnect' tries again",
-                    reason)
+        log.warning("Realtime voice is not answering (%s). Using the normal chain (speech recognition + language "
+                    "model + voice) from now on; 'API Reconnect' (tab Voice) tries realtime again.", reason)
         if self.realtime is not None and self.realtime.turn is not None:
             self.realtime.turn.step("realtime given up", reason=reason, fallback="chain")
         self.realtime_off = reason
-        self.turn_status = (f"Realtime did not respond ({reason}) - using the chain from now on, "
-                            "please repeat the question")
+        self.turn_status = (f"Realtime did not respond ({reason}). Using the normal chain (speech recognition + language model "
+                            "+ voice) from now on - please ask again. 'API Reconnect' (tab Voice) tries realtime again")
         self._update_mode()
         self._last_heartbeat = -HEARTBEAT_INTERVAL_S
 
@@ -321,10 +321,13 @@ class Companion:
             self.engine_set.rejected.pop("xai", None)
             self.mode_note = f"Realtime connected ({client.model}, voice {settings['voice']})"
         elif client.failures == 0 and not client.last_error:
-            self.mode_note = "Realtime connecting ... (chain runs meanwhile)"
+            self.mode_note = "Realtime connecting ... (the normal chain answers meanwhile)"
         else:
             self.mode_note = (f"Realtime not connected: {client.last_error or 'disconnected'} - "
-                              f"falling back to the chain, retrying in {client.retry_in():.0f} s")
+                              f"falling back to the chain (speech recognition + language model + voice), "
+                              f"retrying in {client.retry_in():.0f} s")
+            if client.last_error and client.last_error.startswith(REALTIME_KEY_REJECTED):
+                self.mode_note += ". Check the key in the field 'XAI API Token' (tab Voice)"
 
     def mode_info(self) -> dict[str, Any]:
         return {"requested": self.mode_requested, "active": self.active_mode, "status": self.mode_note}
@@ -468,7 +471,8 @@ class Companion:
             elif type_ == "reconnect":
                 self.reconnect_api()
             elif type_ == "error":
-                log.warning("Body error (%s): %s", event.get("code"), event.get("message"))
+                log.warning("The plugin reported a problem (%s): %s - see the VaM log (lines starting with AIBody) for details",
+                            event.get("code"), event.get("message"))
                 if event.get("code") == "audio_failed":
                     self._audio_failed(str(event.get("reply_to") or ""), str(event.get("message") or ""))
             else:
@@ -677,7 +681,7 @@ class Companion:
 
     def mic_state(self) -> dict[str, Any]:
         s = self.mic_settings
-        error = self.mic.error if self.mic else "no microphone in this mode (text input only)"
+        error = self.mic.error if self.mic else "The microphone is not used: the app runs in text-only mode (--no-mic)"
         state = {
             "enabled": s.enabled,
             "capturing": bool(self.mic and self.mic.capturing),
@@ -929,7 +933,8 @@ class Companion:
         except Exception as e:  # noqa: BLE001 - a failed request must not end the turn silently
             if isinstance(e, ApiError):
                 self.engine_set.note_api_error(e)
-            self._stt_error = f"Speech recognition error: {_short(str(e), 120)}"
+            self._stt_error = (f"Speech recognition error: {_short(str(e), 120)} - using the test engine instead; "
+                               "check your xAI key (tab Voice) and internet connection")
             name, fallback = self.engine_set.fallback("stt")
             log.warning("Speech to text failed (%s); fallback %s", e, name)
             try:
@@ -995,7 +1000,8 @@ class Companion:
             name, fallback = self.engine_set.fallback("tts")
             log.warning("Text to speech failed (%s); fallback %s for: %s", e, name, text)
             if problems is not None:
-                problems.append(f"Text-to-speech error: {_short(str(e), 120)} - fallback tone ({name})")
+                problems.append(f"Text-to-speech error: {_short(str(e), 120)} - you hear a fallback tone ({name}) instead; "
+                                "check your xAI / ElevenLabs key and internet connection")
             return fallback.synthesize(text, path)
 
     def _apply(self, step: tuple[Any, ...]) -> None:
@@ -1009,14 +1015,15 @@ class Companion:
             elif stt_error:
                 self._set_turn(f"{stt_error} - no answer")
             elif self.engine_set.active_names.get("stt") == "null":
-                self._set_turn("Nothing understood: speech recognition 'null' (test) recognizes nothing - "
-                               "xAI API key needed")
+                self._set_turn("Nothing understood: speech recognition 'null' is a test engine that cannot understand speech. "
+                               "Add an xAI API key (tab Voice, field 'XAI API Token') or type into the companion console")
             else:
-                self._set_turn(f"Nothing understood ({step[2]:.1f} s of audio, speech recognition returned no text)")
+                self._set_turn(f"Nothing understood: heard {step[2]:.1f} s of audio but speech recognition found no words. Try speaking louder or closer to the microphone")
             if not step[1] and self.engine_set.active_names.get("stt") == "null" and not self._null_stt_warned:
                 self._null_stt_warned = True
-                log.warning("Speech-to-text 'null' understands nothing, so there is no answer. For a spoken "
-                            "conversation choose Speech-to-text 'xai' or use realtime mode (xAI key).")
+                log.warning("Speech-to-text 'null' is a test engine that cannot understand speech, so you get no answer. "
+                            "For a spoken conversation add an xAI API key and choose Speech-to-text 'xai' "
+                            "(tab Voice > AI Character), or use realtime mode.")
         elif kind == "status":
             log.info("Status: %s", step[1])
             self._set_turn(step[1])
@@ -1039,18 +1046,21 @@ class Companion:
         current = self.cfg.audio_rel_dir
         failed_dir = self._rel(path.parent)
         if not self.cfg.audio_auto:
-            self.audio_note = (f"VaM could not load {path.name} ({_short(message, 100)}); "
-                               f"audio folder is fixed: {current} (connection.paths.audio)")
+            self.audio_note = (f"VaM could not load the speech file {path.name} ({_short(message, 100)}). The audio folder is "
+                               f"fixed to {current} (config.json connection.paths.audio): check that VaM can read it, "
+                               "or remove that setting so the app can choose a folder by itself")
         elif failed_dir == current and self.cfg.audio_dir_index == 0:
             self.cfg.audio_dir_index = 1
             new = self.cfg.audio_rel_dir
-            self.audio_note = f"VaM could not load from {failed_dir} - audio folder switched to {new}"
+            self.audio_note = (f"VaM could not load speech files from {failed_dir}, so the app now writes them to {new} "
+                               "and sends the speech again. Nothing to do unless this also fails")
             log.warning("Audio: %s", self.audio_note)
         elif failed_dir == current:
-            self.audio_note = (f"VaM could load the WAVs neither from {self.cfg.audio_default_dirs[0]} nor from "
-                               f"{current} ({_short(message, 100)}) - details in <VaM>/Saves/PluginData/AIBody/logs/companion.log; "
-                               "check that 'Play test tone' (tab Voice) is audible and that --vam-root is the "
-                               "VaM folder you start VaM from")
+            self.audio_note = (f"VaM could not play the speech files from either {self.cfg.audio_default_dirs[0]} or "
+                               f"{current} ({_short(message, 100)}). What to do: 1) press 'Play test tone' (tab Voice) - "
+                               "if that is silent too, the problem is in VaM or the character's head audio; "
+                               "2) check that the app's --vam-root is the VaM folder you start VaM from; "
+                               "3) see <VaM>/Saves/PluginData/AIBody/logs/companion.log")
             log.warning("Audio: %s", self.audio_note)
         self._last_heartbeat = -HEARTBEAT_INTERVAL_S
         if failed_dir == self.cfg.audio_rel_dir or not path.exists():
@@ -1061,7 +1071,7 @@ class Companion:
             new_path.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(path, new_path)
         except OSError as e:
-            log.warning("Audio: could not copy %s to %s: %s", path, new_path, e)
+            log.warning("Audio: could not copy the speech file %s to %s: %s - check that the folder is writable and the disk is not full", path, new_path, e)
             return
         log.info("Audio: sending %s again from %s", utterance_id, self.cfg.audio_rel_dir)
         if utterance_id in self._utt_turn:

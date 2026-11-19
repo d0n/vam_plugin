@@ -60,9 +60,10 @@ sentences, the first sentence is spoken while the rest is still written) -> TTS 
 gesture tags in the answer are dropped (speech only); proactive remarks are paused. Typed text in
 the companion console takes the same path without speech to text. Every step reports to the
 status box (heartbeat `turn`): `Heard: …`, `Answer (n sentence(s), xai -> xai): …`,
-`Nothing understood …`, `Speech recognition error: …`, `Language model error: … - fallback answer` (a
-short spoken notice instead of the answer), `Text-to-speech error: … - fallback tone (tone)` (the
-sentence is played as a tone). Without a key the test engines run and the mode status says so.
+`Nothing understood: …`, `Speech recognition error: … - using the test engine instead; check your xAI key …`,
+`Language model error: … - fallback answer` (a short spoken notice instead of the answer),
+`Text-to-speech error: … - you hear a fallback tone (tone) instead; check your xAI / ElevenLabs key …` (the
+sentence is played as a tone). Every message says what went wrong, where to look and what to do next. Without a key the test engines run and the mode status says so.
 
 In every mode but `chain`, an xAI key also replaces the test engines on the chain path for typed
 text and for the realtime fallback.

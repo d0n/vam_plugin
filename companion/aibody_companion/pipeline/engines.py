@@ -50,9 +50,9 @@ UI_KEY_SOURCE = {"xai": "plugin field 'XAI API Token'"}
 # What kind of key works. xAI: an API key from console.x.ai (pay-as-you-go API credit); the login /
 # subscription of grok.com or the X app (SuperGrok, Premium) is no API key and is refused by api.x.ai.
 KEY_HINT = {
-    "xai": ("needed: an API key from console.x.ai (starts with xai-) - "
-            "a Grok subscription / grok.com token does not work"),
-    "elevenlabs": "needed: an API key from elevenlabs.io (Profile -> API Keys)",
+    "xai": ("You need an xAI API key: create one at console.x.ai (it starts with 'xai-'). "
+            "A Grok subscription or a grok.com login does not work."),
+    "elevenlabs": "You need an ElevenLabs API key: elevenlabs.io > your profile > API Keys.",
 }
 
 
@@ -124,7 +124,7 @@ class EngineSet:
         provider = str(getattr(error, "service", "")).lower()
         if provider in KEYED:
             self.rejected[provider] = f"rejected by the server (HTTP {status})"
-            log.warning("%s API key rejected (HTTP %s) - %s", provider, status, KEY_HINT[provider])
+            log.warning("The %s API key was rejected (HTTP %s), so it cannot be used. %s", provider, status, KEY_HINT[provider])
 
     def key_info(self) -> dict[str, dict[str, str]]:
         """Per provider: state configured / missing / rejected and where the key comes from (never the key)."""
@@ -212,7 +212,8 @@ class EngineSet:
         run = name
         if not self.configured(name):
             run = self.fallback_name(kind)
-            notes.append(f"{kind} {name!r} {self.status_of(name)} - Fallback {run!r}")
+            notes.append(f"{kind} engine {name!r}: {self.status_of(name)} - using the test engine instead (Fallback {run!r}). "
+                         "Add the missing API key (see the key status in tab Voice).")
         if run != self.active_names[kind]:  # same engine: keep it (and the LLM's conversation)
             self.instances[kind] = self._create(kind, run)
             self.active_names[kind] = run

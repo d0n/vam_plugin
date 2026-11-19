@@ -70,7 +70,7 @@ namespace AIBody
             catch (Exception e)
             {
                 _connected = false;
-                _lastError = "Cannot create transport folders: " + e.Message;
+                _lastError = "AIBody could not create its message folders under Saves/PluginData/AIBody: " + e.Message + ". Check that VaM may write to its Saves folder (disk full, read-only?).";
                 Log.Error(_lastError);
             }
         }
@@ -179,7 +179,7 @@ namespace AIBody
                 }
                 catch (Exception e)
                 {
-                    _lastError = "Could not delete processed inbox file " + path + ": " + e.Message;
+                    _lastError = "AIBody could not delete a message file it already read (" + path + "): " + e.Message + ". The message might be handled twice; check that Saves/PluginData/AIBody is writable.";
                     Log.Error(_lastError);
                 }
 
@@ -201,7 +201,7 @@ namespace AIBody
             }
             catch (Exception e)
             {
-                _lastError = "Outbox write failed: " + e.Message;
+                _lastError = "AIBody could not write a message for the companion app: " + e.Message + ". Check that the folder Saves/PluginData/AIBody/<channel> exists and is writable.";
                 Log.Error(_lastError);
             }
         }

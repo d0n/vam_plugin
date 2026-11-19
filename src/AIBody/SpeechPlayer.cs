@@ -121,7 +121,7 @@ namespace AIBody
                     if (_warned) Log.Info("HeadAudioSource found; speech output enabled.");
                     return true;
                 }
-                LookupError = _control == null ? "no storable 'HeadAudioSource'" : "HeadAudioSource without audioSource";
+                LookupError = _control == null ? "this atom has no 'HeadAudioSource' (is the plugin on a Person atom?)" : "the head audio source has no audio output yet (the character may still be loading)";
             }
             catch (Exception e)
             {
@@ -131,7 +131,7 @@ namespace AIBody
             if (!_warned)
             {
                 _warned = true;
-                Log.Error("Speech output not available yet: " + LookupError + " (retrying every 5 s)");
+                Log.Error("The character cannot speak yet: " + LookupError + ". The plugin keeps trying every 5 s; it must sit on a Person atom with head audio.");
             }
             return false;
         }
@@ -156,14 +156,14 @@ namespace AIBody
         {
             if (!Resolve())
             {
-                string why = "no head audio (HeadAudioSource) on this character: " + LookupError;
+                string why = "The character has no head audio (HeadAudioSource), so it cannot speak: " + LookupError + ". Add AIBody to a Person atom.";
                 SetError(why);
-                return "No HeadAudioSource on this atom (" + LookupError + ")";
+                return "The character has no head audio (HeadAudioSource): " + LookupError;
             }
             if (string.IsNullOrEmpty(path))
             {
-                SetError("speak without an 'audio' path");
-                return "speak needs 'audio' (a file path below the VaM folder)";
+                SetError("The companion app sent a speak command without an audio file. This is a bug in the app; see its companion.log.");
+                return "the speak command has no audio file path";
             }
             // Plain paths below the VaM folder can be checked (E10); package paths ("pkg:/...") cannot.
             // A check that throws (folder the sandbox does not let us look into) does not block loading.
@@ -175,8 +175,8 @@ namespace AIBody
             }
             if (missing)
             {
-                SetError("File missing: " + path + " (does the companion app write to the same VaM folder? Check --vam-root)");
-                return "audio file not found: " + path;
+                SetError("Audio file not found: " + path + ". The companion app writes speech files into the VaM folder it was started with: make sure its --vam-root is the VaM folder you start VaM from.");
+                return "audio file not found: " + path + " (check the companion app's --vam-root)";
             }
             if (interrupt) StopAll("interrupted");
             _queue.Add(new Utterance { Id = id, Path = path });
@@ -221,8 +221,8 @@ namespace AIBody
                 _queue.RemoveAt(0);
                 if (next.Clip == null)
                 {
-                    SetError((next.Error ?? "QueueClip failed") + " – " + next.Path);
-                    Fire(OnError, next.Id, next.Error ?? "audio could not be queued");
+                    SetError((next.Error ?? "VaM could not load the audio file") + " File: " + next.Path);
+                    Fire(OnError, next.Id, next.Error ?? "VaM could not load the audio file");
                     Fire(OnEnded, next.Id, "failed");
                 }
                 else Play(next);
@@ -238,15 +238,15 @@ namespace AIBody
                 URLAudioClip queued = URLAudioClipManager.singleton.QueueClip(url);
                 if (queued == null)
                 {
-                    u.Error = "QueueClip returned nothing (path '" + url + "' not loadable?)";
+                    u.Error = "VaM would not load the audio file '" + url + "'. Check that the file exists in that folder and is a normal WAV; the companion app then tries its other audio folder.";
                     return;
                 }
                 u.Clip = URLAudioClipManager.singleton.GetClip(queued.uid);
-                if (u.Clip == null) u.Error = "GetClip did not find the loaded clip (uid " + queued.uid + ")";
+                if (u.Clip == null) u.Error = "VaM loaded the audio file but could not find the clip afterwards (clip id " + queued.uid + "). Press 'Play test tone' again; if it keeps failing, restart VaM.";
             }
             catch (Exception e)
             {
-                u.Error = "Loading failed: " + Diag.Describe(e);
+                u.Error = "Loading the audio file failed: " + Diag.Describe(e) + ". Check that the file exists and is a normal WAV.";
             }
         }
 
@@ -280,8 +280,9 @@ namespace AIBody
                 }
                 if (u.PlayTime > StartTimeout)
                 {
-                    SetError("Clip did not start within " + StartTimeout.ToString("0") + " s (" + u.Plays
-                        + "x PlayNow) – file not loadable (format/path) or head audio blocked: " + u.Path);
+                    SetError("The audio did not start playing within " + StartTimeout.ToString("0") + " s (" + u.Plays
+                        + " tries): " + u.Path + ". VaM loaded the file but never played it. Check that it is a valid WAV, that "
+                        + "the character's head audio is not muted or blocked, and that Speech volume (tab AI Character) is above 0.");
                     Fire(OnError, u.Id, "did not start playing within " + StartTimeout.ToString("0") + " s: " + u.Path);
                     Finish("failed");
                     return;

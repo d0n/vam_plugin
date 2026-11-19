@@ -94,7 +94,7 @@ class SoundPathTests(unittest.TestCase):
         with self.assertLogs("aibody_companion.orchestrator", logging.WARNING) as logs:
             app._apply(("heard", "", 1.0))
             app._apply(("heard", "", 1.0))
-        self.assertEqual(sum("understands nothing" in m for m in logs.output), 1)
+        self.assertEqual(sum("cannot understand speech" in m for m in logs.output), 1)
 
 
 if __name__ == "__main__":

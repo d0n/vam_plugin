@@ -249,8 +249,9 @@ namespace AIBody
         /// Button "Reload Config JSON": applies config.json to the UI (paths, connection, engines, mic,
         /// body, ai keys of the tabs) and pushes the result to the companion app.
         /// </summary>
-        private string _simpleQa = "Question and Answer: speak a question or type it in the companion console -> Grok answers -> "
-            + "the character speaks. Sets AI mode = qa and Body control = off (tab AI Character). Needs an xAI API key.";
+        private string _simpleQa = "Question and Answer: you ask a question (speak it, or type it into the companion app's console) and the "
+            + "character speaks Grok's answer. This sets AI mode to 'qa' and turns Body control off (tab AI Character), "
+            + "so the character only talks. It needs an xAI API key.";
 
         /// <summary>
         /// Button "Question and Answer" (until version 20 "Simple Q&amp;A mode"): AI mode qa (STT -> Grok -> TTS, speech only) and body
@@ -260,8 +261,8 @@ namespace AIBody
         {
             if (_link != null) _link.SetSimpleQa();
             if (_body != null) _body.SetBodyControl(false);
-            _simpleQa = "Question and Answer on (" + DateTime.Now.ToString("HH:mm:ss") + "): AI mode = qa, Body control = off. "
-                + "Now press 'Play test tone', then ask a question.";
+            _simpleQa = "Question and Answer is on (" + DateTime.Now.ToString("HH:mm:ss") + "): AI mode is 'qa' and Body control is off. "
+                + "Press 'Play test tone' to check that you can hear the character, then ask a question.";
         }
 
         private void ReloadConfigJson()

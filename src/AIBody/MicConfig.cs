@@ -44,7 +44,7 @@ namespace AIBody
 
         private bool _dirty;
         private float _sinceChange;
-        private string _micState = "unknown (companion app not connected)";
+        private string _micState = "unknown (the companion app is not connected)";
         private string _ackText = "";
         private string _levelText = "";
         private float _levelAge = 999f;
@@ -84,8 +84,10 @@ namespace AIBody
             // VaM's plugin UI has no tooltip / hover API with public evidence, so the explanation
             // stands in the big info field on the left while the tab Client Character is open.
             _pttHelp = new JSONStorableString("Push-to-talk help",
-                "Push-to-talk active: while checked, the companion app listens (like holding a radio talk button). "
-                + "Only in Mic mode Push-to-talk. From triggers / keys: actions 'Push-to-talk start / stop / toggle'.");
+                "Push-to-talk active: while this is checked the companion app listens to your microphone, like holding the "
+                + "talk button of a walkie-talkie. It only works when Mic mode is 'Push-to-talk'. "
+                + "The microphone is always the system default input (change it in your system sound settings). "
+                + "You can also use the actions 'Push-to-talk start / stop / toggle' from triggers or keys.");
 
             _plugin.RegisterAction(new JSONStorableAction("Push-to-talk start", () => _pttActive.val = true));
             _plugin.RegisterAction(new JSONStorableAction("Push-to-talk stop", () => _pttActive.val = false));
@@ -140,9 +142,9 @@ namespace AIBody
             _levelAge += deltaTime;
             // The companion app is the only thing that listens: say plainly when it is not there.
             _appHint = !linkActive
-                ? "<color=red>Link is off - switch on 'Active' (tab Voice).</color>"
+                ? "<color=red>The link to the companion app is switched off. Turn on 'Active' in tab Voice.</color>"
                 : !appRunning
-                    ? "<color=red>Companion app not running. Start it: " + StartHint + "</color>"
+                    ? "<color=red>Companion app not running, so nothing is heard or spoken. Start it in a console, in the 'companion' folder: " + StartHint + "</color>"
                     : "";
             // Debounce slider drags: send 0.3 s after the last change.
             if (_dirty && connected && _sinceChange > 0.3f) SendConfig();
@@ -212,7 +214,7 @@ namespace AIBody
         public void HandleMicState(JSONClass msg)
         {
             string text = Protocol.GetBool(msg, "capturing", false) ? "capturing" : "not capturing";
-            text += " | input: system default";
+            text += " | microphone: system default input";
             text += " | mode: " + Protocol.GetString(msg, "mode", "?");
             if (Protocol.GetBool(msg, "ptt_active", false)) text += " | TALKING (PTT)";
             string error = Protocol.GetString(msg, "error", "");

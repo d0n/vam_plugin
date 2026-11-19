@@ -212,7 +212,7 @@ class QaFlowTests(unittest.TestCase):
         self.assertTrue((self.root / speaks[1]["audio"]).is_file())
         self.assertIn(("started", speaks[1]["id"]), self.plugin.speech_events)
         self.assertEqual(self.plugin.audio_out["folder"], "Saves/PluginData/AIBody/default/audio")
-        self.assertIn("switched", self.plugin.audio_out["note"])
+        self.assertIn("now writes them to", self.plugin.audio_out["note"])
         # the answers now go to the new folder
         self.app.handle_user_text("Hallo")
         self.sim.run(self.plugin, 3)
@@ -225,7 +225,7 @@ class QaFlowTests(unittest.TestCase):
         self.plugin.request_test_tone()
         self.sim.run(self.plugin, 3)
         self.assertEqual(len(self.speaks()), 2)
-        self.assertIn("neither from", self.plugin.audio_out["note"])
+        self.assertIn("could not play the speech files from either", self.plugin.audio_out["note"])
         note = self.plugin.audio_out["note"]
         self.assertNotIn("TESTPROTOKOLL", note, "Leon took 'T9' for a log")
         self.assertIn("Saves/PluginData/AIBody/logs/companion.log", note)

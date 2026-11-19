@@ -134,9 +134,10 @@ def main(argv: list[str] | None = None) -> int:
 
     companion = build_stack(cfg, use_mic=not args.no_mic)
     if not companion.engine_set.key("xai"):
-        log.warning("No xAI API key yet: test engines only (echo + tone) until one arrives. %s; enter it in the "
-                    "plugin field 'XAI API Token' (it reaches this app once the plugin connects), or set "
-                    "XAI_API_KEY / a key file in config.json (ai.xai.key_file).", KEY_HINT["xai"])
+        log.warning("No xAI API key yet, so only the test engines run (they repeat what you type and play a tone) - "
+                    "no real conversation. %s To fix it: paste the key into the field 'XAI API Token' (tab Voice) in "
+                    "VaM - it reaches this app as soon as the plugin connects - or set the XAI_API_KEY environment "
+                    "variable, or a key file in config.json (ai.xai.key_file).", KEY_HINT["xai"])
     companion.transport.start()
     try:
         run(companion, read_stdin=not args.no_stdin, poll_interval=cfg.poll_interval_s)

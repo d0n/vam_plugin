@@ -177,8 +177,9 @@ namespace AIBody
             if (LooksLikeKey(value))
             {
                 field.val = "";   // never keep a key in the scene
-                _keyWarning = "That looked like an API key and was NOT saved. Enter the PATH of a text file "
-                    + "that contains the key (e.g. C:/Users/<you>/keys/xai.txt).";
+                _keyWarning = "That looks like an API key, so it was NOT saved here (keys must not end up in the scene). "
+                    + "Enter the PATH of a text file that contains the key instead, e.g. C:/Users/<you>/keys/xai.txt. "
+                    + "Or paste the key into the field '" + XaiTokenLabel + "'.";
                 Log.Error(_keyWarning);
                 UpdateKeyStatus();
                 return;
@@ -342,11 +343,11 @@ namespace AIBody
         {
             if (!_appAlive)
             {
-                _testToneStatus = "Test tone via companion: app not connected";
+                _testToneStatus = "Test tone not sent: the companion app is not connected. Start it first (the 'Companion app' line in the info field shows how).";
                 return;
             }
             Send(Protocol.NewEvent(Protocol.EvtTestTone));
-            _testToneStatus = "Test tone via companion requested (arrives as a normal speak command)";
+            _testToneStatus = "Test tone requested from the companion app. You should hear it from the character in a moment. If not, read the red audio note in the info field and companion.log.";
         }
 
         /// <summary>
@@ -378,7 +379,7 @@ namespace AIBody
         /// <summary>Channel line for the tab "Config" (set in config.json connection.channel, not in the menu).</summary>
         public string ChannelInfoText()
         {
-            return "Channel: " + Channel + " (" + ChannelDir + "; change via config.json connection.channel or --channel)";
+            return "Channel: " + Channel + " - the folder (" + ChannelDir + ") the plugin and the companion app use to exchange messages. To change it, set connection.channel in config.json or start the app with --channel.";
         }
 
         /// <summary>
@@ -398,10 +399,12 @@ namespace AIBody
         public const string ModeQa = "qa";
 
         private readonly JSONStorableString _modeHelpJson = new JSONStorableString("AI mode help",
-            "AI mode: qa = speech recognition -> Grok -> voice (speech only). auto / realtime = Grok Voice directly "
-            + "(falls back to the chain). chain = the engines under Voice > AI Character.\n"
-            + "Speech delay timer (s): how long silence must last before the AI may say something on its own "
-            + "(0 = off). It is not the answer delay.");
+            "AI mode: 'qa' = your speech is turned into text, Grok answers and the character speaks (talking only). "
+            + "'auto' / 'realtime' = you talk to Grok Voice directly; if that does not work it falls back to 'chain'. "
+            + "'chain' = the engines picked under Voice > AI Character.\n"
+            + "Proactive talking: when on, the AI may start talking by itself after a quiet moment.\n"
+            + "Speech delay timer (s): how long it must be quiet before the AI may say something on its own "
+            + "(0 = never). It is not how long the AI takes to answer.");
 
         /// <summary>Button "Question and Answer": AI mode qa (body control is switched off by the plugin).</summary>
         /// <summary>
@@ -443,9 +446,10 @@ namespace AIBody
             }
             // Version 21: the token field is the main way; the environment variable and key file are optional.
             if (_keyInfo == null || !KeyConfigured("xai"))
-                text += "Enter the token in the field '" + XaiTokenLabel + "' (tab Voice). XAI_API_KEY or a key file (config.json ai.xai.key_file) also work; the field wins.\n";
+                text += "No xAI key yet: paste your xAI API key (from console.x.ai) into the field '" + XaiTokenLabel + "' (tab Voice). "
+                    + "Alternatives: the XAI_API_KEY environment variable, or a key file set in config.json (ai.xai.key_file). The field is used first.\n";
             if (_keyInfo != null && !KeyConfigured("elevenlabs"))
-                text += "ElevenLabs: ELEVENLABS_API_KEY or a key file (config.json ai.elevenlabs.key_file); no menu field.";
+                text += "ElevenLabs (optional, only for ElevenLabs voices): set the ELEVENLABS_API_KEY environment variable or a key file in config.json (ai.elevenlabs.key_file). There is no field for it here.";
             _keyStatusJson.val = text;
         }
 
@@ -1027,8 +1031,8 @@ namespace AIBody
                 }
                 if (_latency != null) text += LatencyLine() + "\n";
             }
-            else if (_lastSession != null) text += "Companion app: DISCONNECTED – reconnects automatically as soon as the app runs again\n";
-            else text += "Companion app: not seen yet – start it: python -m aibody_companion --vam-root \"D:\\VaM\" --channel " + Channel + "\n";
+            else if (_lastSession != null) text += "Companion app: connection lost (no heartbeat). It reconnects by itself once the app runs again; if it should be running, look at its console window.\n";
+            else text += "Companion app: not running yet. Start it in a console, in the 'companion' folder: python -m aibody_companion --vam-root \"D:\\VaM\" --channel " + Channel + "\n";
             return text;
         }
     }

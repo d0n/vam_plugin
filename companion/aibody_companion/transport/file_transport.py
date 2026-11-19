@@ -80,7 +80,8 @@ class FileTransport(Transport):
             except FileNotFoundError:
                 continue  # the plugin took it meanwhile
         if dropped:
-            log.info("Dropped %d command file(s) the plugin did not pick up (is it running?)", dropped)
+            log.info("Dropped %d old message file(s) for the plugin that it never picked up. Is VaM running with the AIBody "
+                     "plugin on a Person atom, is 'Active' on (tab Voice), and is --vam-root the VaM folder you start VaM from?", dropped)
         return dropped
 
     def poll_events(self) -> list[dict[str, Any]]:
@@ -103,7 +104,8 @@ class FileTransport(Transport):
                     continue
                 if age < PARTIAL_WRITE_GRACE_S:
                     break  # keep order: wait for this file before reading later ones
-                log.warning("Dropping unreadable event file %s", path.name)
+                log.warning("Dropped an unreadable message file from the plugin (%s): it is not valid JSON. If this repeats, "
+                            "check that the plugin and this app are the same AIBody version", path.name)
                 path.unlink(missing_ok=True)
                 continue
             path.unlink(missing_ok=True)
