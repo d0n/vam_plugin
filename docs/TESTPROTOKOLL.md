@@ -273,3 +273,15 @@ Needs VaM with the AI Character (AIBody) and the Client Character in the example
    and says so; picking a Default gaze takes the eyes again.
 6. Report: where the eyes look in each step (correct / mirrored / too high / too low), whether *Straight ahead* really is
    the way the face points, the VaM error log.
+
+## T15 – Natural gaze, blinking, scene hooks (version 26)
+
+Needs VaM with the AI Character (AIBody) and the companion app (AI mode not Question and Answer for step 6). No Glance, no Life on the AI Character for steps 1-5.
+
+1. Tab **AI Character** > **Gaze and blinking** > **Default gaze** = *Natural (looks around)*: the eyes stay on the client (or on you) with tiny moves and look away briefly every few seconds; the info field says *looking at the client (natural gaze)*. Report: too busy, too calm, too wide?
+2. Speak a sentence and stop: while the AI "thinks" it glances up and aside once. Needs *Level meter* on (tab Client Character). While the AI talks it glances away more often.
+3. **Blink control** on: VaM's blinking stops, AIBody blinks (irregular). Info field *Blinking now: blinking by AIBody*. Off again: VaM's blinking is back and the eyes are open. Report: morph "Eyes Closed" found on the female and the male figure? Do the eyelids move normally, no stuck-closed eyes?
+4. With Blink control on, open the character's Eyelid Control (Atom > Person > Eyes/Eyelids) and switch **Blink enabled** on by hand: AIBody must stop (*stopped: someone switched VaM's auto blink on again*). Toggle **Blink control** off and on to take over again.
+5. Add Life (Gaze / Eyes) to the Person: the info field says *paused: Life (MacGruber Gaze)* / *Life (MacGruber Eyes)*. Report the real plugin id if the pause does not appear (Plugins tab of the atom shows `plugin#N_<name>`).
+6. Scene hooks: add a trigger on any atom (for example a UIButton): receiver = the Person, receiver target = the AIBody plugin, **Scene event** (string) = `A bell rings`, or an action such as `Look at camera` / `Expression: happy` / `Blink now`. Check that the targets appear in the trigger list at all. With the companion running (chain or realtime, not Q&A) the AI reacts briefly to the bell or stays silent; the log of the companion shows `Scene event: A bell rings`. Also check the values `AI speaking` / `User speaking` are listed as readable values for other plugins.
+7. Report what is missing in the trigger list (which entries appear), and the VaM error log.

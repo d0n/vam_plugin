@@ -49,7 +49,7 @@ from typing import Any
 
 from .audio.mic_settings import MicSettings, apply_mic_config
 from .config import ENGINES_AVAILABLE, PLUGIN_DATA_SUBDIR
-from .pipeline.context import DEFAULT_NUDGE_PROMPT
+from .pipeline.context import DEFAULT_NUDGE_PROMPT, DEFAULT_SCENE_EVENT_PROMPT
 from .pipeline.realtime import PCM_RATES
 from .logsetup import add_secret
 from .vamjson import as_bool, as_number
@@ -99,8 +99,9 @@ DEFAULTS: dict[str, dict[str, Any]] = {
         "breath_morph": "Breath1",
         # Gaze (tab AI Character > Gaze; the plugin keeps these, the app only reads gaze_control from the heartbeat)
         "gaze_control": True,  # false = AIBody never moves the eyes (no look_at tool for the AI)
-        "gaze_default": "default",  # default | client | camera | forward | atom:<name>; default = leave the eyes alone
+        "gaze_default": "default",  # default | natural | client | camera | forward | atom:<name>; default = leave the eyes alone
         "gaze_follows_speaker": False,  # look at the client while someone talks
+        "blink_control": False,  # true = AIBody blinks (VaM's auto blink is switched off meanwhile)
     },
     "advanced": {"file_poll_interval_s": 0.1, "verbose_log": False},
     # Companion app; the plugin's tabs set only mode, proactive.enabled / idle_seconds,
@@ -133,6 +134,12 @@ DEFAULTS: dict[str, dict[str, Any]] = {
             "enabled": True,
             "idle_seconds": 90.0,  # silence (no user speech, no AI speech) before a nudge
             "prompt": DEFAULT_NUDGE_PROMPT,
+        },
+        # Scene events: a VaM trigger sets the plugin's "Scene event" text; the AI may react (or stay silent).
+        # {event} in the prompt is replaced by the text. Not used in simple Q&A mode.
+        "scene_events": {
+            "enabled": True,
+            "prompt": DEFAULT_SCENE_EVENT_PROMPT,
         },
         "xai": {
             "base_url": "https://api.x.ai/v1",

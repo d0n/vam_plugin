@@ -200,3 +200,9 @@ for `Engine ... ready`, the spoken sentences and any `failed (...)` warnings.
 `body.gaze_follows_speaker` (default false). The AI directs its eyes with the tool `look_at` (client, camera, forward,
 away, off, or an atom name); without an order the eyes follow *Default gaze*. `default` leaves the eyes to VaM.
 With the Glance plugin on the same Person AIBody does not touch the eyes. See TECHNIK.md, section Gaze.
+
+## Natural gaze, blinking, scene events (version 26)
+
+- `body.gaze_default` accepts `natural` (menu: **Natural (looks around)**) besides `default`, `client`, `camera`, `forward`, `atom:<name>`.
+- `body.blink_control` (default false): true = AIBody blinks by itself and switches VaM's automatic blinking off meanwhile; menu: **Blink control** (tab AI Character, section Gaze and blinking). With Life's Eyes plugin or Glance on the Person AIBody leaves the eyelids alone.
+- `ai.scene_events.enabled` (default true) and `ai.scene_events.prompt` (default text with `{event}`): what the AI is told when a scene trigger sets the plugin's string **Scene event** (see PROTOCOL.md, "Scene events"). File only, no menu field.

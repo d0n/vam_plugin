@@ -298,3 +298,12 @@ loaded names) and `pose` (`name`, only when poses exist). A call becomes `expres
 `look_at` (`target` enum: client, camera, forward, away, off + the `gaze_atoms`; `seconds`) is offered only while
 `gaze_control` is true. No tools in `ai.mode` `qa` or with `body_control` false.
 
+## Scene events (since version 26, plugin -> companion)
+
+| event | fields | meaning |
+|---|---|---|
+| `scene_event` | `text` (required, non-empty string) | a VaM trigger (or Timeline, or another plugin) set the plugin's string "Scene event"; the plugin sends the text once and clears the value. The companion cleans it (one line, 200 characters), and while the AI is free tells it in an app note (`ai.scene_events.prompt`, `{event}` replaced); the AI may react or answer `[silent]`. Several events that waited (AI busy) go in one note; events older than 30 s are dropped; at most 5 wait. Ignored in simple Q&A mode and with `ai.scene_events.enabled` false. |
+
+The plugin also offers values and actions to VaM's trigger system (not part of the protocol): bool values `AI speaking`
+and `User speaking`, and actions `Look at client`, `Look at camera`, `Look straight ahead`, `Look away`,
+`Gaze back to default`, `Blink now`, `Expression: <name>`, `Gesture: <name>`.

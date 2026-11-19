@@ -106,6 +106,9 @@ Stand: 19.11.2026, Version 23. Übersicht, was umgesetzt ist und was offen ist; 
 ### Version 25 (19.11.2026)
 - **Version 25 (19.11.2026) (Must-Have 5 Rest, Blicksteuerung):** Tool `look_at` für die KI (client, camera, forward, away, off, Atom per Name; `seconds`), Befehl `look_at` im Protokoll, Menüabschnitt „Gaze“ im Tab AI Character (**Gaze control**, **Default gaze**, **Gaze follows speaker**), Schlüssel `body.gaze_control` / `gaze_default` / `gaze_follows_speaker`. Nur belegte APIs (Glance, Embody; `API_AUDIT.md` E28); mit Glance auf der Person hält sich AIBody heraus, ändert jemand den Blickmodus, gibt AIBody die Augen zurück. Das frühere „kein Look-at-Tool, weil das Plugin keine Blicksteuerung hat“ entfällt. TODO(verify) in VaM: Blickrichtung, „geradeaus“, Wiederherstellung, Glance-Erkennung (`docs/TESTPROTOKOLL.md` T14).
 
+### Version 26 (19.11.2026)
+- **Version 26 (19.11.2026) (Katalog 1, 2: Lebendigkeit und Szenen-Anbindung, Stufe 1):** natürlicher Blick („Natural (looks around)“, Wegschauen, Aufschauen beim Nachdenken), optionales Blinzeln („Blink control“, `body.blink_control`), Erkennung von Life Gaze / Life Eyes (hält sich heraus), Szenen-Anbindung für VaMs Trigger-UI, Timeline und andere Plugins: Wert „Scene event“ (Ereignis `scene_event` an die App, die KI darf reagieren), Werte „AI speaking“ / „User speaking“, Aktionen für Blick, Blinzeln, Ausdrücke und Gesten. Die Bewertung aller Backlog-Einträge steht in `docs/BACKLOG.md` („Machbarkeit (19.11.2026)“). TODO(verify) in VaM: `docs/TESTPROTOKOLL.md` T15.
+
 ## 2. Noch offen / zu tun
 
 ### Nächste Version

@@ -19,6 +19,12 @@ DEFAULT_NUDGE_PROMPT = (
     "moment and your character (a remark, a thought, a question), or you may stay silent. If you "
     f"prefer to stay silent, answer with exactly {SILENT_TOKEN} and nothing else."
 )
+SCENE_EVENT_MAX_CHARS = 200
+DEFAULT_SCENE_EVENT_PROMPT = (
+    "Something just happened in the scene: {event}. You may react briefly and in character if it fits, "
+    "or you may stay silent. If you prefer to stay silent, answer with exactly "
+    f"{SILENT_TOKEN} and nothing else."
+)
 _SILENT_WORDS = {"", "silent", "silence", "schweigen", "schweigt", "still", "stille"}
 
 
@@ -57,6 +63,20 @@ def time_rules(now: datetime, since_last_s: float | None) -> str:
 
 def nudge_text(prompt: str, now: datetime, since_last_s: float | None) -> str:
     return f"{time_context(now, since_last_s)}\n[App note: {prompt.strip() or DEFAULT_NUDGE_PROMPT}]"
+
+
+def clean_scene_event(text: object) -> str:
+    """One line of at most SCENE_EVENT_MAX_CHARS characters, without control characters ('' if nothing is left)."""
+    if not isinstance(text, str):
+        return ""
+    one_line = re.sub(r"[\x00-\x1f\x7f]+", " ", text)
+    return " ".join(one_line.split())[:SCENE_EVENT_MAX_CHARS]
+
+
+def scene_event_text(prompt: str, event: str, now: datetime, since_last_s: float | None) -> str:
+    """The note the AI gets for a scene event: the prompt with {event} replaced (no str.format: scene texts may hold braces)."""
+    note = (prompt.strip() or DEFAULT_SCENE_EVENT_PROMPT).replace("{event}", event)
+    return f"{time_context(now, since_last_s)}\n[App note: {note}]"
 
 
 def is_silent(text: str) -> bool:

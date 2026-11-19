@@ -28,6 +28,12 @@ namespace AIBody
         private JSONStorableBool _gazeControlJson;
         private JSONStorableStringChooser _gazeDefaultJson;
         private JSONStorableBool _gazeFollowJson;
+        private JSONStorableBool _blinkJson;
+        // Scene hooks (since version 26): values other plugins / triggers can read and set.
+        private JSONStorableBool _aiSpeakingJson;
+        private JSONStorableBool _userSpeakingJson;
+        private JSONStorableString _sceneEventJson;
+        private bool _sceneEventBusy;
 
         /// <summary>True while the user is talking (set by the plugin from the companion's level reports).</summary>
         public Func<bool> UserSpeaking;
@@ -49,6 +55,8 @@ namespace AIBody
         private PoseController _poses;
         private GazeController _gaze;
         private bool _gazeBroken;
+        private BlinkController _blink;
+        private bool _blinkBroken;
         private List<string> _gazeAtoms = new List<string>();
         private float _gazeAtomsAge = 999f;
         private JSONStorableStringChooser _poseChoiceJson;
@@ -188,6 +196,9 @@ namespace AIBody
             _plugin.RegisterStringChooser(_gazeDefaultJson);
             _gazeFollowJson = new JSONStorableBool("Gaze follows speaker", false, (bool v) => { if (_gaze != null) _gaze.FollowsSpeaker = v; });
             _plugin.RegisterBool(_gazeFollowJson);
+            _blinkJson = new JSONStorableBool("Blink control", false, (bool v) => { if (_blink != null) _blink.Enabled = v; });
+            _plugin.RegisterBool(_blinkJson);
+            CreateSceneHooks();
             _plugin.RegisterAction(new JSONStorableAction("Stop speaking", StopSpeaking));
             _plugin.RegisterAction(new JSONStorableAction("Reset expression", () => { if (_expressions != null) _expressions.Reset(0.4f); }));
             _plugin.RegisterAction(new JSONStorableAction("Reload config files", ReloadConfigFiles));
@@ -238,6 +249,14 @@ namespace AIBody
                 if (_gazeDefaultJson != null) gaze.SetDefault(GazeKey(_gazeDefaultJson.val));
                 _gaze = gaze;
             });
+            _diag.Run("Blinking (BlinkController)", () =>
+            {
+                BlinkController blink = new BlinkController(_atom, _morphs);
+                if (_blinkJson != null) blink.Enabled = _blinkJson.val;
+                _blink = blink;
+                if (_gaze != null) _gaze.OnShift = () => { if (_blink != null) _blink.RequestBlink(); };
+            });
+            _diag.Run("Scene actions", RegisterSceneActions);
             _diag.Run("Commands (CommandRouter)", () =>
                 _router = new CommandRouter(_send, _speech, _expressions, _poses, _idle, _breathing, _gaze,
                     () => BodyControl));
@@ -285,10 +304,11 @@ namespace AIBody
             page.Button("Reload expressions (expressions.json)", ReloadExpressions);
             page.Popup(_gestureChoiceJson);
             page.Button("Play gesture", PlayChosenGesture);
-            page.Header("<b>Gaze</b> (where the eyes look)");
+            page.Header("<b>Gaze and blinking</b> (the eyes)");
             page.Toggle(_gazeControlJson);
             page.ScrollablePopup(_gazeDefaultJson);
             page.Toggle(_gazeFollowJson);
+            page.Toggle(_blinkJson);
             page.Header("<b>Body</b> (this Person only)");
             page.Toggle(_bodyControlJson);
             page.Slider(_volumeJson);
@@ -311,22 +331,110 @@ namespace AIBody
             return text;
         }
 
+        // ---------------------------------------------------------------- scene hooks (since version 26)
+
+        /// <summary>
+        /// Values for VaM triggers, Timeline and other plugins. "AI speaking" / "User speaking" can be read
+        /// (GetBoolJSONParam, E13); "Scene event" is a text a trigger can set (receiver target: Set String,
+        /// E13): it is sent to the companion app as event scene_event and cleared again. None of them is saved
+        /// with the scene (isStorable / isRestorable false, E12 L66).
+        /// </summary>
+        private void CreateSceneHooks()
+        {
+            _aiSpeakingJson = new JSONStorableBool("AI speaking", false, (bool v) => { });
+            _aiSpeakingJson.isStorable = false;
+            _aiSpeakingJson.isRestorable = false;
+            _plugin.RegisterBool(_aiSpeakingJson);
+            _userSpeakingJson = new JSONStorableBool("User speaking", false, (bool v) => { });
+            _userSpeakingJson.isStorable = false;
+            _userSpeakingJson.isRestorable = false;
+            _plugin.RegisterBool(_userSpeakingJson);
+            _sceneEventJson = new JSONStorableString("Scene event", "", OnSceneEventSet);
+            _sceneEventJson.isStorable = false;
+            _sceneEventJson.isRestorable = false;
+            _plugin.RegisterString(_sceneEventJson);
+            _plugin.RegisterAction(new JSONStorableAction("Look at client", () => SceneLook(GazeController.KeyClient)));
+            _plugin.RegisterAction(new JSONStorableAction("Look at camera", () => SceneLook(GazeController.KeyCamera)));
+            _plugin.RegisterAction(new JSONStorableAction("Look straight ahead", () => SceneLook(GazeController.KeyForward)));
+            _plugin.RegisterAction(new JSONStorableAction("Look away", () => SceneLook(GazeController.KeyAway)));
+            _plugin.RegisterAction(new JSONStorableAction("Gaze back to default", () => SceneLook(GazeController.KeyOff)));
+            _plugin.RegisterAction(new JSONStorableAction("Blink now", () => { if (_blink != null) _blink.RequestBlink(); }));
+        }
+
+        private void SceneLook(string target)
+        {
+            if (_gaze == null || _gazeBroken) return;
+            string error = _gaze.LookAt(target, "", 0f);
+            CharacterNote = error == null ? "Gaze (scene action): " + target : "<color=red>Gaze (scene action): " + error + "</color>";
+        }
+
+        /// <summary>One action per expression and gesture known at start ("Expression: happy", "Gesture: nod"), at most 30 each.</summary>
+        private void RegisterSceneActions()
+        {
+            int count = 0;
+            if (_expressions != null)
+            {
+                foreach (string name in _expressions.PresetNames)
+                {
+                    if (count++ >= 30) break;
+                    string expression = name;
+                    _plugin.RegisterAction(new JSONStorableAction("Expression: " + expression, () =>
+                    {
+                        if (BodyControl && _expressions != null) _expressions.SetExpression(expression, 1f, 0.4f, -1f);
+                    }));
+                }
+            }
+            List<string> gestures = new List<string>();
+            if (_poses != null) foreach (string n in _poses.GestureNames) gestures.Add(n);
+            foreach (string n in new[] { "nod", "shake", "tilt" }) if (!gestures.Contains(n)) gestures.Add(n);
+            for (int i = 0; i < gestures.Count && i < 30; i++)
+            {
+                string gesture = gestures[i];
+                _plugin.RegisterAction(new JSONStorableAction("Gesture: " + gesture, () =>
+                {
+                    if (BodyControl && _poses != null) _poses.PlayGesture(gesture, 0f, 0f);
+                }));
+            }
+        }
+
+        private void OnSceneEventSet(string v)
+        {
+            if (_sceneEventBusy || string.IsNullOrEmpty(v)) return;
+            string text = v.Trim();
+            if (text.Length == 0) return;
+            _sceneEventBusy = true;
+            try
+            {
+                JSONClass evt = Protocol.NewEvent(Protocol.EvtSceneEvent);
+                evt["text"] = text;
+                _send(evt);
+                CharacterNote = "Scene event sent: " + text;
+            }
+            finally
+            {
+                _sceneEventJson.val = "";
+                _sceneEventBusy = false;
+            }
+        }
+
         // ---------------------------------------------------------------- gaze
 
         private const string GazeLabelDefault = "VaM default";
         private const string GazeLabelClient = "Client Character";
         private const string GazeLabelCamera = "Camera / player";
         private const string GazeLabelForward = "Straight ahead";
+        private const string GazeLabelNatural = "Natural (looks around)";
         private const string GazeLabelAtom = "Atom: ";
 
         private static List<string> GazeFixedChoices()
         {
-            return new List<string> { GazeLabelDefault, GazeLabelClient, GazeLabelCamera, GazeLabelForward };
+            return new List<string> { GazeLabelDefault, GazeLabelNatural, GazeLabelClient, GazeLabelCamera, GazeLabelForward };
         }
 
         /// <summary>Menu text -> config key ("default", "client", "camera", "forward", "atom:&lt;uid&gt;").</summary>
         public static string GazeKey(string label)
         {
+            if (label == GazeLabelNatural) return GazeController.KeyNatural;
             if (label == GazeLabelClient) return GazeController.KeyClient;
             if (label == GazeLabelCamera) return GazeController.KeyCamera;
             if (label == GazeLabelForward) return GazeController.KeyForward;
@@ -336,6 +444,7 @@ namespace AIBody
 
         public static string GazeLabel(string key)
         {
+            if (key == GazeController.KeyNatural) return GazeLabelNatural;
             if (key == GazeController.KeyClient) return GazeLabelClient;
             if (key == GazeController.KeyCamera) return GazeLabelCamera;
             if (key == GazeController.KeyForward) return GazeLabelForward;
@@ -363,9 +472,13 @@ namespace AIBody
             string text = "Gaze: the AI can look at the client, at the camera (you in VR or on the screen), straight ahead, away, or at an atom by name. "
                 + "Default gaze is where the eyes look when the AI gave no order; 'VaM default' leaves the eyes alone. "
                 + "Gaze follows speaker: look at the client while someone is talking (needs the level meter of tab Client Character). "
-                + "Gaze control off: AIBody never moves the eyes. If the Glance plugin is on this Person, AIBody stays out of the eyes.\n";
-            if (_gaze == null || _gazeBroken) return text + "Gaze now: not available (see the log)\n";
-            return text + "Gaze now: " + _gaze.Status + "\n";
+                + "'Natural (looks around)' keeps the eyes on the client with small eye movements, looks away now and then and looks up while the AI thinks. "
+                + "Gaze control off: AIBody never moves the eyes. If the Glance plugin or Life's Gaze is on this Person, AIBody stays out of the eyes. "
+                + "Blink control: AIBody switches VaM's automatic blinking off and blinks by itself (irregular, more while speaking, at glances); off = VaM blinks as before. "
+                + "Life's Eyes plugin or Glance on this Person: AIBody leaves the eyelids alone.\n";
+            string blink = _blink == null || _blinkBroken ? "not available (see the log)" : _blink.Status;
+            if (_gaze == null || _gazeBroken) return text + "Gaze now: not available (see the log)\nBlinking now: " + blink + "\n";
+            return text + "Gaze now: " + _gaze.Status + "\nBlinking now: " + blink + "\n";
         }
 
         /// <summary>Fills the pose / expression / gesture menus from what this body really has.</summary>
@@ -431,6 +544,7 @@ namespace AIBody
             body["gaze_control"].AsBool = _gazeControlJson.val;
             body["gaze_default"] = GazeKey(_gazeDefaultJson.val);
             body["gaze_follows_speaker"].AsBool = _gazeFollowJson.val;
+            body["blink_control"].AsBool = _blinkJson.val;
             root["body"] = body;
         }
 
@@ -449,6 +563,7 @@ namespace AIBody
             _gazeControlJson.val = Protocol.GetBool(body, "gaze_control", _gazeControlJson.val);
             _gazeDefaultJson.val = GazeLabel(Protocol.GetString(body, "gaze_default", GazeKey(_gazeDefaultJson.val)));
             _gazeFollowJson.val = Protocol.GetBool(body, "gaze_follows_speaker", _gazeFollowJson.val);
+            _blinkJson.val = Protocol.GetBool(body, "blink_control", _blinkJson.val);
         }
 
         /// <summary>Set from config.json (connection.paths) by the plugin.</summary>
@@ -542,6 +657,7 @@ namespace AIBody
         private void OnSpeechStarted(string id, float duration)
         {
             if (IsLocal(id)) return;
+            if (_blink != null) _blink.RequestBlink();
             JSONClass evt = Protocol.NewEvent(Protocol.EvtSpeechStarted);
             evt["utterance_id"] = id ?? "";
             evt["duration"].AsFloat = duration;
@@ -569,6 +685,8 @@ namespace AIBody
             if (_expressions != null) _expressions.Update(dt);
             if (_breathing != null) _breathing.Update(dt, speaking);
             UpdateGaze(dt, speaking);
+            UpdateBlink(dt, speaking);
+            UpdateSceneState(speaking);
             if (_idle == null) return;
             string finishedGesture = _idle.Update(dt, speaking,
                 _breathing != null ? _breathing.Cycle : 0f, _breathing != null ? _breathing.CurrentDepth : 0f);
@@ -578,6 +696,25 @@ namespace AIBody
                 done["name"] = finishedGesture;
                 _send(done);
             }
+        }
+
+        private void UpdateBlink(float dt, bool speaking)
+        {
+            if (_blink == null || _blinkBroken) return;
+            try { _blink.Update(dt, speaking); }
+            catch (Exception e)
+            {
+                _blinkBroken = true;   // only the blinking stops
+                try { _blink.Release(); } catch (Exception) { }
+                _diag.Fail("Blink.Update (blinking stopped)", e);
+            }
+        }
+
+        private void UpdateSceneState(bool speaking)
+        {
+            if (_aiSpeakingJson != null && _aiSpeakingJson.val != speaking) _aiSpeakingJson.val = speaking;
+            bool user = UserSpeaking != null && UserSpeaking();
+            if (_userSpeakingJson != null && _userSpeakingJson.val != user) _userSpeakingJson.val = user;
         }
 
         private void UpdateGaze(float dt, bool speaking)
@@ -629,6 +766,7 @@ namespace AIBody
             if (_breathing != null) _breathing.RestoreNow();
             if (_idle != null) _idle.RestoreNow();
             if (_gaze != null) _gaze.RestoreNow();
+            if (_blink != null) _blink.RestoreNow();
         }
     }
 }

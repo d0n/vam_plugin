@@ -23,6 +23,7 @@
         "speech_started",
         "speech_ended",
         "gesture_done",
+        "scene_event",
         "shutdown",
         "config",
         "ptt",
@@ -70,6 +71,10 @@
     "name": {
       "type": "string",
       "description": "gesture_done: gesture name"
+    },
+    "text": {
+      "type": "string",
+      "description": "scene_event: text a VaM trigger set in the plugin's 'Scene event' string (the AI may react)"
     },
     "plugin_version": {
       "type": "string"

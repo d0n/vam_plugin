@@ -55,7 +55,7 @@ public class JSONStorable : MonoBehaviour
 
 public class MVRPluginManager : JSONStorable { }                       // E1 (L287, GetStorableByID("PluginManager"))
 
-public class JSONStorableParam { public string name; }
+public class JSONStorableParam { public string name; public bool isStorable = true; public bool isRestorable = true; }   // E12 L66 (isStorable / isRestorable)
 public class JSONStorableBool : JSONStorableParam
 {
     public delegate void SetBoolCallback(bool v);

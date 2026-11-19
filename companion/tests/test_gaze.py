@@ -231,7 +231,7 @@ class PluginGazeSourceTests(unittest.TestCase):
         for control in ("page.Toggle(_gazeControlJson)", "page.ScrollablePopup(_gazeDefaultJson)",
                         "page.Toggle(_gazeFollowJson)"):
             self.assertIn(control, tab)
-        self.assertLess(tab.index("<b>Gaze</b>"), tab.index("<b>Body</b>"))
+        self.assertLess(tab.index("<b>Gaze and blinking</b>"), tab.index("<b>Body</b>"))
         for name in ('"Gaze control"', '"Default gaze"', '"Gaze follows speaker"'):
             self.assertIn(name, body)
         self.assertIn("RegisterStringChooser(_gazeDefaultJson)", body)
@@ -251,7 +251,7 @@ class PluginGazeSourceTests(unittest.TestCase):
         info = method_body(source("Body.cs"), "public string GazeInfoText()")
         for text in ("Default gaze is where the eyes look when the AI gave no order", "'VaM default' leaves the eyes alone",
                      "Gaze follows speaker", "Gaze control off: AIBody never moves the eyes",
-                     "If the Glance plugin is on this Person, AIBody stays out of the eyes", "Gaze now: "):
+                     "If the Glance plugin or Life's Gaze is on this Person, AIBody stays out of the eyes", "Gaze now: "):
             self.assertIn(text, info)
         self.assertIn("GazeInfoText()", method_body(source("Body.cs"), "public string CharacterInfoText()"))
         self.assertNotIn("page.Text(", method_body(source("Body.cs"), "public void BuildCharacterTab(UiPage page)"))

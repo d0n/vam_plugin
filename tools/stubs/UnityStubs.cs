@@ -31,6 +31,11 @@ namespace UnityEngine
         public Vector3(float x, float y, float z) { this.x = x; this.y = y; this.z = z; }
         public static Vector3 zero { get { return new Vector3(); } }
         public static Vector3 forward { get { return new Vector3(0f, 0f, 1f); } }
+        public static Vector3 up { get { return new Vector3(0f, 1f, 0f); } }                  // E12 L1158 (Vector3.up)
+        public float magnitude { get { return 0f; } }                                          // E12 L1279
+        public Vector3 normalized { get { return this; } }                                     // E12 L1280
+        public static Vector3 Cross(Vector3 a, Vector3 b) { return a; }                        // E12 L1554
+        public static Vector3 operator -(Vector3 a, Vector3 b) { return a; }                   // E12 L1278 (target - eyeCenter)
         public static Vector3 operator +(Vector3 a, Vector3 b) { return a; }
         public static Vector3 operator *(Vector3 a, float d) { return a; }
     }
@@ -51,6 +56,7 @@ namespace UnityEngine
         public static float Abs(float f) { return 0f; }
         public static float Max(float a, float b) { return a; }
         public static float Clamp01(float v) { return v; }
+        public static float SmoothStep(float a, float b, float t) { return a; }                // E29 L87
         public static float MoveTowards(float c, float t, float d) { return t; }
         public static bool Approximately(float a, float b) { return true; }
         public static float PerlinNoise(float x, float y) { return 0f; }

@@ -411,6 +411,23 @@
             }
           ],
           "default": false
+        },
+        "blink_control": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "true",
+                "false",
+                "True",
+                "False"
+              ]
+            }
+          ],
+          "default": false
         }
       },
       "description": "Tab 'AI Character', section 'Body (this Person only)'"
@@ -668,6 +685,33 @@
             "prompt": {
               "type": "string",
               "default": "The user has been quiet for a while. You may say something short and spontaneous that fits the moment and your character (a remark, a thought, a question), or you may stay silent. If you prefer to stay silent, answer with exactly [silent] and nothing else."
+            }
+          }
+        },
+        "scene_events": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "true",
+                    "false",
+                    "True",
+                    "False"
+                  ]
+                }
+              ],
+              "default": true
+            },
+            "prompt": {
+              "type": "string",
+              "default": "Something just happened in the scene: {event}. You may react briefly and in character if it fits, or you may stay silent. If you prefer to stay silent, answer with exactly [silent] and nothing else."
             }
           }
         },

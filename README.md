@@ -108,7 +108,8 @@ Spalte „Wo“: Tab im Plugin-Menü; „nur Datei“ = kein Bedienelement. Bere
 | `body.speech_volume` | number | 1.0 | [0–1] | Lautstärke der Kopf-Audioquelle | AI Character: **Speech volume** |
 | `body.body_control` | bool | true | | aus = nur Sprache: Ausdrucks-, Morph-, Gesten-, Posen- und Trigger-Befehle werden ignoriert, die KI bekommt keine Körper-Tools; die manuellen Menüs funktionieren weiter | AI Character: **Body control** |
 | `body.gaze_control` | bool | true | | Blicksteuerung: aus = AIBody bewegt die Augen nie, die KI bekommt kein `look_at`-Tool | AI Character: **Gaze control** |
-| `body.gaze_default` | string | `default` | `default`, `client`, `camera`, `forward`, `atom:<Name>` | wohin die Augen schauen, wenn die KI nichts angeordnet hat; `default` = VaM-Standard, AIBody rührt die Augen nicht an | AI Character: **Default gaze** (VaM default / Client Character / Camera / player / Straight ahead / Atom: …) |
+| `body.gaze_default` | string | `default` | `default`, `natural`, `client`, `camera`, `forward`, `atom:<Name>` | wohin die Augen schauen, wenn die KI nichts angeordnet hat; `default` = VaM-Standard, AIBody rührt die Augen nicht an | AI Character: **Default gaze** (VaM default / Client Character / Camera / player / Straight ahead / Atom: …) |
+| `body.blink_control` | bool | false | | AIBody blinkt selbst (VaMs Auto-Blinzeln wird dabei abgeschaltet und beim Loslassen zurückgesetzt); mit Life Eyes oder Glance auf der Person hält sich AIBody heraus | AI Character: **Blink control** |
 | `body.gaze_follows_speaker` | bool | false | | schaut den Client Character an, solange jemand spricht (braucht die Pegelanzeige) | AI Character: **Gaze follows speaker** |
 | `body.idle_motion` | bool | true | | Kopf-Leerlaufbewegung | AI Character: **Idle head motion** |
 | `body.idle_intensity` | number | 0.5 | [0–1] | Stärke der Leerlaufbewegung | AI Character: **Idle intensity** |
@@ -140,6 +141,8 @@ Spalte „Wo“: Tab im Plugin-Menü; „nur Datei“ = kein Bedienelement. Bere
 | `ai.xai.api_key` | string | `""` | beliebiger Text (keine Formatprüfung) | der xAI-Token im **Klartext**; das Plugin schreibt das Feld **XAI API Token** hierher und füllt das Feld beim Start daraus, die App liest ihn ebenfalls; gilt nach dem Feld (live) und vor `XAI_API_KEY` und `ai.xai.key_file`; leeres Feld im Plugin leert ihn | Voice > Voice Mode: **XAI API Token** |
 | `ai.xai.api_key_warning` | string | englischer Sicherheitshinweis | beliebiger Text | Notiz für den Leser der Datei (JSON hat keine Kommentare), steht neben `api_key`; die App ignoriert ihn, das Plugin behält ihn beim Zurückschreiben | nur Datei |
 | `ai.xai.key_file` | string | `""` | Pfad (absolut oder relativ zum Benutzerordner); kein Key | Datei mit dem xAI-Key; gilt erst nach dem Feld **XAI API Token**, `ai.xai.api_key` und `XAI_API_KEY`; ein hier eingefügter Key wird abgelehnt und nicht gespeichert | nur Datei (seit Version 15 kein Menüfeld; das Plugin behält den gelesenen Pfad) |
+| `ai.scene_events.enabled` | bool | true | | Szenen-Ereignisse: setzt ein VaM-Trigger den Text „Scene event“ des Plugins, erfährt die KI davon und darf reagieren oder schweigen (nicht im Q&A-Modus) | nur Datei |
+| `ai.scene_events.prompt` | string | „Something just happened in the scene: {event}. … answer with exactly [silent] …“ | frei, `{event}` wird ersetzt | Hinweis an die KI | nur Datei |
 | `ai.xai.model` | string | `grok-4.7` | | Sprachmodell | nur Datei |
 | `ai.xai.max_output_tokens` | int | 400 | [16–8000] | hält Antworten kurz | nur Datei |
 | `ai.xai.stt_model` | string | `grok-voice-transcribe-2.0` | | Spracherkennungsmodell | nur Datei |

@@ -33,6 +33,7 @@ import queue
 import threading
 import time
 import uuid
+from collections import deque
 from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
@@ -52,7 +53,7 @@ from .latency import LatencyStats, LatencyTrace, describe
 from .logsetup import Turn
 from .pipeline import Directive, LanguageModel, SpeechToText, TextToSpeech
 from .pipeline import tts as tts_module
-from .pipeline.context import is_silent, nudge_text, time_context
+from .pipeline.context import clean_scene_event, is_silent, nudge_text, scene_event_text, time_context
 from .pipeline.engines import EngineSet
 from .pipeline.http import ApiError
 from .pipeline.realtime import KEY_REJECTED as REALTIME_KEY_REJECTED
@@ -67,6 +68,8 @@ from .vamjson import as_bool, as_number
 log = logging.getLogger(__name__)
 
 LEVEL_INTERVAL_S = 0.2  # mic_level rate (5 Hz)
+SCENE_EVENT_MAX_PENDING = 5  # scene events waiting for the AI to be free (older ones drop out)
+SCENE_EVENT_MAX_AGE_S = 30.0  # a scene event older than this is not worth reacting to any more
 HEARTBEAT_INTERVAL_S = 2.0  # companion_heartbeat rate
 KEY_REFRESH_S = 10.0  # how often key files are re-read (a key added later is picked up)
 DEFAULT_EXPRESSIONS = ["neutral", "happy", "sad", "angry", "surprised", "thinking"]
@@ -195,6 +198,7 @@ class Companion:
         self._null_stt_warned = False
         self._stt_error = ""
         self._last_exchange: float | None = None
+        self._scene_events: deque[tuple[float, str]] = deque(maxlen=SCENE_EVENT_MAX_PENDING)  # (time, text) not yet answered
         proactive = self.engine_set.ai["proactive"]
         self.proactive = ProactiveTimer(bool(proactive["enabled"]), float(proactive["idle_seconds"]), clock)
         self._update_mode()
@@ -234,6 +238,7 @@ class Companion:
         self._send_mic_state_if_changed()
         self._drain_results()
         self._maybe_nudge()
+        self._maybe_scene_event()
         now = self._clock()
         if now - self._last_key_check >= KEY_REFRESH_S:
             self._last_key_check = now
@@ -420,6 +425,9 @@ class Companion:
         self.proactive.fired()
         log.info("Proactive talking: %.0f s of silence passed (speech delay timer) - the AI may say something on its own",
                  self.proactive.idle_seconds)
+        self._dispatch_nudge(text)
+
+    def _dispatch_nudge(self, text: str) -> None:
         if self.active_mode == "realtime":
             self.realtime.nudge(text)
         elif self.background_turns:
@@ -427,6 +435,40 @@ class Companion:
         else:
             for step in self._turn("nudge", text, self._generation):
                 self._apply(step)
+
+    # -- scene events (a VaM trigger set the plugin's "Scene event" text) ------------------------
+
+    def _scene_events_cfg(self) -> dict[str, Any]:
+        cfg = self.engine_set.ai.get("scene_events")
+        return cfg if isinstance(cfg, dict) else {}
+
+    def handle_scene_event(self, event: dict[str, Any]) -> None:
+        text = clean_scene_event(event.get("text"))
+        if not text:
+            return
+        if not as_bool(self._scene_events_cfg().get("enabled", True)):
+            log.info("Scene event ignored (ai.scene_events.enabled is false): %s", text)
+            return
+        if not self._can_nudge_engine():
+            log.info("Scene event ignored (the AI answers only when asked in simple Q&A mode, or no engine takes notes): %s", text)
+            return
+        log.info("Scene event: %s", text)
+        self._scene_events.append((self._clock(), text))
+
+    def _maybe_scene_event(self) -> None:
+        now = self._clock()
+        while self._scene_events and now - self._scene_events[0][0] > SCENE_EVENT_MAX_AGE_S:
+            dropped = self._scene_events.popleft()
+            log.info("Scene event dropped (the AI was busy for %.0f s): %s", SCENE_EVENT_MAX_AGE_S, dropped[1])
+        if not self._scene_events or not self._can_speak_now() or not self._can_nudge_engine():
+            return
+        # All events that waited are told in one note, oldest first.
+        texts = [t for _, t in self._scene_events]
+        self._scene_events.clear()
+        prompt = str(self._scene_events_cfg().get("prompt") or "")
+        text = scene_event_text(prompt, "; ".join(texts), self.now(), self.since_last_exchange())
+        self.proactive.ai_activity()
+        self._dispatch_nudge(text)
 
     def _watch_connection(self) -> None:
         connected = self.transport.connected
@@ -464,6 +506,8 @@ class Companion:
                 self._log_selftest(event.get("selftest"))
             elif type_ == "config":
                 self.handle_config(event)
+            elif type_ == "scene_event":
+                self.handle_scene_event(event)
             elif type_ == "ptt":
                 self.handle_ptt(bool(as_bool(event.get("active"))))
             elif type_ == "test_tone":

@@ -40,7 +40,8 @@
     "breath_morph": "Breath1",
     "gaze_control": true,
     "gaze_default": "default",
-    "gaze_follows_speaker": false
+    "gaze_follows_speaker": false,
+    "blink_control": false
   },
   "advanced": {
     "file_poll_interval_s": 0.1,
@@ -71,6 +72,10 @@
       "enabled": true,
       "idle_seconds": 90.0,
       "prompt": "The user has been quiet for a while. You may say something short and spontaneous that fits the moment and your character (a remark, a thought, a question), or you may stay silent. If you prefer to stay silent, answer with exactly [silent] and nothing else."
+    },
+    "scene_events": {
+      "enabled": true,
+      "prompt": "Something just happened in the scene: {event}. You may react briefly and in character if it fits, or you may stay silent. If you prefer to stay silent, answer with exactly [silent] and nothing else."
     },
     "xai": {
       "base_url": "https://api.x.ai/v1",

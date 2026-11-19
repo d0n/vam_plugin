@@ -8,8 +8,13 @@
 // Targets: the Client Character (its head), the camera / player view, straight ahead, away (a short
 // glance to the side), or any atom by name. "default" = AIBody does not touch the eyes at all.
 //
-// Coexistence (never fight another plugin): if the Glance plugin is on this Person, AIBody stays out of
-// the eyes (the same check Embody itself uses against Glance). If anything else (Life, Embody while
+// "Natural" (default gaze, since version 26): keeps the eyes on the client (else the camera) with small
+// random eye movements, looks away for a moment every few seconds (more often while the AI speaks) and
+// looks up and aside while the AI "thinks" (the user just stopped talking). Only the same evidenced calls
+// as the fixed targets: Vector3 - / + / * float, normalized, magnitude, Cross, up (Glance L1158-L1554).
+//
+// Coexistence (never fight another plugin): if the Glance plugin or MacGruber's Life Gaze is on this
+// Person, AIBody stays out of the eyes (Glance: the same check Embody itself uses against Glance). If anything else (Life, Embody while
 // possessing, the user) changes the Eyes look mode while AIBody is steering, AIBody stops and gives the
 // eyes back until the user picks a target in the menu again. Every change AIBody made is undone when it lets go (look mode and eye
 // target position are restored, like Embody does).
@@ -30,6 +35,7 @@ namespace AIBody
         public const string KeyClient = "client";
         public const string KeyCamera = "camera";
         public const string KeyForward = "forward";
+        public const string KeyNatural = "natural";   // default gaze only: the client (else the camera) with small eye movements and glances away
         public const string KeyAway = "away";
         public const string KeyOff = "off";           // look_at only: stop directing, back to the default
         public const string KeyAtom = "atom";         // look_at only, with "atom" = the atom's name
@@ -71,6 +77,20 @@ namespace AIBody
         private string _targetAtomName = "";
         private float _atomCheckIn;
         private string _status = "";
+
+        // "natural" state (see NaturalPoint).
+        private bool _aiSpeaking;
+        private bool _userSpeaking;
+        private bool _natUserWas;
+        private float _natShiftIn;
+        private float _natDx, _natDy;
+        private float _natAwayLeft;
+        private float _natAwayIn = 5f;
+        private float _natPitch;
+        private int _natSide = 1;
+
+        /// <summary>Called when the eyes make a larger move (a glance away starts or ends): a blink fits there.</summary>
+        public Action OnShift;
 
         public GazeController(Atom atom)
         {
@@ -177,6 +197,8 @@ namespace AIBody
                 Resolve();
                 if (_eyes == null || _eyeTarget == null) { _status = Enabled ? "not available (no Eyes / eyeTargetControl on this Person yet)" : "off"; return; }
             }
+            _aiSpeaking = aiSpeaking;
+            _userSpeaking = userSpeaking;
             _otherCheckIn -= dt;
             if (_otherCheckIn <= 0f)
             {
@@ -207,7 +229,7 @@ namespace AIBody
 
             string key = _aiKey;
             string why = "AI request";
-            if (key == null && FollowsSpeaker && (aiSpeaking || userSpeaking))
+            if (key == null && FollowsSpeaker && _defaultKey != KeyNatural && (aiSpeaking || userSpeaking))
             {
                 key = KeyClient;
                 why = aiSpeaking ? "AI is speaking" : "you are speaking";
@@ -259,6 +281,7 @@ namespace AIBody
             point = Vector3.zero;
             described = key;
             if (key == KeyCamera) return CameraPoint(out point, out described);
+            if (key == KeyNatural) return NaturalPoint(dt, out point, out described);
             if (key == KeyClient)
             {
                 Atom client = FindClient();
@@ -293,6 +316,78 @@ namespace AIBody
                 return true;
             }
             return false;
+        }
+
+        // ---------------------------------------------------------------- natural gaze
+
+        private void StartAway(float seconds, float pitch)
+        {
+            _natAwayLeft = seconds;
+            _natPitch = pitch;
+            _natSide = UnityEngine.Random.Range(0f, 1f) < 0.5f ? 1 : -1;
+            if (OnShift != null) OnShift();
+        }
+
+        private Vector3 AwayPoint(Vector3 origin, float pitch, int side)
+        {
+            Quaternion facing = _atom.transform.rotation;
+            return origin + (facing * Quaternion.Euler(pitch, AwayYaw * side, 0f) * Vector3.forward) * ForwardDistance;
+        }
+
+        /// <summary>The "natural" gaze: focus (client, else camera) + small movements + glances away.</summary>
+        private bool NaturalPoint(float dt, out Vector3 point, out string described)
+        {
+            point = Vector3.zero;
+            described = "natural";
+            bool haveHead = _head != null && _head.control != null;
+            Vector3 origin = haveHead ? _head.control.position : Vector3.zero;
+
+            // The user just stopped talking and the AI has not started: it is thinking, look up and aside.
+            if (_natUserWas && !_userSpeaking && !_aiSpeaking && haveHead && _natAwayLeft <= 0f)
+                StartAway(UnityEngine.Random.Range(1.2f, 2.4f), -18f);
+            _natUserWas = _userSpeaking;
+
+            if (_natAwayLeft > 0f && haveHead)
+            {
+                _natAwayLeft -= dt;
+                point = AwayPoint(origin, _natPitch, _natSide);
+                described = "away (natural gaze)";
+                if (_natAwayLeft <= 0f)
+                {
+                    _natAwayIn = _aiSpeaking ? UnityEngine.Random.Range(4f, 9f) : UnityEngine.Random.Range(9f, 18f);
+                    if (OnShift != null) OnShift();
+                }
+                return true;
+            }
+
+            _natAwayIn -= dt;
+            if (_natAwayIn <= 0f && !_userSpeaking && haveHead) StartAway(UnityEngine.Random.Range(0.7f, 1.6f), AwayPitch);
+
+            _natShiftIn -= dt;
+            if (_natShiftIn <= 0f)
+            {
+                _natShiftIn = UnityEngine.Random.Range(0.7f, 2.4f);
+                _natDx = UnityEngine.Random.Range(-0.12f, 0.12f);
+                _natDy = UnityEngine.Random.Range(-0.07f, 0.07f);
+            }
+
+            Vector3 focus;
+            string what = "the camera";
+            Atom client = FindClient();
+            if (client != null && AtomPoint(client, out focus)) what = "the client (" + client.uid + ")";
+            else if (!CameraPoint(out focus, out what)) return false;
+
+            described = what + " (natural gaze)";
+            if (!haveHead) { point = focus + Vector3.up * _natDy; return true; }
+            Vector3 toFocus = focus - origin;
+            float dist = toFocus.magnitude;
+            if (dist < 0.05f) { point = focus; return true; }
+            Vector3 dir = toFocus.normalized;
+            Vector3 right = Vector3.Cross(dir, Vector3.up).normalized;
+            Vector3 up = Vector3.Cross(right, dir).normalized;
+            float scale = dist * 0.5f;   // the offsets are metres at 2 m
+            point = focus + right * (_natDx * scale) + up * (_natDy * scale);
+            return true;
         }
 
         private static bool CameraPoint(out Vector3 point, out string described)
@@ -384,6 +479,8 @@ namespace AIBody
                 for (int i = 0; i < ids.Count; i++)
                 {
                     if (ids[i].EndsWith("Glance")) return "Glance";
+                    // MacGruber's Life Gaze (class MacGruber.Gaze, E29 L14-16). TODO(verify): the storable id in a real Life scene.
+                    if (ids[i].IndexOf("MacGruber") >= 0 && ids[i].EndsWith("Gaze")) return "Life (MacGruber Gaze)";
                 }
             }
             catch (Exception) { }

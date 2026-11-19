@@ -79,6 +79,7 @@ EVENTS = {
     "speech_started",
     "speech_ended",
     "gesture_done",
+    "scene_event",
     "shutdown",
 }
 
@@ -171,6 +172,8 @@ def validate_event(msg: Any) -> list[str]:
     errors: list[str] = []
     if type_ == "config" and not isinstance(msg.get("mic"), dict):
         errors.append("config: 'mic' must be an object")
+    if type_ == "scene_event" and not (isinstance(msg.get("text"), str) and msg["text"].strip()):
+        errors.append("scene_event: 'text' must be a non-empty string")
     if type_ == "ptt" and as_bool(msg.get("active")) is None:  # VaM writes "true"/"false"
         errors.append("ptt: 'active' must be true/false")
     return errors
