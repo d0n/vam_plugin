@@ -23,6 +23,7 @@ import json
 from dataclasses import dataclass, field
 from typing import Any
 
+from .emotion import offered as offered_expressions
 from .protocol import LOOK_MAX_SECONDS
 from .vamjson import as_bool
 
@@ -57,7 +58,8 @@ class BodyLists:
         atoms = info.get("gaze_atoms") or []
         atoms = [str(a) for a in atoms if str(a)] if isinstance(atoms, list) else []
         gaze = as_bool(info.get("gaze_control")) is True  # an older plugin has no gaze control
-        return cls(list(info.get("expressions") or default_expressions), gestures, poses, gaze, atoms)
+        expressions = offered_expressions(info.get("expressions") or default_expressions)
+        return cls(expressions, gestures, poses, gaze, atoms)
 
 
 def tools(lists: BodyLists) -> list[dict[str, Any]]:

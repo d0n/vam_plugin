@@ -58,6 +58,8 @@ namespace AIBody
             _presets["angry"] = Preset("Brow Down", 0.7f, "Mouth Frown", 0.3f);
             _presets["surprised"] = Preset("Brow Outer Up Left", 0.7f, "Brow Outer Up Right", 0.7f, "Mouth Open", 0.3f);
             _presets["thinking"] = Preset("Brow Down Left", 0.3f, "Mouth Side-Side Left", 0.2f);
+            // Version 27: very small "listening" face the companion app shows while the user talks (not offered to the AI).
+            _presets["listening"] = Preset("Brow Inner Up", 0.18f, "Mouth Smile Simple", 0.08f);
         }
 
         private static Dictionary<string, float> Preset(params object[] pairs)

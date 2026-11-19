@@ -141,6 +141,16 @@ DEFAULTS: dict[str, dict[str, Any]] = {
             "enabled": True,
             "prompt": DEFAULT_SCENE_EVENT_PROMPT,
         },
+        # Expressions without the AI's help (version 27; config.json only, no menu): fallback = derive an expression
+        # from the spoken words when the AI chose none; fade = back to neutral fade_after_s seconds after the last
+        # speech (blended over fade_seconds); listening = a very small expression while the user talks.
+        "emotion": {
+            "fallback": True,
+            "fade": True,
+            "fade_after_s": 6.0,
+            "fade_seconds": 2.5,
+            "listening": True,
+        },
         "xai": {
             "base_url": "https://api.x.ai/v1",
             "key_hint": KEY_HINT_TEXT,  # a note for the reader of this file (JSON has no comments); ignored by the app
@@ -180,6 +190,8 @@ RANGES: dict[tuple[str, str], tuple[float, float]] = {
     ("ai", "realtime", "first_segment_s"): (0.3, 5.0),
     ("ai", "realtime", "max_segment_s"): (1.0, 20.0),
     ("ai", "realtime", "connect_timeout_s"): (3.0, 60.0),
+    ("ai", "emotion", "fade_after_s"): (1.0, 120.0),
+    ("ai", "emotion", "fade_seconds"): (0.2, 10.0),
     ("ai", "proactive", "idle_seconds"): (0.0, 3600.0),  # 0 = nudges off (proactive.py MIN_ACTIVE_S)
 }
 

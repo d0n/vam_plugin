@@ -77,6 +77,13 @@
       "enabled": true,
       "prompt": "Something just happened in the scene: {event}. You may react briefly and in character if it fits, or you may stay silent. If you prefer to stay silent, answer with exactly [silent] and nothing else."
     },
+    "emotion": {
+      "fallback": true,
+      "fade": true,
+      "fade_after_s": 6.0,
+      "fade_seconds": 2.5,
+      "listening": true
+    },
     "xai": {
       "base_url": "https://api.x.ai/v1",
       "key_hint": "An xAI API key from console.x.ai is required (a Grok subscription does not work). Provide it in one of four ways: (1) in VaM, plugin tab Voice > Voice Mode, field 'XAI API Token' (below API Reconnect); the plugin saves it here as ai.xai.api_key; (2) write it into ai.xai.api_key yourself; (3) the environment variable XAI_API_KEY; (4) ai.xai.key_file = path of a text file that holds the key. If several are set, the plugin field (while VaM runs) wins, then ai.xai.api_key, then XAI_API_KEY, then key_file.",

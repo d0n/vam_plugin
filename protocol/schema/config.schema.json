@@ -715,6 +715,91 @@
             }
           }
         },
+        "emotion": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "fallback": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "true",
+                    "false",
+                    "True",
+                    "False"
+                  ]
+                }
+              ],
+              "default": true
+            },
+            "fade": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "true",
+                    "false",
+                    "True",
+                    "False"
+                  ]
+                }
+              ],
+              "default": true
+            },
+            "fade_after_s": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 1.0,
+                  "maximum": 120.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^\\s*-?[0-9]+(\\.[0-9]+)?([eE][-+]?[0-9]+)?\\s*$"
+                }
+              ],
+              "default": 6.0
+            },
+            "fade_seconds": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.2,
+                  "maximum": 10.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^\\s*-?[0-9]+(\\.[0-9]+)?([eE][-+]?[0-9]+)?\\s*$"
+                }
+              ],
+              "default": 2.5
+            },
+            "listening": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "true",
+                    "false",
+                    "True",
+                    "False"
+                  ]
+                }
+              ],
+              "default": true
+            }
+          }
+        },
         "xai": {
           "type": "object",
           "additionalProperties": false,

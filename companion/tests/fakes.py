@@ -132,6 +132,7 @@ class FakePlugin:
         self.root = Path(vam_root)
         self.clock = clock
         self.channel = channel
+        self.expressions = ["neutral", "happy", "sad", "thinking", "listening"]  # presets the plugin reports (ExpressionController)
         # ai controls of the plugin tabs (AppLink.BuildAiJson): sent in the config event, merged into config.json "ai"
         self.poses: list[str] = []      # Body.AddStatus "poses" (gestures.json poses + preset files)
         self.body_control = True        # Body.AddStatus "body_control"
@@ -222,7 +223,7 @@ class FakePlugin:
 
     def status_fields(self) -> dict:
         return {"atom": "Person", "speaking": bool(self.playing), "speech_queue": len(self.playing),
-                "expression": "neutral", "expressions": ["neutral", "happy", "sad", "thinking"],
+                "expression": "neutral", "expressions": list(self.expressions),
                 "gestures": ["nod", "shake", "tilt", *self.poses], "poses": list(self.poses),
                 "body_control": self.body_control, "gaze_control": self.gaze_control,
                 "gaze_atoms": list(self.gaze_atoms), "selftest": dict(self.selftest),

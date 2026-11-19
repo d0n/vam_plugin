@@ -22,6 +22,7 @@ import time
 from typing import TYPE_CHECKING, Any
 
 from . import body_tools, protocol
+from .emotion import offered as offered_expressions
 from .latency import LatencyTrace
 from .logsetup import Turn
 from .pipeline.context import is_silent, time_rules
@@ -94,7 +95,8 @@ class RealtimeVoice:
     def _lists(self) -> tuple[list[str], list[str]]:
         from .orchestrator import DEFAULT_EXPRESSIONS, DEFAULT_GESTURES
         info = self.c.body_info
-        return (list(info.get("expressions") or DEFAULT_EXPRESSIONS), list(info.get("gestures") or DEFAULT_GESTURES))
+        return (offered_expressions(info.get("expressions") or DEFAULT_EXPRESSIONS),
+                list(info.get("gestures") or DEFAULT_GESTURES))
 
     def instructions(self) -> str:
         expressions, gestures = self._lists()
@@ -281,6 +283,7 @@ class RealtimeVoice:
         if rid and rid in self.cancelled:
             return
         self._waiting_since = None
+        self.c.emotion.begin_answer()
         self.response_id = rid or protocol.new_id("rt")
         self._response_started = time.monotonic()
         self.assembler.reset()

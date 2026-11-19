@@ -49,6 +49,7 @@ from .audio import (
     apply_mic_config,
 )
 from .config import ENGINES_AVAILABLE, Config
+from .emotion import EmotionDirector, offered as offered_expressions
 from .latency import LatencyStats, LatencyTrace, describe
 from .logsetup import Turn
 from .pipeline import Directive, LanguageModel, SpeechToText, TextToSpeech
@@ -201,6 +202,7 @@ class Companion:
         self._scene_events: deque[tuple[float, str]] = deque(maxlen=SCENE_EVENT_MAX_PENDING)  # (time, text) not yet answered
         proactive = self.engine_set.ai["proactive"]
         self.proactive = ProactiveTimer(bool(proactive["enabled"]), float(proactive["idle_seconds"]), clock)
+        self.emotion = EmotionDirector(self.engine_set.ai["emotion"], clock)  # fallback expression, fade, listening
         self._update_mode()
 
     # -- engines -------------------------------------------------------------------------
@@ -239,6 +241,7 @@ class Companion:
         self._drain_results()
         self._maybe_nudge()
         self._maybe_scene_event()
+        self._maybe_emotion()
         now = self._clock()
         if now - self._last_key_check >= KEY_REFRESH_S:
             self._last_key_check = now
@@ -391,10 +394,13 @@ class Companion:
         """A function call from the model -> (plugin commands, result for the model)."""
         allowed, why = self.tools_allowed()
         commands, result = body_tools.resolve(name, arguments, self.body_lists(), allowed, why)
+        if any(t == "expression" for t, _ in commands):
+            self.emotion.note_ai_expression()
         return [self.body_command(t, **f) for t, f in commands], result
 
     def send_directive(self, item: Directive) -> None:
         if item.expression:
+            self.emotion.note_ai_expression()
             self.send(self.body_command("expression", name=item.expression, intensity=1.0, blend=0.4))
         if item.gesture:
             self.send(self.body_command("gesture", name=item.gesture))
@@ -856,6 +862,7 @@ class Companion:
                              else {"text": str(data)} if kind == "text" else {}))
         if t0 is not None:
             turn.latency = LatencyTrace(t0, "chain")
+        self.emotion.begin_answer()
         names = self.engine_set.active_names
         turn.step("path", mode=self.mode_requested, active=self.active_mode, chain=f"{names['stt']} -> "
                   f"{names['llm']} -> {names['tts']}", selected="/".join(self.engine_set.requested.values()),
@@ -970,6 +977,7 @@ class Companion:
 
     def _directive_steps(self, item: Directive):
         if item.expression:
+            self.emotion.note_ai_expression()
             yield ("command", self.body_command("expression", name=item.expression, intensity=1.0, blend=0.4))
         if item.gesture:
             yield ("command", self.body_command("gesture", name=item.gesture))
@@ -1000,7 +1008,7 @@ class Companion:
             llm.clock = self._clock
         user_text = text
         text = prompt or text
-        expressions = list(self.body_info.get("expressions") or DEFAULT_EXPRESSIONS)
+        expressions = offered_expressions(self.body_info.get("expressions") or DEFAULT_EXPRESSIONS)
         gestures = list(self.body_info.get("gestures") or DEFAULT_GESTURES)
         produced = False
         try:
@@ -1157,12 +1165,47 @@ class Companion:
             turn.step("speak sent", utterance=utterance_id, audio=rel, seconds=round(duration, 2),
                       queue="interrupt" if interrupt else "append")
         self.gate.on_speak_sent(utterance_id, duration, interrupt=interrupt)
+        self._emotion_for_speech(text)
+        self.emotion.note_speech()
         self.send(self.body_command(
             "speak", id_=utterance_id, audio=rel, text=text, duration=round(duration, 3),
             queue="interrupt" if interrupt else "append",
         ))
         log.info("Say (%.1fs): %s", duration, text)
         return utterance_id
+
+    def _emotion_for_speech(self, text: str) -> None:
+        """Fallback expression (words -> face) right before a sentence the AI gave no expression for."""
+        if not self.tools_allowed()[0]:
+            return  # simple Q&A / body control off: speech only
+        step = self.emotion.for_speech(text, self.body_info.get("expressions") or DEFAULT_EXPRESSIONS)
+        if step:
+            name, intensity, blend = step
+            log.info("Expression from the words (the AI chose none): %s", name)
+            self.send(self.body_command("expression", name=name, intensity=intensity, blend=blend))
+
+    def _maybe_emotion(self) -> None:
+        """Listening brows while the user talks; back to neutral after a while without speech."""
+        if not self.transport.connected or not self.tools_allowed()[0]:
+            return
+        user = self.input.ptt_active or self.input.segmenter.in_speech or bool(
+            self.realtime is not None and self.realtime.user_speaking)
+        step = self.emotion.user_speech(user, self.body_info.get("expressions") or [])
+        if step:
+            name, intensity, blend = step
+            self.send(self.body_command("expression", name=name, intensity=intensity, blend=blend))
+            return
+        # the plugin's numbers and booleans may arrive as VaM strings ("false", "0"): vamjson helpers
+        busy = (as_bool(self.body_info.get("speaking")) is True or (as_number(self.body_info.get("speech_queue")) or 0) > 0
+                or self._busy.is_set() or not self._jobs.empty() or not self._results.empty() or user
+                or (self.realtime is not None and self.realtime.responding))
+        if self.emotion.fade_due(busy):
+            if any(str(n).lower() == "neutral" for n in self.body_info.get("expressions") or DEFAULT_EXPRESSIONS):
+                self.send(self.body_command("expression", name="neutral", intensity=1.0,
+                                            blend=self.emotion.fade_seconds))
+            else:
+                self.send(self.body_command("reset_morphs", blend=self.emotion.fade_seconds))
+                self.emotion.note_sent("neutral")
 
     def play_test_tone(self) -> str:
         """Plugin button "Test-Ton über Companion": a chime WAV in the audio folder, sent as a normal
@@ -1184,6 +1227,8 @@ class Companion:
         return protocol.make_command(type_, **fields)
 
     def send(self, command: dict[str, Any]) -> None:
+        if command.get("type") == "expression":
+            self.emotion.note_sent(str(command.get("name") or ""))
         self.transport.send(command)
 
     def _track_audio_file(self, path: Path) -> None:
