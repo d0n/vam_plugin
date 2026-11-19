@@ -1,10 +1,26 @@
 # AIBody
 
-Virt-A-Mate-Plugin (VaM 1.22) mit Python-Begleit-App, das einer KI einen Körper in einer VaM-Szene gibt. Stand: Version 21, Paket `d0n.AIBody.21.var`, Release `v21`. Version 14 lädt in VaM 1.22 ohne Fehler (Init fertig, 200 Posen); die Funktionen sind in VaM noch nicht vollständig geprüft.
+Virt-A-Mate-Plugin (VaM 1.22) mit Python-Begleit-App, das einer KI einen Körper in einer VaM-Szene gibt. Stand: Version 22, Paket `d0n.AIBody.22.var`, Release `v22`. Version 14 lädt in VaM 1.22 ohne Fehler (Init fertig, 200 Posen); die Funktionen sind in VaM noch nicht vollständig geprüft.
 
 Versionsschema seit Version 12: Version = Paketnummer der `.var` (Plugin-Anzeige, Begleit-App, Git-Tag `v<N>`). Version 12 folgt auf 0.7.4 (= Paket 11); ältere Tags bleiben unverändert.
 
 Weitere Dokumente: [SPEC](docs/SPEC.md) (vereinbarter Umfang) · [ANFORDERUNGEN](docs/ANFORDERUNGEN.md) (umgesetzt / offen) · [BACKLOG](docs/BACKLOG.md) (zurückgestellte Ideen) · [TESTPROTOKOLL](docs/TESTPROTOKOLL.md) · [TECHNIK](docs/TECHNIK.md) (Architektur, Protokoll, Sandbox, englisch) · [API_AUDIT](docs/API_AUDIT.md) · [Releases](https://github.com/d0n/vam_plugin/releases) (Installation und Schnellstart je Version in den Release-Notes).
+
+## Starten
+
+Die Begleit-App läuft **getrennt von VaM** und wird **von Hand gestartet**: VaM startet sie nicht, und ohne laufende App gibt es kein Zuhören und keine Antworten. Konsolenfenster öffnen und eingeben:
+
+```
+python -m aibody_companion --vam-root "D:\VaM"
+```
+
+(Pfad an den eigenen VaM-Ordner anpassen, also den Ordner mit `VaM.exe`.) Das Fenster offen lassen, solange VaM läuft.
+
+- **Aus welchem Ordner:** Der Befehl funktioniert, wenn du im Ordner `companion` des Repositorys bist (`cd companion`). Alternativ einmal `pip install -e .` im Ordner `companion`, danach läuft derselbe Befehl aus jedem Ordner. Meldet Python `No module named aibody_companion`, bist du im falschen Ordner (und hast das Paket nicht installiert).
+- **Mikrofon:** `pip install sounddevice` (oder `pip install -r requirements.txt` im Ordner `companion`). Ohne `sounddevice` gibt es keine Mikrofonliste und kein Zuhören; Tippen in der Konsole geht trotzdem.
+- **Python:** Version 3.10 oder neuer.
+- **xAI-Key:** im Plugin, Tab **Voice** > *Voice Mode*, Feld **XAI API Token** (unter *API Reconnect*), oder per Umgebungsvariable `XAI_API_KEY`, oder per `ai.xai.key_file` in `config.json`; mehr dazu weiter unten.
+- **Neue Version holen:** `git pull` im Repository-Ordner, sonst meldet die App eine alte Version (die App meldet beim Start `AIBody companion <Version>`).
 
 ## 1. Wozu und wie benutzt
 
@@ -13,12 +29,12 @@ Weitere Dokumente: [SPEC](docs/SPEC.md) (vereinbarter Umfang) · [ANFORDERUNGEN]
   - Plugin `AIBody` (C#, ohne Netzwerkcode): wird einmal im Plugins-Tab der KI-Figur (Person-Atom) geladen; spielt Sprache ab, steuert den Körper, zeigt Status und Einstellungen.
   - Begleit-App `aibody_companion` (Python, läuft neben VaM auf demselben PC): Mikrofon, Spracherkennung, Sprachmodell, Sprachausgabe, Verbindung zu xAI (optional ElevenLabs).
 - Verbindung: Dateien unter `<VaM>/Saves/PluginData/AIBody/<Kanal>/`; Sprache als WAV unter `<VaM>/Custom/Sounds/AIBody/<Kanal>/`.
-- Ablauf: Plugin auf die KI-Figur laden → Begleit-App starten (`python -m aibody_companion --vam-root "<VaM>"`, mit xAI-Key) → sprechen (oder in der Konsole tippen) → die Figur antwortet.
-- Kurzinstallation: `d0n.AIBody.21.var` nach `<VaM>/AddonPackages/`, ältere `d0n.AIBody.*`, `d0n.AIBodySession.*`, `d0n.AIBodyPerson.*`, `d0n.AIBodyPerson2.*` löschen; Person auswählen > Tab Plugins > Add Plugin > `AddonPackages > d0n.AIBody.21:/Custom/Scripts/d0n/AIBody/AIBody.cslist`; Begleit-App: `cd companion`, `pip install sounddevice`, dann starten wie oben. Details und Schritt-für-Schritt: Release-Notes.
+- Ablauf: Plugin auf die KI-Figur laden → Begleit-App von Hand starten (`python -m aibody_companion --vam-root "D:\VaM"`, Abschnitt „Starten“, mit xAI-Key) → sprechen (oder in der Konsole tippen) → die Figur antwortet.
+- Kurzinstallation: `d0n.AIBody.22.var` nach `<VaM>/AddonPackages/`, ältere `d0n.AIBody.*`, `d0n.AIBodySession.*`, `d0n.AIBodyPerson.*`, `d0n.AIBodyPerson2.*` löschen; Person auswählen > Tab Plugins > Add Plugin > `AddonPackages > d0n.AIBody.22:/Custom/Scripts/d0n/AIBody/AIBody.cslist`; Begleit-App: siehe Abschnitt „Starten“ (`cd companion`, `pip install sounddevice`, dann starten). Details und Schritt-für-Schritt: Release-Notes.
 
 ## 2. Wofür ausgelegt / Spezifikation
 
-- Mitgelieferte Szene: [`examples/scenes/AIBody_GreenScreen.json`](examples/scenes/AIBody_GreenScreen.json), Anleitung [`docs/SZENE_GREENSCREEN.md`](docs/SZENE_GREENSCREEN.md). Inhalt: zwei Personen, die sich in 1,2 m Abstand ansehen: `AI Character` (weiblich, VaM-Standardfigur `Female 3`) mit AIBody (`d0n.AIBody.21`) im Plugins-Tab, und `Client Character` (männlich, `Male 1`) mit Sallys *Camera Background Color* (`Sally.CameraBackgroundColor.7`, Farbe #00FF00, Skybox aus) direkt im Plugins-Tab dieser Person; zwei unsichtbare Lichter, kein Raum, kein Szenen-Plugin. Abhängigkeit: `Sally.CameraBackgroundColor.7.var` vom VaM Hub. Gedacht für Passthrough per Chroma-Key in Brille/Streaming-Programm; VaM selbst zeigt nur Grün. Nicht in VaM getestet.
+- Mitgelieferte Szene: [`examples/scenes/AIBody_GreenScreen.json`](examples/scenes/AIBody_GreenScreen.json), Anleitung [`docs/SZENE_GREENSCREEN.md`](docs/SZENE_GREENSCREEN.md). Inhalt: zwei Personen, die sich in 1,2 m Abstand ansehen: `AI Character` (weiblich, VaM-Standardfigur `Female 3`) mit AIBody (`d0n.AIBody.22`) im Plugins-Tab, und `Client Character` (männlich, `Male 1`) mit Sallys *Camera Background Color* (`Sally.CameraBackgroundColor.7`, Farbe #00FF00, Skybox aus) direkt im Plugins-Tab dieser Person; zwei unsichtbare Lichter, kein Raum, kein Szenen-Plugin. Abhängigkeit: `Sally.CameraBackgroundColor.7.var` vom VaM Hub. Gedacht für Passthrough per Chroma-Key in Brille/Streaming-Programm; VaM selbst zeigt nur Grün. Nicht in VaM getestet.
 - AIBody funktioniert auch in anderen Szenen, solange es auf der Person der KI liegt.
 - Kurzfassung der Spezifikation (vollständig: [SPEC.md](docs/SPEC.md)):
   - VaM-Sandbox: kein Netzwerk-, `System.IO`-, Reflection-, Mikrofon-Code im Plugin; nur belegte APIs; Dateizugriff nur über `FileManagerSecure`; „Allow Plugins Network Access“ bleibt aus.
@@ -116,6 +132,7 @@ Spalte „Wo“: Tab im Plugin-Menü; „nur Datei“ = kein Bedienelement. Bere
 | `ai.proactive.idle_seconds` | number | 90 | [15–3600]; im Plugin auf ganze Sekunden gerundet | Stille bis zum Anstoß; verdoppelt sich bei unbeantworteten Anstößen (bis 8×) | Voice > AI Character: **Proactive idle (s)** |
 | `ai.proactive.prompt` | string | „The user has been quiet for a while. … answer with exactly [silent] …“ | frei | Hinweis bei jedem Anstoß; Antwort `[silent]` = nichts abspielen | nur Datei |
 | `ai.xai.base_url` | string | `https://api.x.ai/v1` | | REST-Basis für STT, LLM, TTS | nur Datei |
+| `ai.xai.key_hint` | string | englischer Hinweistext | beliebiger Text | Notiz für den Leser der Datei (JSON hat keine Kommentare): ein xAI-API-Key ist nötig, auf drei Wegen (Plugin-Feld **XAI API Token**, `XAI_API_KEY`, `ai.xai.key_file`). Wird von der App nicht benutzt; die App ergänzt ihn in bestehenden `config.json` | nur Datei |
 | `ai.xai.key_file` | string | `""` | Pfad (absolut oder relativ zum Benutzerordner); kein Key | Datei mit dem xAI-Key; gilt erst nach dem Feld **XAI API Token** und `XAI_API_KEY`; ein hier eingefügter Key wird abgelehnt und nicht gespeichert | nur Datei (seit Version 15 kein Menüfeld; das Plugin behält den gelesenen Pfad) |
 | `ai.xai.model` | string | `grok-4.7` | | Sprachmodell | nur Datei |
 | `ai.xai.max_output_tokens` | int | 400 | [16–8000] | hält Antworten kurz | nur Datei |
@@ -162,7 +179,7 @@ Aufbau seit Version 15 (Leon, 17.11.2026): links ein großes Infofeld, rechts vi
 
 ### 4.5 Umgebungsvariablen
 
-- xAI-Key, Reihenfolge (Version 21): 1. Feld **XAI API Token** im Plugin (wenn nicht leer), 2. Umgebungsvariable `XAI_API_KEY`, 3. Key-Datei `ai.xai.key_file`. Ein leeres Feld fällt auf 2 und 3 zurück.
+- xAI-Key, Reihenfolge (Version 22): 1. Feld **XAI API Token** im Plugin (wenn nicht leer), 2. Umgebungsvariable `XAI_API_KEY`, 3. Key-Datei `ai.xai.key_file`. Ein leeres Feld fällt auf 2 und 3 zurück.
 - `XAI_API_KEY`: optional; xAI-API-Key von console.x.ai (beginnt mit `xai-`); gewinnt über `ai.xai.key_file`, verliert gegen das Feld. Ein Grok-Abo (SuperGrok / X Premium) bzw. grok.com-Token ist kein API-Key und wird abgelehnt. Ohne Key: Warnung beim Start, Test-Engines laufen.
 - `ELEVENLABS_API_KEY`: ElevenLabs-Key; gewinnt über `ai.elevenlabs.key_file`.
 - Key-Dateien werden alle 10 s neu gelesen; Umgebungsvariablen nur beim Start der App. Der Token aus dem Feld steht in der Szene (Klartext, siehe Hinweis am Feld) und für Sekundenbruchteile in einer Ereignisdatei unter `Saves/PluginData/AIBody/<Kanal>/outbox/`, die die App nach dem Lesen löscht; nie in `config.json`; im Log immer geschwärzt.

@@ -4,7 +4,7 @@ Stand: 17.11.2026, Version 12. Übersicht, was umgesetzt ist und was offen ist; 
 - Vereinbarte Spezifikation (was gilt): [`docs/SPEC.md`](SPEC.md)
 - Zurückgestellte Ideen / Nice to have: [`docs/BACKLOG.md`](BACKLOG.md)
 - Testanleitung in VaM: [`docs/TESTPROTOKOLL.md`](TESTPROTOKOLL.md) · API-Belege: [`docs/API_AUDIT.md`](API_AUDIT.md)
-- Repo: https://github.com/d0n/vam_plugin · aktuelles Paket: `d0n.AIBody.21.var` (Version = Paketnummer seit 12)
+- Repo: https://github.com/d0n/vam_plugin · aktuelles Paket: `d0n.AIBody.22.var` (Version = Paketnummer seit 12)
 
 „Umgesetzt“ heißt: im Code und gegen nachgebaute Gegenstellen getestet. Was in VaM bzw. gegen die echten xAI-APIs noch nicht geprüft ist, steht zusätzlich unter 2.
 
@@ -20,7 +20,7 @@ Stand: 17.11.2026, Version 12. Übersicht, was umgesetzt ist und was offen ist; 
 - Hotfix: Version 13 kompilierte in VaM nicht (CS584, `foreach` über `Dictionary.Values` in `ExpressionController.cs`); kein `foreach`/LINQ über `.Keys`/`.Values` mehr, der Build-Scan verbietet das Muster – Version 14 (Leon, 17.11.2026 23:16); in VaM bestätigt: lädt ohne Fehler, „Init fertig, keine Fehler“, 200 Posen (Leon, 17.11.2026).
 
 ### Verbindung und Konfiguration
-- Begleit-App (Python) `python -m aibody_companion --vam-root "<VaM>"` – v0.5.0.
+- Begleit-App (Python) `python -m aibody_companion --vam-root "D:\VaM"` – v0.5.0.
 - Datei-Transport über `Saves/PluginData/AIBody/<Kanal>/`, Protokoll v3, Heartbeat, Status – v0.5.0/v0.6.3.
 - Robuste Verbindung: Timeout 6 s → „DISCONNECTED“, automatischer Neuaufbau, alte Befehle verworfen, Outbox ≤ 20 – v0.6.3, End-to-End-Simulation v0.7.0.
 - Gemeinsame `config.json` unter `<VaM>/Saves/PluginData/AIBody/` (Ort entschieden 15.11.2026), Schema, Menüwerte gewinnen; VaM-Werte als Text (`"2.5"`, `"true"`) werden gelesen (E21) – v0.6.3/v0.7.0.
@@ -36,6 +36,7 @@ Stand: 17.11.2026, Version 12. Übersicht, was umgesetzt ist und was offen ist; 
 - Abgelehnter xAI-Key (HTTP 400 „Incorrect API key“) wird als „abgelehnt“ erkannt – v0.7.3.
 - Hinweis, welcher Key funktioniert: API-Key von console.x.ai, kein Grok-Abo/grok.com-Token (Key-Status, Startwarnung der App) – v0.7.4.
 - Feld „XAI API Token“ (Tab Voice, Abschnitt Voice Mode, bei API Reconnect; Hinweis „(beware: scenes save it)“ darunter): einfaches Freitextfeld ohne Formatprüfung, kein ElevenLabs-Feld; Token geht als `keys.xai` im `config`-Ereignis über das Dateiprotokoll an die App und wird für alle xAI-Aufrufe genutzt; Reihenfolge Feld > `XAI_API_KEY` > `ai.xai.key_file`; Klartext nur in der Szene, nicht in config.json; im Log geschwärzt; `setx XAI_API_KEY` bleibt optional – Version 21 (Leon, 18./19.11.2026).
+- Start-Hilfen – Version 22 (Leon, 19.11.2026): README-Abschnitt „Starten“ (manueller Start, Ordner, `pip install -e .`, sounddevice, Python ≥ 3.10), `ai.xai.key_hint` in der geschriebenen `config.json`, VaM-Pfad-Beispiele als `D:\VaM`, `pip install -e .` repariert (pyproject).
 - Knopf „Simple Q&A mode“ heißt „Question and Answer“, zweizeilig und mittig „Question“ / „& Answer“, Funktion unverändert – Version 21 (Leon, 18./19.11.2026).
 - Tool-Aufrufe → Körperbefehle (Kette: `/v1/responses` mit tools; Realtime: function_call + function_call_output): `express` (Ausdruck/Geste), `pose` (wenn Posen vorhanden); jeder Aufruf bekommt ein Ergebnis; keine Tools in `qa` und bei Body control aus – v0.7.4.
 - Latenzmessung Sprechende → erster Ton mit Aufschlüsselung (STT, LLM first token, first sentence, TTS, file write, to plugin, plugin start), Logzeile pro Runde, letzter Wert + Mittel im Statusfeld (*Live*, „Latency to first sound“) – v0.7.4.
@@ -64,7 +65,7 @@ Stand: 17.11.2026, Version 12. Übersicht, was umgesetzt ist und was offen ist; 
 - Infofeld 1800 hoch, links nur das Infofeld (Kopfzeile mit Hinweis entfernt), Infotexte gekürzt, „Reload expressions“ beim Ausdruck – Version 17 (Leon, 18.11.2026).
 - Plugin-Oberfläche, Begleit-App-Ausgaben und `tools/mic_test.py` auf Englisch (internationaler Standard, unabhängig von der Systemsprache); vom System gelieferte Namen (Mikrofone, Host-APIs) unverändert; alte Szenen und config.json bleiben gültig – Version 18 (Leon, 18.11.2026).
 - Regler im Tab Config heißt in der Oberfläche „Companion inbox poll interval (s)“ statt „File poll interval (s)“: er bestimmt, wie oft das Plugin den Eingang der Companion-App (`Saves/PluginData/AIBody/<Kanal>/inbox/`) auf Nachrichten prüft (Sprache, Posen, Ausdrücke), nicht config.json (wird nie automatisch neu geladen). Hinweis dazu im Infofeld des Tabs Config; gespeicherter Name „File poll interval (s)“ und config.json-Schlüssel `advanced.file_poll_interval_s` unverändert, Abfrageverhalten unverändert – Version 19 (Leon, 18.11.2026).
-- Mikrofon-Menü ohne Begleit-App (Leon, 18.11.2026 19:15: Menü leer, „Refresh microphones“ ändert nichts, Infofeld „no answer from the companion app“): Infofeld sagt rot, dass die App nicht läuft, mit Startbefehl `python -m aibody_companion --vam-root "<VaM>"` („no answer“ nur bei laufender App); Menü wird beim Öffnen, bei „Refresh microphones“ und beim Tab-Aufbau immer neu gesetzt (mindestens „System default microphone“); erneute Anfrage alle 10 s bei laufender App ohne Liste; App schickt die Liste nach jedem `ready` und loggt die Rohzahlen – Version 20.
+- Mikrofon-Menü ohne Begleit-App (Leon, 18.11.2026 19:15: Menü leer, „Refresh microphones“ ändert nichts, Infofeld „no answer from the companion app“): Infofeld sagt rot, dass die App nicht läuft, mit Startbefehl `python -m aibody_companion --vam-root "D:\VaM"` („no answer“ nur bei laufender App); Menü wird beim Öffnen, bei „Refresh microphones“ und beim Tab-Aufbau immer neu gesetzt (mindestens „System default microphone“); erneute Anfrage alle 10 s bei laufender App ohne Liste; App schickt die Liste nach jedem `ready` und loggt die Rohzahlen – Version 20.
 - Infofeld größer (1600) und nur mit den Infos des offenen Tabs; Selbsttest, Recent events, Startup log im Tab Config; Startergebnis als eine Zeile auf jedem Tab; keine leere Posen-Auswahl; geprüft: kein Menü und kein Abschnitt, der nur „default“ zeigt – Version 16 (Leon, 18.11.2026).
 - „Posen“ statt „Post“: Tab Post entfernt, Posen im Tab AI Character; Erweitert in Config aufgegangen – Version 15. Ursprüngliche Absicht der entfernten Einträge: `docs/BACKLOG.md`.
 
@@ -113,7 +114,7 @@ _Version 21 hat das Feld „XAI API Token“ und den Knopf „Question and Answe
 - Relativer `Saves/PluginData`-Pfad mit `NormalizeMediaPath` + Audio-Lader.
 - Atem-Morph: kein Standard-Morph in VaM, Brust-Morph auf der Figur wählen.
 - Editierbares Textfeld über `CreateTextField` (1.22); Einfügen per Strg+V ins Feld „XAI API Token“.
-- Knopf „Question and Answer“: `buttonText.alignment` und `height` (90) in VaM sichtbar zweizeilig, mittig, nicht abgeschnitten (Version 21).
+- Knopf „Question and Answer“: `buttonText.alignment` und `height` (90) in VaM sichtbar zweizeilig, mittig, nicht abgeschnitten (Version 22).
 - `GetFiles` auf einem `Custom/`-Ordner in der Sandbox (Posen-Dateien).
 - Storable „PosePresets“ folgt dem belegten Muster (1.22).
 - Morph-Namen für Ausdrücke an Standard-Figuren (weiblich/männlich).

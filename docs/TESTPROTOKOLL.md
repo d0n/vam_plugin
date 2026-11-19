@@ -13,11 +13,11 @@ nach durchgehen und das Ergebnis eintragen (✅ / ❌ / unklar). Dauer: etwa 20 
 **Vorbereitung**
 
 - VaM schließen. In `<VaM-Hauptordner>/AddonPackages/` alle alten AIBody-Pakete löschen:
-  `d0n.AIBody.1.var` bis `d0n.AIBody.20.var`, `d0n.AIBodySession.*`, `d0n.AIBodyPerson.*`,
+  `d0n.AIBody.1.var` bis `d0n.AIBody.21.var`, `d0n.AIBodySession.*`, `d0n.AIBodyPerson.*`,
   `d0n.AIBodyPerson2.*`. Lose Dateien unter `Custom/Scripts/d0n/AIBody/` ebenfalls entfernen.
-- `d0n.AIBody.21.var` nach `<VaM-Hauptordner>/AddonPackages/` kopieren.
+- `d0n.AIBody.22.var` nach `<VaM-Hauptordner>/AddonPackages/` kopieren.
 - Companion-App bereithalten (noch **nicht** starten):
-  `python -m aibody_companion --vam-root "C:/VaM"` (Pfad zum eigenen VaM-Ordner anpassen).
+  `python -m aibody_companion --vam-root "D:\VaM"` (Pfad zum eigenen VaM-Ordner anpassen).
   Für T9 den xAI-Key im Plugin eintragen (Tab **Voice** > Feld **XAI API Token**, ab Version 21) oder vor dem Start setzen: `set XAI_API_KEY=xai-...` (cmd) bzw. `$env:XAI_API_KEY="xai-..."` (PowerShell); das Feld gewinnt.
 
 ---
@@ -188,7 +188,7 @@ bitte trotzdem kurz reinschauen) und einen Screenshot des Statusfelds mit *Recen
    `Selected: … | Windows default: …`. Die Companion-Konsole zeigt `Microphones: N found (…): …`.
    Menü **Mic device** öffnen: erster Eintrag `System default microphone` (auch ohne App), darunter
    jedes Mikrofon einmal. Ab Version 20 ohne laufende Begleit-App: rote Zeile
-   `Microphone list: companion app not running. Start it: python -m aibody_companion --vam-root "<VaM>"`
+   `Microphone list: companion app not running. Start it: python -m aibody_companion --vam-root "D:\VaM"`
    und im Menü nur `System default microphone`; nach dem Start der App kommt die Liste von selbst
    (spätestens nach etwa 10 s). Eins wählen, sprechen
    (Pegel bewegt sich), Szene speichern, neu laden: die Wahl ist noch da.
@@ -232,7 +232,7 @@ Begleit-App-Konsole. Wichtig: ob Einfügen per Strg+V im Feld klappt, ob der Kno
    Ausgabe: Versionen, Host-APIs, alle Geräte roh, Eingabegeräte je Host-API, die Liste, die die App
    an das Plugin schickt. Dateien `mic_test_output.txt` und `mic_test_devices.json` im aktuellen Ordner.
 2. VaM mit der Szene offen, Tab **Client Character**:
-   `python tools/mic_test.py --vam-root "<VaM-Hauptordner>"` (bei anderem Kanal `--channel <Kanal>`).
+   `python tools/mic_test.py --vam-root "D:\VaM"` (bei anderem Kanal `--channel <Kanal>`).
    Das Skript legt die Liste in `<VaM>/Saves/PluginData/AIBody/<Kanal>/inbox/`. Erwartet: Infofeld zeigt
    `Microphone list: N received …`, das Menü **Mic device** die Mikrofone.
 

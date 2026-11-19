@@ -116,6 +116,9 @@ of *Voice > AI Character*, as before.
 | `xai` | TTS | `XAI_API_KEY` or `ai.xai.key_file` | `POST https://api.x.ai/v1/tts`, `output_format: {codec: pcm}` |
 | `elevenlabs` | TTS | `ELEVENLABS_API_KEY` or `ai.elevenlabs.key_file` | `POST https://api.elevenlabs.io/v1/text-to-speech/{voice_id}?output_format=pcm_24000` |
 
+`config.json` also carries `ai.xai.key_hint` (version 22): a plain-text note (JSON has no comments) saying that an xAI
+API key is required and the three ways to give it. The app ignores it; any text is accepted.
+
 **Plugging in the xAI key (version 21):** paste it into the field **XAI API Token** (tab *Voice*,
 section *Voice Mode*, below **API Reconnect**). Plain text, no format check, saved with the scene
 (hence the hint "(beware: scenes save it)"), never written to `config.json`, masked in every log.

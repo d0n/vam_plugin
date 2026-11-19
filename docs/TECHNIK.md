@@ -6,10 +6,10 @@ German [README](../README.md).
 
 ## Load flow (the whole setup)
 
-1. Copy `d0n.AIBody.21.var` to `<VaM>/AddonPackages/` (remove older AIBody packages, see below).
+1. Copy `d0n.AIBody.22.var` to `<VaM>/AddonPackages/` (remove older AIBody packages, see below).
 2. In VaM select the AI character's Person atom > **Plugins** tab > **Add Plugin** > choose
-   `AddonPackages > d0n.AIBody.21:/Custom/Scripts/d0n/AIBody/AIBody.cslist`.
-3. Start the companion app: `python -m aibody_companion --vam-root "C:/VaM"`.
+   `AddonPackages > d0n.AIBody.22:/Custom/Scripts/d0n/AIBody/AIBody.cslist`.
+3. Start the companion app: `python -m aibody_companion --vam-root "D:\VaM"`.
 
 That's it. The plugin's status box shows "Companion app: running ..." once both sides see each
 other. Save the scene to keep the plugin and its settings with the character.
@@ -22,7 +22,7 @@ sentence), xAI text to speech speaks it, and the Person plays the WAV on her hea
 sync. Speech only, no expressions or gestures, no proactive remarks. A few seconds of delay are normal.
 
 1. Install the package and add the plugin to the Person (steps 1 and 2 above).
-2. Start the companion app: `python -m aibody_companion --vam-root "C:/VaM"`.
+2. Start the companion app: `python -m aibody_companion --vam-root "D:\VaM"`.
 3. Plugin tab *Voice* > section *Voice Mode*: paste your xAI API key from console.x.ai into the
    field **XAI API Token** (plain text; version 21). It reaches the running app within a second.
    Alternatively start the app with the key in the environment (`set XAI_API_KEY=xai-...`, Windows
@@ -147,22 +147,22 @@ tools/                     assemble_plugins.py (plugin folder), build_var.py (pa
 
 ### Install the package
 
-Download `d0n.AIBody.21.var` from the [releases](https://github.com/d0n/vam_plugin/releases), or
-build it with `python tools/build_var.py` (writes `dist/d0n.AIBody.21.var`), and copy it to:
+Download `d0n.AIBody.22.var` from the [releases](https://github.com/d0n/vam_plugin/releases), or
+build it with `python tools/build_var.py` (writes `dist/d0n.AIBody.22.var`), and copy it to:
 
 ```
-<VaM>/AddonPackages/d0n.AIBody.21.var
+<VaM>/AddonPackages/d0n.AIBody.22.var
 ```
 
 Remove all older AIBody packages from `AddonPackages`: `d0n.AIBody.1.var`, `d0n.AIBody.2.var`,
-`d0n.AIBody.3.var` to `d0n.AIBody.21.var`, `d0n.AIBodySession.*.var`, `d0n.AIBodyPerson.*.var`,
+`d0n.AIBody.3.var` to `d0n.AIBody.22.var`, `d0n.AIBodySession.*.var`, `d0n.AIBodyPerson.*.var`,
 `d0n.AIBodyPerson2.*.var`. Scenes saved with an older package point at that package's path, so
-remove the old plugin entry from the character and add `d0n.AIBody.21` again, then save.
+remove the old plugin entry from the character and add `d0n.AIBody.22` again, then save.
 
 Contents:
 
 ```
-d0n.AIBody.21.var
+d0n.AIBody.22.var
 ├── meta.json
 └── Custom/Scripts/d0n/AIBody/
     ├── AIBody.cslist
@@ -260,7 +260,7 @@ same atom.
 cd companion
 pip install sounddevice                                   # microphone support
 python -m aibody_companion --list-devices                 # check the microphone
-python -m aibody_companion --vam-root "C:/VaM"            # channel from config.json ("default")
+python -m aibody_companion --vam-root "D:\VaM"            # channel from config.json ("default")
 ```
 
 Options: `--channel` (default `default`), `--no-mic` (text only), `--no-stdin`, `-v` / `--verbose`
@@ -505,7 +505,7 @@ Agreed spec: [docs/SPEC.md](SPEC.md); status done / open: [docs/ANFORDERUNGEN.md
 
 ### Microphone list without VaM (version 16)
 
-`python tools/mic_test.py [--vam-root "<VaM>"] [--channel <name>]` prints every PortAudio device
+`python tools/mic_test.py [--vam-root "D:\VaM"] [--channel <name>]` prints every PortAudio device
 raw, the input devices per host API and the exact list the companion sends (`list_input_devices`),
 and writes `mic_test_output.txt` and `mic_test_devices.json`. With `--vam-root` it also puts that
 `devices` command into the plugin's inbox (same file format as the companion's `FileTransport`), so
