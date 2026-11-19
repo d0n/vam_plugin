@@ -380,12 +380,18 @@ One answer = speech to text -> language model -> text to speech, chosen in the p
   existing `expression` / `gesture` commands.
 - Every TTS engine writes 16-bit PCM WAV into the channel's `audio/` folder (VaM's audio loader
   plays WAV; WAV also gives the exact duration for the echo gate).
-- **Keys:** xAI precedence (version 21): 1. the plugin field **XAI API Token** (tab Voice > Voice Mode;
-  plain text, no format check; saved with the scene; sent to the app only in the `config` event as
-  `keys.xai`, an empty field = no token and the next source applies), 2. the environment variable
-  `XAI_API_KEY`, 3. the PATH of a key file (`ai.xai.key_file` in `config.json`). ElevenLabs has no
-  menu field: `ELEVENLABS_API_KEY` or `ai.elevenlabs.key_file`. Never the key itself in `config.json`
-  or the repository; every registered key is masked in the app's log and console (config events with
+- **Keys:** xAI precedence (next version, 24): 1. the plugin field **XAI API Token** (tab Voice > Voice Mode;
+  plain text, no format check; sent to the app in the `config` event as `keys.xai`, an empty field = no
+  token and the next source applies), 2. `ai.xai.api_key` in `config.json` (PLAIN TEXT; the plugin writes
+  the field there with FileManagerSecure, keeping all other keys, and reads it on start to fill the field;
+  the app reads it too), 3. the environment variable `XAI_API_KEY`, 4. the PATH of a key file
+  (`ai.xai.key_file`). Masked display: the field shows `xai-****abcd` a few seconds after an edit and
+  after every start; the real token is held separately (`_xaiToken`), text with `****` typed into the field
+  is ignored, so the mask never overwrites the token. `InputField.contentType = Password` was NOT used: no
+  evidence for it in `docs/API_AUDIT.md`. Nothing is written before `config.json` was read successfully
+  (an early empty field cannot wipe a saved token). `ai.xai.api_key_warning` next to the token carries the
+  security notice (the same text is at the top of the left info field of the tab Voice). ElevenLabs has no
+  menu field: `ELEVENLABS_API_KEY` or `ai.elevenlabs.key_file`. Never a real key in the repository; every registered key is masked in the app's log and console (config events with
   `keys` are logged masked, the plugin logs only "keys masked"). The token passes through one event
   file in `Saves/PluginData/AIBody/<channel>/outbox/` which the app deletes right after reading
   (plain text on disk for that moment; the scene file holds it permanently). Without a key the engine stays selectable but shows **"not configured"** in the

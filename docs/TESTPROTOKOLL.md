@@ -209,7 +209,7 @@ Latenz, Konsolenausgabe.
 
 1. Tab **Voice**, Abschnitt *Voice Mode*: Der Knopf oben heißt zweizeilig **Question** / **& Answer**,
    Text mittig, Text nicht abgeschnitten. Darunter **Active**, **Use realtime voice**, **API Reconnect**,
-   dann die Beschriftung **XAI API Token**, das Textfeld und direkt darunter „(beware: scenes save it)“.
+   dann die Beschriftung **XAI API Token**, das Textfeld und darunter der Hinweis zum Maskieren (seit Version 24; die Szenen-Warnung „(beware: scenes save it)“ gibt es nicht mehr).
 2. Begleit-App **ohne** `XAI_API_KEY` starten (Warnung „No xAI API key yet“ ist richtig). Infofeld links:
    `xAI key: missing` und der Hinweis auf das Feld.
 3. In das Feld klicken, den xAI-Key (console.x.ai) einfügen (Strg+V). Erwartet: nach etwa einer Sekunde
@@ -218,7 +218,13 @@ Latenz, Konsolenausgabe.
 4. **Question and Answer** drücken, eine Frage sprechen oder tippen: hörbare Antwort. Funktion wie vorher.
 5. Feld leeren: `xAI key: missing`. Feld mit Unsinn füllen (z. B. `abc`): wird ohne Formatprüfung
    angenommen, die erste Anfrage meldet `rejected` (HTTP 401/403).
-6. Szene speichern, neu laden: das Feld ist wieder gefüllt (Klartext in der Szene); `config.json` enthält keinen Token.
+6. (Version 24) Szene speichern, VaM neu starten, Szene laden: das Feld ist wieder gefüllt, jetzt **maskiert** (`xai-****abcd`);
+   `config.json` enthält `ai.xai.api_key` (Klartext) und daneben `ai.xai.api_key_warning`. Im linken Infofeld (Tab Voice) steht
+   oben „SECURITY NOTICE: …“, nicht unter dem Feld. Infofeld `xAI key: configured`.
+7. (Version 24) Feld markieren und einen anderen Key einfügen: nach etwa 4 s zeigt das Feld die neue Maske, `ai.xai.api_key`
+   hat den neuen Wert (Datei prüfen, andere Schlüssel unverändert). In die Maske tippen: der Token bleibt unverändert, die
+   Maske kommt zurück. Feld leeren: `xAI key: missing` (ohne Umgebungsvariable), `ai.xai.api_key` ist `""`.
+8. (Version 24) Companion-Log (`companion.log`) und Plugin-Log öffnen: der Token steht nirgends.
 
 Melden: Screenshot des Tabs **Voice** (Knopf, Feld, Hinweis), Infofeld links, rote `AIBody:`-Zeilen, Ausgabe der
 Begleit-App-Konsole. Wichtig: ob Einfügen per Strg+V im Feld klappt, ob der Knopf zweizeilig mittig steht.

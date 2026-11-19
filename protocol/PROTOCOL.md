@@ -198,12 +198,16 @@ commands taken from a `<<expression gesture>>` tag at the start of the model's t
 
 ### API token (`config.keys`)
 
-`keys.xai` (string, version 21) is the content of the plugin field "XAI API Token": no format check,
+`keys.xai` (string, version 21) is the real token of the plugin field "XAI API Token" (never the masked text the
+field may show): no format check,
 surrounding blanks are stripped. A changed key re-reads the engines and reconnects realtime; an empty
-string clears it (the environment variable / key file apply again); an event without `keys` leaves the
+string clears it (also the stored `ai.xai.api_key`; the environment variable / key file apply again); an event without `keys` leaves the
 token as it is. Wrong types are reported in `config_ack.errors` without the value. The value is
 registered with the app's log redaction before the event is validated, and `config` events are only
-logged masked. There is no `keys.elevenlabs`.
+logged masked. There is no `keys.elevenlabs`. Since the next version (24) the plugin also stores the token in
+`config.json` as `ai.xai.api_key` (plain text, never in a `config` event's `ai` object) with the notice
+`ai.xai.api_key_warning` next to it; the app reads both keys when it starts (precedence: field, `api_key`,
+`XAI_API_KEY`, `key_file`; protocol version unchanged).
 
 ### AI controls (`config.ai`)
 

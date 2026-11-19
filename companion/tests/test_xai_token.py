@@ -274,32 +274,41 @@ class RealtimeTokenTests(RealtimeSim):
 
 
 class PluginSourceTests(unittest.TestCase):
-    def test_token_field_sits_below_api_reconnect_with_the_hint_directly_below(self):
+    def test_token_field_sits_below_api_reconnect_without_warning_label_under_it(self):
         body = method_body(source("AppLink.cs"), "public void BuildVoiceModeTab(UiPage page)")
         order = [body.index(s) for s in ('page.Button("API Reconnect"', "XaiTokenLabel", "page.TextInput(_xaiTokenJson)",
                                           "page.Header(XaiTokenHint)", 'page.Button("Test tone via companion"')]
         self.assertEqual(order, sorted(order))
         between = body[order[2] + len("page.TextInput(_xaiTokenJson)"):order[3]]
         self.assertEqual(between.count("page."), 0, "nothing between the field and its hint")
+        self.assertNotIn("XaiTokenWarning", body, "the security notice is in the big info field, not under the token field")
         link = source("AppLink.cs")
         self.assertIn('XaiTokenLabel = "XAI API Token"', link)
-        self.assertIn('XaiTokenHint = "(beware: scenes save it)"', link)
+        self.assertNotIn("beware: scenes save it", link)
 
     def test_plain_text_field_without_format_check(self):
         link = source("AppLink.cs")
-        self.assertIn('new JSONStorableString(XaiTokenLabel, "", (string v) => { UpdateKeyStatus(); MarkConfigDirty(); })', link)
+        self.assertIn('new JSONStorableString(XaiTokenLabel, "", OnTokenEdited)', link)
         self.assertNotIn("LooksLikeKey(XaiToken", link)
         self.assertNotIn("LooksLikeKey(_xaiTokenJson", link)
-        self.assertIn("_plugin.RegisterString(_xaiTokenJson)", link, "saved with the scene (hence the hint)")
-        token = re.search(r"private string XaiToken\s*\{(.*?)\n        \}", link, re.S).group(1)
-        self.assertIn("Trim()", token)
-        self.assertNotRegex(token, r"Regex|StartsWith|Length >=")
+        self.assertNotIn("LooksLikeKey(typed", link)
+        self.assertIn("_plugin.RegisterString(_xaiTokenJson)", link, "the field (its mask) is kept with the scene; old scenes migrate")
+        edited = method_body(link, "private void OnTokenEdited(string v)")
+        self.assertIn("Trim()", edited)
+        self.assertNotRegex(edited, r"Regex|StartsWith|Length >=")
 
-    def test_token_goes_only_into_the_config_event(self):
+    def test_token_goes_to_the_config_event_and_to_config_json_only_as_ai_xai_api_key(self):
         link = source("AppLink.cs")
         self.assertIn('keys["xai"] = XaiToken;', method_body(link, "private void AddEngines(JSONClass configEvent)"))
-        self.assertNotIn("XaiToken", method_body(link, "private JSONClass BuildAiJson()"), "not in config.json")
-        self.assertNotIn("_xaiTokenJson", method_body(link, "public static void MergeAi(JSONClass target, JSONClass ui)"))
+        ai = method_body(link, "private JSONClass BuildAiJson(bool forFile)")
+        self.assertIn('if (forFile && _tokenReady)', ai, "never in the config event, never before config.json was read")
+        self.assertIn('xai["api_key"] = _xaiToken;', ai)
+        self.assertIn('xai["api_key_warning"] = XaiTokenWarning;', ai)
+        self.assertIn("BuildAiJson(false)", method_body(link, "private void AddEngines(JSONClass configEvent)"))
+        merge = method_body(link, "public static void MergeAi(JSONClass target, JSONClass ui)")
+        self.assertIn('"xai", "api_key")', merge)
+        self.assertIn('"xai", "api_key_warning")', merge, "the write-back keeps the warning next to the token")
+        self.assertNotIn("_xaiTokenJson", merge)
         self.assertNotIn("_xaiTokenJson", method_body(link, "public void ApplySettings(JSONClass root)"))
 
     def test_token_is_never_logged_by_the_plugin(self):

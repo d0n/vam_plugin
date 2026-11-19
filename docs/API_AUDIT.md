@@ -306,6 +306,20 @@ from `Exception.ToString()`, not from reflection. The only additions outside the
   TODO(verify): why VaM showed no entry at all; the info field line "Mic device menu: N entries"
   reads the chooser back. No `foreach` over Dictionary `.Keys`/`.Values` (CS584 rule).
 
+## After version 22 (next version, 24): XAI API Token in config.json, masked display
+
+- **No new VaM API.** The token is read and written through the already audited config.json path
+  (`FileManagerSecure.ReadAllText` / `WriteAllText`, E11, with the existing SimpleJSON merge in
+  `AIBody.WriteSettings`); the field is still the audited `CreateTextField` + `InputField` bound through
+  `storable.inputField` (E14). Masking is plain string work: the storable only shows the mask, the real token
+  is a private string, text containing `****` is ignored. No `foreach` over `Dictionary.Keys`/`.Values`.
+- **Not used:** `InputField.contentType = Password` (or `asteriskChar`): it is standard Unity UI, but no
+  audited VaM plugin uses it on a `CreateTextField` field, so it is not in the stubs and not used.
+  TODO(verify) in VaM: the mask appears a few seconds (4 s) after an edit and after a start; pasting a new key
+  over the mask is accepted.
+- The scene still saves the storable (registered), now holding the mask; an older scene restores a real token
+  into it, which the plugin keeps if `config.json` has none (migration).
+
 ## Version 21: free-text field "XAI API Token", two-line "Question and Answer" button
 
 - **Text field:** no new API. The field is the already audited editable text field (`CreateTextField`

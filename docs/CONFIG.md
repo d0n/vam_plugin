@@ -122,11 +122,20 @@ of *Voice > AI Character*, as before.
 `config.json` also carries `ai.xai.key_hint` (version 22): a plain-text note (JSON has no comments) saying that an xAI
 API key is required and the three ways to give it. The app ignores it; any text is accepted.
 
-**Plugging in the xAI key (version 21):** paste it into the field **XAI API Token** (tab *Voice*,
-section *Voice Mode*, below **API Reconnect**). Plain text, no format check, saved with the scene
-(hence the hint "(beware: scenes save it)"), never written to `config.json`, masked in every log.
-Precedence: 1. the field (when not empty), 2. `XAI_API_KEY`, 3. `ai.xai.key_file`; clearing the field
-falls back to 2 / 3. A changed key also reconnects realtime. There is no ElevenLabs field.
+**Plugging in the xAI key (version 21, stored in config.json since the next version, 24):** paste it into
+the field **XAI API Token** (tab *Voice*, section *Voice Mode*, below **API Reconnect**). Plain text, no
+format check. The plugin saves it in `config.json` as `ai.xai.api_key` (PLAIN TEXT, at Leon's explicit
+request; `ai.xai.api_key_warning` next to it carries the security notice), fills the field from it on
+every start, and then shows it masked (`xai-****abcd`; the mask never replaces the stored token). The
+companion app reads `ai.xai.api_key` too, also before the plugin connects. Masked in every log.
+Precedence: 1. the field (live, when not empty), 2. `ai.xai.api_key`, 3. `XAI_API_KEY`, 4. `ai.xai.key_file`;
+emptying the field in the plugin also empties `ai.xai.api_key` and falls back to 3 / 4. A changed key also
+reconnects realtime. There is no ElevenLabs field.
+
+**Security notice:** anyone who can read `config.json` can read the token: do not share or publish the file.
+Scenes keep only the masked token, but a scene saved with version 21 to 23 still contains the full token
+(plain text): do not publish such a scene. The notice is also shown at the top of the info field on the left
+(tab *Voice*) and in `config.json` (`ai.xai.api_key_warning`).
 
 **Plugging in a key from the environment or a file** (example ElevenLabs, the same for xAI):
 
@@ -146,15 +155,14 @@ unlabeled boxes in VaM and were removed); after editing the file press **Reload 
 **missing** or **rejected** (the server refused the key with HTTP 401/403). Something that looks like
 a pasted key (starts with `xai-` / `sk_`, or a long string without `/ \ .`) is refused by the
 plugin and the app and never stored - this rule applies to the `key_file` values only, not to the
-field **XAI API Token** (version 21), which takes anything. That field is saved readably in the
-scene (not in `config.json`).
+field **XAI API Token** or `ai.xai.api_key`, which take anything (plain text, see the security notice above).
 
 **Which key:** xAI needs an API key from console.x.ai (starts with `xai-`). A Grok subscription
 (SuperGrok / X Premium) or a grok.com login token is not an API key and is refused by `api.x.ai`.
 The key status (heartbeat `keys.xai.hint`, info field of tab *Voice*) says so when the key is missing or refused.
 
-The key itself never goes into `config.json` (a `key_file` value that looks like a key is
-refused) or into the log (the token of the plugin field lives in the scene only). Without a key nothing is blocked: the engine is "not configured"
+The token goes into `config.json` only as `ai.xai.api_key` (a `key_file` value that looks like a key is
+refused) and never into the log. Without a key nothing is blocked: the engine is "not configured"
 and the fallback runs.
 
 **Real API check** (once keys exist; everything is only tested against a fake server so far):

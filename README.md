@@ -19,7 +19,7 @@ python -m aibody_companion --vam-root "D:\VaM"
 - **Aus welchem Ordner:** Der Befehl funktioniert, wenn du im Ordner `companion` des Repositorys bist (`cd companion`). Alternativ einmal `pip install -e .` im Ordner `companion`, danach läuft derselbe Befehl aus jedem Ordner. Meldet Python `No module named aibody_companion`, bist du im falschen Ordner (und hast das Paket nicht installiert).
 - **Mikrofon:** `python -m pip install sounddevice` (oder `python -m pip install -r requirements.txt` im Ordner `companion`). Ohne `sounddevice` gibt es kein Zuhören (die App nimmt immer vom Standard-Eingabegerät des Systems auf; kein Mikrofon-Menü); Tippen in der Konsole geht trotzdem.
 - **Python:** Version 3.10 oder neuer.
-- **xAI-Key:** im Plugin, Tab **Voice** > *Voice Mode*, Feld **XAI API Token** (unter *API Reconnect*), oder per Umgebungsvariable `XAI_API_KEY`, oder per `ai.xai.key_file` in `config.json`; mehr dazu weiter unten.
+- **xAI-Key:** im Plugin, Tab **Voice** > *Voice Mode*, Feld **XAI API Token** (unter *API Reconnect*), der Token wird danach in `config.json` gespeichert (`ai.xai.api_key`, **Klartext**, siehe Sicherheitshinweis unten); alternativ Umgebungsvariable `XAI_API_KEY` oder `ai.xai.key_file`; mehr dazu weiter unten.
 - **Neue Version holen:** `git pull` im Repository-Ordner, sonst meldet die App eine alte Version (die App meldet beim Start `AIBody companion <Version>`).
 
 ## 1. Wozu und wie benutzt
@@ -41,7 +41,7 @@ python -m aibody_companion --vam-root "D:\VaM"
   - Netzwerk nur in der Begleit-App.
   - Ein Plugin, eine `.cslist`, eine MVRScript-Klasse, ein Ladeschritt.
   - Datei-Transport (Protokoll v3) und eine gemeinsame `config.json`.
-  - xAI braucht einen API-Key von console.x.ai; ein Grok-Abo funktioniert nicht. Seit Version 21 trägst du ihn im Plugin ein: Tab **Voice**, Abschnitt *Voice Mode*, Feld **XAI API Token** (einfaches Textfeld, keine Formatprüfung; Hinweis darunter „(beware: scenes save it)“).
+  - xAI braucht einen API-Key von console.x.ai; ein Grok-Abo funktioniert nicht. Seit Version 21 trägst du ihn im Plugin ein: Tab **Voice**, Abschnitt *Voice Mode*, Feld **XAI API Token** (einfaches Textfeld, keine Formatprüfung). Seit der nächsten Version (24) speichert das Plugin den Token in `config.json` (`ai.xai.api_key`, Klartext, auf Leons ausdrücklichen Wunsch), füllt das Feld beim Start daraus und zeigt ihn danach maskiert (`xai-****abcd`). **Sicherheitshinweis:** wer `config.json` lesen kann, kann den Token lesen; die Datei nie weitergeben oder veröffentlichen. Szenen speichern nur noch die Maske, aber eine mit Version 21 bis 23 gespeicherte Szene enthält den Token weiter im Klartext und darf nicht veröffentlicht werden. Der Hinweis steht auch im linken Infofeld (Tab Voice) und in `config.json` (`ai.xai.api_key_warning`).
   - Standardmodus Einfacher Q&A (nur Sprache); Realtime optional.
   - Die KI steuert den Körper per Tool-Aufruf (nicht im Q&A-Modus, nicht bei Body control aus); Posen zusätzlich manuell im Tab AI Character.
   - Das Menü zeigt nur Einstellbares (Tabs Voice, AI Character, Client Character, Config); alle Hilfe- und Statustexte stehen in einem großen Infofeld links.
@@ -131,8 +131,10 @@ Spalte „Wo“: Tab im Plugin-Menü; „nur Datei“ = kein Bedienelement. Bere
 | `ai.proactive.idle_seconds` | number | 90 | [0–3600]; im Plugin auf ganze Sekunden gerundet; **0 = Anstöße aus** (wie Proactive aus; alles unter 1 s zählt als 0) | Stille, bis die KI von sich aus sprechen darf (keine Antwortzeit); verdoppelt sich bei unbeantworteten Anstößen (bis 8×) | Voice > AI Character: **Speech delay timer (s)** |
 | `ai.proactive.prompt` | string | „The user has been quiet for a while. … answer with exactly [silent] …“ | frei | Hinweis bei jedem Anstoß; Antwort `[silent]` = nichts abspielen | nur Datei |
 | `ai.xai.base_url` | string | `https://api.x.ai/v1` | | REST-Basis für STT, LLM, TTS | nur Datei |
-| `ai.xai.key_hint` | string | englischer Hinweistext | beliebiger Text | Notiz für den Leser der Datei (JSON hat keine Kommentare): ein xAI-API-Key ist nötig, auf drei Wegen (Plugin-Feld **XAI API Token**, `XAI_API_KEY`, `ai.xai.key_file`). Wird von der App nicht benutzt; die App ergänzt ihn in bestehenden `config.json` | nur Datei |
-| `ai.xai.key_file` | string | `""` | Pfad (absolut oder relativ zum Benutzerordner); kein Key | Datei mit dem xAI-Key; gilt erst nach dem Feld **XAI API Token** und `XAI_API_KEY`; ein hier eingefügter Key wird abgelehnt und nicht gespeichert | nur Datei (seit Version 15 kein Menüfeld; das Plugin behält den gelesenen Pfad) |
+| `ai.xai.key_hint` | string | englischer Hinweistext | beliebiger Text | Notiz für den Leser der Datei (JSON hat keine Kommentare): ein xAI-API-Key ist nötig, auf vier Wegen (Plugin-Feld **XAI API Token**, `ai.xai.api_key`, `XAI_API_KEY`, `ai.xai.key_file`). Wird von der App nicht benutzt; die App ergänzt ihn in bestehenden `config.json` | nur Datei |
+| `ai.xai.api_key` | string | `""` | beliebiger Text (keine Formatprüfung) | der xAI-Token im **Klartext**; das Plugin schreibt das Feld **XAI API Token** hierher und füllt das Feld beim Start daraus, die App liest ihn ebenfalls; gilt nach dem Feld (live) und vor `XAI_API_KEY` und `ai.xai.key_file`; leeres Feld im Plugin leert ihn | Voice > Voice Mode: **XAI API Token** |
+| `ai.xai.api_key_warning` | string | englischer Sicherheitshinweis | beliebiger Text | Notiz für den Leser der Datei (JSON hat keine Kommentare), steht neben `api_key`; die App ignoriert ihn, das Plugin behält ihn beim Zurückschreiben | nur Datei |
+| `ai.xai.key_file` | string | `""` | Pfad (absolut oder relativ zum Benutzerordner); kein Key | Datei mit dem xAI-Key; gilt erst nach dem Feld **XAI API Token**, `ai.xai.api_key` und `XAI_API_KEY`; ein hier eingefügter Key wird abgelehnt und nicht gespeichert | nur Datei (seit Version 15 kein Menüfeld; das Plugin behält den gelesenen Pfad) |
 | `ai.xai.model` | string | `grok-4.7` | | Sprachmodell | nur Datei |
 | `ai.xai.max_output_tokens` | int | 400 | [16–8000] | hält Antworten kurz | nur Datei |
 | `ai.xai.stt_model` | string | `grok-voice-transcribe-2.0` | | Spracherkennungsmodell | nur Datei |
@@ -178,7 +180,7 @@ Aufbau seit Version 15 (Leon, 17.11.2026): links ein großes Infofeld, rechts vi
 
 ### 4.5 Umgebungsvariablen
 
-- xAI-Key, Reihenfolge (Version 22): 1. Feld **XAI API Token** im Plugin (wenn nicht leer), 2. Umgebungsvariable `XAI_API_KEY`, 3. Key-Datei `ai.xai.key_file`. Ein leeres Feld fällt auf 2 und 3 zurück.
+- xAI-Key, Reihenfolge (nächste Version, 24): 1. Feld **XAI API Token** im Plugin (live, wenn nicht leer), 2. `ai.xai.api_key` in `config.json` (Klartext; dasselbe wie das Feld nach einem Neustart), 3. Umgebungsvariable `XAI_API_KEY`, 4. Key-Datei `ai.xai.key_file`. Ein leeres Feld fällt zurück; leert man das Feld im Plugin, wird auch `ai.xai.api_key` geleert. Der Token steht nie im Log (alle Schlüssel werden geschwärzt).
 - `XAI_API_KEY`: optional; xAI-API-Key von console.x.ai (beginnt mit `xai-`); gewinnt über `ai.xai.key_file`, verliert gegen das Feld. Ein Grok-Abo (SuperGrok / X Premium) bzw. grok.com-Token ist kein API-Key und wird abgelehnt. Ohne Key: Warnung beim Start, Test-Engines laufen.
 - `ELEVENLABS_API_KEY`: ElevenLabs-Key; gewinnt über `ai.elevenlabs.key_file`.
 - Key-Dateien werden alle 10 s neu gelesen; Umgebungsvariablen nur beim Start der App. Der Token aus dem Feld steht in der Szene (Klartext, siehe Hinweis am Feld) und für Sekundenbruchteile in einer Ereignisdatei unter `Saves/PluginData/AIBody/<Kanal>/outbox/`, die die App nach dem Lesen löscht; nie in `config.json`; im Log immer geschwärzt.
