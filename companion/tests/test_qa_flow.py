@@ -102,8 +102,8 @@ class QaFlowTests(unittest.TestCase):
         self.assertIn("Answer (2 sentence(s), xai -> xai)", self.plugin.turn)
         beat = self.sim.sent(self.plugin, "companion_heartbeat")[-1]
         self.assertEqual(beat["mode"]["requested"], "qa")
-        self.assertIn("Simple Q&A", beat["mode"]["status"])
-        self.assertEqual(beat["proactive"]["status"], "paused in Simple Q&A mode")
+        self.assertIn("Question and Answer", beat["mode"]["status"])
+        self.assertEqual(beat["proactive"]["status"], "paused in Question and Answer mode")
         self.assertEqual(beat["audio_out"], {"folder": "Custom/Sounds/AIBody/default", "auto": True})
 
     def test_typed_text_takes_the_same_path_without_speech_to_text(self):

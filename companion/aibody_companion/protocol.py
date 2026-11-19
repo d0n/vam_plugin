@@ -15,6 +15,7 @@ import uuid
 from typing import Any
 
 from . import PROTOCOL_VERSION
+from .logsetup import add_secret
 from .vamjson import as_bool
 
 # Messages companion -> plugin ("commands").
@@ -127,6 +128,22 @@ def validate_command(msg: Any) -> list[str]:
     if type_ == "trigger" and not (msg.get("action") or msg.get("param")):
         errors.append("trigger: needs 'action' or 'param'")
     return errors
+
+
+def register_event_secrets(msg: Any) -> None:
+    """Registers tokens carried by a plugin event (config.keys) with the log redaction, before anything logs it."""
+    keys = msg.get("keys") if isinstance(msg, dict) else None
+    if isinstance(keys, dict):
+        for value in keys.values():
+            if isinstance(value, str):
+                add_secret(value.strip())
+
+
+def loggable(msg: Any) -> Any:
+    """A copy of an event that is safe to log: the values of config.keys are masked."""
+    if isinstance(msg, dict) and isinstance(msg.get("keys"), dict):
+        return {**msg, "keys": {k: ("***" if v else "") for k, v in msg["keys"].items()}}
+    return msg
 
 
 def is_event(msg: Any) -> bool:

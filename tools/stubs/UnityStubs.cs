@@ -7,6 +7,7 @@ using System.Collections;
 
 namespace UnityEngine
 {
+    public enum TextAnchor { UpperLeft, UpperCenter, UpperRight, MiddleLeft, MiddleCenter, MiddleRight, LowerLeft, LowerCenter, LowerRight }
     public class Object { public static void Destroy(Object o) { } }
     public class Component : Object
     {
@@ -78,7 +79,7 @@ namespace UnityEngine.Events
 
 namespace UnityEngine.UI
 {
-    public class Text : Component { }
+    public class Text : Component { public TextAnchor alignment; }   // E27
     public class Button : Component
     {
         public class ButtonClickedEvent : UnityEngine.Events.UnityEvent { }

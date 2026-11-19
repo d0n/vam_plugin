@@ -90,6 +90,26 @@ namespace AIBody
             b.button.onClick.AddListener(onClick);
         }
 
+        /// <summary>
+        /// Button with a multi-line label ("\n"), text centered, taller than the standard button.
+        /// UIDynamicButton.buttonText.alignment: E27; UIDynamic.height (as on spacers): E12.
+        /// </summary>
+        public void Button(string label, float height, UnityEngine.Events.UnityAction onClick)
+        {
+            UIDynamicButton b = _plugin.CreateButton(label, _right);
+            _buttons.Add(b);
+            b.button.onClick.AddListener(onClick);
+            try
+            {
+                b.buttonText.alignment = UnityEngine.TextAnchor.MiddleCenter;
+                b.height = height;
+            }
+            catch (Exception e)
+            {
+                Log.Error("Button '" + label + "': centering / height failed: " + Diag.Describe(e));
+            }
+        }
+
         public UIDynamicTextField Text(JSONStorableString p, float height)
         {
             UIDynamicTextField f = _plugin.CreateTextField(p, _right);

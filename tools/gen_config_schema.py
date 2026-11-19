@@ -35,17 +35,19 @@ DESCRIPTIONS = {
                                           "how often the plugin checks the companion app's inbox folder "
                                           "Saves/PluginData/AIBody/<channel>/inbox/ for messages (speech, poses, "
                                           "expressions). Does not reload config.json",
-    ("ai",): "Companion app only (no tab; the plugin keeps this section unchanged). NEVER put an API key here: "
-             "use XAI_API_KEY / ELEVENLABS_API_KEY or the PATH of a key file (key_file)",
+    ("ai",): "Companion app only (no tab; the plugin keeps this section unchanged). NEVER put an API key here. "
+             "xAI key precedence: 1. the plugin field 'XAI API Token' (tab Voice; sent in the config event, saved "
+             "with the scene, NOT in this file), 2. XAI_API_KEY, 3. the PATH of a key file (key_file). "
+             "ElevenLabs: ELEVENLABS_API_KEY or key_file (no menu field)",
     ("ai", "persona"): "Persona / system prompt for the language model (xAI: 'instructions')",
     ("ai", "language"): "'auto' or a language code (de, en, ...): STT bias and TTS language",
     ("ai", "fallback"): "Engines used when the selected one has no API key or a request fails",
     ("ai", "xai"): "xAI (https://api.x.ai/v1): Grok via POST /v1/responses (stream), "
                    "STT POST /v1/stt, TTS POST /v1/tts",
     ("ai", "xai", "key_file"): "Path of a file holding the xAI key (absolute, or relative to the home folder); "
-                               "XAI_API_KEY wins",
+                               "used after the plugin field 'XAI API Token' and XAI_API_KEY",
     ("ai", "elevenlabs"): "ElevenLabs TTS: POST /v1/text-to-speech/{voice_id}?output_format=pcm_*",
-    ("ai", "elevenlabs", "key_file"): "Path of a file holding the ElevenLabs key; ELEVENLABS_API_KEY wins",
+    ("ai", "elevenlabs", "key_file"): "Path of a file holding the ElevenLabs key; ELEVENLABS_API_KEY wins; no menu field",
 }
 
 NUM_STRING = {"type": "string", "pattern": r"^\s*-?[0-9]+(\.[0-9]+)?([eE][-+]?[0-9]+)?\s*$"}

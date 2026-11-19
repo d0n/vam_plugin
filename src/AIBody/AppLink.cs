@@ -64,6 +64,10 @@ namespace AIBody
         // Since version 15 the path fields are not in the menu (they showed as empty, unlabeled
         // boxes); the paths come from config.json ai.xai.key_file / ai.elevenlabs.key_file and are
         // still saved with the scene and sent to the companion (docs/BACKLOG.md).
+        // Version 21: "XAI API Token", a plain free-text field (Voice tab, Voice Mode). Saved with the scene
+        // (hence the hint "(beware: scenes save it)"), sent to the companion app only in the config event
+        // (files in the channel folders), never written to config.json, never logged.
+        private JSONStorableString _xaiTokenJson;
         private JSONStorableString _xaiKeyFileJson;
         private JSONStorableString _elevenKeyFileJson;
         private JSONClass _keyInfo;                          // companion heartbeat "keys"
@@ -134,6 +138,9 @@ namespace AIBody
             _voiceJson = new JSONStorableStringChooser("Voice", new List<string> { "eve", "ara", "rex", "sal", "leo" },
                 "eve", "Voice", (string v) => MarkConfigDirty());
             _plugin.RegisterStringChooser(_voiceJson);
+            // No format check on purpose (Leon, 18.11.2026): whatever is typed or pasted is sent as is.
+            _xaiTokenJson = new JSONStorableString(XaiTokenLabel, "", (string v) => { UpdateKeyStatus(); MarkConfigDirty(); });
+            _plugin.RegisterString(_xaiTokenJson);
             _xaiKeyFileJson = new JSONStorableString("xAI key file", "", (string v) => CheckKeyFile(_xaiKeyFileJson, v));
             _plugin.RegisterString(_xaiKeyFileJson);
             _elevenKeyFileJson = new JSONStorableString("ElevenLabs key file", "", (string v) => CheckKeyFile(_elevenKeyFileJson, v));
@@ -145,6 +152,15 @@ namespace AIBody
             _mic = mic;
 
             _plugin.RegisterAction(new JSONStorableAction("Reconnect", Restart));
+        }
+
+        public const string XaiTokenLabel = "XAI API Token";
+        public const string XaiTokenHint = "(beware: scenes save it)";
+
+        /// <summary>The token as typed, without surrounding blanks / line breaks (nothing else is checked).</summary>
+        private string XaiToken
+        {
+            get { return _xaiTokenJson != null && _xaiTokenJson.val != null ? _xaiTokenJson.val.Trim() : ""; }
         }
 
         /// <summary>Same rule as the companion's looks_like_secret: a pasted key is refused and cleared.</summary>
@@ -193,6 +209,11 @@ namespace AIBody
             engines["tts"] = _ttsJson.val;
             configEvent["engines"] = engines;
             configEvent["ai"] = BuildAiJson();
+            // Version 21: the token travels in the config event only ("keys"), always present so that
+            // clearing the field also clears it in the companion app. Not part of BuildAiJson (config.json).
+            JSONClass keys = new JSONClass();
+            keys["xai"] = XaiToken;
+            configEvent["keys"] = keys;
             JSONClass advanced = new JSONClass();
             advanced["verbose_log"].AsBool = Log.Verbose;   // Config > Verbose log: companion turn trace too
             configEvent["advanced"] = advanced;
@@ -296,6 +317,11 @@ namespace AIBody
             SyncRealtimeToggle();
             page.Toggle(_realtimeJson);
             page.Button("API Reconnect", ApiReconnect);
+            // Version 21: plain free-text field (no format check) with the hint directly below.
+            page.Header("<b>" + XaiTokenLabel + "</b>");
+            if (!page.TextInput(_xaiTokenJson))
+                Log.Error("Field '" + XaiTokenLabel + "' is read-only (InputField failed).");
+            page.Header(XaiTokenHint);
             page.Button("Test tone via companion", RequestTestTone);
         }
 
@@ -375,7 +401,7 @@ namespace AIBody
             "AI mode: qa = speech recognition -> Grok -> voice (speech only). auto / realtime = Grok Voice directly "
             + "(falls back to the chain). chain = the engines under Voice > AI Character.");
 
-        /// <summary>Button "Simple Q&amp;A mode": AI mode qa (body control is switched off by the plugin).</summary>
+        /// <summary>Button "Question and Answer": AI mode qa (body control is switched off by the plugin).</summary>
         /// <summary>
         /// Voice Mode > "Use realtime voice": on = AI mode auto (Grok Voice, falls back to
         /// the chain), off = qa (the default). Shows on while AI mode is auto or realtime.
@@ -413,9 +439,11 @@ namespace AIBody
             {
                 text += KeyLine("xAI", "xai") + KeyLine("ElevenLabs", "elevenlabs");
             }
-            // Version 17: the environment variable hint only while a key is missing or refused.
-            if (_keyInfo == null || !KeyConfigured("xai") || !KeyConfigured("elevenlabs"))
-                text += "Keys can also come from XAI_API_KEY / ELEVENLABS_API_KEY set before starting the app (takes precedence).";
+            // Version 21: the token field is the main way; the environment variable and key file are optional.
+            if (_keyInfo == null || !KeyConfigured("xai"))
+                text += "Enter the token in the field '" + XaiTokenLabel + "' (tab Voice). XAI_API_KEY or a key file (config.json ai.xai.key_file) also work; the field wins.\n";
+            if (_keyInfo != null && !KeyConfigured("elevenlabs"))
+                text += "ElevenLabs: ELEVENLABS_API_KEY or a key file (config.json ai.elevenlabs.key_file); no menu field.";
             _keyStatusJson.val = text;
         }
 
@@ -461,7 +489,7 @@ namespace AIBody
             if (_modeInfo == null) return "";
             string requested = _modeInfo["requested"].Value, active = _modeInfo["active"].Value;
             string line = "Mode: " + active;
-            if (requested == ModeQa) line = "Mode: Simple Q&A";
+            if (requested == ModeQa) line = "Mode: Question and Answer";
             else if (!string.IsNullOrEmpty(requested) && requested != active) line += " (selected: " + requested + ")";
             string status = _modeInfo["status"].Value;
             if (!string.IsNullOrEmpty(status)) line += " – " + status;
@@ -756,8 +784,16 @@ namespace AIBody
         public void Send(JSONClass evt)
         {
             if (_transport == null || evt == null) return;
-            Log.Debug("-> " + evt.ToString());
+            Log.Debug("-> " + LogText(evt));
             _transport.Send(evt);
+        }
+
+        /// <summary>Event text for the log; the "keys" object (the token) is never shown, only whether it is set.</summary>
+        private string LogText(JSONClass evt)
+        {
+            if (!Protocol.Has(evt, "keys")) return evt.ToString();
+            return evt["type"].Value + " event (keys masked: XAI API Token "
+                + (XaiToken.Length > 0 ? "set, " + XaiToken.Length + " characters" : "empty") + ")";
         }
 
         private void SendReady()

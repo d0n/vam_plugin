@@ -263,10 +263,10 @@ class Companion:
         has_key = bool(self.engine_set.key("xai"))
         if mode == "qa":
             if has_key:
-                return False, "Simple Q&A: xAI speech recognition -> Grok -> xAI voice, speech only"
-            return False, ("Simple Q&A without an xAI API key: test engines only (echo + tone) - "
-                           "set an API key from console.x.ai (not a Grok subscription token) as XAI_API_KEY "
-                           "or a key file in config.json ai.xai.key_file")
+                return False, "Question and Answer: xAI speech recognition -> Grok -> xAI voice, speech only"
+            return False, ("Question and Answer without an xAI API key: test engines only (echo + tone) - "
+                           "enter an API key from console.x.ai (not a Grok subscription token) in the plugin field "
+                           "'XAI API Token', or set XAI_API_KEY / a key file in config.json ai.xai.key_file")
         if mode == "chain":
             return False, "Chain selected (speech recognition -> language model -> text-to-speech)"
         if self.realtime_off:
@@ -335,7 +335,7 @@ class Companion:
     def proactive_info(self) -> dict[str, Any]:
         info: dict[str, Any] = {"enabled": self.proactive.enabled, "idle_seconds": self.proactive.idle_seconds}
         if self.proactive.enabled and self.speech_only:
-            info["status"] = "paused in Simple Q&A mode"
+            info["status"] = "paused in Question and Answer mode"
         elif self.proactive.enabled and not self._can_nudge_engine():
             info["status"] = "waiting: needs realtime or language model xai"
         return info
@@ -439,9 +439,10 @@ class Companion:
     def process_events(self) -> list[dict[str, Any]]:
         events = self.transport.poll_events()
         for event in events:
+            protocol.register_event_secrets(event)
             problems = protocol.validate_event(event)
             if problems:
-                log.warning("Ignoring event: %s (%s)", "; ".join(problems), event)
+                log.warning("Ignoring event: %s (%s)", "; ".join(problems), protocol.loggable(event))
                 continue
             self.gate.on_event(event)
             type_ = event.get("type")
@@ -471,7 +472,7 @@ class Companion:
                 if event.get("code") == "audio_failed":
                     self._audio_failed(str(event.get("reply_to") or ""), str(event.get("message") or ""))
             else:
-                log.debug("event: %s", event)
+                log.debug("event: %s", protocol.loggable(event))
         return events
 
     def _trace_plugin_event(self, event: dict[str, Any]) -> None:
@@ -553,6 +554,26 @@ class Companion:
         self._update_mode()
         self._last_heartbeat = -HEARTBEAT_INTERVAL_S
 
+    def apply_keys(self, data: Any) -> list[str]:
+        """The plugin's "XAI API Token" field (config event keys.xai, plain text, no format check).
+        A changed key reconnects realtime like "API Reconnect". Errors never contain the token."""
+        if data is None:
+            return []
+        if not isinstance(data, dict):
+            return ["keys: must be an object"]
+        value = data.get("xai")
+        if value is None:
+            return []
+        if not isinstance(value, str):
+            return ["keys.xai: must be a string"]
+        if not self.engine_set.set_ui_key("xai", value):
+            return []
+        log.info("XAI API Token from the plugin field %s", "set" if value.strip() else "cleared")
+        self.realtime_off = ""  # a new key gives realtime a new chance
+        self._update_mode()  # stops realtime on a changed key and reconnects with the new one
+        self._last_heartbeat = -HEARTBEAT_INTERVAL_S  # the plugin shows the key status right away
+        return []
+
     def apply_ai(self, data: Any) -> list[str]:
         """Applies the plugin's ai controls (mode, proactive on/off + idle seconds, voice
         barge-in). Other ai settings live in config.json only."""
@@ -611,6 +632,7 @@ class Companion:
 
     def handle_config(self, event: dict[str, Any]) -> None:
         settings, errors = apply_mic_config(self.mic_settings, event.get("mic"))
+        errors += self.apply_keys(event.get("keys"))  # first: the engines below already use the new key
         errors = errors + self.apply_engines(event.get("engines")) + self.apply_ai(event.get("ai"))
         errors += self.apply_advanced(event.get("advanced"))
         self.mic_settings = settings

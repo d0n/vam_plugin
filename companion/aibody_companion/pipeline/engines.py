@@ -12,6 +12,10 @@ null / echo / tone) runs instead, and the status says so. Keys come from the env
 (XAI_API_KEY, ELEVENLABS_API_KEY) or from a key file named in config.json; refresh() re-reads
 key files, so a key file added later is picked up without restarting.
 
+xAI key precedence (version 21): 1. the token typed into the plugin's "XAI API Token" field (arrives
+in the config event as keys.xai, set_ui_key), 2. the XAI_API_KEY environment variable, 3. the key
+file ai.xai.key_file. An empty field falls through to 2 and 3. ElevenLabs has no menu field.
+
 set_override() runs other engines than the selected ones without touching the selection: with an
 xAI key the simple Q&A mode (and typed text / the realtime fallback) uses xai instead of the
 offline test engines, while the plugin's menus keep showing what the user chose.
@@ -26,6 +30,7 @@ from typing import Any
 from ..config import ENGINES_AVAILABLE
 from . import elevenlabs, xai
 from .http import HttpClient, is_key_rejection
+from ..logsetup import add_secret
 from .keys import resolve_key
 from .llm import EchoLlm
 from .stt import NullStt
@@ -40,6 +45,8 @@ NOT_CONFIGURED = "not configured"
 
 # engine name -> (environment variable, settings section) for engines that need a key
 KEYED = {"xai": (xai.ENV_KEY, "xai"), "elevenlabs": (elevenlabs.ENV_KEY, "elevenlabs")}
+# where a key typed into the plugin comes from (only xAI has a menu field; never the key itself)
+UI_KEY_SOURCE = {"xai": "plugin field 'XAI API Token'"}
 # What kind of key works. xAI: an API key from console.x.ai (pay-as-you-go API credit); the login /
 # subscription of grok.com or the X app (SuperGrok, Premium) is no API key and is refused by api.x.ai.
 KEY_HINT = {
@@ -71,6 +78,7 @@ class EngineSet:
         self.instances: dict[str, Any] = {"stt": NullStt(), "llm": EchoLlm(), "tts": ToneTts()}
         self.fallbacks: dict[str, Any] = {}
         self._keys: dict[str, tuple[str | None, str]] = {}
+        self.ui_keys: dict[str, str] = {}  # provider -> token typed into the plugin (xai only)
         self.rejected: dict[str, str] = {}  # provider -> why the server refused its key (401/403)
         self.override: dict[str, str] | None = None  # kind -> engine run instead of the selection
         self._read_keys()
@@ -83,6 +91,11 @@ class EngineSet:
         """Reads all keys; True if anything changed."""
         keys = {}
         for name, (env_name, section) in KEYED.items():
+            typed = self.ui_keys.get(name, "")
+            if typed:
+                add_secret(typed)  # before anything can log it
+                keys[name] = (typed, UI_KEY_SOURCE[name])
+                continue
             keys[name] = resolve_key(env_name, str(self.ai[section].get("key_file") or ""), self.env)
         changed = {n: k[0] for n, k in keys.items()} != {n: k[0] for n, k in self._keys.items()}
         for name in keys:
@@ -90,6 +103,18 @@ class EngineSet:
                 self.rejected.pop(name, None)  # a new key gets a new chance
         self._keys = keys
         return changed
+
+    def set_ui_key(self, name: str, value: str) -> bool:
+        """The token from the plugin's text field (plain text, no format check; "" = field empty).
+        True if the key in effect changed."""
+        if name not in UI_KEY_SOURCE:
+            return False
+        value = value.strip()
+        if value == self.ui_keys.get(name, ""):
+            return False
+        add_secret(value)
+        self.ui_keys[name] = value
+        return self.refresh()
 
     def note_api_error(self, error: Any) -> None:
         """Remembers a refused key (HTTP 401/403, xAI: 400 "Incorrect API key") for the key status."""

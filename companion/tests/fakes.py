@@ -143,6 +143,7 @@ class FakePlugin:
         self.ai_ui: dict[str, Any] = {"mode": mode, "proactive": {"enabled": True, "idle_seconds": 90.0},
                                       "realtime": {"send_while_speaking": False}}
         self.voice = "eve"  # AI Character tab "Voice" -> ai.realtime.voice + ai.xai.voice
+        self.xai_token = ""  # field "XAI API Token" (version 21): in the scene, sent in the config event only
         self.key_files = {"xai": "", "elevenlabs": ""}  # key file paths (from config.json; no menu field since 15)
         self.ui = {
             "connection": {"channel": channel, "active": True,
@@ -224,7 +225,13 @@ class FakePlugin:
 
     def send_config(self) -> None:
         self.send("config", mic=dict(self.ui["mic"]), engines=dict(self.ui["engines"]),
-                  ai=self.build_ai_json(), advanced={"verbose_log": self.ui["advanced"]["verbose_log"]})
+                  ai=self.build_ai_json(), keys={"xai": self.xai_token.strip()},
+                  advanced={"verbose_log": self.ui["advanced"]["verbose_log"]})
+
+    def set_xai_token(self, value: str) -> None:
+        """Voice Mode > field "XAI API Token": the config event goes out (AppLink.AddEngines "keys")."""
+        self.xai_token = value
+        self.send_config()
 
     def set_verbose(self, on: bool) -> None:
         """Config > "Verbose log": saved to config.json and sent to the app (config event)."""

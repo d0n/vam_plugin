@@ -22,7 +22,7 @@
 // events and startup log in the tab Config), always visible. Right column = a row of tab buttons and below it ONLY
 // the controls of the active tab (no text fields; help and status go to the big field). Switching
 // tabs removes the old controls with the standard Remove* methods (UiPage, evidence E17/E18).
-// Tabs (version 15): Voice (Voice Mode: link, Simple Q&A mode, realtime, API Reconnect, sound
+// Tabs (version 15): Voice (Voice Mode: link, Question and Answer, realtime, API Reconnect, sound
 // test; Voice > AI Character: AI mode, voice, engines, proactive) | AI Character (poses, expression
 // and gesture, body of this Person) | Client Character (microphone, push-to-talk, voice barge-in)
 // | Config (Reload Config JSON, Companion inbox poll interval = storable "File poll interval (s)",
@@ -214,7 +214,7 @@ namespace AIBody
                 {
                     case 0: // Voice
                         _page.Header("<b>Voice Mode</b> (connection, mode, sound test)");
-                        _page.Button("Simple Q&A mode", EnableSimpleQa);
+                        _page.Button(QaButtonLabel, 90f, EnableSimpleQa);
                         if (_link != null) _link.BuildVoiceModeTab(_page);
                         if (_body != null) _body.BuildVoiceModeTab(_page);
                         _page.Header("<b>Voice > AI Character</b> (the character's voice and speech AI)");
@@ -242,22 +242,25 @@ namespace AIBody
 
         // ---------------------------------------------------------------- config.json
 
+        /// <summary>Version 21: shown on two centered lines (a newline in the button label).</summary>
+        public const string QaButtonLabel = "Question\n& Answer";
+
         /// <summary>
         /// Button "Reload Config JSON": applies config.json to the UI (paths, connection, engines, mic,
         /// body, ai keys of the tabs) and pushes the result to the companion app.
         /// </summary>
-        private string _simpleQa = "Simple Q&A mode: speak a question or type it in the companion console -> Grok answers -> "
+        private string _simpleQa = "Question and Answer: speak a question or type it in the companion console -> Grok answers -> "
             + "the character speaks. Sets AI mode = qa and Body control = off (tab AI Character). Needs an xAI API key.";
 
         /// <summary>
-        /// Button "Simple Q&amp;A mode": AI mode qa (STT -> Grok -> TTS, speech only) and body
+        /// Button "Question and Answer" (until version 20 "Simple Q&amp;A mode"): AI mode qa (STT -> Grok -> TTS, speech only) and body
         /// control off, saved to config.json and sent to the companion app.
         /// </summary>
         private void EnableSimpleQa()
         {
             if (_link != null) _link.SetSimpleQa();
             if (_body != null) _body.SetBodyControl(false);
-            _simpleQa = "Simple Q&A mode on (" + DateTime.Now.ToString("HH:mm:ss") + "): AI mode = qa, Body control = off. "
+            _simpleQa = "Question and Answer on (" + DateTime.Now.ToString("HH:mm:ss") + "): AI mode = qa, Body control = off. "
                 + "Now press 'Play test tone', then ask a question.";
         }
 

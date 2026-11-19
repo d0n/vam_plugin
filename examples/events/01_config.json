@@ -20,5 +20,8 @@
     "stt": "null",
     "llm": "echo",
     "tts": "tone"
+  },
+  "keys": {
+    "xai": ""
   }
 }

@@ -625,7 +625,7 @@
             "key_file": {
               "type": "string",
               "default": "",
-              "description": "Path of a file holding the xAI key (absolute, or relative to the home folder); XAI_API_KEY wins"
+              "description": "Path of a file holding the xAI key (absolute, or relative to the home folder); used after the plugin field 'XAI API Token' and XAI_API_KEY"
             },
             "model": {
               "type": "string",
@@ -715,7 +715,7 @@
             "key_file": {
               "type": "string",
               "default": "",
-              "description": "Path of a file holding the ElevenLabs key; ELEVENLABS_API_KEY wins"
+              "description": "Path of a file holding the ElevenLabs key; ELEVENLABS_API_KEY wins; no menu field"
             },
             "voice_id": {
               "type": "string",
@@ -754,7 +754,7 @@
           "description": "ElevenLabs TTS: POST /v1/text-to-speech/{voice_id}?output_format=pcm_*"
         }
       },
-      "description": "Companion app only (no tab; the plugin keeps this section unchanged). NEVER put an API key here: use XAI_API_KEY / ELEVENLABS_API_KEY or the PATH of a key file (key_file)"
+      "description": "Companion app only (no tab; the plugin keeps this section unchanged). NEVER put an API key here. xAI key precedence: 1. the plugin field 'XAI API Token' (tab Voice; sent in the config event, saved with the scene, NOT in this file), 2. XAI_API_KEY, 3. the PATH of a key file (key_file). ElevenLabs: ELEVENLABS_API_KEY or key_file (no menu field)"
     }
   }
 }

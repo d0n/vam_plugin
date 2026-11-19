@@ -145,7 +145,7 @@ All events come from the one plugin:
 | `heartbeat`      | status fields                                       | every 2 s |
 | `pong`           | status fields, `reply_to`                           | answer to `ping` |
 | `error`          | `reply_to`, `code`, `message`                       | `bad_json`, `command_failed`, `audio_failed` |
-| `config`         | `mic` (see below), `engines` (`{"stt", "llm", "tts"}`), `ai` (`{"mode", "proactive": {"enabled", "idle_seconds"}, "realtime": {"send_while_speaking", "voice"}, "xai": {"voice", "key_file"?}, "elevenlabs": {"key_file"}?}`, key file paths only when set), `advanced` (`{"verbose_log"}`: Erweitert > Verbose log, turns the companion's turn trace on/off live) | after (re)connect and 0.3 s after the last settings change |
+| `config`         | `mic` (see below), `engines` (`{"stt", "llm", "tts"}`), `ai` (`{"mode", "proactive": {"enabled", "idle_seconds"}, "realtime": {"send_while_speaking", "voice"}, "xai": {"voice", "key_file"?}, "elevenlabs": {"key_file"}?}`, key file paths only when set), `keys` (`{"xai": "<token>"}`, version 21: the plugin field "XAI API Token", plain text, `""` = field empty; always sent; wins over `XAI_API_KEY` and `ai.xai.key_file`; masked in logs on both sides, never in `config.json`), `advanced` (`{"verbose_log"}`: Erweitert > Verbose log, turns the companion's turn trace on/off live) | after (re)connect and 0.3 s after the last settings change |
 | `ptt`            | `active` (bool)                                     | push-to-talk pressed / released |
 | `list_devices`   | -                                                   | after (re)connect, on "Refresh mic devices", when the Mic device menu opens, and every 10 s while the companion runs but no list arrived (version 20); the companion also sends `devices` after every `ready` |
 | `test_tone`      | -                                                   | button "Test-Ton über Companion": the app answers with a `speak` (queue `interrupt`, text "Test-Ton") of a 1.5 s chime WAV in its audio folder |
@@ -198,6 +198,15 @@ runs; `config_ack.errors` and `companion_heartbeat.engines_status` / `engines_ac
 A streaming model is spoken sentence by sentence: one `speak` (queue `append`) per sentence, the
 first one sent while the model still writes. An answer may start with `expression` / `gesture`
 commands taken from a `<<expression gesture>>` tag at the start of the model's text.
+
+### API token (`config.keys`)
+
+`keys.xai` (string, version 21) is the content of the plugin field "XAI API Token": no format check,
+surrounding blanks are stripped. A changed key re-reads the engines and reconnects realtime; an empty
+string clears it (the environment variable / key file apply again); an event without `keys` leaves the
+token as it is. Wrong types are reported in `config_ack.errors` without the value. The value is
+registered with the app's log redaction before the event is validated, and `config` events are only
+logged masked. There is no `keys.elevenlabs`.
 
 ### AI controls (`config.ai`)
 

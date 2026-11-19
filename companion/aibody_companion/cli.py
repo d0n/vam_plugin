@@ -56,7 +56,7 @@ def build_stack(cfg: Config, use_mic: bool = True) -> Companion:
              if cfg.audio_auto else " (connection.paths.audio)")
     p = companion.proactive
     if p.enabled and companion.speech_only:
-        log.info("Proactive: paused in Simple Q&A mode (the AI only speaks when asked)")
+        log.info("Proactive: paused in Question and Answer mode (the AI only speaks when asked)")
     else:
         log.info("Proactive: %s, after %.0f s of silence", "on" if p.enabled else "off", p.idle_seconds)
     return companion
@@ -129,8 +129,9 @@ def main(argv: list[str] | None = None) -> int:
 
     companion = build_stack(cfg, use_mic=not args.no_mic)
     if not companion.engine_set.key("xai"):
-        log.warning("No xAI API key: test engines only (echo + tone). %s; set XAI_API_KEY or a key file "
-                    "in config.json (ai.xai.key_file).", KEY_HINT["xai"])
+        log.warning("No xAI API key yet: test engines only (echo + tone) until one arrives. %s; enter it in the "
+                    "plugin field 'XAI API Token' (it reaches this app once the plugin connects), or set "
+                    "XAI_API_KEY / a key file in config.json (ai.xai.key_file).", KEY_HINT["xai"])
     companion.transport.start()
     try:
         run(companion, read_stdin=not args.no_stdin, poll_interval=cfg.poll_interval_s)

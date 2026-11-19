@@ -233,6 +233,15 @@
     "selftest": {
       "type": "object",
       "description": "ready/heartbeat: in-game self test of the body (Body.SelfTestJson): pose_storage (ok or why not), pose_files, poses, breath_morph, breath_morph_found, expression_morphs_found / _total / _missing, timeline_gestures, timeline, or error; the companion logs it once per change"
+    },
+    "keys": {
+      "type": "object",
+      "description": "config: API tokens typed into the plugin (version 21: keys.xai = the 'XAI API Token' field, plain text without format check, \"\" = field empty; wins over XAI_API_KEY and ai.xai.key_file). Only travels in the config event files; never written to config.json, never logged",
+      "properties": {
+        "xai": {
+          "type": "string"
+        }
+      }
     }
   },
   "allOf": [
