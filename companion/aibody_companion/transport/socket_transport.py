@@ -52,11 +52,12 @@ class SocketTransport(Transport):
         return self._running
 
     def start(self) -> None:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         try:
-            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             sock.bind((LOOPBACK, self.port))  # loopback only, on purpose
             sock.settimeout(0.2)
         except OSError as e:
+            sock.close()
             self.error = f"port {self.port} on {LOOPBACK} could not be opened: {e}"
             log.warning("Network listener off (%s). The file exchange keeps working. Another program (or a second copy "
                         "of this app) may use the port; change connection.network_port in config.json.", self.error)
