@@ -1,4 +1,4 @@
-"""Version 22: README section "Starten", config.json key hint (ai.xai.key_hint), Windows-style VaM path examples."""
+"""Version 22: README section "Getting started", config.json key hint (ai.xai.key_hint), Windows-style VaM path examples."""
 from __future__ import annotations
 
 import json
@@ -78,10 +78,10 @@ class WindowsPathExampleTests(unittest.TestCase):
 class ReadmeStartTests(unittest.TestCase):
     def test_starten_section_near_the_top(self):
         text = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertIn("\n## Starten\n", text)
-        self.assertLess(text.index("## Starten"), text.index("## 1. Wozu"))
-        section = text[text.index("## Starten"):text.index("## 1. Wozu")]
-        for part in ('python -m aibody_companion --vam-root "D:\\VaM"', "von Hand gestartet", "getrennt von VaM",
+        self.assertIn("\n## Getting started\n", text)
+        self.assertLess(text.index("## Getting started"), text.index("## 1. Purpose and use"))
+        section = text[text.index("## Getting started"):text.index("## 1. Purpose and use")]
+        for part in ('python -m aibody_companion --vam-root "D:\\VaM"', "started by hand", "separately from VaM",
                      "cd companion", "pip install -e .", "No module named aibody_companion",
                      "pip install sounddevice", "requirements.txt", "3.10", "git pull", "XAI API Token"):
             self.assertIn(part, section)

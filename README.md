@@ -1,244 +1,249 @@
 # AIBody
 
-Virt-A-Mate-Plugin (VaM 1.22) mit Python-Begleit-App, das einer KI einen Körper in einer VaM-Szene gibt. Stand: Version 29, Paket `d0n.AIBody.29.var`, Release `v29`. Version 14 lädt in VaM 1.22 ohne Fehler (Init fertig, 200 Posen); die Funktionen sind in VaM noch nicht vollständig geprüft.
+Virt-A-Mate plugin (VaM 1.22) with a Python companion app that gives an AI a body in a VaM scene. Status: version 30, package `d0n.AIBody.30.var`, release `v30`. Version 14 loads in VaM 1.22 without errors (init done, 200 poses); the functions have not yet been fully checked in VaM.
 
-Versionsschema seit Version 12: Version = Paketnummer der `.var` (Plugin-Anzeige, Begleit-App, Git-Tag `v<N>`). Version 12 folgt auf 0.7.4 (= Paket 11); ältere Tags bleiben unverändert.
+Version scheme since version 12: version = package number of the `.var` (plugin display, companion app, Git tag `v<N>`). Version 12 follows 0.7.4 (= package 11); older tags stay unchanged.
 
-Weitere Dokumente: [SPEC](docs/SPEC.md) (vereinbarter Umfang) · [ANFORDERUNGEN](docs/ANFORDERUNGEN.md) (umgesetzt / offen) · [BACKLOG](docs/BACKLOG.md) (zurückgestellte Ideen) · [TESTPROTOKOLL](docs/TESTPROTOKOLL.md) · [TECHNIK](docs/TECHNIK.md) (Architektur, Protokoll, Sandbox, englisch) · [API_AUDIT](docs/API_AUDIT.md) · [Releases](https://github.com/d0n/vam_plugin/releases) (Installation und Schnellstart je Version in den Release-Notes).
+More documents: [SPEC](docs/SPEC.md) (agreed scope) · [REQUIREMENTS](docs/REQUIREMENTS.md) (done / open) · [BACKLOG](docs/BACKLOG.md) (deferred ideas) · [TEST_PROTOCOL](docs/TEST_PROTOCOL.md) · [TECHNICAL](docs/TECHNICAL.md) (architecture, protocol, sandbox) · [API_AUDIT](docs/API_AUDIT.md) · [Releases](https://github.com/d0n/vam_plugin/releases) (installation and quick start per version in the release notes).
 
-## Starten
+## Getting started
 
-Die Begleit-App läuft **getrennt von VaM** und wird **von Hand gestartet**: VaM startet sie nicht, und ohne laufende App gibt es kein Zuhören und keine Antworten. Konsolenfenster öffnen und eingeben:
+The companion app runs **separately from VaM** and is **started by hand**: VaM does not start it, and without a running app there is no listening and no answers. Open a console window and enter:
 
 ```
 python -m aibody_companion --vam-root "D:\VaM"
 ```
 
-(Pfad an den eigenen VaM-Ordner anpassen, also den Ordner mit `VaM.exe`.) Das Fenster offen lassen, solange VaM läuft.
+(Adjust the path to your own VaM folder, i.e. the folder with `VaM.exe`.) Keep the window open as long as VaM runs.
 
-- **Aus welchem Ordner:** Der Befehl funktioniert, wenn du im Ordner `companion` des Repositorys bist (`cd companion`). Alternativ einmal `pip install -e .` im Ordner `companion`, danach läuft derselbe Befehl aus jedem Ordner. Meldet Python `No module named aibody_companion`, bist du im falschen Ordner (und hast das Paket nicht installiert).
-- **Mikrofon:** `python -m pip install sounddevice` (oder `python -m pip install -r requirements.txt` im Ordner `companion`). Ohne `sounddevice` gibt es kein Zuhören (die App nimmt immer vom Standard-Eingabegerät des Systems auf; kein Mikrofon-Menü); Tippen in der Konsole geht trotzdem.
-- **Python:** Version 3.10 oder neuer.
-- **xAI-Key:** im Plugin, Tab **Voice** > *Voice Mode*, Feld **XAI API Token** (unter *API Reconnect*), der Token wird danach in `config.json` gespeichert (`ai.xai.api_key`, **Klartext**, siehe Sicherheitshinweis unten); alternativ Umgebungsvariable `XAI_API_KEY` oder `ai.xai.key_file`; mehr dazu weiter unten.
-- **Neue Version holen:** `git pull` im Repository-Ordner, sonst meldet die App eine alte Version (die App meldet beim Start `AIBody companion <Version>`).
+- **From which folder:** the command works when you are in the repository's `companion` folder (`cd companion`). Alternatively run `pip install -e .` once in the `companion` folder; then the same command works from any folder. If Python says `No module named aibody_companion`, you are in the wrong folder (and have not installed the package).
+- **Microphone:** `python -m pip install sounddevice` (or `python -m pip install -r requirements.txt` in the `companion` folder). Without `sounddevice` there is no listening (the app always records from the system's default input device; there is no microphone menu); typing in the console still works.
+- **Python:** version 3.10 or newer.
+- **xAI key:** in the plugin, tab **Voice** > *Voice Mode*, field **XAI API Token** (below *API Reconnect*); on the very first start a short note at the top of the plugin asks for it. The token is then saved in `config.json` (`ai.xai.api_key`, **plain text**, see the security notice below); alternatively the environment variable `XAI_API_KEY` or `ai.xai.key_file`; more below.
+- **Get a new version:** `git pull` in the repository folder, otherwise the app reports an old version (the app prints `AIBody companion <version>` on start).
+- **Network:** the plugin and the app talk through files and, by default, through a loopback socket (toggle **Network Active**, see below). The socket needs VaM's global setting *User Preferences > Security > Allow Plugins Network Access*; without it everything still works through the files.
 
-## 1. Wozu und wie benutzt
+## 1. Purpose and use
 
-- Der Nutzer spricht mit einer Figur in VaM. Die Figur antwortet mit Stimme und Lippensync und kann Ausdrücke, Gesten und Posen zeigen; dazu Atmung und Kopf-Leerlauf. Seit Version 27: Ausdrücke auch ohne Zutun der KI (aus den Worten, Zurückblenden, Zuhör-Gesicht), **Personas** (Charakter, Sprache, Stimme je Ordner) und optionales **Gedächtnis** über den Nutzer, siehe [docs/PERSONAS.md](docs/PERSONAS.md). Seit Version 29: **lokales Sprachmodell Ollama**, **Silero** als Sprachaktivitätserkennung, **Stimm-Unterbrechung per Pegelregel** (alles in der Begleit-App), siehe [docs/LOKALE_ENGINES.md](docs/LOKALE_ENGINES.md). Seit Version 28: **mehrere Figuren in einer App** (`--channel anna,marc`, Feld **Channel** im Tab Config, Anrede mit dem Namen), siehe [docs/FIGUREN.md](docs/FIGUREN.md).
-- Zwei Teile, beide nötig:
-  - Plugin `AIBody` (C#, ohne Netzwerkcode): wird einmal im Plugins-Tab der KI-Figur (Person-Atom) geladen; spielt Sprache ab, steuert den Körper, zeigt Status und Einstellungen.
-  - Begleit-App `aibody_companion` (Python, läuft neben VaM auf demselben PC): Mikrofon, Spracherkennung, Sprachmodell, Sprachausgabe, Verbindung zu xAI (optional ElevenLabs).
-- Verbindung: Dateien unter `<VaM>/Saves/PluginData/AIBody/<Kanal>/`; Sprache als WAV unter `<VaM>/Custom/Sounds/AIBody/<Kanal>/`.
-- Ablauf: Plugin auf die KI-Figur laden → Begleit-App von Hand starten (`python -m aibody_companion --vam-root "D:\VaM"`, Abschnitt „Starten“, mit xAI-Key) → sprechen (oder in der Konsole tippen) → die Figur antwortet.
-- Kurzinstallation: `d0n.AIBody.29.var` nach `<VaM>/AddonPackages/`, ältere `d0n.AIBody.*`, `d0n.AIBodySession.*`, `d0n.AIBodyPerson.*`, `d0n.AIBodyPerson2.*` löschen; Person auswählen > Tab Plugins > Add Plugin > `AddonPackages > d0n.AIBody.29:/Custom/Scripts/d0n/AIBody/AIBody.cslist`; Begleit-App: siehe Abschnitt „Starten“ (`cd companion`, `pip install sounddevice`, dann starten). Details und Schritt-für-Schritt: Release-Notes.
+- The user talks to a character in VaM. The character answers with voice and lip sync and can show expressions, gestures and poses, plus breathing and head idle. Since version 27: expressions even without the AI's help (from the words, fading back, listening face), **personas** (character, language, voice per folder) and an optional **memory** about the user, see [docs/PERSONAS.md](docs/PERSONAS.md). Since version 29: the **local language model Ollama**, **Silero** as voice activity detection, **voice barge-in by a loudness rule** (all in the companion app), see [docs/LOCAL_ENGINES.md](docs/LOCAL_ENGINES.md). Since version 30: the optional **Network Active** loopback link, everything in English, one character per app.
+- Two parts, both required:
+  - Plugin `AIBody` (C#, one optional loopback socket, no internet code): loaded once in the Plugins tab of the AI character (Person atom); plays speech, controls the body, shows status and settings.
+  - Companion app `aibody_companion` (Python, runs next to VaM on the same PC): microphone, speech recognition, language model, speech output, connection to xAI (optionally ElevenLabs). **One app controls exactly one character.**
+- Connection: files under `<VaM>/Saves/PluginData/AIBody/default/` and, on top, an optional UDP link on `127.0.0.1`; speech as WAV under `<VaM>/Custom/Sounds/AIBody/default/`.
+- Flow: load the plugin on the AI character → start the companion app by hand (`python -m aibody_companion --vam-root "D:\VaM"`, section "Getting started", with an xAI key) → speak (or type in the console) → the character answers.
+- Quick install: `d0n.AIBody.30.var` into `<VaM>/AddonPackages/`, delete older `d0n.AIBody.*`, `d0n.AIBodySession.*`, `d0n.AIBodyPerson.*`, `d0n.AIBodyPerson2.*`; select the Person > tab Plugins > Add Plugin > `AddonPackages > d0n.AIBody.30:/Custom/Scripts/d0n/AIBody/AIBody.cslist`; companion app: see "Getting started" (`cd companion`, `pip install sounddevice`, then start). Details and step by step: release notes.
 
-## 2. Wofür ausgelegt / Spezifikation
+## 2. What it is designed for / specification
 
-- Mitgelieferte Szene: [`examples/scenes/AIBody_GreenScreen.json`](examples/scenes/AIBody_GreenScreen.json), Anleitung [`docs/SZENE_GREENSCREEN.md`](docs/SZENE_GREENSCREEN.md). Inhalt: zwei Personen, die sich in 1,2 m Abstand ansehen: `AI Character` (weiblich, VaM-Standardfigur `Female 3`) mit AIBody (`d0n.AIBody.22`) im Plugins-Tab, und `Client Character` (männlich, `Male 1`) mit Sallys *Camera Background Color* (`Sally.CameraBackgroundColor.7`, Farbe #00FF00, Skybox aus) direkt im Plugins-Tab dieser Person; zwei unsichtbare Lichter, kein Raum, kein Szenen-Plugin. Abhängigkeit: `Sally.CameraBackgroundColor.7.var` vom VaM Hub. Gedacht für Passthrough per Chroma-Key in Brille/Streaming-Programm; VaM selbst zeigt nur Grün. Nicht in VaM getestet.
-- AIBody funktioniert auch in anderen Szenen, solange es auf der Person der KI liegt.
-- Kurzfassung der Spezifikation (vollständig: [SPEC.md](docs/SPEC.md)):
-  - VaM-Sandbox: kein Netzwerk-, `System.IO`-, Reflection-, Mikrofon-Code im Plugin; nur belegte APIs; Dateizugriff nur über `FileManagerSecure`; „Allow Plugins Network Access“ bleibt aus.
-  - Netzwerk nur in der Begleit-App.
-  - Ein Plugin, eine `.cslist`, eine MVRScript-Klasse, ein Ladeschritt.
-  - Datei-Transport (Protokoll v3) und eine gemeinsame `config.json`.
-  - xAI braucht einen API-Key von console.x.ai; ein Grok-Abo funktioniert nicht. Seit Version 21 trägst du ihn im Plugin ein: Tab **Voice**, Abschnitt *Voice Mode*, Feld **XAI API Token** (einfaches Textfeld, keine Formatprüfung). Seit der nächsten Version (24) speichert das Plugin den Token in `config.json` (`ai.xai.api_key`, Klartext, auf Leons ausdrücklichen Wunsch), füllt das Feld beim Start daraus und zeigt ihn danach maskiert (`xai-****abcd`). **Sicherheitshinweis:** wer `config.json` lesen kann, kann den Token lesen; die Datei nie weitergeben oder veröffentlichen. Szenen speichern nur noch die Maske, aber eine mit Version 21 bis 23 gespeicherte Szene enthält den Token weiter im Klartext und darf nicht veröffentlicht werden. Der Hinweis steht auch im linken Infofeld (Tab Voice) und in `config.json` (`ai.xai.api_key_warning`).
-  - Standardmodus Einfacher Q&A (nur Sprache); Realtime optional.
-  - Die KI steuert den Körper per Tool-Aufruf (nicht im Q&A-Modus, nicht bei Body control aus); Posen zusätzlich manuell im Tab AI Character.
-  - Das Menü zeigt nur Einstellbares (Tabs Voice, AI Character, Client Character, Config); alle Hilfe- und Statustexte stehen in einem großen Infofeld links.
-  - Verbose log und Latenzmessung (Sprechende bis erster Ton) im Statusfeld.
+- Bundled scene: [`examples/scenes/AIBody_GreenScreen.json`](examples/scenes/AIBody_GreenScreen.json), guide [`docs/SCENE_GREENSCREEN.md`](docs/SCENE_GREENSCREEN.md). Content: two people looking at each other 1.2 m apart: `AI Character` (female, VaM standard figure `Female 3`) with AIBody (`d0n.AIBody.30`) in the Plugins tab, and `Client Character` (male, `Male 1`) with Sally's *Camera Background Color* (`Sally.CameraBackgroundColor.7`, color #00FF00, skybox off) directly in the Plugins tab of this Person; two invisible lights, no room, no scene plugin. Dependency: `Sally.CameraBackgroundColor.7.var` from the VaM Hub. Meant for passthrough by chroma key in a headset / streaming program; VaM itself only shows green. Not tested in VaM.
+- AIBody also works in other scenes, as long as it sits on the AI's Person.
+- Short version of the specification (complete: [SPEC.md](docs/SPEC.md)):
+  - VaM sandbox: no `UnityWebRequest` / internet, `System.IO`, reflection or microphone code in the plugin; only evidenced APIs; file access only through `FileManagerSecure`; sockets only in the one file `SocketLink.cs` (loopback only).
+  - Internet access only in the companion app.
+  - One plugin, one `.cslist`, one MVRScript class, one loading step.
+  - File transport (protocol v3), an optional loopback socket on top, and one shared `config.json`.
+  - xAI needs an API key from console.x.ai; a Grok subscription does not work. You enter it in the plugin: tab **Voice**, section *Voice Mode*, field **XAI API Token** (a simple text field, no format check), or in the note shown at the top on the first start. The plugin saves the token in `config.json` (`ai.xai.api_key`, plain text, at Leon's explicit wish), fills the field from it on start and shows it masked: the first 4 and the last 4 characters stay visible with stars between them (`xai-****abcd`), and the full text is shown while the field has focus. **Security notice:** anyone who can read `config.json` can read the token; never share or publish the file. Scenes save only the mask, but a scene saved with versions 21 to 23 still contains the token in plain text and must not be published. The notice is also in the left info field (tab Voice) and in `config.json` (`ai.xai.api_key_warning`).
+  - Default mode simple Q&A (speech only); realtime optional.
+  - The AI controls the body by tool call (not in Q&A mode, not with Body control off); poses can also be set manually in the tab AI Character.
+  - The menu shows only what can be set (tabs Voice, AI Character, Client Character, Config); all help and status texts are in one large info field on the left.
+  - Verbose log and latency measurement (end of speech to first sound) in the status field.
 
-## 3. Zwei Figuren: AI Character und Client Character
+## 3. Two characters: AI Character and Client Character
 
-- AI Character = der Körper der KI: die Person, auf der das Plugin geladen ist. Tab *AI Character*: KI-Modus, Stimme, Posen, Ausdrücke, Gesten, Körper.
-- Client Character = der menschliche Nutzer, der mit der KI spricht. Tab *Client Character*: Mikrofon (aufgenommen von der Begleit-App am PC), Push-to-Talk, Unterbrechen per Stimme.
-- In der mitgelieferten Szene ist jede Rolle eine eigene Person: `AI Character` (weiblich, trägt AIBody) und `Client Character` (männlich, sichtbarer Körper des Nutzers, trägt das Hintergrund-Plugin Camera Background Color).
-- Umsetzung im Code: AIBody liegt nur auf der KI-Person und kennt kein Client-Atom; die Einstellungen beider Rollen stehen in diesem einen Plugin. Die Eingabe des Nutzers kommt weiter über Mikrofon/Push-to-Talk bzw. Texteingabe in der Konsole der Begleit-App, nicht über das Client-Atom.
-- Nicht vorgesehen und nicht getestet:
-  - AIBody ohne Nutzerseite (ohne laufende Begleit-App gibt es weder Zuhören noch Antworten; das Plugin bleibt stabil und zeigt „DISCONNECTED“).
-  - AIBody auf einem Nicht-Person-Atom (das Plugin-Fenster erklärt dann nur, wohin es gehört).
-  - AIBody auf einer zweiten Person **mit demselben Kanal** (beide würden dieselben Dateien lesen). Mit eigenem Kanal je Figur geht es seit Version 28, siehe [docs/FIGUREN.md](docs/FIGUREN.md).
-  - Die Szene mit nur einer Person: AIBody selbst läuft dann, aber die Szene ist für zwei Personen gebaut (Hintergrund-Plugin auf dem Client-Atom).
-  - Steuerung über das Client-Atom (Client-Logik auf eigenem Atom) und eine zweite KI-Figur: zurückgestellt, siehe [BACKLOG](docs/BACKLOG.md).
+- AI Character = the AI's body: the Person the plugin is loaded on. Tab *AI Character*: AI mode, voice, poses, expressions, gestures, body.
+- Client Character = the human user who talks to the AI. Tab *Client Character*: microphone (recorded by the companion app on the PC), push-to-talk, voice barge-in.
+- In the bundled scene each role is its own Person: `AI Character` (female, carries AIBody) and `Client Character` (male, the user's visible body, carries the background plugin Camera Background Color).
+- Implementation: AIBody sits only on the AI Person and knows no client atom; the settings of both roles live in this one plugin. The user's input still comes through the microphone / push-to-talk or text input in the companion app's console, not through the client atom.
+- **One AI character per app.** A second AI character is not supported (the multi-character feature of version 28 was removed in version 30); for another one run a second VaM instance with its own companion app.
+- Not intended and not tested:
+  - AIBody without a user side (without a running companion app there is neither listening nor answering; the plugin stays stable and shows "DISCONNECTED").
+  - AIBody on a non-Person atom (the plugin window then only explains where it belongs).
+  - The scene with only one Person: AIBody itself runs then, but the scene is built for two people (background plugin on the client atom).
 
-## 4. Einstellungen
+## 4. Settings
 
-### 4.1 Orte und Vorrang
+### 4.1 Locations and precedence
 
-- Plugin-Menü (rechte Spalte, Tabs): Werte werden mit der Szene gespeichert.
-- `config.json`: `<VaM>/Saves/PluginData/AIBody/config.json`, eine Datei für alle Kanäle, gelesen von Plugin und Begleit-App. Schema: `protocol/schema/config.schema.json`, Beispiel: `examples/config.json`.
-  - Fehlt die Datei: die Begleit-App legt sie beim Start mit Standardwerten an; das Plugin schreibt sie ca. 2 s nach dem Laden aus seinen Menüwerten.
-  - Szene ohne gespeicherte AIBody-Werte (internes Feld „Settings initialized“ = false): das Plugin übernimmt die Datei einmal.
-  - Szene mit gespeicherten Werten: die Menüwerte gewinnen und werden zurückgeschrieben (innerhalb 1 s nach einer Änderung).
-  - Tab *Config* > **Reload Config JSON**: übernimmt die ganze Datei ins Menü und schickt sie an die App.
-  - Die Begleit-App liest die Datei beim Start (Kanal, Mikrofon, Engines, `ai`, `advanced.verbose_log`) und ergänzt fehlende `ai`-Schlüssel mit Standardwerten. Änderungen im Menü kommen live als `config`-Ereignis an.
-  - Das Plugin schreibt Zahlen und true/false als Text (`"2.5"`, `"true"`); beide Formen sind gültig.
-  - Unbekannte Schlüssel werden gemeldet und ignoriert; Zahlen außerhalb des Bereichs werden auf den Bereich begrenzt; ungültige Werte fallen auf den Standard zurück (Meldung in der App-Konsole).
-  - Abschnitt `ai` gehört der Begleit-App; das Plugin schreibt dort nur die Schlüssel, für die es ein Bedienelement hat (in der Tabelle mit Tab angegeben), und lässt den Rest unverändert.
-- Kommandozeile und `--config`-Datei der Begleit-App (4.4), Umgebungsvariablen (4.5).
-- Das Menü zeigt nur Einstellbares. Alle Erklär-, Status- und Pfadtexte stehen in dem einen großen Infofeld links (seit Version 15); zusätzlich einmal im VaM-Log: `Settings file: … | Expressions: … | Gestures: … | Audio …`.
+- Plugin menu (right column, tabs): values are saved with the scene.
+- `config.json`: `<VaM>/Saves/PluginData/AIBody/config.json`, one file, read by the plugin and the companion app. Schema: `protocol/schema/config.schema.json`, example: `examples/config.json`.
+  - If the file is missing: the companion app creates it with default values on start; the plugin writes it about 2 s after loading from its menu values.
+  - A scene without saved AIBody values (internal field "Settings initialized" = false): the plugin takes over the file once.
+  - A scene with saved values: the menu values win and are written back (within 1 s after a change).
+  - Tab *Config* > **Reload Config JSON**: applies the whole file to the menu and sends it to the app.
+  - The companion app reads the file on start (microphone, engines, `ai`, `advanced.verbose_log`, network) and completes missing `ai` keys with default values. Changes in the menu arrive live as a `config` event.
+  - The plugin writes numbers and true/false as text (`"2.5"`, `"true"`); both forms are valid.
+  - Unknown keys are reported and ignored; numbers outside the range are clamped to the range; invalid values fall back to the default (message in the app console).
+  - The section `ai` belongs to the companion app; the plugin writes there only the keys for which it has a control (marked with the tab in the table) and leaves the rest unchanged.
+- Command line and `--config` file of the companion app (4.4), environment variables (4.5).
+- The menu shows only what can be set. All explanation, status and path texts are in the one large info field on the left (since version 15); in addition once in the VaM log: `Settings file: … | Expressions: … | Gestures: … | Audio …`.
 
 ### 4.2 config.json
 
-Spalte „Wo“: Tab im Plugin-Menü; „nur Datei“ = kein Bedienelement. Bereich in eckigen Klammern; die Regler im Plugin haben dieselben Grenzen.
+Column "Where": tab in the plugin menu; "file only" = no control. Range in square brackets; the sliders in the plugin have the same limits.
 
-| Schlüssel | Typ | Standard | Werte | Wirkung | Wo |
+| Key | Type | Default | Values | Effect | Where |
 |---|---|---|---|---|---|
-| `version` | int | 1 | 1 | Schema-Version; andere Werte: Warnung, Kompatibles wird gelesen | nur Datei |
-| `written_by` | string | – | frei | wer die Datei zuletzt schrieb (nur Info) | wird geschrieben |
-| `connection.channel` | string | `default` | Buchstaben, Ziffern, `-`, `_` (anderes wird zu `_`) | Unterordner `Saves/PluginData/AIBody/<Kanal>/` für die Nachrichtendateien und `Custom/Sounds/AIBody/<Kanal>/` für Audio; Plugin und App müssen gleich sein; `--channel` gewinnt in der App; Änderung startet die Verbindung neu | Feld **Channel** im Tab Config (seit Version 28; Version 15 bis 27 nur Datei); gehört zur Figur, „Reload Config JSON“ liest es nicht neu |
-| `ai.channels` | string | `""` | Kanalnamen, mit Komma getrennt, höchstens 8 | Version 28: eine App bedient mehrere Figuren, z. B. `anna,marc` (gleich wie `--channel anna,marc`, die Kommandozeile gewinnt); leer = ein Kanal aus `connection.channel`; siehe [docs/FIGUREN.md](docs/FIGUREN.md) | nur Datei |
-| `connection.active` | bool | true | | Verbindung zur Begleit-App an/aus | Voice > Voice Mode: **Active** |
-| `connection.paths.expressions` | string | `Saves/PluginData/AIBody/expressions.json` | relativ, unter `Saves/` oder `Custom/`, ohne `..` und `:` | Datei mit Ausdrucks-Presets (4.6) | nur Datei |
-| `connection.paths.gestures` | string | `Saves/PluginData/AIBody/gestures.json` | wie oben | Datei mit Gesten/Posen (4.6) | nur Datei |
-| `connection.paths.audio` | string | `""` | `""` oder relativ unter `Saves/`/`Custom/` | Ordner für die Sprach-WAVs. `""` = automatisch `Custom/Sounds/AIBody/<Kanal>`; kann VaM eine WAV dort nicht laden, wechselt die App einmal nach `Saves/PluginData/AIBody/<Kanal>/audio` und spielt neu ab (rote Zeile im Statusfeld). Fester Ordner = kein Wechsel | nur Datei |
-| `engines.stt` | string | `null` | `null`, `xai` | Spracherkennung (`null` = offline, hört nichts) | Voice > AI Character: **Speech-to-text** |
-| `engines.llm` | string | `echo` | `echo`, `xai`, `ollama` | Sprachmodell (`echo` = offline, „You said: …“; `ollama` = lokal, Version 29, siehe [docs/LOKALE_ENGINES.md](docs/LOKALE_ENGINES.md)) | Voice > AI Character: **Language model** |
-| `engines.tts` | string | `tone` | `tone`, `xai`, `elevenlabs` | Sprachausgabe (`tone` = offline, Summton) | Voice > AI Character: **Text-to-speech** |
-| `mic.enabled` | bool | true | | Mikrofon an | Client Character: **Mic enabled** |
-| `mic.mode` | string | `vad` | `vad`, `ptt` (Menü: „Voice activation“, „Push-to-talk“) | Sprachaktivierung oder Push-to-Talk | Client Character: **Mic mode** |
-| `mic.vad_engine` | string | `auto` | `auto`, `energy`, `webrtc`, `silero` | Spracherkennung: `energy` = eingebaut (lernt den Grundpegel, Hysterese, Nachlauf), `webrtc` = webrtcvad (optional, `python -m pip install webrtcvad-wheels`), `silero` = Silero über onnxruntime ohne torch (Version 29, Modelldatei `silero_vad.onnx` nötig, siehe [docs/LOKALE_ENGINES.md](docs/LOKALE_ENGINES.md)), `auto` = silero, wenn die Modelldatei da ist, sonst webrtc, wenn installiert, sonst eingebaut. Fehlt die Bibliothek, läuft der eingebaute Detektor weiter (Hinweis im Infofeld) | Client Character: **VAD engine** (Auto / Built-in / WebRTC / Silero) |
-| `mic.vad_strictness` | int | 2 | [0–3] | je höher, desto mehr Hintergrundgeräusch wird ignoriert (webrtcvad-Modus 0–3; eingebaut: Sprache muss 2 / 2,5 / 3 / 4-mal über dem Grundpegel liegen) | Client Character: **VAD strictness** |
-| `mic.vad_threshold` | number | 0.01 | [0.001–0.5] | leisester Pegel (RMS 0–1), der als Sprache zählen kann (für alle Engines) | Client Character: **VAD threshold** |
-| `mic.end_silence_ms` | int | 700 | [200–5000] | Stille, die eine Äußerung beendet | Client Character: **Silence timeout (ms)** |
-| `mic.min_utterance_ms` | int | 300 | [100–5000], kleiner als max | kürzere Äußerungen werden verworfen | Client Character: **Min utterance (ms)** |
-| `mic.max_utterance_ms` | int | 20000 | [1000–60000] | längere Äußerungen werden abgeschnitten | Client Character: **Max utterance (ms)** |
-| `mic.echo_tail_s` | number | 0.4 | [0–3] | Mikrofon bleibt zu, solange die Figur spricht, und so lange danach (Echo-Sperre; auch im Realtime-Modus bis die ganze Antwort fertig ist) | Client Character: **Echo gate tail (s)** |
-| `mic.gain` | number | 1.0 | [0.1–8] | Verstärkung vor VAD und Spracherkennung | Client Character: **Input gain** |
-| `mic.ptt_interrupts` | bool | true | | Push-to-Talk drücken stoppt die laufende Antwort | Client Character: **Push-to-talk interrupts speech** |
-| `mic.level_meter` | bool | true | | Pegelanzeige im Plugin | Client Character: **Show level meter** |
-| `body.speech_volume` | number | 1.0 | [0–1] | Lautstärke der Kopf-Audioquelle | AI Character: **Speech volume** |
-| `body.body_control` | bool | true | | aus = nur Sprache: Ausdrucks-, Morph-, Gesten-, Posen- und Trigger-Befehle werden ignoriert, die KI bekommt keine Körper-Tools; die manuellen Menüs funktionieren weiter | AI Character: **Body control** |
-| `body.gaze_control` | bool | true | | Blicksteuerung: aus = AIBody bewegt die Augen nie, die KI bekommt kein `look_at`-Tool | AI Character: **Gaze control** |
-| `body.gaze_default` | string | `default` | `default`, `natural`, `client`, `camera`, `forward`, `atom:<Name>` | wohin die Augen schauen, wenn die KI nichts angeordnet hat; `default` = VaM-Standard, AIBody rührt die Augen nicht an | AI Character: **Default gaze** (VaM default / Client Character / Camera / player / Straight ahead / Atom: …) |
-| `body.blink_control` | bool | false | | AIBody blinkt selbst (VaMs Auto-Blinzeln wird dabei abgeschaltet und beim Loslassen zurückgesetzt); mit Life Eyes oder Glance auf der Person hält sich AIBody heraus | AI Character: **Blink control** |
-| `body.gaze_follows_speaker` | bool | false | | schaut den Client Character an, solange jemand spricht (braucht die Pegelanzeige) | AI Character: **Gaze follows speaker** |
-| `body.idle_motion` | bool | true | | Kopf-Leerlaufbewegung | AI Character: **Idle head motion** |
-| `body.idle_intensity` | number | 0.5 | [0–1] | Stärke der Leerlaufbewegung | AI Character: **Idle intensity** |
-| `body.breathing` | bool | true | | Atmung über Morph | AI Character: **Breathing** |
-| `body.breaths_per_minute` | number | 14 | [4–40] | Atemfrequenz | AI Character: **Breaths per minute** |
-| `body.breath_depth` | number | 0.35 | [0–1] | Atemtiefe | AI Character: **Breath depth** |
-| `body.breath_morph` | string | `Breath1` | Morph-Name der Figur | Brust-Morph für die Atmung (kein Standard-Morph in VaM, TODO(verify)) | AI Character: **Breath morph** |
-| `advanced.file_poll_interval_s` | number | 0.1 | [0.02–2] | wie oft das Plugin den Eingang der Companion-App (`Saves/PluginData/AIBody/<Kanal>/inbox/`) auf Nachrichten prüft (Sprache, Posen, Ausdrücke); lädt config.json nicht neu (dafür **Reload Config JSON**); Änderung startet die Verbindung neu | Config: **Companion inbox poll interval (s)** (gespeicherter Name „File poll interval (s)“) |
-| `advanced.verbose_log` | bool | false | | Turn-Trace in Konsole und `Saves/PluginData/AIBody/logs/companion.log` (1 MB × 5, Keys geschwärzt), `[debug]`-Zeilen im VaM-Log, *Recent events* im Statusfeld; wirkt sofort | Config: **Verbose log**; CLI `-v` |
-| `ai.mode` | string | `qa` | `qa`, `auto`, `realtime`, `chain` | `qa` = Einfacher Q&A: STT → Grok → TTS, mit xAI-Key `xai` statt der Test-Engines, nur Sprache, keine Körper-Tools, kein proaktives Sprechen. `auto` = Realtime mit xAI-Key (außer bei `engines.tts` = `elevenlabs`), sonst Kette. `realtime` = Grok Voice Sprache-zu-Sprache, Kette als Fallback (auch wenn 12 s nach dem Sprechen keine Antwort kommt). `chain` = genau die Engines aus `engines` | Voice > AI Character: **AI mode**; Voice > Voice Mode: **Question and Answer** (setzt `qa` und Body control aus), **Use realtime voice** (an = `auto`, aus = `qa`) |
-| `ai.persona` | string | „You are a friendly, curious character …“ | frei | System-Prompt (xAI: `instructions` der ersten Anfrage einer Unterhaltung; Realtime: Teil der Instructions) | nur Datei |
-| `ai.language` | string | `auto` | `auto` oder Sprachcode (`de`, `en`, …) | Sprachhinweis für STT und TTS | nur Datei |
-| `ai.persona_name` | string | `""` | Ordnername unter `Saves/PluginData/AIBody/personas/` oder leer | Persona (Version 27): `persona.json` ersetzt `ai.persona`, Sprache und Stimme, siehe [docs/PERSONAS.md](docs/PERSONAS.md); leer = keine | Tab Voice > AI Character: **Persona** (Liste von der App) |
-| `ai.memory.enabled` | bool | false | | Gedächtnis (Version 27): kurze Notizen über den Nutzer in `personas/<Name>/memory.json`, nach dem Gespräch von xAI zusammengefasst, als Notizen in den Anweisungen | Tab Voice: **Memory**, Knopf **Forget memory** |
-| `ai.memory.max_facts` | int | 30 | 1–100 | höchstens so viele Notizen (je höchstens 160 Zeichen) | nur Datei |
-| `ai.memory.session_idle_minutes` | int | 10 | 1–240 | Stille, nach der ein Gespräch als beendet gilt und zusammengefasst wird | nur Datei |
-| `ai.memory.min_exchanges` | int | 2 | 1–50 | mindestens so viele Fragen, damit sich eine Zusammenfassung lohnt | nur Datei |
-| `ai.emotion.fallback` | bool | true | | Version 27: Ausdruck aus den gesprochenen Worten, wenn die KI keinen wählt | nur Datei |
-| `ai.emotion.fade` | bool | true | | Gesicht blendet nach der Sprache auf `neutral` zurück | nur Datei |
-| `ai.emotion.fade_after_s` | float | 6.0 | 1–120 | Wartezeit nach der letzten Sprache / dem letzten Ausdruck | nur Datei |
-| `ai.emotion.fade_seconds` | float | 2.5 | 0,2–10 | Blendzeit beim Zurückgehen | nur Datei |
-| `ai.emotion.listening` | bool | true | | kleines „listening“-Gesicht, solange der Nutzer spricht (braucht die Voreinstellung im Plugin ab Version 27) | nur Datei |
-| `ai.fallback.stt` / `.llm` / `.tts` | string | `null` / `echo` / `tone` | Engines wie bei `engines` | läuft, wenn die gewählte Engine keinen Key hat oder eine Anfrage scheitert | nur Datei |
-| `ai.realtime.url` | string | `wss://api.x.ai/v1/realtime` | | WebSocket-Adresse | nur Datei |
-| `ai.realtime.model` | string | `grok-voice-latest` | | Sprachmodell (Query-Parameter `model`) | nur Datei |
-| `ai.realtime.voice` | string | `eve` | `eve`, `ara`, `rex`, `sal`, `leo` oder eigene Voice-ID | Stimme in Realtime; Änderung verbindet neu | Voice > AI Character: **Voice** (setzt auch `ai.xai.voice`; eine eigene ID aus der Datei wird ins Menü übernommen) |
-| `ai.realtime.sample_rate` | int | 24000 | 8000, 16000, 22050, 24000, 32000, 44100, 48000 | Abtastrate der Antwort (16-Bit-PCM, als WAV) | nur Datei |
-| `ai.realtime.speed` | number | 1.0 | [0.7–1.5] | Sprechtempo | nur Datei |
-| `ai.realtime.reasoning_effort` | string | `none` | `none`, `high` | `none` antwortet schneller; `high` = API-Standard | nur Datei |
-| `ai.realtime.send_while_speaking` | bool | false | | Mikrofon streamt weiter, während die Figur spricht (Unterbrechen per Stimme); nur mit Kopfhörer | Client Character: **Voice barge-in (headphones)** |
-| `ai.realtime.first_segment_s` | number | 1.2 | [0.3–5] | erstes Audiostück wird gespielt, sobald nach so viel Audio ein Satz endet | nur Datei |
-| `ai.realtime.max_segment_s` | number | 6.0 | [1–20] | längere Stücke ohne Satzende werden an der leisesten Stelle geschnitten | nur Datei |
-| `ai.realtime.connect_timeout_s` | number | 15 | [3–60] | Verbindungs-Timeout | nur Datei |
-| `ai.proactive.enabled` | bool | true | | KI darf nach Stille von sich aus sprechen (Realtime oder `llm` = `xai`; pausiert in `qa`) | Voice > AI Character: **Proactive talking** (bis Version 22 „Proactive“) |
-| `ai.proactive.idle_seconds` | number | 90 | [0–3600]; im Plugin auf ganze Sekunden gerundet; **0 = Anstöße aus** (wie Proactive aus; alles unter 1 s zählt als 0) | Stille, bis die KI von sich aus sprechen darf (keine Antwortzeit); verdoppelt sich bei unbeantworteten Anstößen (bis 8×) | Voice > AI Character: **Speech delay timer (s)** |
-| `ai.proactive.prompt` | string | „The user has been quiet for a while. … answer with exactly [silent] …“ | frei | Hinweis bei jedem Anstoß; Antwort `[silent]` = nichts abspielen | nur Datei |
-| `ai.xai.base_url` | string | `https://api.x.ai/v1` | | REST-Basis für STT, LLM, TTS | nur Datei |
-| `ai.xai.key_hint` | string | englischer Hinweistext | beliebiger Text | Notiz für den Leser der Datei (JSON hat keine Kommentare): ein xAI-API-Key ist nötig, auf vier Wegen (Plugin-Feld **XAI API Token**, `ai.xai.api_key`, `XAI_API_KEY`, `ai.xai.key_file`). Wird von der App nicht benutzt; die App ergänzt ihn in bestehenden `config.json` | nur Datei |
-| `ai.xai.api_key` | string | `""` | beliebiger Text (keine Formatprüfung) | der xAI-Token im **Klartext**; das Plugin schreibt das Feld **XAI API Token** hierher und füllt das Feld beim Start daraus, die App liest ihn ebenfalls; gilt nach dem Feld (live) und vor `XAI_API_KEY` und `ai.xai.key_file`; leeres Feld im Plugin leert ihn | Voice > Voice Mode: **XAI API Token** |
-| `ai.xai.api_key_warning` | string | englischer Sicherheitshinweis | beliebiger Text | Notiz für den Leser der Datei (JSON hat keine Kommentare), steht neben `api_key`; die App ignoriert ihn, das Plugin behält ihn beim Zurückschreiben | nur Datei |
-| `ai.xai.key_file` | string | `""` | Pfad (absolut oder relativ zum Benutzerordner); kein Key | Datei mit dem xAI-Key; gilt erst nach dem Feld **XAI API Token**, `ai.xai.api_key` und `XAI_API_KEY`; ein hier eingefügter Key wird abgelehnt und nicht gespeichert | nur Datei (seit Version 15 kein Menüfeld; das Plugin behält den gelesenen Pfad) |
-| `ai.scene_events.enabled` | bool | true | | Szenen-Ereignisse: setzt ein VaM-Trigger den Text „Scene event“ des Plugins, erfährt die KI davon und darf reagieren oder schweigen (nicht im Q&A-Modus) | nur Datei |
-| `ai.scene_events.prompt` | string | „Something just happened in the scene: {event}. … answer with exactly [silent] …“ | frei, `{event}` wird ersetzt | Hinweis an die KI | nur Datei |
-| `ai.xai.model` | string | `grok-4.7` | | Sprachmodell | nur Datei |
-| `ai.xai.max_output_tokens` | int | 400 | [16–8000] | hält Antworten kurz | nur Datei |
-| `ai.xai.stt_model` | string | `grok-voice-transcribe-2.0` | | Spracherkennungsmodell | nur Datei |
-| `ai.xai.voice` | string | `eve` | wie `ai.realtime.voice` | TTS-Stimme | Voice > AI Character: **Voice** |
-| `ai.xai.speed` | number | 1.0 | [0.7–1.5] | TTS-Tempo | nur Datei |
-| `ai.xai.sample_rate` | int | 24000 | 8000, 16000, 22050, 24000, 44100, 48000 | TTS-Abtastrate (PCM, als WAV) | nur Datei |
-| `ai.xai.timeout_s` | number | 60 | [5–600] | Anfrage-Timeout | nur Datei |
-| `ai.ollama.base_url` | string | `http://127.0.0.1:11434` | | Adresse von Ollama (Version 29, lokales Sprachmodell ohne Schlüssel) | nur Datei |
-| `ai.ollama.model` | string | `llama3.2` | | Modellname (`ollama pull <Modell>`) | nur Datei |
-| `ai.ollama.max_output_tokens` / `temperature` / `keep_alive` / `max_messages` / `timeout_s` | number / number / string / number / number | 400 / 0,7 / `10m` / 40 / 120 | [16–8000] / [0–2] / – / [2–400] / [5–3600] | Länge der Antwort, Zufälligkeit, wie lange das Modell geladen bleibt, Gesprächsrunden, die mitgeschickt werden, Timeout | nur Datei |
-| `ai.barge_in.enabled` | bool | false | | Stimm-Unterbrechung ohne Kopfhörer per Pegelregel (Version 29, siehe [docs/LOKALE_ENGINES.md](docs/LOKALE_ENGINES.md)) | nur Datei |
-| `ai.barge_in.ratio` / `min_ms` / `floor` | number | 2,0 / 600 / 0,02 | [1,2–10] / [150–3000] / [0,002–0,5] | wie viel lauter als das Echo, wie lange, ab welchem Pegel | nur Datei |
-| `ai.elevenlabs.base_url` | string | `https://api.elevenlabs.io/v1` | | REST-Basis | nur Datei |
-| `ai.elevenlabs.key_file` | string | `""` | wie `ai.xai.key_file` | Datei mit dem ElevenLabs-Key; `ELEVENLABS_API_KEY` gewinnt | nur Datei (seit Version 15 kein Menüfeld; auch in Version 21 kein ElevenLabs-Feld) |
-| `ai.elevenlabs.voice_id` | string | `JBFqnCBsd6RMkjVDRZzb` | | Stimme | nur Datei |
-| `ai.elevenlabs.model_id` | string | `eleven_multilingual_v2` | | TTS-Modell | nur Datei |
-| `ai.elevenlabs.output_format` | string | `pcm_24000` | `pcm_16000`, `pcm_22050`, `pcm_24000`, `pcm_44100`, `pcm_48000` | Ausgabeformat (44,1/48 kHz brauchen einen ElevenLabs-Pro-Plan) | nur Datei |
-| `ai.elevenlabs.timeout_s` | number | 60 | [5–600] | Anfrage-Timeout | nur Datei |
+| `version` | int | 1 | 1 | schema version; other values: a warning, compatible parts are read | file only |
+| `written_by` | string | – | free | who wrote the file last (info only) | is written |
+| `connection.active` | bool | true | | link to the companion app on / off | Voice > Voice Mode: **Active** |
+| `connection.network_active` | bool | true | | version 30: the loopback socket link to the companion app on / off (file channel as an automatic fallback); off = no network code runs in the plugin | Config: **Network Active** |
+| `connection.network_port` | int | 38437 | [0–65535] | version 30: UDP port on `127.0.0.1` where the companion app listens; `0` = no listener (files only) | file only |
+| `connection.paths.expressions` | string | `Saves/PluginData/AIBody/expressions.json` | relative, under `Saves/` or `Custom/`, without `..` and `:` | file with expression presets (4.6) | file only |
+| `connection.paths.gestures` | string | `Saves/PluginData/AIBody/gestures.json` | as above | file with gestures / poses (4.6) | file only |
+| `connection.paths.audio` | string | `""` | `""` or relative under `Saves/` / `Custom/` | folder for the speech WAVs. `""` = automatically `Custom/Sounds/AIBody/default`; if VaM cannot load a WAV there, the app switches once to `Saves/PluginData/AIBody/default/audio` and plays again (red line in the status field). A fixed folder = no switch | file only |
+| `engines.stt` | string | `null` | `null`, `xai` | speech recognition (`null` = offline, hears nothing) | Voice > AI Character: **Speech-to-text** |
+| `engines.llm` | string | `echo` | `echo`, `xai`, `ollama` | language model (`echo` = offline, "You said: …"; `ollama` = local, version 29, see [docs/LOCAL_ENGINES.md](docs/LOCAL_ENGINES.md)) | Voice > AI Character: **Language model** |
+| `engines.tts` | string | `tone` | `tone`, `xai`, `elevenlabs` | speech output (`tone` = offline, hum) | Voice > AI Character: **Text-to-speech** |
+| `mic.enabled` | bool | true | | microphone on | Client Character: **Mic enabled** |
+| `mic.mode` | string | `vad` | `vad`, `ptt` (menu: "Voice activation", "Push-to-talk") | voice activation or push-to-talk | Client Character: **Mic mode** |
+| `mic.vad_engine` | string | `auto` | `auto`, `energy`, `webrtc`, `silero` | voice detection: `energy` = built-in (learns the basic level, hysteresis, trailing), `webrtc` = webrtcvad (optional, `python -m pip install webrtcvad-wheels`), `silero` = Silero through onnxruntime without torch (version 29, needs the model file `silero_vad.onnx`, see [docs/LOCAL_ENGINES.md](docs/LOCAL_ENGINES.md)), `auto` = silero if the model file is there, else webrtc if installed, else built-in. If the library is missing, the built-in detector keeps running (note in the info field) | Client Character: **VAD engine** (Auto / Built-in / WebRTC / Silero) |
+| `mic.vad_strictness` | int | 2 | [0–3] | the higher, the more background noise is ignored (webrtcvad mode 0–3; built-in: speech must be 2 / 2.5 / 3 / 4 times above the basic level) | Client Character: **VAD strictness** |
+| `mic.vad_threshold` | number | 0.01 | [0.001–0.5] | quietest level (RMS 0–1) that can count as speech (for all engines) | Client Character: **VAD threshold** |
+| `mic.end_silence_ms` | int | 700 | [200–5000] | silence that ends an utterance | Client Character: **Silence timeout (ms)** |
+| `mic.min_utterance_ms` | int | 300 | [100–5000], smaller than max | shorter utterances are discarded | Client Character: **Min utterance (ms)** |
+| `mic.max_utterance_ms` | int | 20000 | [1000–60000] | longer utterances are cut off | Client Character: **Max utterance (ms)** |
+| `mic.echo_tail_s` | number | 0.4 | [0–3] | the microphone stays closed while the character speaks and this long afterwards (echo gate; in realtime mode too until the whole answer is finished) | Client Character: **Echo gate tail (s)** |
+| `mic.gain` | number | 1.0 | [0.1–8] | amplification before VAD and speech recognition | Client Character: **Input gain** |
+| `mic.ptt_interrupts` | bool | true | | pressing push-to-talk stops the running answer | Client Character: **Push-to-talk interrupts speech** |
+| `mic.level_meter` | bool | true | | level meter in the plugin | Client Character: **Show level meter** |
+| `body.speech_volume` | number | 1.0 | [0–1] | volume of the head audio source | AI Character: **Speech volume** |
+| `body.body_control` | bool | true | | off = speech only: expression, morph, gesture, pose and trigger commands are ignored, the AI gets no body tools; the manual menus keep working | AI Character: **Body control** |
+| `body.gaze_control` | bool | true | | gaze control: off = AIBody never moves the eyes, the AI gets no `look_at` tool | AI Character: **Gaze control** |
+| `body.gaze_default` | string | `default` | `default`, `natural`, `client`, `camera`, `forward`, `atom:<name>` | where the eyes look when the AI has ordered nothing; `default` = VaM default, AIBody does not touch the eyes | AI Character: **Default gaze** (VaM default / Client Character / Camera / player / Straight ahead / Atom: …) |
+| `body.blink_control` | bool | false | | AIBody blinks by itself (VaM's automatic blinking is switched off meanwhile and restored on release); with Life Eyes or Glance on the Person AIBody stays out | AI Character: **Blink control** |
+| `body.gaze_follows_speaker` | bool | false | | looks at the Client Character while someone speaks (needs the level meter) | AI Character: **Gaze follows speaker** |
+| `body.idle_motion` | bool | true | | idle head motion | AI Character: **Idle head motion** |
+| `body.idle_intensity` | number | 0.5 | [0–1] | strength of the idle motion | AI Character: **Idle intensity** |
+| `body.breathing` | bool | true | | breathing through a morph | AI Character: **Breathing** |
+| `body.breaths_per_minute` | number | 14 | [4–40] | breathing rate | AI Character: **Breaths per minute** |
+| `body.breath_depth` | number | 0.35 | [0–1] | breathing depth | AI Character: **Breath depth** |
+| `body.breath_morph` | string | `Breath1` | morph name of the figure | chest morph for breathing (no standard morph in VaM, TODO(verify)) | AI Character: **Breath morph** |
+| `advanced.file_poll_interval_s` | number | 0.1 | [0.02–2] | how often the plugin checks the companion app's inbox (`Saves/PluginData/AIBody/default/inbox/`) for messages (speech, poses, expressions); does not reload config.json (use **Reload Config JSON** for that); a change restarts the connection | Config: **Companion inbox poll interval (s)** (stored name "File poll interval (s)") |
+| `advanced.verbose_log` | bool | false | | turn trace in the console and `Saves/PluginData/AIBody/logs/companion.log` (1 MB × 5, keys redacted), `[debug]` lines in the VaM log, *Recent events* in the status field; takes effect at once | Config: **Verbose log**; CLI `-v` |
+| `ui.first_run_hint_dismissed` | bool | false | | version 30: set by the plugin once the first-run note was closed or a token exists; the note is never shown again | written by the plugin |
+| `ai.mode` | string | `qa` | `qa`, `auto`, `realtime`, `chain` | `qa` = simple Q&A: STT → Grok → TTS, with an xAI key `xai` instead of the test engines, speech only, no body tools, no proactive speaking. `auto` = realtime with an xAI key (except with `engines.tts` = `elevenlabs`), else the chain. `realtime` = Grok Voice speech to speech, the chain as fallback (also if no answer comes 12 s after speaking). `chain` = exactly the engines from `engines` | Voice > AI Character: **AI mode**; Voice > Voice Mode: **Question and Answer** (sets `qa` and Body control off), **Use realtime voice** (on = `auto`, off = `qa`) |
+| `ai.persona` | string | "You are a friendly, curious character …" | free | system prompt (xAI: `instructions` of the first request of a conversation; realtime: part of the instructions) | file only |
+| `ai.language` | string | `auto` | `auto` or a language code (`de`, `en`, …) | language hint for STT and TTS | file only |
+| `ai.persona_name` | string | `""` | folder name under `Saves/PluginData/AIBody/personas/` or empty | persona (version 27): `persona.json` replaces `ai.persona`, language and voice, see [docs/PERSONAS.md](docs/PERSONAS.md); empty = none | Tab Voice > AI Character: **Persona** (list from the app) |
+| `ai.memory.enabled` | bool | false | | memory (version 27): short notes about the user in `personas/<name>/memory.json`, summarized by xAI after the conversation, used as notes in the instructions | Tab Voice: **Memory**, button **Forget memory** |
+| `ai.memory.max_facts` | int | 30 | 1–100 | at most this many notes (at most 160 characters each) | file only |
+| `ai.memory.session_idle_minutes` | int | 10 | 1–240 | silence after which a conversation counts as finished and is summarized | file only |
+| `ai.memory.min_exchanges` | int | 2 | 1–50 | at least this many questions for a summary to be worthwhile | file only |
+| `ai.emotion.fallback` | bool | true | | version 27: expression from the spoken words when the AI chooses none | file only |
+| `ai.emotion.fade` | bool | true | | the face blends back to `neutral` after speech | file only |
+| `ai.emotion.fade_after_s` | float | 6.0 | 1–120 | wait after the last speech / expression | file only |
+| `ai.emotion.fade_seconds` | float | 2.5 | 0.2–10 | blend time when going back | file only |
+| `ai.emotion.listening` | bool | true | | small "listening" face while the user speaks (needs the preset in the plugin from version 27) | file only |
+| `ai.fallback.stt` / `.llm` / `.tts` | string | `null` / `echo` / `tone` | engines as in `engines` | runs when the chosen engine has no key or a request fails | file only |
+| `ai.realtime.url` | string | `wss://api.x.ai/v1/realtime` | | WebSocket address | file only |
+| `ai.realtime.model` | string | `grok-voice-latest` | | speech model (query parameter `model`) | file only |
+| `ai.realtime.voice` | string | `eve` | `eve`, `ara`, `rex`, `sal`, `leo` or an own voice id | voice in realtime; a change reconnects | Voice > AI Character: **Voice** (also sets `ai.xai.voice`; an own id from the file is taken into the menu) |
+| `ai.realtime.sample_rate` | int | 24000 | 8000, 16000, 22050, 24000, 32000, 44100, 48000 | sample rate of the answer (16-bit PCM, as WAV) | file only |
+| `ai.realtime.speed` | number | 1.0 | [0.7–1.5] | speaking speed | file only |
+| `ai.realtime.reasoning_effort` | string | `none` | `none`, `high` | `none` answers faster; `high` = API default | file only |
+| `ai.realtime.send_while_speaking` | bool | false | | the microphone keeps streaming while the character speaks (barge-in by voice); only with headphones | Client Character: **Voice barge-in (headphones)** |
+| `ai.realtime.first_segment_s` | number | 1.2 | [0.3–5] | the first audio piece is played as soon as a sentence ends after this much audio | file only |
+| `ai.realtime.max_segment_s` | number | 6.0 | [1–20] | longer pieces without a sentence end are cut at the quietest point | file only |
+| `ai.realtime.connect_timeout_s` | number | 15 | [3–60] | connection timeout | file only |
+| `ai.proactive.enabled` | bool | true | | the AI may speak on its own after silence (realtime or `llm` = `xai`; paused in `qa`) | Voice > AI Character: **Proactive talking** ("Proactive" until version 22) |
+| `ai.proactive.idle_seconds` | number | 90 | [0–3600]; rounded to whole seconds in the plugin; **0 = prompts off** (like Proactive off; anything under 1 s counts as 0) | silence until the AI may speak on its own (not the answer time); doubles with unanswered prompts (up to 8×) | Voice > AI Character: **Speech delay timer (s)** |
+| `ai.proactive.prompt` | string | "The user has been quiet for a while. … answer with exactly [silent] …" | free | note on every prompt; the answer `[silent]` = play nothing | file only |
+| `ai.xai.base_url` | string | `https://api.x.ai/v1` | | REST base for STT, LLM, TTS | file only |
+| `ai.xai.key_hint` | string | English hint text | any text | note for the reader of the file (JSON has no comments): an xAI API key is needed, in four ways (plugin field **XAI API Token**, `ai.xai.api_key`, `XAI_API_KEY`, `ai.xai.key_file`). Not used by the app; the app adds it to existing `config.json` files | file only |
+| `ai.xai.api_key` | string | `""` | any text (no format check) | the xAI token in **plain text**; the plugin writes the field **XAI API Token** here and fills the field from it on start, the app reads it too; applies after the field (live) and before `XAI_API_KEY` and `ai.xai.key_file`; an empty field in the plugin empties it | Voice > Voice Mode: **XAI API Token** |
+| `ai.xai.api_key_warning` | string | English security notice | any text | note for the reader of the file (JSON has no comments), sits next to `api_key`; the app ignores it, the plugin keeps it when writing back | file only |
+| `ai.xai.key_file` | string | `""` | path (absolute or relative to the user folder); not a key | file with the xAI key; applies only after the field **XAI API Token**, `ai.xai.api_key` and `XAI_API_KEY`; a key pasted here is rejected and not stored | file only (no menu field since version 15; the plugin keeps the path it read) |
+| `ai.scene_events.enabled` | bool | true | | scene events: if a VaM trigger sets the plugin's text "Scene event", the AI learns of it and may react or stay silent (not in Q&A mode) | file only |
+| `ai.scene_events.prompt` | string | "Something just happened in the scene: {event}. … answer with exactly [silent] …" | free, `{event}` is replaced | note to the AI | file only |
+| `ai.xai.model` | string | `grok-4.7` | | language model | file only |
+| `ai.xai.max_output_tokens` | int | 400 | [16–8000] | keeps answers short | file only |
+| `ai.xai.stt_model` | string | `grok-voice-transcribe-2.0` | | speech recognition model | file only |
+| `ai.xai.voice` | string | `eve` | as `ai.realtime.voice` | TTS voice | Voice > AI Character: **Voice** |
+| `ai.xai.speed` | number | 1.0 | [0.7–1.5] | TTS speed | file only |
+| `ai.xai.sample_rate` | int | 24000 | 8000, 16000, 22050, 24000, 44100, 48000 | TTS sample rate (PCM, as WAV) | file only |
+| `ai.xai.timeout_s` | number | 60 | [5–600] | request timeout | file only |
+| `ai.ollama.base_url` | string | `http://127.0.0.1:11434` | | address of Ollama (version 29, local language model without a key) | file only |
+| `ai.ollama.model` | string | `llama3.2` | | model name (`ollama pull <model>`) | file only |
+| `ai.ollama.max_output_tokens` / `temperature` / `keep_alive` / `max_messages` / `timeout_s` | number / number / string / number / number | 400 / 0.7 / `10m` / 40 / 120 | [16–8000] / [0–2] / – / [2–400] / [5–3600] | length of the answer, randomness, how long the model stays loaded, conversation messages that are sent along, timeout | file only |
+| `ai.barge_in.enabled` | bool | false | | voice barge-in without headphones by a loudness rule (version 29, see [docs/LOCAL_ENGINES.md](docs/LOCAL_ENGINES.md)) | file only |
+| `ai.barge_in.ratio` / `min_ms` / `floor` | number | 2.0 / 600 / 0.02 | [1.2–10] / [150–3000] / [0.002–0.5] | how much louder than the echo, for how long, from which level | file only |
+| `ai.elevenlabs.base_url` | string | `https://api.elevenlabs.io/v1` | | REST base | file only |
+| `ai.elevenlabs.key_file` | string | `""` | as `ai.xai.key_file` | file with the ElevenLabs key; `ELEVENLABS_API_KEY` wins | file only (no menu field since version 15; no ElevenLabs field in version 21 either) |
+| `ai.elevenlabs.voice_id` | string | `JBFqnCBsd6RMkjVDRZzb` | | voice | file only |
+| `ai.elevenlabs.model_id` | string | `eleven_multilingual_v2` | | TTS model | file only |
+| `ai.elevenlabs.output_format` | string | `pcm_24000` | `pcm_16000`, `pcm_22050`, `pcm_24000`, `pcm_44100`, `pcm_48000` | output format (44.1 / 48 kHz need an ElevenLabs Pro plan) | file only |
+| `ai.elevenlabs.timeout_s` | number | 60 | [5–600] | request timeout | file only |
 
-### 4.3 Menüaufbau und Bedienelemente ohne config.json-Schlüssel
+Removed in version 30 (one character per app): `connection.channel`, `ai.channels` and the plugin's Channel field. Old files and scenes that still hold them are read without an error and the values are ignored.
 
-Aufbau seit Version 15 (Leon, 17.11.2026): links ein großes Infofeld, rechts vier Tabs; in den Tabs stehen nur Bedienelemente, keine Textfelder. Seit Version 16 zeigt das Infofeld nur die Infos des offenen Tabs; seit Version 17 ist es 1800 hoch und steht allein in der linken Spalte (keine Kopfzeile mehr).
+### 4.3 Menu layout and controls without a config.json key
 
-- Infofeld links (immer sichtbar), von oben:
-  - Erste Zeile: **AIBody <Version>**, Atom, Startergebnis („Startup: ok“ bzw. rot die Zahl der Fehler; Details im Tab Config).
-  - *Info: <Tab>*: Hilfe und Status zum offenen Tab. Voice: Simple-Q&A-Hilfe, AI-mode-Hilfe, Key-Status je Anbieter (configured / missing / rejected, mit Hinweis „You need an xAI API key: create one at console.x.ai …“), Engine-Status (aktiver Modus, ready / not configured, Fallback; erst nach dem ersten Heartbeat der App). AI Character: Anzahl Posen und Pose-Dateien, Hinweise zu Body control und Atem-Morph. Client Character: Push-to-Talk-Erklärung (das Mikrofon ist immer das Standard-Eingabegerät des Systems), rote Hinweiszeile, wenn die Begleit-App nicht läuft bzw. der Link aus ist, Mikrofon-Status, Pegel. Voice zusätzlich *Verbindung* (Link, Companion, Audio, „Last turn“, „Latency to first sound: X s (avg Y s, n turns)“), AI Character zusätzlich *Body* (Sprechen, Audio, Ausdruck, Atem-Morph). Config: Pfad der `config.json`, Kanal mit Ordner, Ergebnis von **Reload Config JSON**, dann:
-  - *Self-test* (Person, Kopf-Audio, Morphs, Pose-Speicher, Posen, Atem-Morph, Ausdrucks-Morphs, Timeline, PluginData, Companion; die Körper-Prüfungen stehen auch als „Plugin self-test: …“ in Konsole und `companion.log` der Begleit-App).
-  - *Recent events* (bei Verbose log), Startup log.
+Layout since version 15 (Leon, 17.11.2026): one large info field on the left, four tabs on the right; the tabs hold only controls, no text fields. Since version 16 the info field shows only the information of the open tab; since version 17 it is 1800 high and stands alone in the left column (no header line any more).
+
+- Info field on the left (always visible), from the top:
+  - First line: **AIBody <version>**, atom, startup result ("Startup: ok" or, in red, the number of errors; details in the tab Config).
+  - *Info: <tab>*: help and status for the open tab. Voice: Q&A help, AI mode help, key status per provider (configured / missing / rejected, with the hint "You need an xAI API key: create one at console.x.ai …"), engine status (active mode, ready / not configured, fallback; only after the app's first heartbeat). AI Character: number of poses and pose files, hints on Body control and the breath morph. Client Character: push-to-talk explanation (the microphone is always the system's default input device), a red hint line if the companion app is not running or the link is off, microphone status, level. Voice additionally *Connection* (link, companion, audio, "Last turn", "Latency to first sound: X s (avg Y s, n turns)"), AI Character additionally *Body* (speaking, audio, expression, breath morph). Config: path of `config.json`, the network status (`Network: off` / `connecting ...` / `connected` / `unavailable, using files`), result of **Reload Config JSON**, then:
+  - *Self-test* (Person, head audio, morphs, pose memory, poses, breath morph, expression morphs, Timeline, PluginData, companion; the body checks also appear as "Plugin self-test: …" in the companion app's console and `companion.log`).
+  - *Recent events* (with Verbose log), Startup log.
+- First-run note (version 30): at the very top of the plugin UI, until an xAI token exists or the note is closed: one short text ("An xAI API token is required. Paste it here, or later in Voice > XAI API Token."), ONE text field and ONE button (**Close** while the field is empty, **OK** once something is typed; OK saves the token exactly like the token field in the tab Voice and closes the note). The field is masked like the token field. Never shown again afterwards (`ui.first_run_hint_dismissed`).
 - Tab **Voice**:
-  - Abschnitt *Voice Mode*: **Question and Answer** (Knopf, zweizeilig „Question“ / „& Answer“, bis Version 20 „Simple Q&A mode“; setzt `ai.mode` = `qa` und Body control aus), **Active**, **Use realtime voice** (Schalter, nicht gespeichert, Ansicht von AI mode: an = `auto`, aus = `qa`; zeigt an bei `auto`/`realtime`), **API Reconnect** (App liest Keys neu und öffnet Realtime neu; Plugin startet die Verbindung neu), **XAI API Token** (Version 21: Freitextfeld, Klartext, keine Formatprüfung; mit der Szene gespeichert, darum der Hinweis „(beware: scenes save it)“ darunter; wird nur im `config`-Ereignis an die App geschickt, nie in `config.json` oder ins Log geschrieben), **Test tone via companion**, **Play test tone** (Ton aus dem Paket, ohne App), **Stop speaking**.
-  - Abschnitt *Voice > AI Character*: **AI mode**, **Voice**, **Speech-to-text**, **Language model**, **Text-to-speech**, **Proactive talking**, **Speech delay timer (s)** (bis Version 22 „Proactive idle (s)“; wie lange Stille dauern muss, bevor die KI von sich aus etwas sagen darf; 0 = aus; nicht die Antwortzeit; Infofeld: „Proactive talking: on - after 90 s of silence the AI may speak on its own (speech delay timer, not the answer delay)“).
-- Tab **AI Character**: *Poses* (by voice through the AI, or here): **Pose** (Auswahl, nicht gespeichert; Liste = `gestures.json`-Einträge mit `kind` `pose` plus Dateien `.vap`/`.json` in `Custom/Atom/Person/Pose` und `Custom/Atom/Person/Pose/AIBody`, je Ordner oberste Ebene, max. 200, Präfix `Preset_` entfernt), **Apply pose** (beide nur, wenn Posen gefunden wurden), **Reload poses**; *Expression and gesture*: **Expression** (Auswahl) + **Show expression**, **Reset expression**, **Reload expressions (expressions.json)** (früher „Reload Expressions“ unter Körper), **Geste** (Auswahl) + **Play gesture**; *Körper*: **Body control**, **Speech volume**, **Idle head motion**, **Idle intensity**, **Breathing**, **Breaths per minute**, **Breath depth**, Atem-Morph (beschriftetes Textfeld).
-- Tab **Client Character**: *microphone, voice activation and push-to-talk*: **Mic enabled**, **Mic mode**, **Push-to-talk active** (nicht gespeichert; solange an, hört die App zu; nur im Mic mode Push-to-talk), **Push-to-talk interrupts speech**, **Show level meter**, die Mikrofon-Regler, **Voice barge-in (headphones)**.
-- Tab **Config** (früher *Config* und *Erweitert*): **Reload Config JSON**, **Companion inbox poll interval (s)** (wie oft das Plugin Nachrichten der Companion-App abholt; bis Version 18 „File poll interval (s)“), **Verbose log**.
-- Entfallen in Version 15: Tabs *AI*, *Post*, *Erweitert*; Feld **Channel** (`default`), Felder **xAI key file** / **ElevenLabs key file**, Platzhalter **Delay (s)**, Titelzeile je Tab, alle kleinen Text-/Statusfelder in den Tabs. Absicht und Verbleib: [`docs/BACKLOG.md`](docs/BACKLOG.md), Abschnitt „Entfernte Menüeinträge (Version 15)“. Kanal und Key-Datei-Pfade: in `config.json` (4.2) bzw. per `--channel` und Umgebungsvariable.
-- Aktionen für Trigger (Plugin-Storable): `Reconnect`, `Stop speaking`, `Reset expression`, `Reload config files` (Ausdrücke und Gesten neu laden), `Push-to-talk start`, `Push-to-talk stop`, `Push-to-talk toggle`, `Refresh mic devices`.
+  - Section *Voice Mode*: **Question and Answer** (button, two lines "Question" / "& Answer", "Simple Q&A mode" until version 20; sets `ai.mode` = `qa` and Body control off), **Active**, **Use realtime voice** (toggle, not stored, a view of AI mode: on = `auto`, off = `qa`; shows on for `auto` / `realtime`), **API Reconnect** (the app re-reads keys and reopens realtime; the plugin restarts the connection), **XAI API Token** (version 21: free-text field, plain text, no format check; the token is saved in `config.json`; the field shows it masked once it loses focus: first and last 4 characters with stars between them, full text while focused; sent to the app only in the `config` event, never written to the log), **Test tone via companion**, **Play test tone** (a tone from the package, without the app), **Stop speaking**.
+  - Section *Voice > AI Character*: **AI mode**, **Voice**, **Speech-to-text**, **Language model**, **Text-to-speech**, **Proactive talking**, **Speech delay timer (s)** ("Proactive idle (s)" until version 22; how long the silence must last before the AI may say something on its own; 0 = off; not the answer time; info field: "Proactive talking: on - after 90 s of silence the AI may speak on its own (speech delay timer, not the answer delay)").
+- Tab **AI Character**: *Poses* (by voice through the AI, or here): **Pose** (chooser, not stored; list = `gestures.json` entries with `kind` `pose` plus `.vap` / `.json` files in `Custom/Atom/Person/Pose` and `Custom/Atom/Person/Pose/AIBody`, top level of each folder, at most 200, prefix `Preset_` removed), **Apply pose** (both only if poses were found), **Reload poses**; *Expression and gesture*: **Expression** (chooser) + **Show expression**, **Reset expression**, **Reload expressions (expressions.json)** (formerly "Reload Expressions" under Body), **Gesture** (chooser) + **Play gesture**; *Body*: **Body control**, **Speech volume**, **Idle head motion**, **Idle intensity**, **Breathing**, **Breaths per minute**, **Breath depth**, Breath morph (labeled text field).
+- Tab **Client Character**: *microphone, voice activation and push-to-talk*: **Mic enabled**, **Mic mode**, **Push-to-talk active** (not stored; while on, the app listens; only in Mic mode push-to-talk), **Push-to-talk interrupts speech**, **Show level meter**, the microphone sliders, **Voice barge-in (headphones)**.
+- Tab **Config** (formerly *Config* and *Advanced*): **Reload Config JSON**, **Network Active** (version 30; on by default: loopback link to the companion app with an automatic file fallback; saved with the scene and mirrored in config.json), **Companion inbox poll interval (s)** (how often the plugin fetches the companion app's messages; "File poll interval (s)" until version 18), **Verbose log**.
+- Removed in version 15: tabs *AI*, *Post*, *Advanced*; the field **Channel** (`default`), the fields **xAI key file** / **ElevenLabs key file**, the placeholder **Delay (s)**, the title line per tab, all small text / status fields in the tabs. Purpose and whereabouts: [`docs/BACKLOG.md`](docs/BACKLOG.md), section "Removed menu entries (version 15)". Key file paths: in `config.json` (4.2) or through the environment variable. (Version 28's Channel field was removed again in version 30.)
+- Actions for triggers (plugin storables): `Reconnect`, `Stop speaking`, `Reset expression`, `Reload config files` (reload expressions and gestures), `Push-to-talk start`, `Push-to-talk stop`, `Push-to-talk toggle`.
 
-### 4.4 Begleit-App: Kommandozeile und --config-Datei
+### 4.4 Companion app: command line and --config file
 
-- `--vam-root <Pfad>` (Pflicht): VaM-Hauptordner.
-- `--channel <name>`: Kanal; Standard `connection.channel` aus config.json; gewinnt über die Datei.
-- `--config <datei>`: eigene JSON-Datei der App (Vorlage `companion/config.example.json`), Schlüssel: `vam_root`, `channel`, `poll_interval_s` (0.02, Takt der Hauptschleife), `sample_rate` (16000, Mikrofon), `frame_ms` (30, VAD-Blocklänge), `mic` (Startwerte wie `mic.*`), `keep_audio_files` (20, so viele WAVs bleiben liegen), `stt`/`llm`/`tts`. Kanal, Mikrofon, Engines, `ai` und `verbose_log` aus `config.json` überschreiben diese Datei.
-- `--no-mic`: Mikrofon nie öffnen (nur Texteingabe).
-- `--no-stdin`: keine Texteingabe aus der Konsole.
-- `--list-devices`: Eingabegeräte ausgeben und beenden (nur Diagnose; die App nimmt immer vom Standard-Eingabegerät auf, ein anderes Mikrofon stellt man in Windows als Standard ein).
-- Mikrofon-Diagnose ohne VaM und ohne App: `python tools/mic_test.py` im Repo-Ordner (Geräte roh, je Host-API, Standardgerät; schreibt `mic_test_output.txt`). Nur Ausgabe, es gibt keine Mikrofon-Auswahl.
-- `-v` / `--verbose`: DEBUG für alle Module, Turn-Trace immer an.
+- `--vam-root <path>` (required): the VaM main folder.
+- `--channel <name>`: no longer used; accepted and ignored with a warning (the app always serves the one character in `Saves/PluginData/AIBody/default/`).
+- `--config <file>`: the app's own JSON file (template `companion/config.example.json`), keys: `vam_root`, `poll_interval_s` (0.02, tick of the main loop), `sample_rate` (16000, microphone), `frame_ms` (30, VAD block length), `mic` (start values like `mic.*`), `keep_audio_files` (20, this many WAVs stay around), `stt` / `llm` / `tts`. Microphone, engines, `ai` and `verbose_log` from `config.json` override this file.
+- `--no-mic`: never open the microphone (text input only).
+- `--no-stdin`: no text input from the console.
+- `--list-devices`: print input devices and exit (diagnosis only; the app always records from the default input device, another microphone is set as the default in Windows).
+- Microphone diagnosis without VaM and without the app: `python tools/mic_test.py` in the repo folder (raw devices, per host API, default device; writes `mic_test_output.txt`). Output only, there is no microphone selection.
+- `-v` / `--verbose`: DEBUG for all modules, turn trace always on.
 
-### 4.5 Umgebungsvariablen
+### 4.5 Environment variables
 
-- xAI-Key, Reihenfolge (nächste Version, 24): 1. Feld **XAI API Token** im Plugin (live, wenn nicht leer), 2. `ai.xai.api_key` in `config.json` (Klartext; dasselbe wie das Feld nach einem Neustart), 3. Umgebungsvariable `XAI_API_KEY`, 4. Key-Datei `ai.xai.key_file`. Ein leeres Feld fällt zurück; leert man das Feld im Plugin, wird auch `ai.xai.api_key` geleert. Der Token steht nie im Log (alle Schlüssel werden geschwärzt).
-- `XAI_API_KEY`: optional; xAI-API-Key von console.x.ai (beginnt mit `xai-`); gewinnt über `ai.xai.key_file`, verliert gegen das Feld. Ein Grok-Abo (SuperGrok / X Premium) bzw. grok.com-Token ist kein API-Key und wird abgelehnt. Ohne Key: Warnung beim Start, Test-Engines laufen.
-- `ELEVENLABS_API_KEY`: ElevenLabs-Key; gewinnt über `ai.elevenlabs.key_file`.
-- Key-Dateien werden alle 10 s neu gelesen; Umgebungsvariablen nur beim Start der App. Der Token aus dem Feld steht in der Szene (Klartext, siehe Hinweis am Feld) und für Sekundenbruchteile in einer Ereignisdatei unter `Saves/PluginData/AIBody/<Kanal>/outbox/`, die die App nach dem Lesen löscht; nie in `config.json`; im Log immer geschwärzt.
+- xAI key, order (since version 24): 1. the field **XAI API Token** in the plugin (live, if not empty), 2. `ai.xai.api_key` in `config.json` (plain text; the same as the field after a restart), 3. the environment variable `XAI_API_KEY`, 4. the key file `ai.xai.key_file`. An empty field falls back; if you empty the field in the plugin, `ai.xai.api_key` is emptied too. The token never appears in the log (all keys are redacted).
+- `XAI_API_KEY`: optional; an xAI API key from console.x.ai (starts with `xai-`); wins over `ai.xai.key_file`, loses against the field. A Grok subscription (SuperGrok / X Premium) or a grok.com token is not an API key and is rejected. Without a key: a warning on start, the test engines run.
+- `ELEVENLABS_API_KEY`: ElevenLabs key; wins over `ai.elevenlabs.key_file`.
+- Key files are re-read every 10 s; environment variables only when the app starts. The token from the field travels through one event file under `Saves/PluginData/AIBody/default/outbox/` (never over the loopback socket) which the app deletes right after reading, and it is stored in plain text in `config.json` (`ai.xai.api_key`); in the log it is always redacted.
 
-### 4.6 expressions.json und gestures.json
+### 4.6 expressions.json and gestures.json
 
-- `expressions.json` (Pfad `connection.paths.expressions`): Objekt Name → {Morph-Anzeigename: Wert}. Ergänzt/überschreibt die eingebauten Presets `neutral`, `happy`, `smile`, `sad`, `angry`, `surprised`, `thinking` (Morph-Namen TODO(verify)). Einträge, die kein Objekt sind (z. B. `_comment`), werden übersprungen. Vorlage `examples/expressions.json`.
-- `gestures.json` (Pfad `connection.paths.gestures`): Objekt Name → Definition mit `kind`:
-  - `head`: `name` (`nod`, `shake`, `tilt`), optional `duration` (Standard 1.2 s), `amplitude` (1).
-  - `pose`: `path` einer Pose-Datei (lädt über PosePresets, TODO(verify)); erscheint auch im Pose-Menü und im KI-Tool `pose`.
-  - `timeline`: `storable` (Standard `VamTimeline.AtomPlugin`), `animation`.
-  - `trigger`: `storable` und `action`, oder `param` + `value` (+ `value_type` `float`/`bool`/`string`/`chooser`).
-  - Vorlage `examples/gestures.json`.
+- `expressions.json` (path `connection.paths.expressions`): object name → {morph display name: value}. Adds to / overrides the built-in presets `neutral`, `happy`, `smile`, `sad`, `angry`, `surprised`, `thinking` (morph names TODO(verify)). Entries that are not an object (e.g. `_comment`) are skipped. Template `examples/expressions.json`.
+- `gestures.json` (path `connection.paths.gestures`): object name → definition with `kind`:
+  - `head`: `name` (`nod`, `shake`, `tilt`), optional `duration` (default 1.2 s), `amplitude` (1).
+  - `pose`: `path` of a pose file (loaded through PosePresets, TODO(verify)); also appears in the pose menu and in the AI tool `pose`.
+  - `timeline`: `storable` (default `VamTimeline.AtomPlugin`), `animation`.
+  - `trigger`: `storable` and `action`, or `param` + `value` (+ `value_type` `float` / `bool` / `string` / `chooser`).
+  - Template `examples/gestures.json`.
 
-## 5. Hinweise für Nutzer (Hub)
+## 5. Notes for users (Hub)
 
-- AIBody ist ein Plugin für Virt-A-Mate 1.22 mit einer separaten Python-Begleit-App. Es gibt einer Figur eine Stimme und Körpersteuerung durch eine KI.
-- Das VaM-Plugin enthält keinen Netzwerkcode und braucht „Allow Plugins Network Access“ nicht; es tauscht nur lokale Dateien mit der Begleit-App aus.
-- Die Begleit-App verbindet sich mit externen Diensten: xAI (api.x.ai) und optional ElevenLabs. Dabei werden Mikrofon-Aufnahmen bzw. getippter Text und die Antworten an diese Dienste übertragen. Es gelten deren Nutzungsbedingungen und Datenschutzbestimmungen.
-- Nötig ist ein eigener, kostenpflichtiger API-Key von console.x.ai. Ein Grok-Abo (SuperGrok / X Premium) oder ein grok.com-Login funktioniert nicht. Die API-Kosten trägt der Nutzer.
-- API-Keys liegen nur lokal (Feld im Plugin, Umgebungsvariable oder Key-Datei), nie in `.var`, Repository oder `config.json`, und werden im Log geschwärzt. Der Token aus dem Plugin-Feld wird mit der Szene gespeichert (Klartext): Szenen mit eingetragenem Token nicht weitergeben.
-- Ohne Key läuft nur ein Offline-Testbetrieb (Echo und Summton).
-- KI-erzeugte Sprache und KI-gesteuertes Verhalten können falsch, unpassend oder unerwartet sein. Die KI ist kein Mensch und hat kein Bewusstsein.
-- Experimentell: lädt in VaM 1.22 (Version 14), Funktionen dort noch nicht vollständig geprüft; Begleit-App bisher nur gegen nachgebaute Server getestet, nicht mit einem echten Key.
-- Kein offizielles Produkt von und nicht verbunden mit xAI, ElevenLabs oder Meshed VR.
+- AIBody is a plugin for Virt-A-Mate 1.22 with a separate Python companion app. It gives a character a voice and body control by an AI.
+- The VaM plugin has no internet code. By default it also talks to the companion app through one loopback socket on `127.0.0.1` (toggle **Network Active**); that needs VaM's global setting "Allow Plugins Network Access" (*User Preferences > Security*), which VaM and its per-plugin prompt control, not AIBody. If the setting is off or the app is not running, the plugin falls back to local files automatically; with **Network Active** off it exchanges only local files.
+- The companion app connects to external services: xAI (api.x.ai) and optionally ElevenLabs. Microphone recordings or typed text and the answers are transmitted to these services. Their terms of use and privacy policies apply.
+- You need your own, paid API key from console.x.ai. A Grok subscription (SuperGrok / X Premium) or a grok.com login does not work. The API costs are carried by the user.
+- API keys stay local (field in the plugin, `config.json`, environment variable or key file), never in the `.var` or the repository, and are redacted in the log. The token from the plugin field is stored in plain text in `config.json` and shown masked in the plugin: do not share `config.json`; scenes saved with versions 21 to 23 contain the token in plain text and must not be shared either.
+- Without a key only an offline test mode runs (echo and hum).
+- AI-generated speech and AI-controlled behavior can be wrong, inappropriate or unexpected. The AI is not a person and has no consciousness.
+- Experimental: loads in VaM 1.22 (version 14), functions not yet fully checked there; the companion app has so far only been tested against rebuilt servers, not with a real key.
+- Not an official product of, and not affiliated with, xAI, ElevenLabs or Meshed VR.
 
-## 6. Quellen und Dank
+## 6. Sources and thanks
 
-- MacGruber (Hauptquelle): Vorbild für Aufbau, Bedienung und Lebendigkeit einer Figur – [LogicBricks](https://hub.virtamate.com/resources/logicbricks.1975/), [Life](https://hub.virtamate.com/resources/life.165/), [Benchmark](https://hub.virtamate.com/resources/benchmark.11336/), [Utils](https://hub.virtamate.com/resources/macgruber-utils.40744/). Life kann auf derselben Figur laufen und über `gestures.json` (Typ `trigger`) angesteuert werden.
-- Acid Bubbles: [Timeline](https://github.com/acidbubbles/vam-timeline) (Gesten über `Play <Animation>`), [Glance](https://github.com/acidbubbles/vam-glance), [Embody](https://github.com/acidbubbles/vam-embody), [Scripter](https://github.com/acidbubbles/vam-scripter), [Keybindings](https://github.com/acidbubbles/vam-keybindings), [Collider Editor](https://github.com/acidbubbles/vam-collider-editor), [Improved PoV](https://github.com/acidbubbles/vam-improved-pov): Belege für Storables, Dateizugriff, Menüaufbau und Szenenformat.
-- VamDeluxe: [DeluxePlugin](https://github.com/vamdeluxe/DeluxePlugin) (Dollmaster, Qualia, HeadIdle, PresetRandomizer): Kopf-Audio, Atmung, Kopf-Leerlauf, Presets, Personas als Daten.
-- Sally: *Camera Background Color* (VaM Hub), in der mitgelieferten Szene verwendet.
-- Weitere Belege für verwendete Schnittstellen: everlaster (TittyMagic), lfe999 (VamFreeMMD, VamHeightPlugin), Yoooi (ToySerialController), emptyngton (FootstepsExtended); Szenenformat: OnePunchVAM (vam-story-builder), foto2vam; offizielle Dokumentation und Patch-Notes von Meshed VR.
-- Jede verwendete VaM-Schnittstelle ist mit Quelle und festem Commit in [`docs/API_AUDIT.md`](docs/API_AUDIT.md) belegt.
+- MacGruber (main source): the model for structure, operation and liveliness of a character – [LogicBricks](https://hub.virtamate.com/resources/logicbricks.1975/), [Life](https://hub.virtamate.com/resources/life.165/), [Benchmark](https://hub.virtamate.com/resources/benchmark.11336/), [Utils](https://hub.virtamate.com/resources/macgruber-utils.40744/). Life can run on the same character and be driven through `gestures.json` (type `trigger`).
+- Acid Bubbles: [Timeline](https://github.com/acidbubbles/vam-timeline) (gestures through `Play <animation>`), [Glance](https://github.com/acidbubbles/vam-glance), [Embody](https://github.com/acidbubbles/vam-embody), [Scripter](https://github.com/acidbubbles/vam-scripter), [Keybindings](https://github.com/acidbubbles/vam-keybindings), [Collider Editor](https://github.com/acidbubbles/vam-collider-editor), [Improved PoV](https://github.com/acidbubbles/vam-improved-pov): evidence for storables, file access, menu layout and the scene format.
+- VamDeluxe: [DeluxePlugin](https://github.com/vamdeluxe/DeluxePlugin) (Dollmaster, Qualia, HeadIdle, PresetRandomizer): head audio, breathing, head idle, presets, personas as data.
+- Sally: *Camera Background Color* (VaM Hub), used in the bundled scene.
+- ZengineerVAM: [VAMLaunch](https://github.com/ZengineerVAM/VAMLaunch) and yuyaslabo: [VaM_ML_Skeleton_Engine](https://github.com/yuyaslabo/VaM_ML_Skeleton_Engine): evidence for a UDP socket in a VaM plugin (see `docs/API_AUDIT.md`, "Version 30").
+- More evidence for the interfaces used: everlaster (TittyMagic), lfe999 (VamFreeMMD, VamHeightPlugin), Yoooi (ToySerialController), emptyngton (FootstepsExtended); scene format: OnePunchVAM (vam-story-builder), foto2vam; official documentation and patch notes of Meshed VR.
+- Every VaM interface used is evidenced with a source and a fixed commit in [`docs/API_AUDIT.md`](docs/API_AUDIT.md).
 
 ## License
 

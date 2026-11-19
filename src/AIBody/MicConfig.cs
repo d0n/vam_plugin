@@ -102,7 +102,7 @@ namespace AIBody
                 "Push-to-talk active: while this is checked the companion app listens to your microphone, like holding the "
                 + "talk button of a walkie-talkie. It only works when Mic mode is 'Push-to-talk'. "
                 + "The microphone is always the system default input (change it in your system sound settings). "
-                + "VAD engine: how speech is told from noise. 'Auto' uses Silero if its model file is installed (docs/TECHNIK.md), else WebRTC if the companion app has it (python -m pip install webrtcvad-wheels), "
+                + "VAD engine: how speech is told from noise. 'Auto' uses Silero if its model file is installed (docs/TECHNICAL.md), else WebRTC if the companion app has it (python -m pip install webrtcvad-wheels), "
                 + "otherwise the built-in detector. VAD strictness 0-3: higher ignores more background noise. "
                 + "VAD threshold is the quietest level that can count as speech. While the character talks (and a moment after) the microphone is muted on purpose, so the AI never hears itself. "
                 + "You can also use the actions 'Push-to-talk start / stop / toggle' from triggers or keys.");

@@ -227,7 +227,7 @@ class QaFlowTests(unittest.TestCase):
         self.assertEqual(len(self.speaks()), 2)
         self.assertIn("could not play the speech files from either", self.plugin.audio_out["note"])
         note = self.plugin.audio_out["note"]
-        self.assertNotIn("TESTPROTOKOLL", note, "Leon took 'T9' for a log")
+        self.assertNotIn("TEST_PROTOCOL", note, "Leon took 'T9' for a log")
         self.assertIn("Saves/PluginData/AIBody/logs/companion.log", note)
         self.assertIn("'Play test tone' (tab Voice)", note)
         self.assertIn("--vam-root", note)

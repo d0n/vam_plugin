@@ -1,29 +1,29 @@
-# Übersetzung Version 18: Plugin-Oberfläche und Ausgaben auf Englisch
+# Translation version 18: plugin UI and outputs in English
 
-Stand: 18.11.2026, Version 18 (Paket `d0n.AIBody.18.var`). Auftrag von Leon: alle deutschen, für Nutzer sichtbaren Texte des Plugins in natürliches Englisch für ein IT-/Entwickler-Publikum übersetzen, ebenso Bezeichner und Kommentare im Code; Funktion und Layout unverändert. Die Konsolen-, Log- und Statustexte der Begleit-App und die Ausgabe von `tools/mic_test.py` gehören zur selben Oberfläche und sind mit übersetzt. Die Dokumentation (README, SPEC, ANFORDERUNGEN, BACKLOG, TESTPROTOKOLL) bleibt Deutsch; zitierte Oberflächentexte darin zeigen jetzt die englischen Beschriftungen.
+Status: 18.11.2026, version 18 (package `d0n.AIBody.18.var`). Leon's order: translate all German, user-visible texts of the plugin into natural English for an IT / developer audience, as well as identifiers and comments in the code; function and layout unchanged. The console, log and status texts of the companion app and the output of `tools/mic_test.py` belong to the same interface and are translated too. At that time the documentation (README, SPEC, REQUIREMENTS, BACKLOG, TEST_PROTOCOL) stayed German; since 19.11.2026 it is English as well. **The "Old (German)" columns below deliberately quote the old German texts: they are data of this record, not documentation language.**
 
-## Regel: was übersetzt wird und was nicht
+## Rule: what is translated and what is not
 
-- Übersetzt werden nur **eigene** Texte: Feldnamen, Beschriftungen, Überschriften, Info- und Statustexte, Log- und Selbsttest-Zeilen, Knopftexte und eigene feste Menüeinträge (z. B. „Standard (System-Mikrofon)“ → „System default microphone“). Ziel: Benennung nach internationalem englischem Standard, verständlich unabhängig von der Systemsprache.
-- **Nicht** übersetzt werden Inhalte, die Betriebssystem oder VaM in ihrer Sprache liefern: Mikrofon-Gerätenamen (z. B. „Mikrofon (Realtek(R) Audio)“), Namen der Windows-Standardgeräte (z. B. „Primärer Soundaufnahmetreiber“), Host-API-Namen, Fehlermeldungen des Systems. Sie erscheinen in Menü, Infofeld und `mic_test.py`-Ausgabe genau so, wie das System sie benennt (Leon, 18.11.2026).
-- Gespeicherte Namen bleiben unverändert (siehe unten): JSONStorable-Namen, config.json-Schlüssel, Nachrichtentypen und Felder des Datei-Protokolls.
+- Only **own** texts are translated: field names, labels, headings, info and status texts, log and self-test lines, button texts and own fixed menu entries (e.g. "Standard (System-Mikrofon)" → "System default microphone"). Goal: wording in international standard English, understandable regardless of the system language.
+- **Not** translated is content that the operating system or VaM supplies in its language: microphone device names (e.g. "Mikrofon (Realtek(R) Audio)"), names of the Windows default devices (e.g. "Primärer Soundaufnahmetreiber"), host API names, system error messages. They appear in the menu, the info field and the `mic_test.py` output exactly as the system names them (Leon, 18.11.2026).
+- Stored names stay unchanged (see below): JSONStorable names, config.json keys, message types and fields of the file protocol.
 
-## Zahlen
+## Numbers
 
-| Kategorie | Anzahl |
+| Category | Count |
 |---|---|
-| Plugin: übersetzte Texte (eindeutige String-Literale, `src/AIBody/*.cs`) | 182 |
-| Begleit-App und Tools: übersetzte Texte (eindeutige Literale/Zeilen) | 93 |
-| Kommentar-/Docstring-Stellen mit deutschem Text (Plugin / Begleit-App+Tools) | 25 / 6 |
-| Bezeichner umbenannt (deutsch → englisch) | 1 (Testname) |
-| neue Bezeichner für die Kompatibilität | 5 |
-| Test-Erwartungen angepasst (deutsche → englische Texte) | 65 |
-| neue Tests | 3 Python (Version18MenuTests) + 3 C#-Prüfungen (MicDeviceListTests) |
-| gespeicherte Namen umbenannt | 0 |
+| Plugin: translated texts (unique string literals, `src/AIBody/*.cs`) | 182 |
+| Companion app and tools: translated texts (unique literals / lines) | 93 |
+| Comment / docstring places with German text (plugin / companion app + tools) | 25 / 6 |
+| Identifiers renamed (German → English) | 1 (a test name) |
+| New identifiers for compatibility | 5 |
+| Test expectations adjusted (German → English texts) | 65 |
+| New tests | 3 Python (Version18MenuTests) + 3 C# checks (MicDeviceListTests) |
+| Stored names renamed | 0 |
 
-## Wichtigste Beschriftungen
+## Main labels
 
-| Alt | Neu |
+| Old (German) | New (English) |
 |---|---|
 | `Einfacher Q&A-Modus` | `Simple Q&A mode` |
 | `Echtzeit (Realtime) verwenden` | `Use realtime voice` |
@@ -63,11 +63,11 @@ Stand: 18.11.2026, Version 18 (Paket `d0n.AIBody.18.var`). Auftrag von Leon: all
 | `API-Key abgelehnt` | `API key rejected` |
 | `Plugin-Selbsttest: …` | `Plugin self-test: …` |
 
-## Plugin: alle übersetzten Texte (`src/AIBody`)
+## Plugin: all translated texts (`src/AIBody`)
 
 ### `src/AIBody/AIBody.cs`
 
-| Alt | Neu |
+| Old (German) | New (English) |
 |---|---|
 | `noch nicht geprüft` | `not checked yet` |
 | `(kein Atom)` | `(no atom)` |
@@ -120,7 +120,7 @@ Stand: 18.11.2026, Version 18 (Paket `d0n.AIBody.18.var`). Auftrag von Leon: all
 
 ### `src/AIBody/AppLink.cs`
 
-| Alt | Neu |
+| Old (German) | New (English) |
 |---|---|
 | `Engines: warte auf die Companion-App ...` | `Engines: waiting for the companion app ...` |
 | `API-Keys: warte auf die Companion-App ...` | `API keys: waiting for the companion app ...` |
@@ -156,14 +156,14 @@ Stand: 18.11.2026, Version 18 (Paket `d0n.AIBody.18.var`). Auftrag von Leon: all
 | `Engine-Auswahl aktualisieren` | `Update engine choices` |
 | `Companion app: verbunden, ` | `Companion app: connected, ` |
 | `Audio-Ordner: ` | `Audio folder: ` |
-| `bool bad = _turn.Contains("Fehler") \|\| _turn.StartsWith("Nichts") \|\| _turn.StartsWith("Realtime") \|\| _turn.StartsWith("Keine");` | `bool bad = IsProblemTurn(_turn);` |
+| `bool bad = _turn.Contains("Fehler") \|\| _turn.StartsWith("Nichts") \|\| _turn.StartsWith("Realtime") \|\| turn.StartsWith("None"); ` | `bool bad = IsProblemTurn(_turn);` |
 | `Letzte Runde: ` | `Last turn: ` |
 | `Companion app: GETRENNT – verbindet automatisch neu, sobald die App wieder läuft\n` | `Companion app: DISCONNECTED – reconnects automatically as soon as the app runs again\n` |
 | `API-Keys: warte auf die Companion-App ...\n` | `API keys: waiting for the companion app ...\n` |
 
 ### `src/AIBody/Body.cs`
 
-| Alt | Neu |
+| Old (German) | New (English) |
 |---|---|
 | `SpeechPlayer fehlt` | `SpeechPlayer missing` |
 | `MorphHelper fehlt` | `MorphHelper missing` |
@@ -217,7 +217,7 @@ Stand: 18.11.2026, Version 18 (Paket `d0n.AIBody.18.var`). Auftrag von Leon: all
 
 ### `src/AIBody/CommandRouter.cs`
 
-| Alt | Neu |
+| Old (German) | New (English) |
 |---|---|
 | `Befehl ` | `Command ` |
 | `Posen/Gesten nicht verfügbar (PoseController fehlt)` | `Poses/gestures not available (PoseController missing)` |
@@ -228,7 +228,7 @@ Stand: 18.11.2026, Version 18 (Paket `d0n.AIBody.18.var`). Auftrag von Leon: all
 
 ### `src/AIBody/MicConfig.cs`
 
-| Alt | Neu |
+| Old (German) | New (English) |
 |---|---|
 | `Mikrofon-Liste: noch keine Antwort (Companion-App starten)` | `Microphone list: no answer yet (start the companion app)` |
 | `Push-to-talk active: solange angehakt, hört die Companion-App zu (wie eine gedrückte Funk-Taste). ` | `Push-to-talk active: while checked, the companion app listens (like holding a radio talk button). ` |
@@ -248,14 +248,14 @@ Stand: 18.11.2026, Version 18 (Paket `d0n.AIBody.18.var`). Auftrag von Leon: all
 
 ### `src/AIBody/MorphHelper.cs`
 
-| Alt | Neu |
+| Old (German) | New (English) |
 |---|---|
 | `kein DAZCharacterSelector 'geometry'` | `no DAZCharacterSelector 'geometry'` |
 | `morphsControlUI ist leer` | `morphsControlUI is empty` |
 
 ### `src/AIBody/PoseController.cs`
 
-| Alt | Neu |
+| Old (German) | New (English) |
 |---|---|
 | ` Pose-Dateien in ` | ` pose files in ` |
 | ` (Ordner nicht lesbar oder leer)` | ` (folders not readable or empty)` |
@@ -265,7 +265,7 @@ Stand: 18.11.2026, Version 18 (Paket `d0n.AIBody.18.var`). Auftrag von Leon: all
 
 ### `src/AIBody/SpeechPlayer.cs`
 
-| Alt | Neu |
+| Old (German) | New (English) |
 |---|---|
 | `Audio-Fehler: ` | `Audio error: ` |
 | `(kein Pfad)` | `(no path)` |
@@ -287,13 +287,13 @@ Stand: 18.11.2026, Version 18 (Paket `d0n.AIBody.18.var`). Auftrag von Leon: all
 | `Abgebrochen (` | `Cancelled (` |
 | `Ende ` | `End ` |
 
-Hinweis: Texte, die aus mehreren Literalen zusammengesetzt werden, stehen hier als einzelne Teile. Zeilenumbrüche sind als `⏎` dargestellt.
+Note: texts composed of several string literals are listed here as individual parts. Line breaks are shown as `⏎`.
 
-## Begleit-App und Tools: alle übersetzten Texte
+## Companion app and tools: all translated texts
 
 ### `companion/aibody_companion/cli.py`
 
-| Alt | Neu |
+| Old (German) | New (English) |
 |---|---|
 | `Modus: %s -> %s (%s)` | `Mode: %s -> %s (%s)` |
 | `Audio-Ordner: %s%s` | `Audio folder: %s%s` |
@@ -308,7 +308,7 @@ Hinweis: Texte, die aus mehreren Literalen zusammengesetzt werden, stehen hier a
 
 ### `companion/aibody_companion/latency.py`
 
-| Alt | Neu |
+| Old (German) | New (English) |
 |---|---|
 | `an Plugin` | `to plugin` |
 | `Plugin-Start` | `plugin start` |
@@ -316,14 +316,14 @@ Hinweis: Texte, die aus mehreren Literalen zusammengesetzt werden, stehen hier a
 
 ### `companion/aibody_companion/logsetup.py`
 
-| Alt | Neu |
+| Old (German) | New (English) |
 |---|---|
 | `an (Turn-Trace)` | `on (turn trace)` |
 | ` - Logdatei {_state['file']}` | ` - log file {_state['file']}` |
 
 ### `companion/aibody_companion/orchestrator.py`
 
-| Alt | Neu |
+| Old (German) | New (English) |
 |---|---|
 | `Pose-Speicher ja` | `pose storage yes` |
 | `Pose-Speicher NEIN ({storage})` | `pose storage NO ({storage})` |
@@ -374,7 +374,7 @@ Hinweis: Texte, die aus mehreren Literalen zusammengesetzt werden, stehen hier a
 
 ### `companion/aibody_companion/pipeline/engines.py`
 
-| Alt | Neu |
+| Old (German) | New (English) |
 |---|---|
 | `bereit` | `ready` |
 | `nicht konfiguriert` | `not configured` |
@@ -385,7 +385,7 @@ Hinweis: Texte, die aus mehreren Literalen zusammengesetzt werden, stehen hier a
 
 ### `companion/aibody_companion/pipeline/keys.py`
 
-| Alt | Neu |
+| Old (German) | New (English) |
 |---|---|
 | `{env_name} nicht gesetzt, Key-Datei {path} nicht lesbar` | `{env_name} not set, key file {path} not readable` |
 | `Key-Datei {path}` | `key file {path}` |
@@ -394,7 +394,7 @@ Hinweis: Texte, die aus mehreren Literalen zusammengesetzt werden, stehen hier a
 
 ### `companion/aibody_companion/pipeline/realtime.py`
 
-| Alt | Neu |
+| Old (German) | New (English) |
 |---|---|
 | `Fehler: {e}` | `Error: {e}` |
 | `API-Key abgelehnt (HTTP {e.status})` | `{KEY_REJECTED} (HTTP {e.status})` |
@@ -403,25 +403,25 @@ Hinweis: Texte, die aus mehreren Literalen zusammengesetzt werden, stehen hier a
 
 ### `companion/aibody_companion/pipeline/xai.py`
 
-| Alt | Neu |
+| Old (German) | New (English) |
 |---|---|
 | `nicht konfiguriert (kein API-Key)` | `not configured (no API key)` |
 
 ### `companion/aibody_companion/realtime_voice.py`
 
-| Alt | Neu |
+| Old (German) | New (English) |
 |---|---|
 | `keine Antwort {ANSWER_TIMEOUT_S:.0f} s nach dem Sprechen` | `no answer {ANSWER_TIMEOUT_S:.0f} s after speaking` |
 
 ### `tools/build_var.py`
 
-| Alt | Neu |
+| Old (German) | New (English) |
 |---|---|
 | `Test-Ton abspielen` | `Play test tone` |
 
 ### `tools/gen_config_schema.py`
 
-| Alt | Neu |
+| Old (German) | New (English) |
 |---|---|
 | `Tab 'Verbindung': channel (folder below Saves/PluginData/AIBody), link on/off, data file paths ` | `Connection (link on/off in tab 'Voice'): channel (folder below Saves/PluginData/AIBody), data file paths ` |
 | `Tab 'Mikrofon & PTT': captured by the companion app; push-to-talk state itself is never saved` | `Tab 'Client Character': captured by the companion app; push-to-talk state itself is never saved` |
@@ -430,7 +430,7 @@ Hinweis: Texte, die aus mehreren Literalen zusammengesetzt werden, stehen hier a
 
 ### `tools/mic_test.py`
 
-| Alt | Neu |
+| Old (German) | New (English) |
 |---|---|
 | `== Alle Geräte, roh ({len(devices)}) ==` | `== All devices, raw ({len(devices)}) ==` |
 | `== Eingabegeräte pro Host-API ==` | `== Input devices per host API ==` |
@@ -444,59 +444,59 @@ Hinweis: Texte, die aus mehreren Literalen zusammengesetzt werden, stehen hier a
 | `  -> in VaM Tab 'Client Character' öffnen: Menü 'Mic device' und Infofeld zeigen jetzt diese Liste.` | `  -> in VaM open tab 'Client Character': the 'Mic device' menu and the info panel now show this list.` |
 | `Ausgabe gespeichert: {folder / 'mic_test_output.txt'} (bitte zurückschicken)` | `output saved: {folder / 'mic_test_output.txt'} (please send it back)` |
 
-## Bezeichner
+## Identifiers
 
-Die Bezeichner im Code (Klassen, Methoden, Felder, Variablen, Dateien) waren bereits englisch, mit einer Ausnahme im Test-Code. Neu für Version 18:
+The identifiers in the code (classes, methods, fields, variables, files) were already English, with one exception in the test code. New for version 18:
 
-| Alt | Neu | Art |
+| Old | New | Kind |
 |---|---|---|
-| `test_pose_section_is_called_posen` (`companion/tests/test_plugin_menu.py`) | `test_pose_section_is_called_poses` | Testname umbenannt |
-| – | `AppLink.IsProblemTurn(string)` (`src/AIBody/AppLink.cs`) | neu: entscheidet, ob die Zeile „Last turn“ rot erscheint (englische und alte deutsche Texte) |
-| `MicDeviceList.DefaultChoice = "Standard (System-Mikrofon)"` | `MicDeviceList.DefaultChoice = "System default microphone"` | Wert geändert |
-| – | `MicDeviceList.LegacyDefaultV16 = "Standard (System-Mikrofon)"` | neu: alter Wert aus Szenen von Version 16/17 |
-| – | `MicDeviceList.IsLegacyDefault(string)` | neu: erkennt `(system default)` (bis Version 15) und `Standard (System-Mikrofon)` |
-| `startswith("API-Key abgelehnt")` (Orchestrator) | `KEY_REJECTED = "API key rejected"` in `pipeline/realtime.py`, im Orchestrator als `REALTIME_KEY_REJECTED` | neu: eine Konstante statt zweier gekoppelter Texte |
-| – | `Version18MenuTests` (`companion/tests/test_plugin_menu.py`) | neue Testklasse |
+| `test_pose_section_is_called_posen` (`companion/tests/test_plugin_menu.py`) | `test_pose_section_is_called_poses` | test renamed |
+| – | `AppLink.IsProblemTurn(string)` (`src/AIBody/AppLink.cs`) | new: decides whether the line "Last turn" is shown in red (English and old German texts) |
+| `MicDeviceList.DefaultChoice = "Standard (System-Mikrofon)"` | `MicDeviceList.DefaultChoice = "System default microphone"` | value changed |
+| – | `MicDeviceList.LegacyDefaultV16 = "Standard (System-Mikrofon)"` | new: old value from scenes of version 16/17 |
+| – | `MicDeviceList.IsLegacyDefault(string)` | new: recognizes `(system default)` (until version 15) and `Standard (System-Mikrofon)` |
+| `startswith("API-Key abgelehnt")` (orchestrator) | `KEY_REJECTED = "API key rejected"` in `pipeline/realtime.py`, in the orchestrator as `REALTIME_KEY_REJECTED` | new: one constant instead of two coupled texts |
+| – | `Version18MenuTests` (`companion/tests/test_plugin_menu.py`) | new test class |
 
-## Kommentare je Datei (zusammengefasst)
+(Version 22 removed `MicDeviceList`; the entries stay here as the record of version 18.)
 
-| Datei | Was geändert wurde |
+## Comments per file (summary)
+
+| File | What changed |
 |---|---|
-| `src/AIBody/AIBody.cs` | Kopfkommentar (Tab-Übersicht mit englischen Beschriftungen), Kommentare zu Tabs, Diagnose und Infofeld; Hinweis auf entfallene Tabs ohne deutschen Tab-Namen. |
-| `src/AIBody/AppLink.cs` | XML-Doku der Knöpfe (Simple Q&A mode, Test tone via companion), Heartbeat-/Status-Kommentare, Latenz- und Modus-Doku mit den englischen Beispielzeilen, IsProblemTurn. |
-| `src/AIBody/Body.cs` | Kommentare zum Posen-Menü und zum Selbsttest. |
-| `src/AIBody/MicConfig.cs` | Kommentare zur Mikrofonliste, Migration des alten Standard-Eintrags, Infofeld-Zeilen. |
-| `src/AIBody/MicDeviceList.cs` | Dateikopf und XML-Doku der Standard-/Legacy-Einträge. |
-| `src/AIBody/SpeechPlayer.cs` | Dateikopf (Statuswerte Loading/Speaking/Done/Cancelled) und Doku von LastError. |
-| `src/AIBody/CommandRouter.cs, Diag.cs, MorphHelper.cs, PoseController.cs` | einzelne Kommentare mit zitierten deutschen Texten. |
-| `companion/aibody_companion/latency.py` | Modul-Docstring mit der Aufschlüsselung (LLM first token, first sentence, file write, to plugin, plugin start, server first audio). |
-| `companion/aibody_companion/logsetup.py` | Docstring-Beispiel einer Trace-Zeile („What time is it?“). |
-| `companion/aibody_companion/pipeline/engines.py, keys.py, elevenlabs.py, tts.py, protocol.py` | Docstrings/Kommentare, die die Statuswerte zitieren („not configured“, „ready“, „file write“). |
-| `companion/aibody_companion/pipeline/realtime.py` | neuer Kommentar zu KEY_REJECTED. |
-| `tools/build_var.py` | Kommentar zum Testton („Play test tone“). |
-| `tools/gen_config_schema.py` | Beschreibungen der config.json-Abschnitte zeigen die aktuellen Tabs (Voice, AI Character, Client Character, Config) statt der alten deutschen Tab-Namen; `protocol/schema/config.schema.json` neu erzeugt. |
-| `tools/cs_tests/MicDeviceListTests.cs` | Prüftexte „Standard“ → „default“; neue Prüfungen für den alten deutschen Eintrag. |
-| `companion/tests/*.py` | Erwartungen auf die neuen englischen Texte umgestellt; Eingaben, die deutsche Nutzersprache simulieren („Hallo“, „Wie spät ist es?“), und deutsche Gerätenamen in den Testdaten bleiben. |
+| `src/AIBody/AIBody.cs` | Header comment (tab overview with English labels), comments on tabs, diagnosis and info field; note on removed tabs without a German tab name. |
+| `src/AIBody/AppLink.cs` | XML docs of the buttons (Simple Q&A mode, Test tone via companion), heartbeat / status comments, latency and mode docs with the English example lines, IsProblemTurn. |
+| `src/AIBody/Body.cs` | Comments on the pose menu and the self-test. |
+| `src/AIBody/MicConfig.cs` | Comments on the microphone list, migration of the old default entry, info field lines. |
+| `src/AIBody/MicDeviceList.cs` | File header and XML docs of the default / legacy entries. |
+| `src/AIBody/SpeechPlayer.cs` | File header (status values Loading / Speaking / Done / Cancelled) and docs of LastError. |
+| `src/AIBody/CommandRouter.cs, Diag.cs, MorphHelper.cs, PoseController.cs` | Single comments with quoted German texts. |
+| `companion/aibody_companion/latency.py` | Module docstring with the breakdown (LLM first token, first sentence, file write, to plugin, plugin start, server first audio). |
+| `companion/aibody_companion/logsetup.py` | Docstring example of a trace line ("What time is it?"). |
+| `companion/aibody_companion/pipeline/engines.py, keys.py, elevenlabs.py, tts.py, protocol.py` | Docstrings / comments that quote the status values ("not configured", "ready", "file write"). |
+| `companion/aibody_companion/pipeline/realtime.py` | New comment on KEY_REJECTED. |
+| `tools/build_var.py` | Comment on the test tone ("Play test tone"). |
+| `tools/gen_config_schema.py` | Descriptions of the config.json sections show the current tabs (Voice, AI Character, Client Character, Config) instead of the old German tab names; `protocol/schema/config.schema.json` regenerated. |
+| `tools/cs_tests/MicDeviceListTests.cs` | Check texts "Standard" → "default"; new checks for the old German entry. |
+| `companion/tests/*.py` | Expectations switched to the new English texts; inputs that simulate German user speech ("Hallo", "Wie spät ist es?") and German device names in the test data stay. |
 
-## Gespeicherte Namen, Protokoll und Kompatibilität
+## Stored names, protocol and compatibility
 
-- **JSONStorable-Namen:** alle registrierten Namen waren bereits englisch (geprüft über alle `Register*`-Aufrufe); keiner wurde umbenannt (Leons Entscheidung zur Umbenennung bleibt zurückgestellt). Der Schalter „Use realtime voice“ ist nicht registriert und wird nicht gespeichert. Bestehende Szenen laden unverändert.
-- **Gespeicherter Wert „Mic device“:** Szenen aus Version 16/17 enthalten `Standard (System-Mikrofon)`, ältere `(system default)`. Beide werden beim Laden als Systemstandard erkannt (`MicDeviceList.IsLegacyDefault`) und im Menü als `System default microphone` angezeigt; `MicConfig.Update` setzt den Wert einmal um. In config.json steht für den Standard weiter `""` (`mic.device`), daran ändert sich nichts.
-- **config.json-Schlüssel:** unverändert (alle englisch). Nur die Beschreibungen im Schema (`protocol/schema/config.schema.json`) sind aktualisiert.
-- **Datei-Protokoll Plugin ↔ Begleit-App:** Nachrichtentypen und Felder (`list_devices`, `devices`, `heartbeat`, `turn`, `engines_status`, `selftest`, …) waren bereits englisch und bleiben gleich. Geändert haben sich nur Anzeigetexte, die als Werte übertragen werden (z. B. `turn`, `mode.status`, Engine-Status, Latenz-Aufschlüsselung). Das Plugin wertet davon nur einen Punkt aus: ob die Zeile „Last turn“ rot erscheint. `AppLink.IsProblemTurn` erkennt dafür die neuen englischen Texte (`Nothing…`, `No …`, `Realtime…`, `error`/`Error`) **und** die deutschen Texte älterer Begleit-Apps (`Nichts…`, `Keine…`, `Fehler`). Eine ältere Begleit-App mit dem neuen Plugin (oder umgekehrt) funktioniert also weiter; die Texte erscheinen dann in der Sprache der jeweiligen Seite.
-- **Kopplung innerhalb der Begleit-App:** Der Orchestrator erkannte einen vom Realtime-Server abgelehnten Key am Text `API-Key abgelehnt`. Beide Seiten nutzen jetzt die Konstante `KEY_REJECTED = "API key rejected"` (`pipeline/realtime.py`), damit Text und Prüfung nicht auseinanderlaufen.
-- **Engine-Status:** `bereit` → `ready`, `nicht konfiguriert` → `not configured` (Konstanten `READY`/`NOT_CONFIGURED` in `pipeline/engines.py`); das Plugin zeigt diese Werte nur an.
+- **JSONStorable names:** all registered names were already English (checked over all `Register*` calls); none was renamed (Leon's decision on renaming stays postponed). The toggle "Use realtime voice" is not registered and not stored. Existing scenes load unchanged.
+- **Stored value "Mic device":** scenes of version 16/17 contain `Standard (System-Mikrofon)`, older ones `(system default)`. Both are recognized as the system default on loading (`MicDeviceList.IsLegacyDefault`) and shown in the menu as `System default microphone`; `MicConfig.Update` converts the value once. In config.json the default is still `""` (`mic.device`), nothing changes there.
+- **config.json keys:** unchanged (all English). Only the descriptions in the schema (`protocol/schema/config.schema.json`) are updated.
+- **File protocol plugin ↔ companion app:** message types and fields (`list_devices`, `devices`, `heartbeat`, `turn`, `engines_status`, `selftest`, …) were already English and stay the same. Only display texts that are transmitted as values changed (e.g. `turn`, `mode.status`, engine status, latency breakdown). The plugin evaluates only one point of them: whether the line "Last turn" is shown in red. `AppLink.IsProblemTurn` recognizes the new English texts (`Nothing…`, `No …`, `Realtime…`, `error` / `Error`) **and** the German texts of older companion apps (`Nichts…`, `Keine…`, `Fehler`). So an older companion app with the new plugin (or the other way round) keeps working; the texts then appear in the language of the respective side.
+- **Coupling inside the companion app:** the orchestrator recognized a key rejected by the realtime server by the text `API-Key abgelehnt`. Both sides now use the constant `KEY_REJECTED = "API key rejected"` (`pipeline/realtime.py`), so that text and check do not drift apart.
+- **Engine status:** `bereit` → `ready`, `nicht konfiguriert` → `not configured` (constants `READY` / `NOT_CONFIGURED` in `pipeline/engines.py`); the plugin only displays these values.
 
-## Bewusst Deutsch geblieben
+## Deliberately still German
 
-| Stelle | Grund |
+| Place | Reason |
 |---|---|
-| `MicDeviceList.LegacyDefaultV16 = "Standard (System-Mikrofon)"` | Kompatibilität: alter gespeicherter Wert aus Szenen von Version 16/17 |
-| `AppLink.IsProblemTurn`: Präfixe `Nichts`, `Keine`, Teiltext `Fehler` | Kompatibilität: Statuszeilen älterer Begleit-Apps rot markieren |
-| `orchestrator.py` `LLM_ERROR_SAY["de"]` | gesprochene Fehlermeldung, wenn die Persona-Sprache Deutsch ist (Inhalt, kein Oberflächentext; `"en"` gibt es daneben) |
-| `pipeline/context.py` `_SILENT_WORDS` (`schweigen`, `schweigt`, `stille`) | Erkennung von „schweigen“-Antworten des Modells in deutscher Sprache |
-| `pipeline/llm.py` Echo-Test-Engine (`hallo`, `danke`, `nein`, `traurig`) | erkennt Wörter in der Nutzereingabe, auch auf Deutsch |
-| `pipeline/sentences.py` Abkürzungen (`z.b`, `bzw`, `usw`, …) | Satztrennung für deutsche Texte |
-| Gerätenamen, Host-API-Namen, Systemmeldungen | kommen vom System in dessen Sprache (Regel oben) |
-| Testdaten mit deutscher Nutzersprache und deutschen Gerätenamen | simulieren echte Eingaben und Windows-Geräte |
-| Dokumentation (README, SPEC, ANFORDERUNGEN, BACKLOG, TESTPROTOKOLL, Release Notes) | bleibt Deutsch nach Vorgabe; nur zitierte Oberflächentexte sind englisch. Ältere Einträge der Änderungsliste nennen die damaligen deutschen Bezeichnungen, wo es um die Geschichte geht. |
+| `MicDeviceList.LegacyDefaultV16 = "Standard (System-Mikrofon)"` | compatibility: old stored value from scenes of version 16/17 |
+| `AppLink.IsProblemTurn`: prefixes `Nichts`, `Keine`, part `Fehler` | compatibility: mark status lines of older companion apps in red |
+| `orchestrator.py` `LLM_ERROR_SAY["de"]` | spoken error message when the persona language is German (content, not UI text; `"en"` exists next to it) |
+| `pipeline/context.py` `_SILENT_WORDS` (`schweigen`, `schweigt`, `stille`) | recognizing "stay silent" answers of the model in German |
+| `pipeline/llm.py` echo test engine (`hallo`, `danke`, `nein`, `traurig`) | recognizes words in the user input, also German ones |
+| `pipeline/sentences.py` abbreviations (`z.b`, `bzw`, `usw`, …) | sentence splitting for German texts |
+| Device names, host API names, system messages | come from the system in its language (rule above) |

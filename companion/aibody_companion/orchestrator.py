@@ -957,7 +957,7 @@ class Companion:
             return
         self.input.barge = BargeInRule(float(cfg["ratio"]), int(cfg["min_ms"]), self.cfg.frame_ms, float(cfg["floor"]))
         log.info("Voice barge-in by loudness rule: on (user %.1f times louder than the echo for %d ms) - only "
-                 "voice activation mode; see docs/LOKALE_ENGINES.md", float(cfg["ratio"]), int(cfg["min_ms"]))
+                 "voice activation mode; see docs/LOCAL_ENGINES.md", float(cfg["ratio"]), int(cfg["min_ms"]))
 
     def voice_barge_in(self, frames: list[bytes]) -> str | None:
         """The loudness rule fired: the user talks over the body. The body stops, the

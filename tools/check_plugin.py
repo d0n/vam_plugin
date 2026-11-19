@@ -167,6 +167,26 @@ def language_scan() -> list[str]:
     return problems
 
 
+DOC_GERMAN_MARKERS = {"und", "oder", "nicht", "wird", "ist", "eine", "einen", "einem", "einer", "mit", "für", "wenn",
+                      "werden", "wurde", "kann", "sind", "auch", "noch", "nur", "nach", "vom", "zum", "zur", "beim",
+                      "keine", "kein", "dass", "sich", "bitte", "ich"}
+DOC_EXEMPT = {"docs/TRANSLATION_V18.md"}  # the translation table quotes the German originals on purpose
+
+
+def docs_language_scan() -> list[str]:
+    """All markdown files are English (Leon, 19.11.2026): lines with umlauts or two common German words are reported."""
+    problems = []
+    for path in sorted(ROOT.rglob("*.md")):
+        rel = path.relative_to(ROOT).as_posix()
+        if rel in DOC_EXEMPT or any(part in {"dist", "build", ".git", "node_modules"} for part in path.parts):
+            continue
+        for number, line in enumerate(path.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
+            words = re.findall(r"[a-zäöüß]+", line.lower())
+            if re.search(r"[äöüÄÖÜß]", line) or sum(1 for w in words if w in DOC_GERMAN_MARKERS) >= 2:
+                problems.append(f"{rel}:{number}: German text? {line.strip()[:80]!r}")
+    return problems
+
+
 def main() -> int:
     assemble()
     problems, count = sandbox_scan()
@@ -181,7 +201,11 @@ def main() -> int:
     print(f"[english] {'ok' if not german else 'FAILED'}: {len(german)} string literals that look German")
     for p in german:
         print("   ", p)
-    ok = not problems and not single and not german
+    docs = docs_language_scan()
+    print(f"[english] docs {'ok' if not docs else 'FAILED'}: {len(docs)} markdown lines that look German")
+    for p in docs:
+        print("   ", p)
+    ok = not problems and not single and not german and not docs
     ok &= compile_target()
     return 0 if ok else 1
 

@@ -166,7 +166,7 @@ from `Exception.ToString()`, not from reflection. The only additions outside the
   `NormalizeMediaPath` + `QueueClip` + `PlayNow` path; Dollmaster loads its audio from its own
   plugin folder the same way (E1 L293-310, `Personality.cs` L45-72), also from a `.var`.
 - **File check before loading:** `FileManagerSecure.FileExists(path)` (E10) for plain paths below
-  the VaM folder, so a missing companion file shows as "Audio-Fehler: Datei fehlt" instead of a
+  the VaM folder, so a missing companion file shows as "Audio error: file missing" instead of a
   15 s start timeout. Package paths (`pkg:/...`) are not checked.
 - **Tooltip / hover on a toggle: not done.** No public sandboxed plugin shows a tooltip API for
   `CreateToggle` controls, and building one would need Unity `EventTrigger` / pointer handlers

@@ -2,13 +2,13 @@
 
 Former body of the README (architecture, setup details, sandbox limits, protocol summary, reuse of
 other plugins). Purpose, the two-character setup and the complete settings reference are in the
-German [README](../README.md).
+English [README](../README.md).
 
 ## Load flow (the whole setup)
 
-1. Copy `d0n.AIBody.29.var` to `<VaM>/AddonPackages/` (remove older AIBody packages, see below).
+1. Copy `d0n.AIBody.30.var` to `<VaM>/AddonPackages/` (remove older AIBody packages, see below).
 2. In VaM select the AI character's Person atom > **Plugins** tab > **Add Plugin** > choose
-   `AddonPackages > d0n.AIBody.29:/Custom/Scripts/d0n/AIBody/AIBody.cslist`.
+   `AddonPackages > d0n.AIBody.30:/Custom/Scripts/d0n/AIBody/AIBody.cslist`.
 3. Start the companion app: `python -m aibody_companion --vam-root "D:\VaM"`.
 
 That's it. The plugin's status box shows "Companion app: running ..." once both sides see each
@@ -105,7 +105,9 @@ setup to a single step and avoids any plugin-to-plugin bridge.
 src/AIBody/                the plugin (C# 6), one flat folder = what ships
   AIBody.cslist              the only entry: plain file names, no comments, no sub folders
   AIBody.cs                  AIBodyPlugin: the one MVRScript; owns AppLink + Body, status box
-  AppLink.cs                 companion app link: transport, channel, heartbeat, engine menus
+  AppLink.cs                 companion app link: transport, heartbeat, engine menus
+  NetworkTransport.cs        hybrid link: loopback socket first, files as fallback
+  SocketLink.cs              the only file with sockets (UDP on 127.0.0.1, background threads)
   FileTransport.cs           JSON files in Saves/PluginData via FileManagerSecure
   ITransport.cs              transport interface
   MicConfig.cs               microphone settings, push-to-talk, level meter (no device selection)
@@ -142,26 +144,28 @@ tools/                     assemble_plugins.py (plugin folder), build_var.py (pa
 
 - Virt-A-Mate **1.22** (VaM 1.x). VaM 2 does not support plugins yet.
 - Windows PC that runs VaM, Python 3.10+ for the companion app, a microphone.
-- No "Allow Plugins Network Access" needed: the plugin contains no network code at all.
+- **"Allow Plugins Network Access"** (VaM *User Preferences > Security*, off by default) is needed for the optional
+  loopback link (toggle **Network Active**, on by default). Without it the plugin still works through the file
+  channel; see "Network Active" below. VaM's global switch and its per-plugin prompt are outside AIBody's control.
 
 ### Install the package
 
-Download `d0n.AIBody.29.var` from the [releases](https://github.com/d0n/vam_plugin/releases), or
-build it with `python tools/build_var.py` (writes `dist/d0n.AIBody.29.var`), and copy it to:
+Download `d0n.AIBody.30.var` from the [releases](https://github.com/d0n/vam_plugin/releases), or
+build it with `python tools/build_var.py` (writes `dist/d0n.AIBody.30.var`), and copy it to:
 
 ```
-<VaM>/AddonPackages/d0n.AIBody.29.var
+<VaM>/AddonPackages/d0n.AIBody.30.var
 ```
 
 Remove all older AIBody packages from `AddonPackages`: `d0n.AIBody.1.var`, `d0n.AIBody.2.var`,
 `d0n.AIBody.3.var` to `d0n.AIBody.28.var`, `d0n.AIBodySession.*.var`, `d0n.AIBodyPerson.*.var`,
 `d0n.AIBodyPerson2.*.var`. Scenes saved with an older package point at that package's path, so
-remove the old plugin entry from the character and add `d0n.AIBody.29` again, then save.
+remove the old plugin entry from the character and add `d0n.AIBody.30` again, then save.
 
 Contents:
 
 ```
-d0n.AIBody.29.var
+d0n.AIBody.30.var
 ├── meta.json
 └── Custom/Scripts/d0n/AIBody/
     ├── AIBody.cslist
@@ -215,7 +219,7 @@ the error log.
 
 ### Plugin settings (tabs)
 
-All settings (menu, `config.json`, command line) are documented in German in the [README](../README.md#4-einstellungen).
+All settings (menu, `config.json`, command line) are documented in the [README](../README.md#4-settings).
 
 **Menu rule:** the menu shows only what can be configured. Pure path / info displays were removed in
 0.7.4 (the folders are written once to the VaM log: `Settings file: ... | Expressions: ... | Gestures: ... | Audio ...`); texts that explain or
@@ -301,7 +305,7 @@ Switch on **Verbose log** in the plugin tab *Config* (or `"advanced": {"verbose_
   the language model request (engine, model, streaming), tags dropped or sent, every sentence, text to
   speech (engine, voice, time, WAV path, length), `speak sent`, and the plugin's answer (`plugin:
   speech_started` / `speech_ended` / `error`). Example:
-  `[t0003 +0.84s] stt: engine='xai' ms=812 text='Wie spät ist es?'`
+  `[t0003 +0.84s] stt: engine='xai' ms=812 text='What time is it?'`
 - **Log file:** `<VaM>/Saves/PluginData/AIBody/logs/companion.log` (next to `config.json`), always
   written (INFO; the trace only while Verbose log is on), rotating at 1 MB, 5 old files kept
   (`companion.log.1` ... `.5`). API keys never appear: keys read from the environment or a key file,
@@ -400,9 +404,10 @@ One answer = speech to text -> language model -> text to speech, chosen in the p
   token and the next source applies), 2. `ai.xai.api_key` in `config.json` (PLAIN TEXT; the plugin writes
   the field there with FileManagerSecure, keeping all other keys, and reads it on start to fill the field;
   the app reads it too), 3. the environment variable `XAI_API_KEY`, 4. the PATH of a key file
-  (`ai.xai.key_file`). Masked display: the field shows `xai-****abcd` a few seconds after an edit and
-  after every start; the real token is held separately (`_xaiToken`), text with `****` typed into the field
-  is ignored, so the mask never overwrites the token. `InputField.contentType = Password` was NOT used: no
+  (`ai.xai.key_file`). Masked display: the first 4 and last 4 characters stay visible with stars between them
+  (`xai-****abcd`), as soon as the field loses focus and after every start; while the field has focus it shows the
+  real text (`InputField.isFocused`, polled each frame). The real token is held separately (`_xaiToken`), text
+  with `****` typed into the field is ignored, so the mask never overwrites the token. `InputField.contentType = Password` was NOT used: no
   evidence for it in `docs/API_AUDIT.md`. Nothing is written before `config.json` was read successfully
   (an early empty field cannot wipe a saved token). `ai.xai.api_key_warning` next to the token carries the
   security notice (the same text is at the top of the left info field of the tab Voice). ElevenLabs has no
@@ -415,7 +420,8 @@ One answer = speech to text -> language model -> text to speech, chosen in the p
 - If a request fails, that sentence / answer uses the fallback engine; nothing stops.
 - All settings (model, voice, language, persona): [docs/CONFIG.md](CONFIG.md).
 
-Network access exists only in the companion app. The VaM plugin still has no network code at all.
+Internet access exists only in the companion app. The VaM plugin has exactly one network component: the optional loopback
+link to the companion app (`SocketLink.cs`, see "Network Active"); it never talks to the internet.
 
 Tests and checks:
 
@@ -427,7 +433,7 @@ python tools/build_var.py      # builds dist/d0n.AIBody.<N>.var and scans every 
 
 ## Example scene: green screen / passthrough
 
-`examples/scenes/AIBody_GreenScreen.json` is a VaM scene template: one Person with AIBody on its Plugins tab, Sally's scene plugin [Camera Background Color](https://hub.virtamate.com/resources/camera-background-color.24185/) (`Sally.CameraBackgroundColor.7.var`) set to #00FF00, two invisible lights, no room. The headset (e.g. Virtual Desktop chroma key on #00FF00) makes the green transparent, not VaM. Script path, class and parameter names (`Color`, `Show Skybox`) were read from the original package; the plugin switches the skybox off itself. Steps (German): [docs/SZENE_GREENSCREEN.md](SZENE_GREENSCREEN.md).
+`examples/scenes/AIBody_GreenScreen.json` is a VaM scene template: one Person with AIBody on its Plugins tab, Sally's scene plugin [Camera Background Color](https://hub.virtamate.com/resources/camera-background-color.24185/) (`Sally.CameraBackgroundColor.7.var`) set to #00FF00, two invisible lights, no room. The headset (e.g. Virtual Desktop chroma key on #00FF00) makes the green transparent, not VaM. Script path, class and parameter names (`Color`, `Show Skybox`) were read from the original package; the plugin switches the skybox off itself. Steps: [docs/SCENE_GREENSCREEN.md](SCENE_GREENSCREEN.md).
 
 ## Plugin sandbox limits
 
@@ -436,8 +442,8 @@ that uses a blocked API does not load at all. AIBody uses only APIs that public,
 plugins use (evidence per API in [docs/API_AUDIT.md](API_AUDIT.md)); anything without such
 evidence was removed, not worked around. `tools/check_plugin.py` and `tools/build_var.py` enforce
 it with a strict scan of every file in `src/` and in the built `.var` (code, comments and strings):
-zero matches for `UnityWebRequest`, `UnityEngine.Networking`, `WWW`, `System.IO`, `System.Net`,
-sockets, `Process`, `System.Diagnostics`, reflection, `Assembly.Load`, `DllImport`, the Unity
+zero matches for `UnityWebRequest`, `UnityEngine.Networking`, `WWW`, `System.IO`, `System.Net` (allowed only in
+`SocketLink.cs`), sockets (same file), `Process`, `System.Diagnostics`, reflection, `Assembly.Load`, `DllImport`, the Unity
 microphone API and `OpenURL`. The compile stubs in `tools/stubs` declare only the evidenced VaM
 members, so using anything else fails the compile.
 
@@ -456,7 +462,8 @@ members, so using anything else fails the compile.
   event files in place and the companion app tolerates partial files.
 - **No native DLLs, no `System.Diagnostics.Process`, no reflection.** The plugin cannot start the
   companion app or load speech engines. That is why the brain is a separate app.
-- **No network code at all** (no `UnityEngine.Networking`, no `UnityWebRequest`, no `WWW`). The
+- **Network only through `SocketLink.cs`** (no `UnityEngine.Networking`, no `UnityWebRequest`, no `WWW`; the
+  one loopback UDP socket is the only exception, and it can be switched off). The always-available
   companion app link is the shared folder; speech audio is loaded from a local file path with
   VaM's own `URLAudioClipManager` and played with the head `AudioSourceControl` (the Dollmaster /
   FreeMMD pattern).
@@ -539,9 +546,9 @@ Poses from VaMHub can be loaded with the `pose` command using the usual package 
    loading of a `Saves/PluginData` path and `PlayNow` playback (lip sync, start detection), the
    `PosePresets` storable, editable text fields, chooser updates, morph names (breath morph).
 2. **Real engines** in the companion app (STT, LLM, TTS), streamed sentence by sentence.
-3. Everything else is parked in [docs/BACKLOG.md](BACKLOG.md) (German, deferred ideas).
+3. Everything else is parked in [docs/BACKLOG.md](BACKLOG.md) (deferred ideas).
 
-Agreed spec: [docs/SPEC.md](SPEC.md); status done / open: [docs/ANFORDERUNGEN.md](ANFORDERUNGEN.md).
+Agreed spec: [docs/SPEC.md](SPEC.md); status done / open: [docs/REQUIREMENTS.md](REQUIREMENTS.md).
 
 ### Voice detection and echo lock (since version 24)
 
@@ -570,7 +577,7 @@ Agreed spec: [docs/SPEC.md](SPEC.md); status done / open: [docs/ANFORDERUNGEN.md
   and the server heard the body; failsafe 90 s). Not solved: there is no acoustic echo cancellation, so
   interrupting by voice still needs headphones (`send_while_speaking`); push-to-talk always works.
 - Not testable without hardware: how a real microphone, room and speakers behave (thresholds, the tail length, whether
-  speaker sound leaks after the tail). See `docs/TESTPROTOKOLL.md` T13.
+  speaker sound leaks after the tail). See `docs/TEST_PROTOCOL.md` T13.
 
 ### Microphone diagnostics without VaM
 
@@ -586,17 +593,46 @@ event or a saved scene, and an old plugin's `list_devices` event are ignored qui
 
 - **Ollama** (`pipeline/ollama.py`, `OllamaLlm`): `POST {base}/api/chat` with NDJSON streaming, no key. Ollama keeps no conversation: the class keeps `messages` (last `max_messages`; only a real answer enters), the system message is persona + `xai.STYLE_RULES` (the `<<expression gesture>>` tag; no tool calls: `supports_tools = False`). `complete()` is a plain request (memory summaries); `EngineSet.memory_llm()` returns an `OllamaLlm` when ollama is the effective llm. Errors: connection refused / unknown model are turned into plain messages (`ollama serve`, `ollama pull <model>`); the normal fallback (echo) answers meanwhile. The engine needs no key, so `configured()` is true; its status line says it is checked on use.
 - **Silero** (`audio/silero.py`): `SileroVad` over an onnxruntime session (model v5: inputs `input` [1, 64 context + 512], `state` [2,1,128], `sr`). 30 ms frames are collected into 512-sample chunks, the last probability counts; threshold from `vad_strictness` (0.3/0.4/0.5/0.65), `vad_threshold` stays an RMS floor, 3 frames of hangover. `hold()` (gate closed) resets state and buffer. `load_silero` runs one chunk at load, refuses other sample rates and model versions with a plain note. `make_vad(..., silero_model=...)`: `silero` = silero or the energy detector with a note; `auto` = silero only when the model file exists, then webrtcvad, then energy. Path: `AIBODY_SILERO_MODEL` or `<VaM>/Saves/PluginData/AIBody/models/silero_vad.onnx` (`silero_model_path`); the model is not in the package. Plugin: one more entry in the **VAD engine** popup (`mic.vad_engine: "silero"`).
-- **Voice barge-in** (`audio/barge.py`, `BargeInRule`, `ai.barge_in`): while the gate is closed and `gate.is_speaking` (speech_started seen; `LinkedGate` includes peers), the echo level is a decaying peak (teaching only with frames that are not loud, first 450 ms only teach); `min_ms` of frames above `ratio` times echo and `floor` fire the rule and return the frames (kept with their gain). Chain: `InputProcessor.process` stores them (`barge_frames`), `Companion.handle_audio_frame` calls `voice_barge_in`: cancel turns, `stop_speaking`, gate `force_open` (and the same for all peer figures), realtime `barge_in(manual=True)`, then the frames go through `process(gained=True)` (chain) or `RealtimeVoice.send_frames` (realtime; `feed_mic` hook). Only in mode `vad`. Off by default.
+- **Voice barge-in** (`audio/barge.py`, `BargeInRule`, `ai.barge_in`): while the gate is closed and `gate.is_speaking` (speech_started seen; ), the echo level is a decaying peak (teaching only with frames that are not loud, first 450 ms only teach); `min_ms` of frames above `ratio` times echo and `floor` fire the rule and return the frames (kept with their gain). Chain: `InputProcessor.process` stores them (`barge_frames`), `Companion.handle_audio_frame` calls `voice_barge_in`: cancel turns, `stop_speaking`, gate `force_open`, realtime `barge_in(manual=True)`, then the frames go through `process(gained=True)` (chain) or `RealtimeVoice.send_frames` (realtime; `feed_mic` hook). Only in mode `vad`. Off by default.
 
-### Several figures in one app (since version 28)
+### One character per app (since version 30)
 
-- **Fleet** (`multi.py`, `cli.build_fleet`): `--channel a,b` or `ai.channels` builds one `Companion` per channel (own `Config` copy with that channel, own `EngineSet`/`ai` copy, own transport, history, persona, memory, link to its plugin) and one `Fleet` that looks like a Companion to the command line loop (`tick`, `handle_user_text`, `shutdown`, `mic`). One channel builds no Fleet: nothing changes.
-- **Microphone:** one real `MicController`; each member gets a `MicTap`. `Fleet.tick()` pulls the frames once and gives them only to the active member, so there is one voice detector and one transcription per sentence. `MicTap.apply` forwards to the real device (last plugin config wins).
-- **Who answers:** `Fleet.route(source, text)` -> `multi.find_address`: a name of a figure (persona `name`, persona folder, channel with `-`/`_` as spaces; at least 3 letters) in the first 5 or the last 3 words, earliest wins, else the active figure (last speaker or last addressed); members without a connected plugin are not chosen while another is. Chain: in `Companion._turn` after the transcript, `target.take_over(text)` and the turn ends. Realtime: in `RealtimeVoice.handle` on `conversation.item.input_audio_transcription.completed` the first figure `barge_in(manual=True)` and the target gets the text as a user message (`RealtimeVoice.ask`: `conversation.item.create` + `response.create`) or, without realtime, as typed text. `note_speaker` in `_queue_speech`: the figure that speaks becomes active.
-- **Room:** each member's gate is a `LinkedGate` (`audio/echo_gate.py`): `is_open` = own gate and all peers' own gates are open (`own_open`), so no figure hears another as the user. Proactive timers of the peers restart on user and AI activity of any member (`Fleet.activity`); `_can_speak_now` is false while a peer has a turn running, queued results or a closed gate (`Fleet.peers_busy`).
-- **Protocol:** heartbeat fields `figures` (channels) and `active_figure`, only with a Fleet (shown in the plugin's info field). No new events.
-- **Plugin:** the `Channel` storable gets a text field in the tab Config (`UiPage.TextInput`, same evidenced control as the token field). `OnChannelEdited` only marks the edit; `TickChannelEdit` (Update) restarts the link after `ChannelQuietSeconds` (1 s) without typing and marks the config dirty so the channel lands in config.json. "Reload Config JSON" passes `seedChannel=false`: the channel belongs to the figure, the file holds only the last writer's.
-- **Not built:** a "director" tool (figures address each other), per-figure microphones, switching channels in a running app, routing by gaze; see BACKLOG.
+- The companion app controls exactly one character in the folder `Saves/PluginData/AIBody/default/`. Version 28's
+  "several figures in one app" (channel list, `Channel` field, per-channel state, routing by name) was removed on
+  purpose (Leon, 19.11.2026): one app, one plugin, one persona, one memory. For a second character, run a second VaM
+  instance and app. `--channel` is accepted but ignored (with a warning); `ai.channels`, `connection.channel` and the
+  plugin's `Channel` value in old files and scenes are tolerated and ignored.
+
+### Network Active (since version 30)
+
+- **Toggle:** *Config > Network Active* (`JSONStorableBool`, on by default, saved with the scene and mirrored as
+  `connection.network_active` in config.json). Off = no network code runs at all (`SocketLink` is never constructed);
+  the file channel works as before.
+- **Transport:** UDP on `127.0.0.1` only. One datagram = one complete JSON message (at most 60000 bytes; larger ones
+  and every config event with a token go through the file channel). The companion listens on `127.0.0.1:38437`
+  (`connection.network_port`, file only; 0 = no listener) next to the file inbox; the plugin binds an ephemeral
+  loopback port and sends `hello` (key `net`), the app answers `hello_ack`, then both sides exchange the normal command and
+  event JSON. The token never travels over the socket (the app reads it from config.json).
+- **Never blocks VaM:** two background threads (receive, send) and locked queues; `Update` only moves finished
+  messages. No connect, so nothing can hang; hello is repeated with a growing delay while there is no answer.
+- **Fallback:** the link counts as up while the other side was heard within 6 s (plugin) / 5 s (app). If not
+  (companion not running, VaM's network switch off, bind failed), all traffic uses the files, automatically, and
+  switches back when the socket works again. The info field shows `Network: off`, `Network: connected`, `Network: connecting ...` or
+  `Network: unavailable, using files`.
+- **VaM's permission:** VaM's global "Allow Plugins Network Access" and its per-plugin prompt are outside AIBody's
+  control; the plugin shows no prompt of its own. TODO(verify) in VaM: what exactly happens with the preference
+  off (exception caught by `SocketLink`, VaM refusing to load the plugin, or a prompt).
+- **Code:** `SocketLink.cs` (sockets, threads), `NetworkTransport.cs` (hybrid transport over file + socket),
+  `companion/aibody_companion/transport/{socket_transport,hybrid}.py` (companion side), tests
+  `companion/tests/test_network.py` (real sockets) and a .NET harness that compiles `SocketLink.cs`.
+
+### First-run note and token mask (since version 30)
+
+- At the top of the plugin UI one note with one text field and one button (`BuildFirstRunHint`): "An xAI API token
+  is required. Paste it here, or later in Voice > XAI API Token." The button reads **Close** while the field is
+  empty and **OK** once something is typed (OK saves the token exactly like the token field in the tab Voice, then
+  closes). It is never shown again once a token exists or after closing; `ui.first_run_hint_dismissed` in config.json
+  remembers that. The field follows the same masking rules as the token field.
 
 ### Emotions, personas, memory (since version 27)
 

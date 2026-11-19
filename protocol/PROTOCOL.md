@@ -8,7 +8,7 @@ to VaM) and [`schema/event.schema.json`](schema/event.schema.json) (VaM to compa
 ## Parts
 
 ```
-companion app  <-- files in Saves/PluginData/AIBody/<channel>/ -->  AIBody plugin (AI's Person atom)
+companion app  <-- files in Saves/PluginData/AIBody/default/ (+ optional loopback UDP) -->  AIBody plugin (AI's Person atom)
                                                                       AppLink --in-process--> Body
 ```
 
@@ -16,7 +16,7 @@ The VaM side is **one plugin**: `Custom/Scripts/d0n/AIBody/AIBody.cslist` in `d0
 one MVRScript (`AIBody.AIBodyPlugin`), loaded once on the AI character's Person atom (Plugins
 tab). Inside it, two plain C# components call each other directly:
 
-- **AppLink**: the transport to the companion app, channel, heartbeat/status, microphone menu and
+- **AppLink**: the transport to the companion app, heartbeat/status, microphone menu and
   engine menus. Handles `ping`, `companion_heartbeat` and the microphone feedback itself and hands
   every body command to the Body.
 - **Body**: speech with lip sync on the head audio, expressions, morphs, gestures, poses, idle and
@@ -46,10 +46,10 @@ or a JSON array of messages.
 
 ## Transports (companion app <-> AIBody plugin)
 
-### File transport (the only transport)
+### File transport (always available)
 
-The plugin contains no network code at all (no `UnityEngine.Networking`, no `UnityWebRequest`,
-no sockets), so it needs no "Allow Plugins Network Access". The file folder is the only link.
+The file folder works without any VaM permission and is the fallback of the socket transport below.
+The plugin uses no `UnityEngine.Networking` and no `UnityWebRequest` anywhere.
 
 All paths are relative to the VaM install folder:
 
@@ -74,8 +74,26 @@ Saves/PluginData/AIBody/<channel>/audio/    its fallback if VaM cannot load the 
   while connected sends `companion_heartbeat` every 2 s. The plugin counts the companion as
   connected while a `companion_heartbeat` arrived in the last 6 s. A new `session` id in
   `companion_heartbeat` means the companion restarted: the plugin sends `ready` and `config` again.
-- `<channel>` defaults to `default` (AIBody plugin "Channel", companion app `channel`). Both sides
-  must use the same value.
+- `<channel>` is always `default`: one companion app controls exactly one character (since version 30; the
+  multi-channel feature of version 28 was removed). Old files and scenes with another value are ignored.
+
+### Socket transport (since version 30, optional, toggle "Network Active", on by default)
+
+- **UDP on `127.0.0.1` only.** The companion listens on `connection.network_port` (default 38437); the plugin
+  binds an ephemeral loopback port. No other address is possible in the plugin.
+- **Handshake:** the plugin sends `{"net": "hello"}` (repeated with a growing delay while unanswered); the
+  companion learns the sender's address and answers `{"net": "hello_ack", "v": 3}`. Messages with a `net` key
+  are link control and never reach the message handlers.
+- **Messages:** one datagram = one complete JSON message (or array), at most 60000 bytes. The same commands and
+  events as in the files, in both directions. Anything larger travels as a file. A `config` event that carries
+  `keys` (the token) ALWAYS goes through the file; the token never crosses the socket.
+- **Liveness and fallback:** the link is up while the other side sent something within 6 s (plugin) / 5 s
+  (companion). While it is down, or the toggle is off, every message goes into the files; when it comes back,
+  the socket is used again. Both channels can be active; the inbox files still work at any time.
+- **Never blocking:** the plugin uses a receive thread and a send thread with locked queues; `Update` only moves
+  finished messages. With the toggle off no socket code is executed.
+- **VaM:** needs the global preference "Allow Plugins Network Access" (*User Preferences > Security*); if VaM refuses,
+  the plugin keeps working through the files (info field: `Network: unavailable, using files`).
 
 ### Shared config file
 
@@ -120,7 +138,7 @@ not detected by the plugin; a missing storable or parameter is reported as `comm
 | type                  | fields | effect |
 |-----------------------|--------|--------|
 | `ping`                | -      | answers `pong` with its status |
-| `companion_heartbeat` | `session` (required), `version`, `engines_available` (`{"stt": [...], "llm": [...], "tts": [...]}`), `engines_status` (`{"tts": {"elevenlabs": "nicht konfiguriert: ..."}, ...}`: "bereit (...)" or "nicht konfiguriert: <why>" per engine), `engines_active` (`{"stt": "null", ...}`: what really runs, the fallback if the selected engine is not configured), `mic_capturing`, `mode` (`{"requested": "qa" \| "auto" \| "realtime" \| "chain", "active": "realtime", "status": "Realtime verbunden …"}`), `proactive` (`{"enabled": true, "idle_seconds": 90, "status": …}`), `keys` (`{"xai": {"state": "configured" \| "missing" \| "rejected", "detail": "Key-Datei …", "hint"?: "nötig: API-Key von console.x.ai …"}, "elevenlabs": {…}}`, never the key; `hint` when missing / rejected), `audio_out` (`{"folder": "Custom/Sounds/AIBody/default", "auto": true, "note"?: "VaM konnte … nicht laden - Audio-Ordner gewechselt auf …"}`), `turn` (last question / answer step or problem as text: `Gehört: …`, `Antwort (…): …`, `Nichts verstanden …`, `Sprachmodell-Fehler: …`), `personas` (names of the persona folders), `persona` (in use, `""` = none), `persona_note` (why the chosen persona is not used), `memory` (`{"enabled": true, "facts": 7, "note"?: …}`), `figures` (channels the app serves, only with several figures), `active_figure` (channel of the figure the user talks to), `latency` (`{"last_s": 2.41, "avg_s": 2.6, "n": 5, "kind": "chain" \| "realtime", "parts": {"STT": 0.8, "LLM erstes Token": 0.5, …}}`: end of the user's speech to the plugin's `speech_started`, average of the last 10 turns) | companion liveness; fills the engine menus and the engine status in the tab AI |
+| `companion_heartbeat` | `session` (required), `version`, `engines_available` (`{"stt": [...], "llm": [...], "tts": [...]}`), `engines_status` (`{"tts": {"elevenlabs": "not configured: ..."}, ...}`: "ready (...)" or "not configured: <why>" per engine), `engines_active` (`{"stt": "null", ...}`: what really runs, the fallback if the selected engine is not configured), `mic_capturing`, `mode` (`{"requested": "qa" \| "auto" \| "realtime" \| "chain", "active": "realtime", "status": "Realtime connected …"}`), `proactive` (`{"enabled": true, "idle_seconds": 90, "status": …}`), `keys` (`{"xai": {"state": "configured" \| "missing" \| "rejected", "detail": "key file …", "hint"?: "needed: API key from console.x.ai …"}, "elevenlabs": {…}}`, never the key; `hint` when missing / rejected), `audio_out` (`{"folder": "Custom/Sounds/AIBody/default", "auto": true, "note"?: "VaM could not load … - audio folder switched to …"}`), `turn` (last question / answer step or problem as text: `Heard: …`, `Answer (…): …`, `Nothing understood …`, `Language model error: …`), `personas` (names of the persona folders), `persona` (in use, `""` = none), `persona_note` (why the chosen persona is not used), `memory` (`{"enabled": true, "facts": 7, "note"?: …}`), `latency` (`{"last_s": 2.41, "avg_s": 2.6, "n": 5, "kind": "chain" \| "realtime", "parts": {"STT": 0.8, "LLM first token": 0.5, …}}`: end of the user's speech to the plugin's `speech_started`, average of the last 10 turns) | companion liveness; fills the engine menus and the engine status in the tab AI |
 
 ### Microphone feedback (app link)
 
@@ -147,7 +165,7 @@ All events come from the one plugin:
 | `error`          | `reply_to`, `code`, `message`                       | `bad_json`, `command_failed`, `audio_failed` |
 | `config`         | `mic` (see below), `engines` (`{"stt", "llm", "tts"}`), `ai` (`{"mode", "persona_name"?, "memory": {"enabled"}, "proactive": {"enabled", "idle_seconds"}, "realtime": {"send_while_speaking", "voice"}, "xai": {"voice", "key_file"?}, "elevenlabs": {"key_file"}?}`, key file paths only when set), `keys` (`{"xai": "<token>"}`, version 21: the plugin field "XAI API Token", plain text, `""` = field empty; always sent; wins over `XAI_API_KEY` and `ai.xai.key_file`; masked in logs on both sides, never in `config.json`), `advanced` (`{"verbose_log"}`: Erweitert > Verbose log, turns the companion's turn trace on/off live) | after (re)connect and 0.3 s after the last settings change |
 | `ptt`            | `active` (bool)                                     | push-to-talk pressed / released |
-| `test_tone`      | -                                                   | button "Test-Ton über Companion": the app answers with a `speak` (queue `interrupt`, text "Test-Ton") of a 1.5 s chime WAV in its audio folder |
+| `test_tone`      | -                                                   | button "Test tone via companion": the app answers with a `speak` (queue `interrupt`, text "Test tone") of a 1.5 s chime WAV in its audio folder |
 | `memory_forget`  | -                                                   | button "Forget memory" (version 27): the app deletes the memory file of the persona in use and starts a fresh conversation without the notes |
 | `reconnect`      | -                                                   | button "API Reconnect": the app re-reads its API keys and reopens the realtime connection |
 | `shutdown`       | -                                                   | plugin is stopping its transport |
@@ -160,8 +178,8 @@ All events come from the one plugin:
 `queue: interrupt` speak or someone else replaced the clip), `cancelled` (was queued, never
 played), `failed` (could not be loaded; an `audio_failed` error comes first).
 
-Status fields (`ready`, `heartbeat`, `pong`): `plugin_version`, `protocol`, `channel`,
-`transport`, `audio_dir`, `atom` (uid of the Person atom the plugin is on, informational),
+Status fields (`ready`, `heartbeat`, `pong`): `plugin_version`, `protocol`, `channel` (always `default`),
+`transport` (the active one: `file` or the hybrid transport's name), `audio_dir`, `atom` (uid of the Person atom the plugin is on, informational),
 `speaking`, `speech_queue`, `expression`, `expressions` (preset names), `gestures` (names),
 `poses`, `body_control`, `gaze_control` (since version 25: the AI may direct the eyes; false = menu switch off, Glance on the Person, or the eyes were taken by another plugin), `gaze_atoms` (atoms the AI can look at by name), `selftest` (since version 13: the in-game self test of the body, object
 with `pose_storage` ("ok" or why not), `pose_files`, `poses`, `breath_morph`, `breath_morph_found`,

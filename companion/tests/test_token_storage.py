@@ -160,9 +160,9 @@ class PluginSourceTests(unittest.TestCase):
         self.assertNotIn("_xaiToken =", masked_branch)
         self.assertIn("if (_settingTokenDisplay) return;", edited)
         mask = method_body(self.link, "public static string MaskToken(string token)")
-        self.assertIn('"xai-"', mask)
+        self.assertIn("Substring(0, 4)", mask, "first 4 characters stay visible")
         self.assertIn("Substring(t.Length - 4)", mask)
-        self.assertIn("TickTokenMask(dt)", method_body(self.link, "public void Update(float dt)"))
+        self.assertIn("TickTokenMask();", method_body(self.link, "public void Update(float dt)"))
 
     def test_nothing_is_written_or_cleared_before_config_json_was_read(self):
         ai = method_body(self.link, "private JSONClass BuildAiJson(bool forFile)")

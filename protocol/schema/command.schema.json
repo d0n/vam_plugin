@@ -303,7 +303,7 @@
     },
     "turn": {
       "type": "string",
-      "description": "companion_heartbeat: last question / answer step or problem (\"Gehört: ...\", \"Antwort ...\", \"Sprachmodell-Fehler: ...\"), shown in the plugin's status box"
+      "description": "companion_heartbeat: last question / answer step or problem (\"Heard: ...\", \"Answer ...\", \"Language model error: ...\"), shown in the plugin's status box"
     },
     "latency": {
       "type": "object",

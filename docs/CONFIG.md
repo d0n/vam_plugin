@@ -8,8 +8,7 @@ One JSON file, relative to the VaM folder, read by the AIBody plugin **and** the
 
 Why there: established plugins keep their settings in their own folder below `Saves/PluginData`
 (Timeline: `Saves/PluginData/Timeline/settings.json`, Keybindings: `Saves/PluginData/Keybindings`),
-and it is where AIBody's channel folders already are. It is global, not per channel: the channel
-is one of the values. Evidence links: [API_AUDIT.md](API_AUDIT.md) ("Config file location").
+and it is where AIBody's folder already is. It is global: one file for the one character. Evidence links: [API_AUDIT.md](API_AUDIT.md) ("Config file location").
 
 ## Who reads and writes it
 
@@ -19,9 +18,9 @@ is one of the values. Evidence links: [API_AUDIT.md](API_AUDIT.md) ("Config file
 | plugin added to a scene **without** saved AIBody settings | takes the values from the file once (new scene / re-added plugin) | - |
 | scene **with** saved AIBody settings | the scene's values win and are written back | - |
 | a value changes in the plugin UI | written back within 1 s (only if something changed) | gets it live as a `config` event (protocol) |
-| app start | - | reads channel, mic, engines and `ai` from the file (`--channel` on the command line wins); adds a missing `ai` section with its defaults |
+| app start | - | reads mic, engines and `ai` from the file; adds a missing `ai` section with its defaults |
 | `ai` section | sets only its tab controls (`mode`, `proactive.enabled` / `idle_seconds`, `realtime.send_while_speaking` / `voice`, `xai.voice`; `xai.key_file` / `elevenlabs.key_file` are passed through from the file - no menu field since version 15, the file wins on every start), keeps the rest when writing the file | reads it (persona, language, fallback, engine settings); the tab controls also arrive live in the `config` event |
-| paths (`connection.paths`) | read from the file (no UI), on start, channel change and **Reload Config JSON** (tab *Config*); `paths.audio` is kept unchanged | `paths.audio`: where it writes the speech WAVs |
+| paths (`connection.paths`) | read from the file (no UI), on start and on **Reload Config JSON** (tab *Config*); `paths.audio` is kept unchanged | `paths.audio`: where it writes the speech WAVs |
 | tab *Config* > **Reload Config JSON** | applies the whole file to the UI (also for a saved scene) and sends it to the app | gets the new values live |
 
 The plugin writes compact JSON in place (FileManagerSecure cannot rename); the app writes the
@@ -37,14 +36,14 @@ to win.
 
 One object per settings category. Since the menu restructure the categories no longer match
 the tabs one to one (kept for compatibility with existing files): `connection` = file only
-(channel; + *Voice > Voice Mode* **Active**), `engines` = tab *Voice > AI Character*, `mic` = tab *Client Character*, `body` = tab
+(network switch and port, paths; + *Voice > Voice Mode* **Active**), `engines` = tab *Voice > AI Character*, `mic` = tab *Client Character*, `body` = tab
 *AI Character*, `advanced` = tab *Config*, `ai` = companion settings plus the tab controls named
 below. Machine-readable:
 [protocol/schema/config.schema.json](../protocol/schema/config.schema.json), example:
 [examples/config.json](../examples/config.json).
 
-The complete key reference (type, default, allowed values, effect, where to set it) is in the German
-[README, section 4](../README.md#4-einstellungen); it is the single list and kept in sync with
+The complete key reference (type, default, allowed values, effect, where to set it) is in the
+[README, section 4](../README.md#4-settings); it is the single list and kept in sync with
 `companion/aibody_companion/settings_file.py`.
 
 The push-to-talk *state* is never saved (only the setting `ptt_interrupts` and `mode`). Unknown
@@ -134,7 +133,7 @@ API key is required and the three ways to give it. The app ignores it; any text 
 the field **XAI API Token** (tab *Voice*, section *Voice Mode*, below **API Reconnect**). Plain text, no
 format check. The plugin saves it in `config.json` as `ai.xai.api_key` (PLAIN TEXT, at Leon's explicit
 request; `ai.xai.api_key_warning` next to it carries the security notice), fills the field from it on
-every start, and then shows it masked (`xai-****abcd`; the mask never replaces the stored token). The
+every start, and then shows it masked once the field is not focused (first and last 4 characters visible, stars between: `xai-****abcd`; the mask never replaces the stored token). The
 companion app reads `ai.xai.api_key` too, also before the plugin connects. Masked in every log.
 Precedence: 1. the field (live, when not empty), 2. `ai.xai.api_key`, 3. `XAI_API_KEY`, 4. `ai.xai.key_file`;
 emptying the field in the plugin also empties `ai.xai.api_key` and falls back to 3 / 4. A changed key also
@@ -199,14 +198,17 @@ for `Engine ... ready`, the spoken sentences and any `failed (...)` warnings.
 `body.gaze_control` (default true), `body.gaze_default` (`default` | `client` | `camera` | `forward` | `atom:<name>`),
 `body.gaze_follows_speaker` (default false). The AI directs its eyes with the tool `look_at` (client, camera, forward,
 away, off, or an atom name); without an order the eyes follow *Default gaze*. `default` leaves the eyes to VaM.
-With the Glance plugin on the same Person AIBody does not touch the eyes. See TECHNIK.md, section Gaze.
+With the Glance plugin on the same Person AIBody does not touch the eyes. See TECHNICAL.md, section Gaze.
 
 ## Natural gaze, blinking, scene events (version 26)
 
 - `body.gaze_default` accepts `natural` (menu: **Natural (looks around)**) besides `default`, `client`, `camera`, `forward`, `atom:<name>`.
 - `body.blink_control` (default false): true = AIBody blinks by itself and switches VaM's automatic blinking off meanwhile; menu: **Blink control** (tab AI Character, section Gaze and blinking). With Life's Eyes plugin or Glance on the Person AIBody leaves the eyelids alone.
-- `ai.ollama.*` (version 29, file only): the local language model Ollama, `engines.llm: "ollama"`. `base_url` (`http://127.0.0.1:11434`), `model` (`llama3.2`), `max_output_tokens`, `temperature`, `keep_alive`, `max_messages`, `timeout_s`. See [LOKALE_ENGINES.md](LOKALE_ENGINES.md) (German).
+- `ai.ollama.*` (version 29, file only): the local language model Ollama, `engines.llm: "ollama"`. `base_url` (`http://127.0.0.1:11434`), `model` (`llama3.2`), `max_output_tokens`, `temperature`, `keep_alive`, `max_messages`, `timeout_s`. See [LOCAL_ENGINES.md](LOCAL_ENGINES.md).
 - `ai.barge_in.{enabled,ratio,min_ms,floor}` (version 29, file only, off by default): talk over the body without headphones by a loudness rule. `mic.vad_engine: "silero"` needs onnxruntime and the model file `Saves/PluginData/AIBody/models/silero_vad.onnx` (or `AIBODY_SILERO_MODEL`). Same document.
-- `ai.channels` (default `""`): version 28, channel names separated by commas (at most 8); one app serves several figures, same as `--channel anna,marc` (the command line wins). Empty = one figure on `connection.channel`. The plugin never writes it (file only); see [FIGUREN.md](FIGUREN.md) (German). `connection.channel` is the menu field **Channel** (tab Config) since version 28.
-- `ai.persona_name` (default `""`), `ai.memory.{enabled,max_facts,session_idle_minutes,min_exchanges}` and `ai.emotion.{fallback,fade,fade_after_s,fade_seconds,listening}`: version 27, see [PERSONAS.md](PERSONAS.md) (German). The plugin owns `ai.persona_name` (menu **Persona**) and `ai.memory.enabled` (switch **Memory**) and writes them back; the rest is file only.
+- `connection.network_active` (default `true`, version 30): the plugin toggle **Network Active** (tab *Config*), mirrored here. On = the loopback link described in TECHNICAL.md ("Network Active") is used, with the file channel as automatic fallback; off = files only and no network code runs in the plugin.
+- `connection.network_port` (default `38437`, version 30, file only): the UDP port on `127.0.0.1` where the companion app listens; `0` = no listener (files only). Only the loopback address can be used.
+- `ui.first_run_hint_dismissed` (default `false`, version 30): set by the plugin when the first-run note was closed or a token exists; the note is never shown again.
+- Removed in version 30 (one character per app): `ai.channels`, the plugin's `Channel` value and `--channel` lists. Old files and scenes that still hold them are read without error and the values are ignored.
+- `ai.persona_name` (default `""`), `ai.memory.{enabled,max_facts,session_idle_minutes,min_exchanges}` and `ai.emotion.{fallback,fade,fade_after_s,fade_seconds,listening}`: version 27, see [PERSONAS.md](PERSONAS.md). The plugin owns `ai.persona_name` (menu **Persona**) and `ai.memory.enabled` (switch **Memory**) and writes them back; the rest is file only.
 - `ai.scene_events.enabled` (default true) and `ai.scene_events.prompt` (default text with `{event}`): what the AI is told when a scene trigger sets the plugin's string **Scene event** (see PROTOCOL.md, "Scene events"). File only, no menu field.

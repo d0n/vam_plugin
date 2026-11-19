@@ -276,10 +276,10 @@ class RealtimeTokenTests(RealtimeSim):
 class PluginSourceTests(unittest.TestCase):
     def test_token_field_sits_below_api_reconnect_without_warning_label_under_it(self):
         body = method_body(source("AppLink.cs"), "public void BuildVoiceModeTab(UiPage page)")
-        order = [body.index(s) for s in ('page.Button("API Reconnect"', "XaiTokenLabel", "page.TextInput(_xaiTokenJson)",
+        order = [body.index(s) for s in ('page.Button("API Reconnect"', "XaiTokenLabel", "page.TextInputField(_xaiTokenJson)",
                                           "page.Header(XaiTokenHint)", 'page.Button("Test tone via companion"')]
         self.assertEqual(order, sorted(order))
-        between = body[order[2] + len("page.TextInput(_xaiTokenJson)"):order[3]]
+        between = body[order[2] + len("page.TextInputField(_xaiTokenJson)"):order[3]]
         self.assertEqual(between.count("page."), 0, "nothing between the field and its hint")
         self.assertNotIn("XaiTokenWarning", body, "the security notice is in the big info field, not under the token field")
         link = source("AppLink.cs")

@@ -9,7 +9,7 @@ Ollama keeps no conversation: this class keeps the messages itself (the persona 
 as the system message, the last `max_messages` turns). The answer carries the same leading
 <<expression gesture>> tag as the xAI chain (no tool calls: a local model's function calling is too uneven).
 Everything here is tested against a fake server only.
-TODO(verify): run once against a real Ollama (docs/TESTPROTOKOLL.md T18).
+TODO(verify): run once against a real Ollama (docs/TEST_PROTOCOL.md T18).
 """
 from __future__ import annotations
 
