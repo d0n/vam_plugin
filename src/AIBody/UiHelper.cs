@@ -20,10 +20,10 @@ namespace AIBody
         /// <summary>
         /// Makes a text field editable. The InputField bound via storable.inputField (the
         /// ToySerialController pattern) is guarded: if it fails, the field stays visible but
-        /// read-only and the reason goes to the log. Returns false then.
+        /// read-only and the reason goes to the log. Returns the InputField, or null then.
         /// TODO(verify): editable text field pattern on CreateTextField in VaM 1.22.
         /// </summary>
-        public static bool MakeEditable(UIDynamicTextField field, JSONStorableString storable)
+        public static InputField MakeEditable(UIDynamicTextField field, JSONStorableString storable)
         {
             try
             {
@@ -31,12 +31,12 @@ namespace AIBody
                 input.textComponent = field.UItext;
                 input.lineType = InputField.LineType.SingleLine;
                 storable.inputField = input;
-                return true;
+                return input;
             }
             catch (Exception e)
             {
                 Log.Error("Text field '" + storable.name + "' is read-only (InputField failed): " + Diag.Describe(e));
-                return false;
+                return null;
             }
         }
     }
@@ -121,10 +121,17 @@ namespace AIBody
         /// <summary>Editable one-line text field; false if it could only be shown read-only.</summary>
         public bool TextInput(JSONStorableString p)
         {
+            return TextInputField(p) != null;
+        }
+
+        /// <summary>Like TextInput, but returns the field's InputField (null if it could only be shown read-only).</summary>
+        public InputField TextInputField(JSONStorableString p)
+        {
             UIDynamicTextField f = Text(p, 40f);
-            if (!UiHelper.MakeEditable(f, p)) return false;
+            InputField input = UiHelper.MakeEditable(f, p);
+            if (input == null) return null;
             _inputs.Add(p);
-            return true;
+            return input;
         }
 
         public void Clear()

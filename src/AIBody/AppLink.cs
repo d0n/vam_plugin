@@ -9,6 +9,7 @@
 using System;
 using System.Collections.Generic;
 using SimpleJSON;
+using UnityEngine.UI;
 using MVR.FileManagementSecure;
 
 namespace AIBody
@@ -76,7 +77,7 @@ namespace AIBody
         // "XAI API Token": a plain free-text field (Voice tab, Voice Mode), no format check.
         // Version 21: saved with the scene only. Version 24: the real token lives in _xaiToken and is
         // saved in config.json (ai.xai.api_key, plain text, at Leon's explicit request); the storable
-        // _xaiTokenJson is only what the field SHOWS: the masked token ("xai-****abcd") once it is saved,
+        // _xaiTokenJson is only what the field SHOWS: the masked token ("xai-****...****abcd") once it is saved,
         // so the scene keeps the mask and the mask never overwrites the token (see OnTokenEdited).
         // The token is sent to the companion app in the config event (files in the channel folders)
         // and is never logged.
@@ -84,7 +85,8 @@ namespace AIBody
         private string _xaiToken = "";                       // the real token (trimmed)
         private bool _tokenReady;                            // config.json was read; before that nothing is written or cleared
         private bool _settingTokenDisplay;                   // we set the field's text ourselves
-        private float _tokenMaskTimer = -1f;                 // >= 0: seconds since the last edit; the mask is shown after TokenMaskDelay
+        private InputField _tokenInput;                      // the token field's InputField of the tab Voice (rebuilt on every tab switch)
+        private bool _maskPending;                           // the field was edited: show the mask as soon as it is NOT focused
         private JSONStorableString _xaiKeyFileJson;
         private JSONStorableString _elevenKeyFileJson;
         private JSONClass _keyInfo;                          // companion heartbeat "keys"
@@ -182,7 +184,7 @@ namespace AIBody
         }
 
         public const string XaiTokenLabel = "XAI API Token";
-        public const string XaiTokenHint = "Paste your xAI API key here. Once it is saved, the field shows it masked (like xai-****abcd). "
+        public const string XaiTokenHint = "Paste your xAI API key here. Once it is saved, the field shows it masked when you leave it (like xai-****...****abcd). "
             + "To change it, select everything in the field and paste the new key. To remove it, empty the field.";
         /// <summary>
         /// Security notice at the top of the big info field on the left (tab Voice); the same text is in config.json
@@ -195,19 +197,21 @@ namespace AIBody
         /// <summary>One short hint in the big info field on the left (version 30): the toggle depends on VaM's own setting.</summary>
         public const string NetworkNotice = "NETWORK: The option 'Network Active' needs VaM's global setting 'Allow Plugins Network Access' "
             + "(VaM preferences, Security). Without it the plugin uses the file exchange.";
-        public const float TokenMaskDelay = 4f;             // seconds without an edit before the field shows the mask
 
         /// <summary>The real token (as typed or read from config.json, without surrounding blanks / line breaks; nothing else is checked).</summary>
         private string XaiToken { get { return _xaiToken; } }
 
-        /// <summary>"xai-****abcd": the start "xai-" (only if present) and the last 4 characters; short tokens show just "****".</summary>
+        /// <summary>
+        /// Shown while the field is not focused: the first 4 and the last 4 characters with a fixed run of stars in
+        /// between, "xai-****...****abcd". The number of stars never depends on the token's length. Short tokens
+        /// (under 12 characters) show just "****".
+        /// </summary>
         public static string MaskToken(string token)
         {
             string t = (token ?? "").Trim();
             if (t.Length == 0) return "";
             if (t.Length < 12) return "****";
-            string head = t.StartsWith("xai-") ? "xai-" : "";
-            return head + "****" + t.Substring(t.Length - 4);
+            return t.Substring(0, 4) + "****...****" + t.Substring(t.Length - 4);
         }
 
         /// <summary>True for text the field shows as a mask. A real key never contains four asterisks in a row.</summary>
@@ -223,7 +227,7 @@ namespace AIBody
             string typed = (v ?? "").Trim();
             if (IsMaskedToken(typed))
             {
-                _tokenMaskTimer = 0f;                        // somebody typed into the mask: put the correct mask back soon
+                _maskPending = true;                         // text with the mask in it: ignored; the correct mask comes back when focus is lost
                 return;
             }
             if (!_tokenReady)
@@ -233,15 +237,26 @@ namespace AIBody
                 return;
             }
             _xaiToken = typed;                               // written to config.json by the plugin's settings writer
-            _tokenMaskTimer = typed.Length > 0 ? 0f : -1f;
+            _maskPending = typed.Length > 0;                 // masked when the user leaves the field, never while typing
             UpdateKeyStatus();
             MarkConfigDirty();
         }
 
+        /// <summary>True while the user has the cursor in the token field (InputField.isFocused).</summary>
+        private bool TokenFieldFocused()
+        {
+            return _tokenInput != null && _tokenInput.isFocused;
+        }
+
         private void ShowTokenMask()
         {
+            if (TokenFieldFocused())
+            {
+                _maskPending = true;                         // never rewrite the text under the user's cursor
+                return;
+            }
             string shown = MaskToken(_xaiToken);
-            _tokenMaskTimer = -1f;
+            _maskPending = false;
             if (_xaiTokenJson == null || _xaiTokenJson.val == shown) return;
             _settingTokenDisplay = true;
             try { _xaiTokenJson.val = shown; }
@@ -264,12 +279,18 @@ namespace AIBody
             MarkConfigDirty();
         }
 
-        /// <summary>Called every frame: shows the mask a few seconds after the last edit.</summary>
-        private void TickTokenMask(float dt)
+        /// <summary>
+        /// Called every frame (InputField.isFocused is polled, there is no audited end-edit event): while the field has
+        /// focus nothing is touched, so a full token can be typed or pasted; once focus is lost the mask is shown.
+        /// </summary>
+        private void TickTokenMask()
         {
-            if (_tokenMaskTimer < 0f) return;
-            _tokenMaskTimer += dt;
-            if (_tokenMaskTimer >= TokenMaskDelay) ShowTokenMask();
+            if (TokenFieldFocused())
+            {
+                _maskPending = true;                         // the user is in the field; mask it afterwards
+                return;
+            }
+            if (_maskPending) ShowTokenMask();
         }
 
         /// <summary>Same rule as the companion's looks_like_secret: a pasted key is refused and cleared.</summary>
@@ -444,7 +465,8 @@ namespace AIBody
             page.Button("API Reconnect", ApiReconnect);
             // Version 21: plain free-text field (no format check) with the hint directly below.
             page.Header("<b>" + XaiTokenLabel + "</b>");
-            if (!page.TextInput(_xaiTokenJson))
+            _tokenInput = page.TextInputField(_xaiTokenJson);   // a new InputField on every tab switch
+            if (_tokenInput == null)
                 Log.Error("Field '" + XaiTokenLabel + "' is read-only (InputField failed).");
             page.Header(XaiTokenHint);
             page.Button("Test tone via companion", RequestTestTone);
@@ -1162,7 +1184,7 @@ namespace AIBody
 
         public void Update(float dt)
         {
-            TickTokenMask(dt);
+            TickTokenMask();
             bool connected = false;
             if (_transport != null)
             {

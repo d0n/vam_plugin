@@ -105,6 +105,8 @@ namespace UnityEngine.UI
         public enum LineType { SingleLine, MultiLineSubmit, MultiLineNewline }
         public Text textComponent;
         public LineType lineType;
+        // Standard Unity UI (same class as E14, UnityEngine.UI.InputField): true while the field has keyboard focus.
+        public bool isFocused { get { return false; } }
     }
 }
 
