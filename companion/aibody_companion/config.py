@@ -30,6 +30,7 @@ class Config:
     vam_root: str = ""  # VaM install folder (the one containing VaM.exe)
     channel: str = "default"  # the one fixed folder name below Saves/PluginData/AIBody (cli.py forces it)
     poll_interval_s: float = 0.02
+    network_port: int = 0  # loopback UDP listener for the plugin (0 = off); config.json connection.network_port sets it
 
     sample_rate: int = 16000
     frame_ms: int = 30

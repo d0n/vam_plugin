@@ -40,7 +40,7 @@ namespace AIBody
 {
     public class AIBodyPlugin : MVRScript
     {
-        public const string PluginVersion = "29";   // = package number d0n.AIBody.29.var (scheme since version 12)
+        public const string PluginVersion = "30";   // = package number d0n.AIBody.30.var (scheme since version 12)
 
         private AppLink _link;
         private Body _body;
@@ -418,7 +418,7 @@ namespace AIBody
                         text = _link != null ? _link.ClientInfoText() : "";
                         break;
                     default:
-                        text = (_link != null ? "config.json: " + _link.SettingsPath + "\n" + _link.ChannelInfoText() + "\n"
+                        text = (_link != null ? "config.json: " + _link.SettingsPath + "\n" + _link.ChannelInfoText() + "\n" + _link.NetworkInfoText() + "\n"
                                 + _link.FilePollInfoText() + "\n" : "")
                             + (_configStatus.Length > 0 ? _configStatus + "\n" : "")
                             + SelfTest()

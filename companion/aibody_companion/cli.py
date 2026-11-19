@@ -13,7 +13,7 @@ from .audio import EchoGate, MicController
 from .config import Config, load_config
 from .orchestrator import Companion
 from .pipeline.engines import KEY_HINT, EngineSet
-from .transport import FileTransport, Transport
+from .transport import FileTransport, HybridTransport, SocketTransport, Transport
 
 FIXED_CHANNEL = "default"
 log = logging.getLogger("aibody_companion")
@@ -36,8 +36,12 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def build_transport(cfg: Config) -> Transport:
-    """The only link to the plugin: JSON files in <vam_root>/Saves/PluginData/AIBody/<channel>/."""
-    return FileTransport(cfg.channel_dir)
+    """The link to the plugin: JSON files in <vam_root>/Saves/PluginData/AIBody/default/, plus (version 30) a loopback
+    UDP listener the plugin's option 'Network Active' connects to. The files stay the fallback."""
+    files = FileTransport(cfg.channel_dir)
+    if cfg.network_port <= 0:
+        return files
+    return HybridTransport(files, SocketTransport(cfg.network_port))
 
 
 def build_stack(cfg: Config, use_mic: bool = True) -> Companion:

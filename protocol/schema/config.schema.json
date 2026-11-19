@@ -39,6 +39,37 @@
           ],
           "default": true
         },
+        "network_active": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "true",
+                "false",
+                "True",
+                "False"
+              ]
+            }
+          ],
+          "default": true
+        },
+        "network_port": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 65535
+            },
+            {
+              "type": "string",
+              "pattern": "^\\s*-?[0-9]+(\\.[0-9]+)?([eE][-+]?[0-9]+)?\\s*$"
+            }
+          ],
+          "default": 38437
+        },
         "paths": {
           "type": "object",
           "additionalProperties": false,

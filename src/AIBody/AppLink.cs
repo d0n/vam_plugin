@@ -25,6 +25,9 @@ namespace AIBody
         private readonly Diag _diag;
 
         private JSONStorableBool _activeJson;
+        private JSONStorableBool _networkJson;         // "Network Active" (version 30)
+        private NetworkTransport _network;             // null while the toggle is off: no socket code runs then
+        private int _networkPort = SocketLink.DefaultPort;
         private JSONStorableFloat _filePollJson;
         private JSONStorableStringChooser _sttJson;
         private JSONStorableStringChooser _llmJson;
@@ -108,6 +111,7 @@ namespace AIBody
         }
 
         public bool Active { get { return _activeJson != null && _activeJson.val; } }
+        public bool NetworkActive { get { return _networkJson != null && _networkJson.val; } }
         public bool IsRunning { get { return _transport != null; } }
 
         /// <summary>True while companion_heartbeats arrive (last one less than 6 s ago).</summary>
@@ -129,6 +133,9 @@ namespace AIBody
             _activeJson = new JSONStorableBool("Active", true, (bool v) => Restart());
             _plugin.RegisterBool(_activeJson);
 
+            // Version 30: loopback socket to the companion app, files as the fallback. Default on; off = no network code at all.
+            _networkJson = new JSONStorableBool("Network Active", true, (bool v) => Restart());
+            _plugin.RegisterBool(_networkJson);
             _filePollJson = new JSONStorableFloat("File poll interval (s)", 0.1f, (float v) => Restart(), 0.02f, 2f);
             _plugin.RegisterFloat(_filePollJson);
             // Engine choices are refreshed from the companion app's companion_heartbeat.
@@ -185,6 +192,9 @@ namespace AIBody
             + "Anyone who can read that file can read your token, so do not share or publish it. "
             + "Scenes keep only the masked token, but a scene saved with AIBody version 21 to 23 still contains the full token: "
             + "do not publish such a scene.";
+        /// <summary>One short hint in the big info field on the left (version 30): the toggle depends on VaM's own setting.</summary>
+        public const string NetworkNotice = "NETWORK: The option 'Network Active' needs VaM's global setting 'Allow Plugins Network Access' "
+            + "(VaM preferences, Security). Without it the plugin uses the file exchange.";
         public const float TokenMaskDelay = 4f;             // seconds without an edit before the field shows the mask
 
         /// <summary>The real token (as typed or read from config.json, without surrounding blanks / line breaks; nothing else is checked).</summary>
@@ -511,12 +521,18 @@ namespace AIBody
         {
             UpdateKeyStatus();
             UpdateEngineInfo();
-            string text = XaiTokenWarning + "\n\n" + _modeHelpJson.val + "\n" + _keyStatusJson.val + "\n" + PersonaInfoText();
+            string text = XaiTokenWarning + "\n\n" + NetworkNotice + "\n\n" + _modeHelpJson.val + "\n" + _keyStatusJson.val + "\n" + PersonaInfoText();
             if (_engineStatus != null) text += _engineInfoJson.val;   // before the first heartbeat the connection section says "not seen yet"
             return text;
         }
 
         /// <summary>Folder line for the tab "Config": the one fixed folder the plugin and the companion app share.</summary>
+        public string NetworkInfoText()
+        {
+            return "Network Active: the plugin talks to the companion app over a local socket (127.0.0.1 port " + _networkPort
+                + ", set connection.network_port in config.json). " + NetworkStatus + ". When off or unavailable, the file exchange is used.";
+        }
+
         public string ChannelInfoText()
         {
             return "Message folder: " + ChannelDir + " - the plugin and the companion app exchange messages there (one character, one fixed folder).";
@@ -686,6 +702,7 @@ namespace AIBody
         public void BuildConfigTab(UiPage page, UnityEngine.Events.UnityAction reload)
         {
             page.Button("Reload Config JSON", reload);
+            page.Toggle(_networkJson);
             page.Slider(_filePollJson, FilePollLabel);
         }
 
@@ -741,6 +758,8 @@ namespace AIBody
             string expressions = DataRoot + "/expressions.json";
             string gestures = DataRoot + "/gestures.json";
             JSONClass connection = root != null ? root["connection"] as JSONClass : null;
+            int port = connection != null ? (int)Protocol.GetFloat(connection, "network_port", SocketLink.DefaultPort) : SocketLink.DefaultPort;
+            _networkPort = (port > 0 && port < 65536) ? port : SocketLink.DefaultPort;
             JSONClass paths = connection != null ? connection["paths"] as JSONClass : null;
             if (paths != null)
             {
@@ -787,6 +806,8 @@ namespace AIBody
         {
             JSONClass connection = new JSONClass();
             connection["active"].AsBool = Active;
+            connection["network_active"].AsBool = NetworkActive;
+            connection["network_port"].AsInt = _networkPort;
             JSONClass paths = new JSONClass();
             paths["expressions"] = ExpressionsPath;
             paths["gestures"] = GesturesPath;
@@ -812,6 +833,7 @@ namespace AIBody
             if (connection != null)
             {
                 if (Protocol.Has(connection, "active")) _activeJson.val = Protocol.GetBool(connection, "active", true);
+                if (Protocol.Has(connection, "network_active")) _networkJson.val = Protocol.GetBool(connection, "network_active", true);
             }
             JSONClass engines = root["engines"] as JSONClass;
             if (engines != null)
@@ -936,15 +958,24 @@ namespace AIBody
             if (!Ready) return;
             Stop();
             if (_activeJson == null || !_activeJson.val || _filePollJson == null) return;
+            LoadSettingsFile();   // also reads connection.network_port
             FileTransport file = new FileTransport(ChannelDir, _filePollJson.val, OnPayload);
-            _transport = file;
+            if (NetworkActive)
+            {
+                _network = new NetworkTransport(file, new SocketLink(_networkPort, OnPayload));
+                _transport = _network;
+            }
+            else
+            {
+                _network = null;   // off: no network code is touched
+                _transport = file;
+            }
             _seenEpoch = 0;
             _appSession = null;
             _appAlive = false;
             _appAge = 999f;
             _transport.Start();
-            Log.Info("Started " + _transport.Name + " transport on channel '" + Channel + "'");
-            LoadSettingsFile();
+            Log.Info("Started " + (_network != null ? "network+file" : "file") + " transport (" + ChannelDir + ")");
         }
 
         public void Stop()
@@ -953,6 +984,7 @@ namespace AIBody
             _transport.Send(Protocol.NewEvent(Protocol.EvtShutdown));
             _transport.Stop();
             _transport = null;
+            _network = null;
             if (_mic != null) _mic.OnDisconnected();
         }
 
@@ -1180,10 +1212,20 @@ namespace AIBody
             return turn.Contains("error") || turn.Contains("Error");
         }
 
+        /// <summary>"Network: off" / "connecting ..." / "connected" / "unavailable, using files" (one short line).</summary>
+        public string NetworkStatus
+        {
+            get
+            {
+                if (!NetworkActive) return "Network: off";
+                return _network != null ? _network.NetworkStatus : "Network: starting";
+            }
+        }
+
         public string StatusText()
         {
             if (_transport == null) return "Link: " + (Active ? "off" : "inactive (Active is off)") + "\n";
-            string text = "Link: " + _transport.Name + " - " + _transport.State + "\n";
+            string text = "Link: " + _transport.Name + " - " + _transport.State + "\n" + NetworkStatus + "\n";
             if (!string.IsNullOrEmpty(_transport.LastError)) text += "Last error: " + _transport.LastError + "\n";
             if (_testToneStatus != null) text += _testToneStatus + "\n";
             if (_appAlive)

@@ -4,7 +4,7 @@ Location: <vam_root>/Saves/PluginData/AIBody/config.json, ONE global file, in th
 below Saves/PluginData that established plugins use for their settings. Key reference:
 README.md section 4. Categories (kept from the first schema; they no longer match the tabs 1:1):
 
-  connection  active (tab Voice), paths {expressions, gestures,
+  connection  active (tab Voice), network_active (tab Config), network_port (file only), paths {expressions, gestures,
               audio} (file only)
   engines     stt, llm, tts (tab Voice > AI Character)
   mic         microphone + push-to-talk settings (tab Client Character; audio/mic_settings.py)
@@ -76,6 +76,10 @@ KEY_WARNING_TEXT = (
 DEFAULTS: dict[str, dict[str, Any]] = {
     "connection": {
         "active": True,
+        # Loopback socket to the plugin (version 30). network_active = the plugin toggle "Network Active" (mirrored);
+        # network_port = UDP port on 127.0.0.1 where this app listens (0 = no listener, files only).
+        "network_active": True,
+        "network_port": 38437,
         "paths": {
             "expressions": "Saves/PluginData/AIBody/expressions.json",
             "gestures": "Saves/PluginData/AIBody/gestures.json",
@@ -207,6 +211,7 @@ DEFAULTS: dict[str, dict[str, Any]] = {
 }
 
 RANGES: dict[tuple[str, str], tuple[float, float]] = {
+    ("connection", "network_port"): (0, 65535),
     ("body", "speech_volume"): (0.0, 1.0),
     ("body", "idle_intensity"): (0.0, 1.0),
     ("body", "breaths_per_minute"): (4.0, 40.0),
@@ -450,6 +455,7 @@ def apply_to_config(cfg: Any) -> list[str]:
     data, errors = load(path)
     if data is None:
         return errors
+    cfg.network_port = int(data["connection"]["network_port"])
     cfg.mic = dict(data["mic"])
     cfg.audio_folder = data["connection"]["paths"]["audio"].strip("/")
     for kind in ("stt", "llm", "tts"):

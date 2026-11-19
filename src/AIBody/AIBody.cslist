@@ -4,6 +4,8 @@ Protocol.cs
 UiHelper.cs
 ITransport.cs
 FileTransport.cs
+SocketLink.cs
+NetworkTransport.cs
 MicConfig.cs
 AppLink.cs
 MorphHelper.cs

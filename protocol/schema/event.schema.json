@@ -93,6 +93,7 @@
     "transport": {
       "enum": [
         "file",
+        "socket",
         "none"
       ]
     },

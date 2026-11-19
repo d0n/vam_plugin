@@ -1,8 +1,10 @@
 {
   "version": 1,
-  "written_by": "AIBody companion app 29 (example)",
+  "written_by": "AIBody companion app 30 (example)",
   "connection": {
     "active": true,
+    "network_active": true,
+    "network_port": 38437,
     "paths": {
       "expressions": "Saves/PluginData/AIBody/expressions.json",
       "gestures": "Saves/PluginData/AIBody/gestures.json",
