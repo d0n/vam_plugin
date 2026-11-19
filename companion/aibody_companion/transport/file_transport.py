@@ -10,13 +10,13 @@ from __future__ import annotations
 import itertools
 import json
 import logging
-import os
 import threading
 import time
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+from ..atomicfile import atomic_write_text
 from .base import Transport
 
 log = logging.getLogger(__name__)
@@ -53,7 +53,8 @@ class FileTransport(Transport):
         for d in (self.inbox, self.outbox, self.audio_dir):
             d.mkdir(parents=True, exist_ok=True)
         # Leftovers from a previous session must not be replayed (old speech, old events).
-        stale = [*self.inbox.glob("*.json"), *self.inbox.glob("*.tmp"), *self.outbox.glob("*.json")]
+        stale = [*self.inbox.glob("*.json"), *self.inbox.glob("*.tmp"), *self.inbox.glob("*.part"),
+                 *self.outbox.glob("*.json")]
         for path in stale:
             path.unlink(missing_ok=True)
 
@@ -64,9 +65,8 @@ class FileTransport(Transport):
         with self._lock:
             # Zero padded ns timestamp + sequence keeps ordinal sort == send order.
             name = f"{time.time_ns():020d}_{next(self._seq):06d}"
-            tmp = self.inbox / f"{name}.tmp"
-            tmp.write_text(json.dumps(command), encoding="utf-8")
-            os.replace(tmp, self.inbox / f"{name}.json")
+            # The command appears under its final name only when complete (temp name, fsync, replace).
+            atomic_write_text(self.inbox / f"{name}.json", json.dumps(command))
 
     def drop_stale_commands(self, now: float | None = None) -> int:
         """Deletes our own inbox files older than COMMAND_TTL_S. Returns how many."""

@@ -30,7 +30,6 @@ from __future__ import annotations
 import json
 import logging
 import queue
-import shutil
 import threading
 import time
 import uuid
@@ -40,6 +39,7 @@ from pathlib import Path
 from typing import Any
 
 from . import __version__, body_tools, logsetup, protocol
+from .atomicfile import atomic_copy
 from .audio import (
     EchoGate,
     InputProcessor,
@@ -1069,7 +1069,7 @@ class Companion:
         new_path = self.cfg.audio_abs_path(f"{new_id}.wav")
         try:
             new_path.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(path, new_path)
+            atomic_copy(path, new_path)  # complete under its final name before the speak command follows
         except OSError as e:
             log.warning("Audio: could not copy the speech file %s to %s: %s - check that the folder is writable and the disk is not full", path, new_path, e)
             return

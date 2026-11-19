@@ -36,6 +36,10 @@ namespace AIBody
             public bool Queued;              // handed to URLAudioClipManager
             public NamedAudioClip Clip;      // remove from URLAudioClipManager when done
             public string Error;
+            public string ShortError;        // short wording sent to the companion app (audio_failed)
+            public bool WaitingForFile;      // the file was not visible yet when speak arrived: re-checked every frame batch
+            public float WaitTime;           // seconds spent waiting for the file
+            public float CheckTimer;         // time since the last FileExists check
             public bool Started;
             public AudioClip PreviousClip;   // what the head audio held before our PlayNow
             public AudioClip StartedClip;    // what it plays once our clip started
@@ -58,6 +62,8 @@ namespace AIBody
         /// <summary>PlayNow is called again at this interval until the clip plays (it may still be loading).</summary>
         public float RetryInterval = 1f;
         public int PrefetchCount = 2;
+        /// <summary>While a speech file is not visible yet, FileExists is asked again at this interval (no sleeping).</summary>
+        public float FileCheckInterval = 0.25f;
 
         /// <summary>(utteranceId, clipLengthSeconds)</summary>
         public Action<string, float> OnStarted;
@@ -173,14 +179,14 @@ namespace AIBody
                 try { missing = !FileManagerSecure.FileExists(path); }
                 catch (Exception e) { Log.Debug("FileExists(" + path + ") failed: " + e.Message + " – loading anyway"); }
             }
-            if (missing)
-            {
-                SetError("Audio file not found: " + path + ". The companion app writes speech files into the VaM folder it was started with: make sure its --vam-root is the VaM folder you start VaM from.");
-                return "audio file not found: " + path + " (check the companion app's --vam-root)";
-            }
+            // The companion app writes the WAV completely (temp name, fsync, rename) BEFORE it writes the
+            // speak command, so a visible command normally means a ready file. If the file is not visible
+            // yet anyway (slow disk, another VaM folder), the utterance stays queued and Update asks again
+            // each time FileCheckInterval has passed; an error comes only after StartTimeout.
             if (interrupt) StopAll("interrupted");
-            _queue.Add(new Utterance { Id = id, Path = path });
-            if (_current == null) Status = "Loading: " + FileName(path);
+            _queue.Add(new Utterance { Id = id, Path = path, WaitingForFile = missing });
+            if (missing) Log.Debug("Audio file not visible yet, waiting for it: " + path);
+            if (_current == null) Status = (missing ? "Waiting for file: " : "Loading: ") + FileName(path);
             return null;
         }
 
@@ -210,7 +216,10 @@ namespace AIBody
             int limit = Math.Min(_queue.Count, Math.Max(1, PrefetchCount));
             for (int i = 0; i < limit; i++)
             {
-                if (!_queue[i].Queued) Queue(_queue[i]);
+                Utterance u = _queue[i];
+                if (u.Queued) continue;
+                if (u.WaitingForFile && !FileReady(u, deltaTime)) continue;
+                Queue(u);
             }
 
             if (_current != null) Track(deltaTime);
@@ -222,11 +231,37 @@ namespace AIBody
                 if (next.Clip == null)
                 {
                     SetError((next.Error ?? "VaM could not load the audio file") + " File: " + next.Path);
-                    Fire(OnError, next.Id, next.Error ?? "VaM could not load the audio file");
+                    Fire(OnError, next.Id, next.ShortError ?? next.Error ?? "VaM could not load the audio file");
                     Fire(OnEnded, next.Id, "failed");
                 }
                 else Play(next);
             }
+        }
+
+        /// <summary>
+        /// Readiness signal for a speech file that was not visible when speak arrived: asks FileExists
+        /// (E10) again each FileCheckInterval, driven by Update (no sleeping). After StartTimeout the
+        /// utterance fails with a clear message (it is marked queued with an error, which the normal
+        /// failure path reports). Returns true once the file can be loaded.
+        /// </summary>
+        private bool FileReady(Utterance u, float deltaTime)
+        {
+            u.WaitTime += deltaTime;
+            u.CheckTimer += deltaTime;
+            if (u.CheckTimer >= FileCheckInterval)
+            {
+                u.CheckTimer = 0f;
+                try { if (FileManagerSecure.FileExists(u.Path)) { u.WaitingForFile = false; return true; } }
+                catch (Exception e) { Log.Debug("FileExists(" + u.Path + ") failed: " + e.Message + " - loading anyway"); u.WaitingForFile = false; return true; }
+            }
+            if (u.WaitTime > StartTimeout)
+            {
+                u.Queued = true;
+                u.Error = "Audio file not found after waiting " + StartTimeout.ToString("0") + " s. The companion app writes speech files into "
+                    + "the VaM folder it was started with: make sure its --vam-root is the VaM folder you start VaM from.";
+                u.ShortError = "audio file not found after " + StartTimeout.ToString("0") + " s: " + u.Path;
+            }
+            return false;
         }
 
         private void Queue(Utterance u)
@@ -282,7 +317,8 @@ namespace AIBody
                 {
                     SetError("The audio did not start playing within " + StartTimeout.ToString("0") + " s (" + u.Plays
                         + " tries): " + u.Path + ". VaM loaded the file but never played it. Check that it is a valid WAV, that "
-                        + "the character's head audio is not muted or blocked, and that Speech volume (tab AI Character) is above 0.");
+                        + "the character's head audio is not muted or blocked, and that Speech volume (tab AI Character) is above 0. "
+                        + "(Head audio at that moment: playing=" + _audio.isPlaying + ", clip=" + (clip != null ? clip.length.ToString("0.0") + " s long" : "none") + ".)");
                     Fire(OnError, u.Id, "did not start playing within " + StartTimeout.ToString("0") + " s: " + u.Path);
                     Finish("failed");
                     return;

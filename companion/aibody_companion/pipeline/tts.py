@@ -15,6 +15,8 @@ import wave
 from pathlib import Path
 from typing import Protocol
 
+from ..atomicfile import atomic_write_bytes
+
 
 class TextToSpeech(Protocol):
     def synthesize(self, text: str, out_path: Path) -> float:
@@ -50,14 +52,13 @@ def write_pcm_wav(pcm16: bytes, sample_rate: int, out_path: Path, channels: int 
         pcm16 = pcm16[: len(pcm16) - len(pcm16) % (2 * channels)]
     if not pcm16:
         raise ValueError("no audio data")
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = out_path.with_suffix(".part")
-    with wave.open(str(tmp), "wb") as w:
+    buf = io.BytesIO()
+    with wave.open(buf, "wb") as w:
         w.setnchannels(channels)
         w.setsampwidth(2)
         w.setframerate(sample_rate)
         w.writeframes(pcm16)
-    tmp.replace(out_path)
+    atomic_write_bytes(out_path, buf.getvalue())  # temp name, fsync, replace: complete or absent
     LAST_WRITE_S["s"] = time.perf_counter() - started
     return len(pcm16) / (2 * channels) / float(sample_rate)
 
@@ -66,10 +67,7 @@ def write_audio(data: bytes, sample_rate: int, out_path: Path) -> float:
     """Writes a TTS answer: a complete WAV (starts with RIFF) as is, else raw 16-bit PCM."""
     if data[:4] == b"RIFF":
         started = time.perf_counter()
-        out_path.parent.mkdir(parents=True, exist_ok=True)
-        tmp = out_path.with_suffix(".part")
-        tmp.write_bytes(data)
-        tmp.replace(out_path)
+        atomic_write_bytes(out_path, data)
         LAST_WRITE_S["s"] = time.perf_counter() - started
         return wav_duration(out_path)
     return write_pcm_wav(data, sample_rate, out_path)
@@ -105,10 +103,11 @@ class ToneTts:
             envelope = 0.5 + 0.5 * math.sin(2 * math.pi * 4 * t)
             sample = 0.25 * envelope * math.sin(2 * math.pi * (180 + 40 * math.sin(2 * math.pi * 3 * t)) * t)
             frames += struct.pack("<h", int(sample * 32767))
-        out_path.parent.mkdir(parents=True, exist_ok=True)
-        with wave.open(str(out_path), "wb") as w:
+        buf = io.BytesIO()
+        with wave.open(buf, "wb") as w:
             w.setnchannels(1)
             w.setsampwidth(2)
             w.setframerate(self.sample_rate)
             w.writeframes(bytes(frames))
+        atomic_write_bytes(out_path, buf.getvalue())  # was written in place: a reader could see half a file
         return duration

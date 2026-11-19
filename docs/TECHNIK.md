@@ -236,6 +236,24 @@ there (the plugin reports the clip as failed), the app switches once to
 `Saves/PluginData/AIBody/<channel>/audio/`, sends the same speech again from there and shows a red
 note in the status box. A fixed `connection.paths.audio` in `config.json` turns the switch off.
 
+**Hand-over of a speech file (no race):**
+
+1. The companion writes the WAV to a temporary name in the same folder (`.<file>.<pid>.<n>.part`),
+   flushes and fsyncs it, closes it and renames it with `os.replace` (atomic on Windows and POSIX)
+   to its final name (`atomicfile.py`; used by `write_pcm_wav`, `write_audio`, `ToneTts` and the
+   copy for the audio-folder switch).
+2. Only then the `speak` command file goes into the inbox the same way. The plugin starts loading
+   after it has read the command, so the existence of the command file is the signal that the WAV
+   is complete. Before 19.11.2026 `ToneTts` (the offline / fallback engine) wrote its WAV in place
+   and the folder-switch copy was a plain `copyfile`; both are atomic now.
+3. Plugin: `SpeechPlayer.Enqueue` checks `FileManagerSecure.FileExists` (E10). If the file is not
+   visible yet it stays queued ("Waiting for file: ...") and `Update` asks again every 0.25 s
+   (event-driven, no sleeping); after the 15 s start timeout it fails with a clear message and the
+   companion's `audio_failed` handling (folder switch) takes over. A size / RIFF-header check is
+   not possible: no evidenced API reads binary files (`ReadAllBytes` / file size are not in
+   `API_AUDIT.md`), and `ReadAllText` would corrupt the bytes. There is no `audio_loaded` event:
+   `speech_started` already tells the companion (and the echo gate) when the sound really plays.
+
 All settings are saved with the scene and mirrored to the shared config file
 `<VaM>/Saves/PluginData/AIBody/config.json` (one object per tab; see [docs/CONFIG.md](CONFIG.md)).
 The companion app reads it on start. A scene without saved AIBody settings takes its values from

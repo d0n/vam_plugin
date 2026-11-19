@@ -235,8 +235,18 @@ The companion writes each TTS clip to `Custom/Sounds/AIBody/<channel>/` (so it n
 - If the plugin reports `error` with `code` `audio_failed` for one of these clips (VaM could not
   load or start it) and the folder is automatic, the companion switches once to
   `Saves/PluginData/AIBody/<channel>/audio/`, copies the WAV there and sends a new `speak` for it;
-  later clips go to the new folder (heartbeat `audio_out`). `command_failed` (file missing, no head
-  audio) does not switch.
+  later clips go to the new folder (heartbeat `audio_out`). `command_failed` (no head audio) does not
+  switch. A WAV that is still not visible to the plugin when `speak` arrives (normally it is) is
+  re-checked by the plugin until the 15 s start timeout, then reported as `audio_failed`
+  (`audio file not found after 15 s: <path>`) like any other load failure.
+
+**Hand-over order (the signal):** the WAV is written completely and made visible first (temp
+name `.<file>.<pid>.<n>.part` in the same folder, flush + fsync, close, `os.replace` to the final
+name; the `audio_failed` copy the same way), and only then the `speak` command file is written the
+same way into the inbox (temp name, fsync, replace). The command file's existence is therefore the
+"WAV ready" signal; the plugin starts loading only after it read the command. No delays, no
+guessed wait times. There is no extra `audio_loaded` event: the plugin's `speech_started` /
+`speech_ended` already tell the companion (and the echo gate) when the sound really plays.
 
 The plugin keeps an ordered queue (`queue: append`, default) and prefetches the next two
 clips while one plays. `queue: interrupt` stops the current clip (`speech_ended` reason

@@ -337,3 +337,13 @@ from `Exception.ToString()`, not from reflection. The only additions outside the
 - Old scenes that saved "Mic device" simply have a stored value no storable reads any more (VaM
   skips unknown stored parameters of a plugin). TODO(verify): loading such a scene in VaM shows no
   error in the log.
+
+## After version 22 (19.11.2026): speech file hand-over
+
+- No new VaM API. `SpeechPlayer` calls the audited `FileManagerSecure.FileExists` (E10) repeatedly
+  (every 0.25 s from `Update`) for a speech file that is not visible when `speak` arrives, instead of
+  failing at once (this refines the "File check before loading" note above). A WAV size / RIFF-header
+  check was considered and NOT implemented: `ReadAllBytes` and file-size calls have no evidence here,
+  and `ReadAllText` would alter binary data. The timeout diagnostics read `AudioSource.isPlaying` and
+  `AudioClip.length` (already used). No `foreach` over Dictionary `.Keys`/`.Values`, no network, no
+  threads or sleeps.
