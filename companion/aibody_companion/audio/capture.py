@@ -1,6 +1,6 @@
 """Microphone capture from the system default input device (no device selection since the version
 after 22: on Windows the default device is what the user means). Optional dependency: `sounddevice`
-(pip install sounddevice). Everything degrades to a clear error without it. list_input_devices()
+(python -m pip install sounddevice). Everything degrades to a clear error without it. list_input_devices()
 only serves the diagnostics (`--list-devices`, tools/mic_test.py).
 """
 from __future__ import annotations
@@ -82,7 +82,7 @@ def list_input_devices() -> tuple[list[dict[str, Any]], str | None]:
     """Returns ([{"name", "index", "default", "channels", "sample_rate", "hostapi"}], error)."""
     sd = _sounddevice()
     if sd is None:
-        return [], "sounddevice is not installed (the Python package the microphone needs): run 'pip install sounddevice', then restart this app. Typing into this console still works"
+        return [], "sounddevice is not installed (the Python package the microphone needs): run 'python -m pip install sounddevice', then restart this app. Typing into this console still works"
     try:
         devices = _input_devices(sd)
     except Exception as e:  # noqa: BLE001 - PortAudio raises various errors
@@ -104,7 +104,7 @@ class MicCapture:
     def start(self) -> None:
         sd = _sounddevice()
         if sd is None:
-            raise RuntimeError("The microphone needs the Python package 'sounddevice' (not installed): run 'pip install sounddevice', then restart this app")
+            raise RuntimeError("The microphone needs the Python package 'sounddevice' (not installed): run 'python -m pip install sounddevice', then restart this app")
 
         def callback(indata, frames, time_info, status):  # noqa: ANN001
             if status:
