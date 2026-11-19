@@ -6,12 +6,18 @@ back in `config_ack`.
 """
 from __future__ import annotations
 
+import logging
 from dataclasses import asdict, dataclass, fields, replace
 from typing import Any
 
 from ..vamjson import as_bool, as_number
 
+log = logging.getLogger(__name__)
+
 MODES = ("vad", "ptt")
+
+# Settings that no longer exist; old scenes / config.json files may still carry them. Ignored silently.
+RETIRED = ("device",)  # input device name: the system default input is always used
 
 # field -> (min, max) for numeric settings
 LIMITS: dict[str, tuple[float, float]] = {
@@ -28,7 +34,6 @@ LIMITS: dict[str, tuple[float, float]] = {
 class MicSettings:
     enabled: bool = True
     mode: str = "vad"  # "vad" (voice activation) or "ptt" (push-to-talk)
-    device: str = ""  # input device name, "" = system default
     vad_threshold: float = 0.01  # RMS 0..1 above which a frame counts as speech
     end_silence_ms: int = 700  # silence that ends an utterance
     min_utterance_ms: int = 300  # shorter utterances are dropped
@@ -50,6 +55,9 @@ def apply_mic_config(current: MicSettings, data: Any) -> tuple[MicSettings, list
     types = {f.name: f.type for f in fields(MicSettings)}
     changes: dict[str, Any] = {}
     for key, value in data.items():
+        if key in RETIRED:
+            log.debug("mic setting %r is retired (the system default input is always used) - ignored", key)
+            continue
         if key not in types:
             errors.append(f"unknown mic setting {key!r}")
             continue

@@ -24,7 +24,6 @@ namespace AIBody
         public const string CmdIdle = "idle";
         public const string CmdBreathing = "breathing";
         public const string CmdConfigAck = "config_ack";
-        public const string CmdDevices = "devices";
         public const string CmdMicState = "mic_state";
         public const string CmdMicLevel = "mic_level";
         public const string CmdCompanionHeartbeat = "companion_heartbeat";
@@ -41,7 +40,6 @@ namespace AIBody
         public const string EvtShutdown = "shutdown";
         public const string EvtConfig = "config";
         public const string EvtPtt = "ptt";
-        public const string EvtListDevices = "list_devices";
         public const string EvtTestTone = "test_tone";
         public const string EvtReconnect = "reconnect";
 

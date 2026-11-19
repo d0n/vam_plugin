@@ -871,9 +871,6 @@ namespace AIBody
                 case Protocol.CmdConfigAck:
                     if (_mic != null) _mic.HandleConfigAck(msg);
                     break;
-                case Protocol.CmdDevices:
-                    if (_mic != null) _mic.HandleDevices(msg);
-                    break;
                 case Protocol.CmdMicState:
                     if (_mic != null) _mic.HandleMicState(msg);
                     break;

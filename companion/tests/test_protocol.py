@@ -68,7 +68,8 @@ class ProtocolTests(unittest.TestCase):
         self.assertFalse(protocol.validate_command({"type": "speak", "audio": "a.wav", "queue": "interrupt"}))
 
     def test_mic_feedback_commands(self):
-        self.assertTrue(protocol.validate_command({"type": "devices", "devices": "x"}))
+        self.assertTrue(protocol.validate_command({"type": "devices", "devices": []}), "no device list any more")
+        self.assertNotIn("list_devices", protocol.EVENTS)
         self.assertTrue(protocol.validate_command({"type": "mic_state", "enabled": True}))
         self.assertFalse(protocol.validate_command({"type": "mic_level", "rms": 0.1, "speech": False}))
 

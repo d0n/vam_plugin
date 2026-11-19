@@ -35,8 +35,7 @@ COMMANDS: dict[str, tuple[set[str], set[str]]] = {
     "breathing": (set(), {"enabled", "rate", "depth"}),
     # replies / feedback for the plugin's microphone menu
     "config_ack": (set(), {"reply_to", "applied", "errors", "mic_state"}),
-    "devices": ({"devices"}, {"error", "reply_to"}),
-    "mic_state": ({"enabled", "capturing"}, {"device", "mode", "ptt_active", "error"}),
+    "mic_state": ({"enabled", "capturing"}, {"mode", "ptt_active", "error"}),
     "mic_level": ({"rms"}, {"speech", "gate_open"}),
     # liveness + identity of the companion app (lets the plugin detect restarts over files)
     # engines_status: kind -> engine -> "ready" / "not configured: ..."; engines_active: kind -> engine
@@ -59,11 +58,13 @@ SPEAK_QUEUE_MODES = ("append", "interrupt")
 
 ENVELOPE_FIELDS = {"v", "type", "id", "ts", "ack"}
 
+# Events of older plugins (before the version without microphone selection): dropped silently.
+RETIRED_EVENTS = {"list_devices"}
+
 # Messages plugin -> companion ("events").
 EVENTS = {
     "config",
     "ptt",
-    "list_devices",
     "test_tone",
     "reconnect",
     "ready",
@@ -121,8 +122,6 @@ def validate_command(msg: Any) -> list[str]:
             errors.append("speak: 'audio' must be a non-empty path")
         if msg.get("queue", "append") not in SPEAK_QUEUE_MODES:
             errors.append(f"speak: queue must be one of {SPEAK_QUEUE_MODES}")
-    if type_ == "devices" and not isinstance(msg.get("devices"), list):
-        errors.append("devices: 'devices' must be a list")
     if type_ == "pose" and not (msg.get("path") or msg.get("name")):
         errors.append("pose: needs 'path' or 'name'")
     if type_ == "trigger" and not (msg.get("action") or msg.get("param")):

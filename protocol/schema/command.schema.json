@@ -24,7 +24,6 @@
         "idle",
         "breathing",
         "config_ack",
-        "devices",
         "mic_state",
         "mic_level",
         "companion_heartbeat"
@@ -152,43 +151,11 @@
       "type": "object",
       "description": "config_ack: same fields as a mic_state message"
     },
-    "devices": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "required": [
-          "name"
-        ],
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "index": {
-            "type": "integer"
-          },
-          "default": {
-            "type": "boolean"
-          },
-          "channels": {
-            "type": "integer"
-          },
-          "sample_rate": {
-            "type": [
-              "number",
-              "null"
-            ]
-          }
-        }
-      }
-    },
     "error": {
       "type": "string"
     },
     "capturing": {
       "type": "boolean"
-    },
-    "device": {
-      "type": "string"
     },
     "mode": {
       "type": "object",
@@ -438,20 +405,6 @@
               "value"
             ]
           }
-        ]
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "type": {
-            "const": "devices"
-          }
-        }
-      },
-      "then": {
-        "required": [
-          "devices"
         ]
       }
     },

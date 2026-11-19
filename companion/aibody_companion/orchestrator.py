@@ -46,7 +46,6 @@ from .audio import (
     MicController,
     MicSettings,
     apply_mic_config,
-    list_input_devices,
 )
 from .config import ENGINES_AVAILABLE, Config
 from .latency import LatencyStats, LatencyTrace, describe
@@ -139,7 +138,6 @@ class Companion:
         tts: TextToSpeech | None = None,
         gate: EchoGate | None = None,
         mic: MicController | None = None,
-        device_lister: Callable[[], tuple[list[dict[str, Any]], str | None]] = list_input_devices,
         clock: Callable[[], float] = time.monotonic,
         engines: EngineSet | None = None,
         background_turns: bool = False,
@@ -163,7 +161,6 @@ class Companion:
         self.gate = gate or EchoGate(tail_s=settings.echo_tail_s)
         self.input = InputProcessor(settings, self.gate, config.sample_rate, config.frame_ms)
         self.mic = mic  # None = no microphone (text only)
-        self._list_devices = device_lister
         self.latency = LatencyStats()  # end of speech -> first sound, last value + rolling average
         self.history: list[dict[str, str]] = []
         self.body_info: dict[str, Any] = {}  # last ready/heartbeat from the AIBody plugin
@@ -439,6 +436,9 @@ class Companion:
     def process_events(self) -> list[dict[str, Any]]:
         events = self.transport.poll_events()
         for event in events:
+            if isinstance(event, dict) and event.get("type") in protocol.RETIRED_EVENTS:
+                log.debug("event %r is retired (no microphone selection) - ignored", event.get("type"))
+                continue
             protocol.register_event_secrets(event)
             problems = protocol.validate_event(event)
             if problems:
@@ -454,15 +454,12 @@ class Companion:
                     log.info("AIBody plugin ready on %r: plugin=%s channel=%s", event.get("atom"),
                              event.get("plugin_version"), event.get("channel"))
                     self._last_mic_state = None  # make sure the plugin gets a fresh mic_state
-                    self.send_devices()  # version 20: the list also without a (lost) list_devices request
                 self.body_info = event
                 self._log_selftest(event.get("selftest"))
             elif type_ == "config":
                 self.handle_config(event)
             elif type_ == "ptt":
                 self.handle_ptt(bool(as_bool(event.get("active"))))
-            elif type_ == "list_devices":
-                self.send_devices(event.get("id"))
             elif type_ == "test_tone":
                 self.play_test_tone()
             elif type_ == "reconnect":
@@ -675,23 +672,12 @@ class Companion:
         if utterance:
             self.handle_utterance(utterance)
 
-    def send_devices(self, reply_to: str | None = None) -> None:
-        devices, error = self._list_devices()
-        if error:
-            log.warning("Microphones: no list for the plugin - %s", error)
-        else:
-            log.info("Microphones: %d found%s: %s", len(devices),
-                     f" ({devices[0].get('hostapi')})" if devices and devices[0].get("hostapi") else "",
-                     ", ".join(str(d.get("name")) for d in devices))
-        self.send(protocol.make_command("devices", devices=devices, error=error, reply_to=reply_to))
-
     def mic_state(self) -> dict[str, Any]:
         s = self.mic_settings
         error = self.mic.error if self.mic else "no microphone in this mode (text input only)"
         state = {
             "enabled": s.enabled,
             "capturing": bool(self.mic and self.mic.capturing),
-            "device": s.device,
             "mode": s.mode,
             "ptt_active": self.input.ptt_active,
         }

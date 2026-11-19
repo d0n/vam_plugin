@@ -85,9 +85,7 @@ class CompanionFilePluginTests(unittest.TestCase):
         self.cfg = Config(vam_root=self.tmp.name, channel="Person")
         self.t = FileTransport(self.cfg.channel_dir)
         self.t.start()
-        self.devices = [{"name": "USB Mic", "index": 1, "default": True}]
-        self.c = Companion(self.cfg, self.t, NullStt(), EchoLlm(), ToneTts(),
-                           device_lister=lambda: (self.devices, None))
+        self.c = Companion(self.cfg, self.t, NullStt(), EchoLlm(), ToneTts())
         self.plugin = FakePlugin(self.cfg.channel_dir)
         self.plugin.send({"type": "ready", "plugin_version": "test", "protocol": 3})
         self.c.tick()
@@ -126,33 +124,23 @@ class CompanionFilePluginTests(unittest.TestCase):
         self.assertEqual(len(ack["errors"]), 1)
         self.assertEqual(ack["mic_state"]["capturing"], False)
 
-    def test_list_devices(self):
-        self.plugin.send({"type": "list_devices"})
-        self.c.tick()
-        msg = [m for m in self.plugin.poll() if m["type"] == "devices"][0]
-        self.assertEqual(msg["devices"][0]["name"], "USB Mic")
-
-    def test_ready_brings_the_device_list_without_a_request(self):
-        """Version 20: a list_devices written before the companion started is cleared with its folders;
-        the plugin's ready (sent on every new companion session) brings the list anyway."""
-        self.plugin.send({"type": "ready", "plugin_version": "test", "protocol": 3})
-        self.c.tick()
-        msg = [m for m in self.plugin.poll() if m["type"] == "devices"][0]
-        self.assertEqual(msg["devices"][0]["name"], "USB Mic")
-
-    def test_device_list_error_reaches_the_plugin_and_choice_is_applied(self):
-        self.devices = []
-        self.c._list_devices = lambda: ([], "sounddevice is not installed (pip install sounddevice)")
-        self.plugin.send({"type": "list_devices"})
-        self.c.tick()
-        msg = [m for m in self.plugin.poll() if m["type"] == "devices"][0]
-        self.assertEqual(msg["devices"], [])
-        self.assertIn("sounddevice", msg["error"], "the plugin shows why the list is empty")
-        self.plugin.send({"type": "config", "mic": {"device": "USB Mic"}})
-        self.c.tick()
-        self.assertEqual(self.c.mic_settings.device, "USB Mic")
+    def test_no_device_list_and_retired_messages_are_ignored_quietly(self):
+        """After the removal of the microphone selection: nothing answers an old plugin's list_devices,
+        the plugin's ready brings no list, and an old "device" key in a config event is no error."""
+        self.plugin.send({"type": "ready", "plugin_version": "test", "protocol": 3},
+                         {"type": "list_devices"})
+        with self.assertNoLogs("aibody_companion", level="WARNING"):
+            self.c.tick()
+        self.assertNotIn("devices", [m["type"] for m in self.plugin.poll()])
+        self.plugin.send({"type": "config", "mic": {"device": "USB Mic", "gain": 2.0}})
+        with self.assertNoLogs("aibody_companion", level="WARNING"):
+            self.c.tick()
+        self.assertEqual(self.c.mic_settings.gain, 2.0)
+        self.assertFalse(hasattr(self.c.mic_settings, "device"))
         ack = [m for m in self.plugin.poll() if m["type"] == "config_ack"][0]
-        self.assertEqual(ack["applied"]["mic"]["device"], "USB Mic")
+        self.assertEqual(ack["errors"], [])
+        self.assertNotIn("device", ack["applied"]["mic"])
+        self.assertNotIn("device", ack["mic_state"])
 
     def test_ptt_press_interrupts_speech(self):
         self.plugin.send({"type": "config", "mic": {"mode": "ptt", "ptt_interrupts": True}})
@@ -166,8 +154,7 @@ class CompanionFilePluginTests(unittest.TestCase):
         self.assertTrue(self.c.input.ptt_active)
 
     def test_mic_state_sent_once_when_connected(self):
-        fresh = Companion(self.cfg, self.t, NullStt(), EchoLlm(), ToneTts(),
-                          device_lister=lambda: (self.devices, None))
+        fresh = Companion(self.cfg, self.t, NullStt(), EchoLlm(), ToneTts())
         fresh.tick()
         states = [m for m in self.plugin.poll() if m["type"] == "mic_state"]
         self.assertEqual(len(states), 1)

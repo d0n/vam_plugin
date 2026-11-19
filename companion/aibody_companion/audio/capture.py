@@ -1,5 +1,7 @@
-"""Microphone capture and device management. Optional dependency: `sounddevice`
-(pip install sounddevice). Everything degrades to a clear error without it.
+"""Microphone capture from the system default input device (no device selection since the version
+after 22: on Windows the default device is what the user means). Optional dependency: `sounddevice`
+(pip install sounddevice). Everything degrades to a clear error without it. list_input_devices()
+only serves the diagnostics (`--list-devices`, tools/mic_test.py).
 """
 from __future__ import annotations
 
@@ -32,12 +34,11 @@ def _default_input(sd: Any) -> int:
 
 
 def _input_devices(sd: Any) -> list[dict[str, Any]]:
-    """Input devices of ONE host API, one entry per name.
+    """Input devices of ONE host API, one entry per name (diagnostics only).
 
     PortAudio lists every microphone once per Windows host API (MME, DirectSound, WASAPI, WDM-KS;
-    MME cuts names to 31 characters). The plugin menu shows names, and sounddevice refuses a
-    name that matches several devices ("Multiple input devices found"), so only the host API of
-    the default input device is listed (the one Windows itself uses), each name once."""
+    MME cuts names to 31 characters), so only the host API of the default input device is listed
+    (the one Windows itself uses), each name once."""
     devices = list(sd.query_devices())
     try:
         apis = list(sd.query_hostapis())
@@ -91,31 +92,12 @@ def list_input_devices() -> tuple[list[dict[str, Any]], str | None]:
     return devices, None
 
 
-def resolve_input_device(sd: Any, device: int | str | None) -> int | str | None:
-    """A device name from the plugin menu -> its index in the listed host API (exact name first),
-    so a name that exists under several host APIs still opens. Unknown names are passed on
-    (sounddevice then matches a part of the name or reports the error)."""
-    if device is None or isinstance(device, int) or device == "":
-        return device or None
-    try:
-        for d in _input_devices(sd):
-            if d["name"] == device:
-                return int(d["index"])
-        for d in _input_devices(sd):
-            if d["name"].lower() == str(device).lower():
-                return int(d["index"])
-    except Exception:  # noqa: BLE001 - fall back to the name
-        pass
-    return device
-
-
 class MicCapture:
     """Delivers fixed size 16-bit mono frames from the audio callback thread via a queue."""
 
-    def __init__(self, sample_rate: int = 16000, frame_ms: int = 30, device: int | str | None = None):
+    def __init__(self, sample_rate: int = 16000, frame_ms: int = 30):
         self.sample_rate = sample_rate
         self.frame_samples = sample_rate * frame_ms // 1000
-        self.device = device
         self._queue: queue.Queue[bytes] = queue.Queue(maxsize=200)
         self._stream = None
 
@@ -132,17 +114,16 @@ class MicCapture:
             except queue.Full:
                 log.warning("mic queue full, dropping a frame (processing too slow)")
 
-        device = resolve_input_device(sd, self.device)
         self._stream = sd.RawInputStream(
             samplerate=self.sample_rate,
             blocksize=self.frame_samples,
             channels=1,
             dtype="int16",
-            device=device,
+            device=None,  # always the sounddevice default input
             callback=callback,
         )
         self._stream.start()
-        log.info("Microphone started (%d Hz, device=%s)", self.sample_rate, self.device or "default")
+        log.info("Microphone started (%d Hz, system default input)", self.sample_rate)
 
     def stop(self) -> None:
         if self._stream is not None:
@@ -160,19 +141,18 @@ class MicCapture:
 
 
 class MicController:
-    """Starts, stops and re-opens the capture stream to match MicSettings (enabled, device)."""
+    """Starts and stops the capture stream to match MicSettings (enabled)."""
 
     def __init__(
         self,
         sample_rate: int = 16000,
         frame_ms: int = 30,
-        capture_factory: Callable[[int, int, str | None], Any] | None = None,
+        capture_factory: Callable[[int, int], Any] | None = None,
     ):
         self.sample_rate = sample_rate
         self.frame_ms = frame_ms
-        self._factory = capture_factory or (lambda rate, ms, dev: MicCapture(rate, ms, dev))
+        self._factory = capture_factory or (lambda rate, ms: MicCapture(rate, ms))
         self._capture: Any = None
-        self._device: str | None = None
         self.error: str | None = None
 
     @property
@@ -181,19 +161,17 @@ class MicController:
 
     def apply(self, settings: MicSettings, allowed: bool = True) -> None:
         want = settings.enabled and allowed
-        device = settings.device or None
-        if self._capture is not None and (not want or device != self._device):
+        if self._capture is not None and not want:
             self.stop()
         if want and self._capture is None:
             try:
-                capture = self._factory(self.sample_rate, self.frame_ms, device)
+                capture = self._factory(self.sample_rate, self.frame_ms)
                 capture.start()
-            except Exception as e:  # noqa: BLE001 - surface any device error to the plugin UI
+            except Exception as e:  # noqa: BLE001 - surface any capture error to the plugin UI
                 self.error = str(e)
                 log.error("Microphone could not start: %s", e)
                 return
             self._capture = capture
-            self._device = device
             self.error = None
         if not want:
             self.error = None

@@ -137,15 +137,16 @@ class InputProcessorTests(unittest.TestCase):
 class FakeCapture:
     instances = []
 
-    def __init__(self, rate, ms, device):
-        self.device = device
+    broken = False
+
+    def __init__(self, rate, ms):
         self.started = False
         self.stopped = False
         FakeCapture.instances.append(self)
 
     def start(self):
-        if self.device == "broken":
-            raise RuntimeError("device not found")
+        if FakeCapture.broken:
+            raise RuntimeError("no input device available")
         self.started = True
 
     def stop(self):
@@ -158,27 +159,62 @@ class FakeCapture:
 class MicControllerTests(unittest.TestCase):
     def setUp(self):
         FakeCapture.instances = []
+        FakeCapture.broken = False
         self.mic = MicController(capture_factory=FakeCapture)
 
-    def test_follows_enabled_and_device(self):
+    def test_follows_enabled(self):
         self.mic.apply(MicSettings(enabled=True))
         self.assertTrue(self.mic.capturing)
         self.mic.apply(MicSettings(enabled=True))  # unchanged: no restart
         self.assertEqual(len(FakeCapture.instances), 1)
-        self.mic.apply(MicSettings(enabled=True, device="USB"))
-        self.assertEqual(len(FakeCapture.instances), 2)
-        self.assertTrue(FakeCapture.instances[0].stopped)
-        self.assertEqual(FakeCapture.instances[1].device, "USB")
+        self.mic.apply(MicSettings(enabled=True, mode="ptt"))  # other settings never reopen the stream
+        self.assertEqual(len(FakeCapture.instances), 1)
         self.mic.apply(MicSettings(enabled=False))
         self.assertFalse(self.mic.capturing)
+        self.assertTrue(FakeCapture.instances[0].stopped)
 
     def test_error_is_reported(self):
-        self.mic.apply(MicSettings(enabled=True, device="broken"))
+        FakeCapture.broken = True
+        self.mic.apply(MicSettings(enabled=True))
         self.assertFalse(self.mic.capturing)
-        self.assertIn("device not found", self.mic.error)
+        self.assertIn("no input device available", self.mic.error)
+        FakeCapture.broken = False
+        self.mic.apply(MicSettings(enabled=False))
         self.mic.apply(MicSettings(enabled=True))
         self.assertTrue(self.mic.capturing)
         self.assertIsNone(self.mic.error)
+
+
+class RetiredDeviceSettingTests(unittest.TestCase):
+    """Version after 22: mic.device is gone; old scenes / config.json files may still carry it."""
+
+    def test_old_device_key_is_ignored_without_errors(self):
+        from aibody_companion import settings_file
+        from aibody_companion.audio import apply_mic_config
+
+        settings, errors = apply_mic_config(MicSettings(), {"device": "USB Mic", "gain": 2.0})
+        self.assertEqual(errors, [])
+        self.assertEqual(settings.gain, 2.0)
+        self.assertNotIn("device", settings.to_dict())
+        result, problems = settings_file.validate({"mic": {"device": "Headset", "mode": "ptt"}})
+        self.assertEqual(problems, [])
+        self.assertEqual(result["mic"]["mode"], "ptt")
+        self.assertNotIn("device", result["mic"])
+        self.assertNotIn("device", settings_file.defaults()["mic"])
+        _, errors = apply_mic_config(MicSettings(), {"bogus": 1})
+        self.assertTrue(errors, "genuinely unknown keys are still reported")
+
+    def test_schemas_and_example_have_no_device_setting(self):
+        import json
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parents[2]
+        for name in ("config.schema.json", "command.schema.json"):
+            self.assertNotIn('"devices"', (root / "protocol/schema" / name).read_text(encoding="utf-8"))
+        config_schema = json.loads((root / "protocol/schema/config.schema.json").read_text(encoding="utf-8"))
+        self.assertNotIn("device", json.dumps(config_schema["properties"]["mic"]))
+        self.assertNotIn('"device"', (root / "companion/config.example.json").read_text(encoding="utf-8"))
+        self.assertNotIn('"device"', (root / "examples/config.json").read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":
@@ -247,14 +283,12 @@ class DeviceListTests(unittest.TestCase):
         self.assertTrue(devices[0]["default"])
         self.assertEqual(devices[0]["hostapi"], "Windows WASAPI")
 
-    def test_chosen_name_opens_by_index(self):
-        mic = self.capture.MicCapture(device="Headset (Bluetooth)")
-        mic.start()
-        self.assertEqual(self.sd.opened, [5], "a name listed under several host APIs opens by index")
-        self.capture.MicCapture(device=None).start()
-        self.assertEqual(self.sd.opened[-1], None, "system default")
-        self.capture.MicCapture(device="USB Audio").start()
-        self.assertEqual(self.sd.opened[-1], "USB Audio", "unknown names go to sounddevice as they are")
+    def test_capture_always_opens_the_system_default_input(self):
+        self.capture.MicCapture().start()
+        self.assertEqual(self.sd.opened, [None], "device=None is the sounddevice default input")
+        with self.assertRaises(TypeError):
+            self.capture.MicCapture(device="Headset (Bluetooth)")  # no device selection any more
+        self.assertFalse(hasattr(self.capture, "resolve_input_device"))
 
     def test_errors_are_reported(self):
         self.sd.query_devices = lambda: []
@@ -328,16 +362,14 @@ class WindowsDeviceListTests(unittest.TestCase):
 
 
 class MicTestToolTests(unittest.TestCase):
-    """tools/mic_test.py: prints the lists and writes the plugin's "devices" message."""
+    """tools/mic_test.py: diagnostics only (what PortAudio reports); no plugin message any more."""
 
-    def test_writes_output_json_and_inbox_message(self):
+    def test_writes_the_output_file_only(self):
         import importlib.util
-        import json
         import tempfile
         from pathlib import Path
         from unittest import mock
 
-        from aibody_companion import protocol
         from aibody_companion.audio import capture
 
         root = Path(__file__).resolve().parents[2]
@@ -348,15 +380,11 @@ class MicTestToolTests(unittest.TestCase):
         sd.get_portaudio_version = lambda: (1, "PortAudio V19.7.0-fake")
         with tempfile.TemporaryDirectory() as tmp, mock.patch.object(capture, "_sounddevice", lambda: sd), \
                 mock.patch("builtins.print"):
-            rc = tool.main(["--vam-root", tmp, "--channel", "default"], out_dir=Path(tmp))
+            rc = tool.main([], out_dir=Path(tmp))
             self.assertEqual(rc, 0)
             text = (Path(tmp) / "mic_test_output.txt").read_text(encoding="utf-8")
             for section in ("== Host-APIs ==", "== All devices, raw (24) ==", "== Input devices per host API ==",
-                            "Windows WASAPI: 4", "List the companion app sends to the plugin (4)"):
+                            "Windows WASAPI: 4", "Input devices of the default host API (4)"):
                 self.assertIn(section, text)
-            message = json.loads((Path(tmp) / "mic_test_devices.json").read_text(encoding="utf-8"))
-            self.assertEqual(protocol.validate_command(message), [])
-            self.assertEqual(len(message["devices"]), 4)
-            inbox = list((Path(tmp) / "Saves/PluginData/AIBody/default/inbox").glob("*.json"))
-            self.assertEqual(len(inbox), 1)
-            self.assertEqual(json.loads(inbox[0].read_text(encoding="utf-8"))["devices"], message["devices"])
+            self.assertEqual(sorted(f.name for f in Path(tmp).iterdir()), ["mic_test_output.txt"],
+                             "no devices message, no plugin inbox")

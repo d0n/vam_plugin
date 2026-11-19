@@ -59,7 +59,7 @@ class RoutingTests(unittest.TestCase):
         self.t = FakeTransport()
         self.cfg = Config(vam_root=self.tmp.name)
         self.c = Companion(self.cfg, self.t, NullStt(), EchoLlm(), ToneTts(), EchoGate(clock=self.clock),
-                           device_lister=lambda: ([], None), clock=self.clock)
+                           clock=self.clock)
 
     def tearDown(self):
         self.tmp.cleanup()

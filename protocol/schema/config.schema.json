@@ -115,10 +115,6 @@
             "ptt"
           ]
         },
-        "device": {
-          "type": "string",
-          "default": ""
-        },
         "vad_threshold": {
           "anyOf": [
             {

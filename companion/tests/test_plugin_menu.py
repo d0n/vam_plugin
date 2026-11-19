@@ -6,7 +6,8 @@ import re
 import unittest
 from pathlib import Path
 
-SRC = Path(__file__).resolve().parents[2] / "src" / "AIBody"
+ROOT = Path(__file__).resolve().parents[2]
+SRC = ROOT / "src" / "AIBody"
 
 
 def source(name: str) -> str:
@@ -82,23 +83,6 @@ class PluginMenuTests(unittest.TestCase):
 class Version16MenuTests(unittest.TestCase):
     """Leon, 18.11.2026: mic menu empty in VaM; larger per-tab info field; no empty menus."""
 
-    def test_mic_menu_has_plain_choices_and_always_standard(self):
-        mic = source("MicConfig.cs")
-        self.assertIsNone(re.search(r"\.displayChoices\s*=", mic),
-                          "the only chooser with displayChoices showed an empty list")
-        self.assertIn("MicDeviceList.Build(", method_body(mic, "public void HandleDevices(JSONClass msg)"))
-        self.assertIn("RefillChoices();", method_body(mic, "public void BuildTab(UiPage page)"))
-        self.assertIn("MicDeviceList.cs", source("AIBody.cslist"))
-        self.assertIn('"System default microphone"', source("MicDeviceList.cs"))
-
-    def test_mic_info_shows_count_source_time_and_menu_entries(self):
-        mic = source("MicConfig.cs")
-        handle = method_body(mic, "public void HandleDevices(JSONClass msg)")
-        for part in ('" received from the companion app"', '" (host API "', 'DateTime.Now.ToString("HH:mm:ss")'):
-            self.assertIn(part, handle)
-        self.assertIn('"Mic device menu: "', method_body(mic, "private string MenuEntriesText()"))
-        self.assertIn("MenuEntriesText()", method_body(mic, "private void RefreshStatus()"))
-
     def test_info_field_is_larger_and_per_tab(self):
         plugin = source("AIBody.cs")
         height = re.search(r"status\.height = (\d+)f;", plugin)
@@ -145,12 +129,6 @@ class Version17MenuTests(unittest.TestCase):
 class Version18MenuTests(unittest.TestCase):
     """Leon, 18.11.2026: plugin UI in English; old scenes and old companion texts keep working."""
 
-    def test_old_german_mic_default_is_migrated(self):
-        mic_list = source("MicDeviceList.cs")
-        self.assertIn('LegacyDefaultV16 = "Standard (System-Mikrofon)"', mic_list)
-        sig = "public void Update(float deltaTime, bool connected, bool appRunning, bool linkActive)"
-        self.assertIn("IsLegacyDefault(", method_body(source("MicConfig.cs"), sig))
-
     def test_problem_turns_red_for_old_and_new_companion_texts(self):
         body = method_body(source("AppLink.cs"), "public static bool IsProblemTurn(string turn)")
         for prefix in ('"Nothing"', '"No "', '"Nichts"', '"Keine"', '"Fehler"', '"error"'):
@@ -183,33 +161,31 @@ class Version19MenuTests(unittest.TestCase):
         self.assertIn("FilePollInfoText()", method_body(source("AIBody.cs"), "private string TabInfo()"))
 
 
-class Version20MicMenuTests(unittest.TestCase):
-    """Leon, 18.11.2026: Mic device menu empty, 'no answer from the companion app' while it was not running."""
+class NoMicSelectionTests(unittest.TestCase):
+    """Leon, 19.11.2026: the microphone device selection is gone, the companion always uses the system default."""
 
-    def test_menu_is_refilled_on_open_on_refresh_and_on_build(self):
+    def test_no_device_menu_button_storable_or_list_protocol_in_the_plugin(self):
+        self.assertNotIn("MicDeviceList.cs", source("AIBody.cslist"))
+        self.assertFalse((ROOT / "src/AIBody/MicDeviceList.cs").exists())
+        plugin = "".join(source(f.name) for f in sorted((ROOT / "src/AIBody").glob("*.cs")))
+        for gone in ("Mic device", "Refresh microphones", "Refresh mic devices", "MicDeviceList", "RefreshMicrophones",
+                     "HandleDevices", "RequestDevices", "RefillChoices", "OnDevicePopupOpen", "EvtListDevices",
+                     "CmdDevices", "list_devices", '"devices"', 'mic["device"]', 'Protocol.Has(mic, "device")'):
+            self.assertNotIn(gone, plugin, gone)
+
+    def test_mic_tab_keeps_the_other_controls(self):
+        build = method_body(source("MicConfig.cs"), "public void BuildTab(UiPage page)")
+        for part in ("page.Toggle(Enabled);", "page.Popup(Mode);", "page.Toggle(_pttActive);", "page.Toggle(LevelMeter);",
+                     "page.Slider(Threshold);", "page.Slider(Gain);", "page.Slider(EchoTail);"):
+            self.assertIn(part, build)
+        self.assertNotIn("Device", build)
+
+    def test_companion_not_running_hint_stays(self):
         mic = source("MicConfig.cs")
-        self.assertIn("Device.popupOpenCallback = OnDevicePopupOpen;", mic)
-        self.assertIn("RefillChoices();", method_body(mic, "private void OnDevicePopupOpen()"))
-        self.assertIn("RefillChoices();", method_body(mic, "public void RefreshMicrophones()"))
-        build = method_body(mic, "public void BuildTab(UiPage page)")
-        self.assertIn('page.Button("Refresh microphones", RefreshMicrophones);', build)
-        refill = method_body(mic, "private void RefillChoices()")
-        self.assertIn("Device.choices = MicDeviceList.Build(", refill, "always a new list, unconditionally")
-        self.assertNotIn("if (", refill)
-
-    def test_no_answer_text_only_while_the_companion_runs(self):
-        mic_list = source("MicDeviceList.cs")
-        sig = "public static string NoListText(bool linkActive, bool appRunning, bool waiting, int requests)"
-        text = method_body(mic_list, sig)
-        for part in ("companion app not running. Start it: ", "StartHint", "switch on 'Active' (tab Voice)",
-                     "<color=red>"):
-            self.assertIn(part, text)
-        self.assertIn('python -m aibody_companion --vam-root', mic_list)
-        update_sig = "public void Update(float deltaTime, bool connected, bool appRunning, bool linkActive)"
-        update = method_body(source("MicConfig.cs"), update_sig)
-        self.assertIn("MicDeviceList.NoListText(linkActive, appRunning", update)
-        self.assertIn("appRunning && _devicesAsked < 0f && _sinceDevicesAsked > MicDeviceList.RetrySeconds",
-                      update)
+        update = method_body(mic, "public void Update(float deltaTime, bool connected, bool appRunning, bool linkActive)")
+        for part in ("Companion app not running. Start it: ", "StartHint", "switch on 'Active' (tab Voice)", "<color=red>"):
+            self.assertIn(part, update)
+        self.assertIn("_appHint", method_body(mic, "private void RefreshStatus()"))
         self.assertIn("_mic.Update(dt, connected, _appAlive,", source("AppLink.cs"))
 
 

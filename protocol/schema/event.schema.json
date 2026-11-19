@@ -26,7 +26,6 @@
         "shutdown",
         "config",
         "ptt",
-        "list_devices",
         "test_tone",
         "reconnect"
       ]
@@ -149,7 +148,7 @@
         },
         "device": {
           "type": "string",
-          "description": "\"\" = system default"
+          "description": "Retired (no microphone selection): the system default input is always used; an old value is ignored."
         },
         "vad_threshold": {
           "type": "number",

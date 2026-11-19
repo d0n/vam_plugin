@@ -65,9 +65,9 @@ class WindowsPathExampleTests(unittest.TestCase):
         self.assertIn('e.g. "D:\\VaM"', cli.build_parser().format_help())
 
     def test_plugin_hints_show_the_windows_style_path(self):
-        self.assertIn('--vam-root \\"D:\\\\VaM\\""', source("MicDeviceList.cs"))
+        self.assertIn('--vam-root \\"D:\\\\VaM\\""', source("MicConfig.cs"))
         self.assertIn('--vam-root \\"D:\\\\VaM\\" --channel', source("AppLink.cs"))
-        self.assertNotIn('--vam-root \\"<VaM>\\"', source("MicDeviceList.cs") + source("AppLink.cs"))
+        self.assertNotIn('--vam-root \\"<VaM>\\"', source("MicConfig.cs") + source("AppLink.cs"))
 
     def test_example_config_is_valid_json_with_an_escaped_backslash(self):
         data = json.loads((ROOT / "companion/config.example.json").read_text(encoding="utf-8"))
