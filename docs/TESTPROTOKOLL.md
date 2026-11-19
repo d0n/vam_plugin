@@ -13,9 +13,9 @@ nach durchgehen und das Ergebnis eintragen (✅ / ❌ / unklar). Dauer: etwa 20 
 **Vorbereitung**
 
 - VaM schließen. In `<VaM-Hauptordner>/AddonPackages/` alle alten AIBody-Pakete löschen:
-  `d0n.AIBody.1.var` bis `d0n.AIBody.22.var`, `d0n.AIBodySession.*`, `d0n.AIBodyPerson.*`,
+  `d0n.AIBody.1.var` bis `d0n.AIBody.23.var`, `d0n.AIBodySession.*`, `d0n.AIBodyPerson.*`,
   `d0n.AIBodyPerson2.*`. Lose Dateien unter `Custom/Scripts/d0n/AIBody/` ebenfalls entfernen.
-- `d0n.AIBody.23.var` nach `<VaM-Hauptordner>/AddonPackages/` kopieren.
+- `d0n.AIBody.24.var` nach `<VaM-Hauptordner>/AddonPackages/` kopieren.
 - Companion-App bereithalten (noch **nicht** starten):
   `python -m aibody_companion --vam-root "D:\VaM"` (Pfad zum eigenen VaM-Ordner anpassen).
   Für T9 den xAI-Key im Plugin eintragen (Tab **Voice** > Feld **XAI API Token**, ab Version 21) oder vor dem Start setzen: `set XAI_API_KEY=xai-...` (cmd) bzw. `$env:XAI_API_KEY="xai-..."` (PowerShell); das Feld gewinnt.
@@ -241,7 +241,7 @@ Melden: `mic_test_output.txt`.
 **Ergebnis zurückschicken:** pro Punkt T1–T12 ✅/❌, die Screenshots, die roten „AIBody:“-Zeilen und
 bei Problemen mit einer Antwort die Datei `companion.log` (mit eingeschaltetem Verbose log).
 
-## T13 – Voice detection and echo lock (after version 23, next version 24)
+## T13 – Voice detection and echo lock (version 24)
 
 Needs a real microphone and speakers. Companion started with a real xAI key (or offline engines).
 
