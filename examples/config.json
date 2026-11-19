@@ -37,7 +37,10 @@
     "breathing": true,
     "breaths_per_minute": 14.0,
     "breath_depth": 0.35,
-    "breath_morph": "Breath1"
+    "breath_morph": "Breath1",
+    "gaze_control": true,
+    "gaze_default": "default",
+    "gaze_follows_speaker": false
   },
   "advanced": {
     "file_poll_interval_s": 0.1,

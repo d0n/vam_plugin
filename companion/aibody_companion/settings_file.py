@@ -8,7 +8,7 @@ README.md section 4. Categories (kept from the first schema; they no longer matc
               audio} (file only)
   engines     stt, llm, tts (tab Voice > AI Character)
   mic         microphone + push-to-talk settings (tab Client Character; audio/mic_settings.py)
-  body        speech_volume, body_control, idle_motion, idle_intensity, breathing,
+  body        speech_volume, body_control, gaze_control, gaze_default, gaze_follows_speaker, idle_motion, idle_intensity, breathing,
               breaths_per_minute, breath_depth, breath_morph (tab AI Character)
   advanced    file_poll_interval_s (slider "Companion inbox poll interval (s)": how often the
               plugin reads the companion inbox, not config.json), verbose_log (tab Config)
@@ -97,6 +97,10 @@ DEFAULTS: dict[str, dict[str, Any]] = {
         "breaths_per_minute": 14.0,
         "breath_depth": 0.35,
         "breath_morph": "Breath1",
+        # Gaze (tab AI Character > Gaze; the plugin keeps these, the app only reads gaze_control from the heartbeat)
+        "gaze_control": True,  # false = AIBody never moves the eyes (no look_at tool for the AI)
+        "gaze_default": "default",  # default | client | camera | forward | atom:<name>; default = leave the eyes alone
+        "gaze_follows_speaker": False,  # look at the client while someone talks
     },
     "advanced": {"file_poll_interval_s": 0.1, "verbose_log": False},
     # Companion app; the plugin's tabs set only mode, proactive.enabled / idle_seconds,

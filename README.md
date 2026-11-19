@@ -107,6 +107,9 @@ Spalte „Wo“: Tab im Plugin-Menü; „nur Datei“ = kein Bedienelement. Bere
 | `mic.level_meter` | bool | true | | Pegelanzeige im Plugin | Client Character: **Show level meter** |
 | `body.speech_volume` | number | 1.0 | [0–1] | Lautstärke der Kopf-Audioquelle | AI Character: **Speech volume** |
 | `body.body_control` | bool | true | | aus = nur Sprache: Ausdrucks-, Morph-, Gesten-, Posen- und Trigger-Befehle werden ignoriert, die KI bekommt keine Körper-Tools; die manuellen Menüs funktionieren weiter | AI Character: **Body control** |
+| `body.gaze_control` | bool | true | | Blicksteuerung: aus = AIBody bewegt die Augen nie, die KI bekommt kein `look_at`-Tool | AI Character: **Gaze control** |
+| `body.gaze_default` | string | `default` | `default`, `client`, `camera`, `forward`, `atom:<Name>` | wohin die Augen schauen, wenn die KI nichts angeordnet hat; `default` = VaM-Standard, AIBody rührt die Augen nicht an | AI Character: **Default gaze** (VaM default / Client Character / Camera / player / Straight ahead / Atom: …) |
+| `body.gaze_follows_speaker` | bool | false | | schaut den Client Character an, solange jemand spricht (braucht die Pegelanzeige) | AI Character: **Gaze follows speaker** |
 | `body.idle_motion` | bool | true | | Kopf-Leerlaufbewegung | AI Character: **Idle head motion** |
 | `body.idle_intensity` | number | 0.5 | [0–1] | Stärke der Leerlaufbewegung | AI Character: **Idle intensity** |
 | `body.breathing` | bool | true | | Atmung über Morph | AI Character: **Breathing** |

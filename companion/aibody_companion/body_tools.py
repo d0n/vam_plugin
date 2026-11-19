@@ -7,7 +7,10 @@
                                     the preset files in Custom/Atom/Person/Pose, as the plugin lists
                                     them in "poses")
 
-No look-at / gaze tool: the plugin has no gaze control (see the roadmap, Glance is recommended).
+  look_at(target, seconds?)      -> "look_at" command: where the eyes look (client, camera, forward, away, off,
+                                    or the name of an atom in the scene). Only offered while the plugin says
+                                    "gaze_control" (menu switch on, no Glance on the Person, eyes not taken
+                                    by another plugin), so the AI never fights another eye plugin.
 
 When tools are offered: not in the simple Q&A mode (speech only, fastest path; no tool round trip
 in the chain) and not while the plugin's "Body control" is off. A call that arrives anyway (an
@@ -20,8 +23,22 @@ import json
 from dataclasses import dataclass, field
 from typing import Any
 
-TOOL_RULES = """To show a facial expression or a gesture, call the function "express"{pose}; never say expression
-names, gestures, poses or tags aloud and never describe what you do with your body."""
+from .protocol import LOOK_MAX_SECONDS
+from .vamjson import as_bool
+
+TOOL_RULES = """To show a facial expression or a gesture, call the function "express"{pose}{gaze}; never say expression
+names, gestures, poses, gaze targets or tags aloud and never describe what you do with your body."""
+
+GAZE_RULE = (' and "look_at" to direct your eyes (look at the user when you talk to them, glance away briefly '
+             "while you think)")
+
+# Words a model may use instead of the exact target names.
+LOOK_ALIASES = {
+    "user": "client", "player": "camera", "viewer": "camera", "screen": "camera", "me": "client", "you": "client",
+    "ahead": "forward", "straight": "forward", "front": "forward", "side": "away", "aside": "away",
+    "down": "away", "none": "off", "default": "off", "stop": "off", "release": "off", "reset": "off",
+}
+LOOK_TARGETS = ("client", "camera", "forward", "away", "off")
 
 
 @dataclass
@@ -29,13 +46,18 @@ class BodyLists:
     expressions: list[str]
     gestures: list[str]
     poses: list[str] = field(default_factory=list)
+    gaze: bool = False  # the plugin lets the AI direct the eyes
+    gaze_atoms: list[str] = field(default_factory=list)  # atoms in the scene the AI can look at
 
     @classmethod
     def from_body_info(cls, info: dict[str, Any], default_expressions: list[str],
                        default_gestures: list[str]) -> BodyLists:
         poses = [str(p) for p in info.get("poses") or [] if str(p)]
         gestures = [str(g) for g in info.get("gestures") or default_gestures if str(g) and str(g) not in poses]
-        return cls(list(info.get("expressions") or default_expressions), gestures, poses)
+        atoms = info.get("gaze_atoms") or []
+        atoms = [str(a) for a in atoms if str(a)] if isinstance(atoms, list) else []
+        gaze = as_bool(info.get("gaze_control")) is True  # an older plugin has no gaze control
+        return cls(list(info.get("expressions") or default_expressions), gestures, poses, gaze, atoms)
 
 
 def tools(lists: BodyLists) -> list[dict[str, Any]]:
@@ -58,11 +80,26 @@ def tools(lists: BodyLists) -> list[dict[str, Any]]:
             "parameters": {"type": "object", "properties": {"name": {"type": "string", "enum": list(lists.poses)}},
                            "required": ["name"]},
         })
+    if lists.gaze:
+        out.append({
+            "type": "function",
+            "name": "look_at",
+            "description": "Silently directs your eyes. target: 'client' = the user's character in the scene (the "
+                           "camera if there is none), 'camera' = the real person looking at the screen or in VR, "
+                           "'forward' = straight ahead, 'away' = a short glance to the side (for example while "
+                           "thinking), 'off' = stop directing your eyes. Any other value must be the name of an "
+                           "atom in the scene. seconds (optional, 0-60): how long to keep looking, then your eyes "
+                           "go back to their default; without it they stay until you change them. It is never spoken.",
+            "parameters": {"type": "object", "properties": {
+                "target": {"type": "string", "enum": [*LOOK_TARGETS, *lists.gaze_atoms]},
+                "seconds": {"type": "number", "minimum": 0, "maximum": 60}}, "required": ["target"]},
+        })
     return out
 
 
 def rules(lists: BodyLists) -> str:
-    return TOOL_RULES.format(pose=' or "pose" to change your posture' if lists.poses else "")
+    return TOOL_RULES.format(pose=' or "pose" to change your posture' if lists.poses else "",
+                             gaze=GAZE_RULE if lists.gaze else "")
 
 
 def _pick(value: Any, names: list[str]) -> str | None:
@@ -102,4 +139,29 @@ def resolve(name: str, arguments: Any, lists: BodyLists, allowed: bool,
         if not pose:
             return [], {"ok": False, "error": f"unknown pose; available: {', '.join(lists.poses) or 'none'}"}
         return [("pose", {"name": pose})], {"ok": True, "pose": pose}
+    if name == "look_at":
+        return _look_at(args, lists)
     return [], {"ok": False, "error": f"unknown function {name!r}"}
+
+
+def _look_at(args: dict[str, Any], lists: BodyLists) -> tuple[list[tuple[str, dict[str, Any]]], dict[str, Any]]:
+    if not lists.gaze:
+        return [], {"ok": False, "error": "gaze control is off or taken by another plugin; the eyes cannot be directed"}
+    raw = str(args.get("target") or "").strip()
+    key = raw.lower()
+    key = LOOK_ALIASES.get(key, key)
+    fields: dict[str, Any]
+    if key in LOOK_TARGETS:
+        fields = {"target": key}
+        shown = key
+    else:
+        atom = _pick(raw, lists.gaze_atoms)
+        if not atom:
+            options = ", ".join([*LOOK_TARGETS, *lists.gaze_atoms])
+            return [], {"ok": False, "error": f"unknown target {raw!r}; available: {options}"}
+        fields = {"target": "atom", "atom": atom}
+        shown = atom
+    seconds = args.get("seconds")
+    if isinstance(seconds, (int, float)) and not isinstance(seconds, bool) and seconds > 0:
+        fields["seconds"] = min(float(seconds), LOOK_MAX_SECONDS)
+    return [("look_at", fields)], {"ok": True, "target": shown}

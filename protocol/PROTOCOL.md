@@ -109,6 +109,7 @@ the companion app reads it on start. See `docs/CONFIG.md` and
 | `trigger`       | `storable` (required) + `action`, or `param` + `value` (+ `value_type`) | calls an action / sets a parameter on any storable of the target atom, e.g. another plugin |
 | `idle`          | `enabled`, `intensity` 0..1                                            | procedural idle head motion |
 | `breathing`     | `enabled`, `rate` breaths/min, `depth`                                 | procedural breathing |
+| `look_at`       | `target` (required): `client` / `camera` / `forward` / `away` / `off` / `atom`; `atom` (name, required for `atom`); `seconds` 0..60 (0 = until changed; `away` defaults to 3) | directs the eyes (Eyes look mode Target + `eyeTargetControl`). `client` = the Client Character's head (camera if there is none), `camera` = the player's view, `off` = back to the menu's Default gaze. Error event if gaze control is off in the menu, if Glance is on the Person, if another plugin took the eyes, or the atom does not exist. Ignored while Body control is off |
 
 `pose`, `gesture` (Timeline) and `trigger` use `JSONStorable.CallAction(name)` directly. The plugin
 cannot list a storable's actions (no evidenced API for that), so a misspelled action name is
@@ -161,7 +162,7 @@ played), `failed` (could not be loaded; an `audio_failed` error comes first).
 Status fields (`ready`, `heartbeat`, `pong`): `plugin_version`, `protocol`, `channel`,
 `transport`, `audio_dir`, `atom` (uid of the Person atom the plugin is on, informational),
 `speaking`, `speech_queue`, `expression`, `expressions` (preset names), `gestures` (names),
-`poses`, `body_control`, `selftest` (since version 13: the in-game self test of the body, object
+`poses`, `body_control`, `gaze_control` (since version 25: the AI may direct the eyes; false = menu switch off, Glance on the Person, or the eyes were taken by another plugin), `gaze_atoms` (atoms the AI can look at by name), `selftest` (since version 13: the in-game self test of the body, object
 with `pose_storage` ("ok" or why not), `pose_files`, `poses`, `breath_morph`, `breath_morph_found`,
 `expression_morphs_found`, `expression_morphs_total`, `expression_morphs_missing`,
 `timeline_gestures`, `timeline`, or `error`; recomputed at most every 5 s; the companion logs it as
@@ -294,5 +295,6 @@ The plugin's status fields (`ready` / `heartbeat`) list `expressions`, `gestures
 the companion offers the language model the tools `express` (`expression`, `gesture`, enums of the
 loaded names) and `pose` (`name`, only when poses exist). A call becomes `expression` / `gesture` /
 `pose` commands on this channel; every call is answered (`{"ok": true}` / `{"ok": false, "error"}`).
-No tools in `ai.mode` `qa` or with `body_control` false.
+`look_at` (`target` enum: client, camera, forward, away, off + the `gaze_atoms`; `seconds`) is offered only while
+`gaze_control` is true. No tools in `ai.mode` `qa` or with `body_control` false.
 
