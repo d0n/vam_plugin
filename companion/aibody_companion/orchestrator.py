@@ -415,7 +415,8 @@ class Companion:
         prompt = str(self.engine_set.ai["proactive"].get("prompt") or "")
         text = nudge_text(prompt, self.now(), self.since_last_exchange())
         self.proactive.fired()
-        log.info("Proactive talking: speech delay timer (%.0f s of silence) ran out - the AI may say something", self.proactive.idle_seconds)
+        log.info("Proactive talking: %.0f s of silence passed (speech delay timer) - the AI may say something on its own",
+                 self.proactive.idle_seconds)
         if self.active_mode == "realtime":
             self.realtime.nudge(text)
         elif self.background_turns:

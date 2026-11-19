@@ -100,7 +100,7 @@ of *Voice > AI Character*, as before.
   which is then not played. After an unanswered nudge the wait doubles (up to 8x); any user speech
   resets it. Never while the body talks, the user speaks or push-to-talk is held.
   **`idle_seconds` 0 = proactive speech off** (same as `enabled: false`, in realtime and chain; any
-  value below 1 s counts as 0; range 0..3600, default 90). The plugin slider is called **Speech delay timer (s)** (until version 22: "Proactive idle (s)"); it shows `Proactive talking: off (speech delay timer 0 s)`.
+  value below 1 s counts as 0; range 0..3600, default 90). The plugin slider is called **Speech delay timer (s)** (until version 22: "Proactive idle (s)"); it shows `Proactive talking: off (speech delay timer 0 s)` for 0, else `Proactive talking: on - after 90 s of silence the AI may speak on its own (speech delay timer, not the answer delay)`. The timer is the silence before the AI may speak on its own, not how long it takes to answer.
 - **Time context:** the AI has no clock of its own. The companion adds the local date and time
   (with UTC offset) and the time since the last exchange to every user turn (chain, `xai` LLM:
   prefix of the user message, not stored in the history) and to every nudge; in realtime mode it

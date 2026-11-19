@@ -169,13 +169,47 @@ class ProactiveIdleZeroTests(unittest.TestCase):
         self.assertIn('new JSONStorableFloat("Speech delay timer (s)", 90f, (float v) => MarkConfigDirty(), 0f, 3600f)', link)
         line = method_body(link, "private string ProactiveLine()")
         self.assertIn('"off (speech delay timer "', line)
-        self.assertIn('"on, speech delay timer "', line)
+        self.assertIn('"on - after "', line)
+        self.assertIn('" s of silence the AI may speak on its own (speech delay timer, not the answer delay)"', line)
         self.assertIn('"Proactive talking: "', line)
         self.assertIn('new JSONStorableBool("Proactive talking", true,', link)
         self.assertNotIn('JSONStorableBool("Proactive",', link)
         self.assertNotIn("Proactive idle", "".join(source(f.name) for f in sorted(SRC.glob("*.cs")))
                          .replace('was "Proactive idle (s)" up to version 22', ""))
         self.assertIn("idle >= 1f", line)
+
+
+class SpeechDelayTimerTextTests(unittest.TestCase):
+    """Leon, 19.11.2026: the timer is the silence before the AI may speak on its own, not the answer latency."""
+
+    def test_voice_tab_help_explains_the_timer(self):
+        link = source("AppLink.cs")
+        self.assertIn("Speech delay timer (s): how long silence must last before the AI may say something on its own", link)
+        self.assertIn("It is not the answer delay.", link)
+
+    def test_startup_and_nudge_log_lines(self):
+        import tempfile
+
+        from aibody_companion import cli
+        from aibody_companion.config import Config
+
+        with tempfile.TemporaryDirectory() as tmp:
+            for enabled, idle, expected in (
+                    (True, 90, "Proactive talking: on - after 90 s of silence the AI may speak on its own "
+                               "(speech delay timer, not the answer delay)"),
+                    (True, 0, "Proactive talking: off (speech delay timer 0 s)"),
+                    (False, 90, "Proactive talking: off")):
+                cfg = Config(vam_root=tmp, channel="default")
+                from aibody_companion import settings_file
+
+                cfg.ai = settings_file.defaults()["ai"]
+                cfg.ai["proactive"].update(enabled=enabled, idle_seconds=idle)
+                cfg.ai["mode"] = "auto"
+                with self.assertLogs("aibody_companion", level="INFO") as logs:
+                    cli.build_stack(cfg, use_mic=False)
+                self.assertIn(expected, [r.getMessage() for r in logs.records])
+        text = (SRC.parents[1] / "companion/aibody_companion/orchestrator.py").read_text(encoding="utf-8")
+        self.assertIn("s of silence passed (speech delay timer) - the AI may say something on its own", text)
 
 
 class NoMicSelectionTests(unittest.TestCase):

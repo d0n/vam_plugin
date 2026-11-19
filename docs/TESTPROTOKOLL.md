@@ -124,7 +124,7 @@ und am besten ein Headset.
 1. Companion-App mit Key starten. Im Log der App sollte stehen: `Mode: auto -> realtime` und
    `Realtime: connected to wss://api.x.ai/v1/realtime?model=grok-voice-latest`.
 2. Im Plugin Tab **Voice**: **AI mode** steht auf `auto`; im Infofeld
-   „Mode: realtime – Realtime connected …“ und „Proactive talking: on, speech delay timer 90 s“.
+   „Mode: realtime – Realtime connected …“ und „Proactive talking: on - after 90 s of silence the AI may speak on its own (speech delay timer, not the answer delay)“.
 3. Etwas sagen (z. B. „Hallo, wie spät ist es?“). Die Figur soll nach kurzer Pause antworten,
    der Mund bewegt sich, die Uhrzeit stimmt ungefähr.
 4. Während sie spricht, **Push-to-talk** drücken (oder mit Headset und eingeschaltetem

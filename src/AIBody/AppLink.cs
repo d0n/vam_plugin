@@ -399,7 +399,9 @@ namespace AIBody
 
         private readonly JSONStorableString _modeHelpJson = new JSONStorableString("AI mode help",
             "AI mode: qa = speech recognition -> Grok -> voice (speech only). auto / realtime = Grok Voice directly "
-            + "(falls back to the chain). chain = the engines under Voice > AI Character.");
+            + "(falls back to the chain). chain = the engines under Voice > AI Character.\n"
+            + "Speech delay timer (s): how long silence must last before the AI may say something on its own "
+            + "(0 = off). It is not the answer delay.");
 
         /// <summary>Button "Question and Answer": AI mode qa (body control is switched off by the plugin).</summary>
         /// <summary>
@@ -502,7 +504,7 @@ namespace AIBody
             bool toggle = Protocol.GetBool(_proactiveInfo, "enabled", false);
             float idle = Protocol.GetFloat(_proactiveInfo, "idle_seconds", 0f);
             bool on = toggle && idle >= 1f;   // timer 0 s = off, like the toggle (the app never nudges then)
-            string line = "Proactive talking: " + (on ? "on, speech delay timer " + idle.ToString("0") + " s"
+            string line = "Proactive talking: " + (on ? "on - after " + idle.ToString("0") + " s of silence the AI may speak on its own (speech delay timer, not the answer delay)"
                 : toggle ? "off (speech delay timer " + idle.ToString("0") + " s)" : "off");
             string status = _proactiveInfo["status"].Value;
             if (!string.IsNullOrEmpty(status)) line += " – " + status;
