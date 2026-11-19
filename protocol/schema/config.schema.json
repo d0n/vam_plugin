@@ -129,6 +129,29 @@
           ],
           "default": 0.01
         },
+        "vad_engine": {
+          "type": "string",
+          "default": "auto",
+          "enum": [
+            "auto",
+            "energy",
+            "webrtc"
+          ]
+        },
+        "vad_strictness": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 3
+            },
+            {
+              "type": "string",
+              "pattern": "^\\s*-?[0-9]+(\\.[0-9]+)?([eE][-+]?[0-9]+)?\\s*$"
+            }
+          ],
+          "default": 2
+        },
         "end_silence_ms": {
           "anyOf": [
             {

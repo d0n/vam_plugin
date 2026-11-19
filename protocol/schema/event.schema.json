@@ -155,6 +155,21 @@
           "minimum": 0.001,
           "maximum": 0.5
         },
+        "vad_engine": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "energy",
+            "webrtc"
+          ],
+          "description": "Voice detector: auto = webrtcvad if installed, else the built-in one"
+        },
+        "vad_strictness": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3,
+          "description": "0..3: higher = ignores more background noise"
+        },
         "end_silence_ms": {
           "type": "integer",
           "minimum": 200,

@@ -35,7 +35,7 @@ COMMANDS: dict[str, tuple[set[str], set[str]]] = {
     "breathing": (set(), {"enabled", "rate", "depth"}),
     # replies / feedback for the plugin's microphone menu
     "config_ack": (set(), {"reply_to", "applied", "errors", "mic_state"}),
-    "mic_state": ({"enabled", "capturing"}, {"mode", "ptt_active", "error"}),
+    "mic_state": ({"enabled", "capturing"}, {"mode", "ptt_active", "error", "vad", "vad_note"}),
     "mic_level": ({"rms"}, {"speech", "gate_open"}),
     # liveness + identity of the companion app (lets the plugin detect restarts over files)
     # engines_status: kind -> engine -> "ready" / "not configured: ..."; engines_active: kind -> engine

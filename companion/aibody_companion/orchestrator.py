@@ -687,7 +687,10 @@ class Companion:
             "capturing": bool(self.mic and self.mic.capturing),
             "mode": s.mode,
             "ptt_active": self.input.ptt_active,
+            "vad": self.input.vad_info.text,  # the voice detector that really runs
         }
+        if self.input.vad_info.note:
+            state["vad_note"] = self.input.vad_info.note  # why the chosen detector is not used
         if error and s.enabled:
             state["error"] = error
         return state

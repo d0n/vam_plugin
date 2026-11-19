@@ -14,6 +14,7 @@ SRC = Path(__file__).resolve().parents[2] / "src" / "AIBody"
 # slider label in the plugin -> range on the companion side
 SLIDERS = {
     "VAD threshold": LIMITS["vad_threshold"],
+    "VAD strictness": LIMITS["vad_strictness"],
     "Silence timeout (ms)": LIMITS["end_silence_ms"],
     "Min utterance (ms)": LIMITS["min_utterance_ms"],
     "Max utterance (ms)": LIMITS["max_utterance_ms"],

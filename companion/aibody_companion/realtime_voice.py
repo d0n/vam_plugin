@@ -48,6 +48,7 @@ NUDGE_HOLD_CHARS = 12  # a nudge answer is held until this much transcript shows
 # Connected but no answer this long after the user stopped talking: the companion gives realtime up
 # (until "API Reconnect" / a mode change) and answers with the chain, see Companion.realtime_unresponsive.
 ANSWER_TIMEOUT_S = 12.0
+RESPONSE_LOCK_MAX_S = 90.0  # the mic stays locked at most this long for ONE answer (failsafe for a lost response.done)
 # server events that get a line in the turn trace (verbose log); audio / transcript deltas are summed up
 TRACE_EVENTS = {"input_audio_buffer.speech_started", "input_audio_buffer.speech_stopped",
                 "conversation.item.input_audio_transcription.completed", "response.created", "response.done",
@@ -82,6 +83,7 @@ class RealtimeVoice:
         self._nudge_response: str | None = None
         self._held: list[tuple[bytes, str]] = []  # nudge segments held until it is clearly not silent
         self._last_instructions = 0.0
+        self._response_started = 0.0
         self._sent_any = False
         self._waiting_since: float | None = None  # user stopped talking, no answer yet
         self.turn: Turn | None = None  # trace of the current realtime exchange
@@ -155,13 +157,23 @@ class RealtimeVoice:
 
     # -- microphone ------------------------------------------------------------------------
 
+    def echo_locked(self) -> bool:
+        """True while the microphone must stay silent for the server: the echo gate is closed (a clip is
+        queued / playing, plus the tail) OR an answer is still being delivered. The second part closes the
+        gaps between two clips of one answer (the gate may open for a moment when the next clip is slower than
+        real time), so the server's voice detection never hears the body. Failsafe: a response that never
+        ends (lost response.done) locks the mic for at most RESPONSE_LOCK_MAX_S."""
+        if not self.c.gate.is_open:
+            return True
+        return self.responding and time.monotonic() - self._response_started < RESPONSE_LOCK_MAX_S
+
     def feed_mic(self, frame: bytes) -> None:
         frame = self.c.input.meter(frame)
         s = self.c.mic_settings
         send = s.enabled
         if s.mode == "ptt":
             send = send and self.c.input.ptt_active and (s.ptt_interrupts or self.c.gate.is_open)
-        elif not self.c.gate.is_open and not bool(self.settings["send_while_speaking"]):
+        elif self.echo_locked() and not bool(self.settings["send_while_speaking"]):
             send = False  # the body is talking: the mic would hear it (no echo cancellation)
         data = frame if send else bytes(len(frame))
         data = resample_pcm16(data, self.c.cfg.sample_rate, self.in_rate)
@@ -270,6 +282,7 @@ class RealtimeVoice:
             return
         self._waiting_since = None
         self.response_id = rid or protocol.new_id("rt")
+        self._response_started = time.monotonic()
         self.assembler.reset()
         self._held = []
         self._sent_any = False

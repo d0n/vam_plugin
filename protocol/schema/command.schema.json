@@ -154,6 +154,14 @@
     "error": {
       "type": "string"
     },
+    "vad": {
+      "type": "string",
+      "description": "mic_state: the voice detector that really runs, e.g. 'energy (built-in, adaptive noise floor), strictness 2'"
+    },
+    "vad_note": {
+      "type": "string",
+      "description": "mic_state: why the chosen voice detector is not used (e.g. webrtcvad not installed); absent when all is as chosen"
+    },
     "capturing": {
       "type": "boolean"
     },

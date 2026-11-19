@@ -15,6 +15,7 @@ from ..vamjson import as_bool, as_number
 log = logging.getLogger(__name__)
 
 MODES = ("vad", "ptt")
+VAD_ENGINES = ("auto", "energy", "webrtc")  # same as vad.VAD_ENGINES (kept here: no import cycle)
 
 # Settings that no longer exist; old scenes / config.json files may still carry them. Ignored silently.
 RETIRED = ("device",)  # input device name: the system default input is always used
@@ -27,6 +28,7 @@ LIMITS: dict[str, tuple[float, float]] = {
     "max_utterance_ms": (1000, 60000),
     "echo_tail_s": (0.0, 3.0),
     "gain": (0.1, 8.0),
+    "vad_strictness": (0, 3),
 }
 
 
@@ -34,7 +36,9 @@ LIMITS: dict[str, tuple[float, float]] = {
 class MicSettings:
     enabled: bool = True
     mode: str = "vad"  # "vad" (voice activation) or "ptt" (push-to-talk)
-    vad_threshold: float = 0.01  # RMS 0..1 above which a frame counts as speech
+    vad_threshold: float = 0.01  # RMS 0..1 above which a frame counts as speech (a floor for every VAD engine)
+    vad_engine: str = "auto"  # "auto" (webrtcvad if installed, else built-in), "energy" (built-in), "webrtc"
+    vad_strictness: int = 2  # 0..3: higher = ignores more background noise (webrtcvad mode; energy: start ratio)
     end_silence_ms: int = 700  # silence that ends an utterance
     min_utterance_ms: int = 300  # shorter utterances are dropped
     max_utterance_ms: int = 20000  # longer utterances are cut
@@ -83,6 +87,9 @@ def apply_mic_config(current: MicSettings, data: Any) -> tuple[MicSettings, list
                 continue
             if key == "mode" and value not in MODES:
                 errors.append(f"mode must be one of {MODES}")
+                continue
+            if key == "vad_engine" and value not in VAD_ENGINES:
+                errors.append(f"vad_engine must be one of {VAD_ENGINES}")
                 continue
             changes[key] = value
     updated = replace(current, **changes)

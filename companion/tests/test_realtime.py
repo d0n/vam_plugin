@@ -276,6 +276,34 @@ class RealtimeSessionTests(RealtimeSim):
         self.assertNotIn("response.create", self.server.conn.types())
         self.assertEqual(self.app.history[-1]["content"], "Hallo! Schön, dass du da bist. Wie war dein Tag?")
 
+    def test_mic_is_muted_for_the_whole_answer_not_only_while_a_clip_plays(self):
+        self.start()
+        self.connect()
+        c, rt = self.server.conn, self.app.realtime
+        sent = []
+        frame = speech_frame()
+        with mock.patch.object(rt.client, "append_audio", side_effect=sent.append):
+            self.assertFalse(rt.echo_locked())
+            rt.feed_mic(frame)
+            c.send({"type": "response.created", "response": {"id": "r1"}})
+            self.assertTrue(self.pump(lambda: rt.echo_locked()))
+            self.assertTrue(self.app.gate.is_open, "no clip queued: only the answer-in-progress lock holds")
+            rt.feed_mic(frame)
+            c.send({"type": "response.done", "response": {"id": "r1"}})
+            self.assertTrue(self.pump(lambda: not rt.echo_locked()))
+            rt.feed_mic(frame)
+        loud = [any(m) for m in sent]
+        self.assertEqual(loud, [True, False, True], "silence frames (zeros) go to the server during the answer")
+
+    def test_response_lock_has_a_failsafe_when_the_server_never_finishes(self):
+        self.start()
+        self.connect()
+        rt = self.app.realtime
+        self.server.conn.send({"type": "response.created", "response": {"id": "r1"}})
+        self.assertTrue(self.pump(lambda: rt.echo_locked()))
+        rt._response_started -= 100  # a lost response.done must not mute the mic forever
+        self.assertFalse(rt.echo_locked())
+
     def test_barge_in_stops_the_body_and_drops_the_rest(self):
         self.start()
         self.connect()

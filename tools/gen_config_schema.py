@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "companion"))
 
 from aibody_companion import __version__
-from aibody_companion.audio.mic_settings import LIMITS, MODES
+from aibody_companion.audio.mic_settings import LIMITS, MODES, VAD_ENGINES
 from aibody_companion.settings_file import CHOICES, DEFAULTS, RANGES, defaults
 
 SCHEMA_PATH = ROOT / "protocol" / "schema" / "config.schema.json"
@@ -78,6 +78,8 @@ def leaf(path: tuple[str, ...], default):
         node["enum"] = list(CHOICES[path])
     if path == ("mic", "mode"):
         node["enum"] = list(MODES)
+    if path == ("mic", "vad_engine"):
+        node["enum"] = list(VAD_ENGINES)
     if path[:2] == ("connection", "paths"):
         node["pattern"] = "^$|^(Saves|Custom)/" if path[-1] == "audio" else "^(Saves|Custom)/"
     return node
