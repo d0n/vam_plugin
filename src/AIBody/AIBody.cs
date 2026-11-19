@@ -130,6 +130,7 @@ namespace AIBody
                     _diag.Step("Companion app restarted: pending speech cancelled.");
                 };
                 _body.PluginFolder = FindPluginFolder;
+                _body.UserSpeaking = () => _link != null && _link.UserSpeaking;
                 _link.OnPathsChanged = () =>
                 {
                     _body.ExpressionsPath = _link.ExpressionsPath;
