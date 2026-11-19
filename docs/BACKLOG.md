@@ -28,7 +28,7 @@ Grundregel seit v0.6.0: erst Lauffähigkeit (eine `.cslist`, ein MVRScript, ein 
 - **VaM2-Kompatibilität** – Anforderungskatalog – Später.
 
 ## Figur
-- **Blicksteuerung / Look-at** (Blick zur Kamera beim Zuhören, Look-at-Tool für die KI) – Anforderungskatalog – Plugin hat keine Blicksteuerung, daher kein Look-at-Tool (v0.7.4); bis dahin Glance.
+- **Blicksteuerung, Rest:** Grundfunktion (Tool `look_at`, Menü „Gaze“) ist seit Version 25 umgesetzt (siehe SPEC). Offen: Mikro-Sakkaden und Zufallsblicke wie in Glance, Blinzeln, Blick auf Spiegel, automatisches Wegschauen beim Nachdenken ohne Tool-Aufruf, Erkennung von Life per Name.
 - **Personas als Datenordner** `Saves/PluginData/AIBody/personas/<name>/` (JSON + Sounds, DollMaster-Stil, lädt keine Plugins), auch männliche Personas (Jackaroos Dollmaster Male Personas) – Anforderungskatalog – Braucht Persona-Auswahl in Plugin und App.
 - **Zustände als Trigger** (idle, hört zu, denkt, spricht) für Szenen-Logik – Anforderungskatalog – Nicht begonnen.
 - **Viseme-Lippensync** aus TTS-Zeitdaten statt VaMs Audio-Lippensync – Anforderungskatalog – Nicht begonnen.

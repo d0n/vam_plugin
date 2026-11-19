@@ -55,6 +55,7 @@ namespace AIBody
         private string _ackText = "";
         private string _levelText = "";
         private float _levelAge = 999f;
+        private float _speechAge = 999f;   // seconds since the last level report that said "speech"
         private string _appHint = "";   // red hint while the link is off or the companion app is not running
         private bool _linkActive = true;
         private bool _appRunning;
@@ -158,6 +159,7 @@ namespace AIBody
             _linkActive = linkActive;
             _sinceChange += deltaTime;
             _levelAge += deltaTime;
+            _speechAge += deltaTime;
             // The companion app is the only thing that listens: say plainly when it is not there.
             _appHint = !linkActive
                 ? "<color=red>The link to the companion app is switched off. Turn on 'Active' in tab Voice.</color>"
@@ -266,11 +268,15 @@ namespace AIBody
             if (state != null) HandleMicState(state);
         }
 
+        /// <summary>True while the companion reports the user's voice (needs the level meter; a second of grace).</summary>
+        public bool UserSpeaking { get { return _speechAge < 1f; } }
+
         public void HandleMicLevel(JSONClass msg)
         {
             _levelAge = 0f;
             float rms = Protocol.GetFloat(msg, "rms", 0f);
             bool speech = Protocol.GetBool(msg, "speech", false);
+            if (speech) _speechAge = 0f;
             bool gateOpen = Protocol.GetBool(msg, "gate_open", true);
             _levelText = LevelBar(rms, Threshold.val) + (speech ? "  SPEECH" : "") + (gateOpen ? "" : "  (muted: body speaking)");
         }

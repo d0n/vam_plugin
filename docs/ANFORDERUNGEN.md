@@ -106,6 +106,7 @@ Stand: 19.11.2026, Version 23. Übersicht, was umgesetzt ist und was offen ist; 
 ## 2. Noch offen / zu tun
 
 ### Nächste Version
+- **Umgesetzt am 19.11.2026, noch nicht released (Version 25, Must-Have 5 Rest, Blicksteuerung):** Tool `look_at` für die KI (client, camera, forward, away, off, Atom per Name; `seconds`), Befehl `look_at` im Protokoll, Menüabschnitt „Gaze“ im Tab AI Character (**Gaze control**, **Default gaze**, **Gaze follows speaker**), Schlüssel `body.gaze_control` / `gaze_default` / `gaze_follows_speaker`. Nur belegte APIs (Glance, Embody; `API_AUDIT.md` E28); mit Glance auf der Person hält sich AIBody heraus, ändert jemand den Blickmodus, gibt AIBody die Augen zurück. Das frühere „kein Look-at-Tool, weil das Plugin keine Blicksteuerung hat“ entfällt. TODO(verify) in VaM: Blickrichtung, „geradeaus“, Wiederherstellung, Glance-Erkennung (`docs/TESTPROTOKOLL.md` T14).
 _Version 21 hat das Feld „XAI API Token“ und den Knopf „Question and Answer“ umgesetzt (siehe oben, KI und Sprache)._
 - Alle Posen-Einträge (Apply pose, Reload poses und alles weitere zu Posen) gehören in einen Unterpunkt „Poses“ im Tab AI Character, nicht in Config. Grund: Posen gehören zu einer Figur und sind nur für den AI Character sinnvoll, nicht für den Client Character (Leon, 18.11.2026). Stand im Code seit Version 15: Apply pose und Reload poses liegen schon im Abschnitt Poses im Tab AI Character; Config enthält nur Reload Config JSON, Companion inbox poll interval (s) (bis Version 18 „File poll interval (s)“), Verbose log. In VaM prüfen, ob dort noch Posen-Einträge unter Config erscheinen (ggf. ältere Paketversion geladen).
 - Alles, was in Leons Ansicht unter Config hängt („eigentlich quasi alles, was unter Config kommt“), insbesondere Expression and gesture und was darunter folgt (z. B. Body), unter den AI Character verschieben bzw. dort gruppieren, damit figurgebundene Steuerung eindeutig dem AI Character zugeordnet ist. Genaues Layout egal (Leon, 18.11.2026). Stand im Code seit Version 15: Expression and gesture und Body liegen schon im Tab AI Character; der Tab Config enthält nur Reload Config JSON, Companion inbox poll interval (s) und Verbose log (nicht figurgebunden). Klären, welche Version Leon in VaM sieht.
@@ -148,7 +149,6 @@ _Version 21 hat das Feld „XAI API Token“ und den Knopf „Question and Answe
 - Session-Config vs. Person-Config: zurückgestellt bis nach den Tests, siehe Backlog.
 
 ### Noch nicht umgesetzt (vereinbart)
-- Blicksteuerung (KI-Tool `look_at`, Menü „Gaze“): Plugin-Seite (GazeController, Befehl `look_at`, Menüabschnitt) ist angefangen und liegt auf dem Branch `wip/gaze`; es fehlen die Begleit-App-Seite (Tool, Protokoll, Schema), Tests und die Prüfung in VaM. Bis dahin Glance; in Version 24 gibt es noch kein Look-at-Tool für die KI.
 - Demo- bzw. Anleitungsszene.
 - Doku und Veröffentlichung auf dem VaM Hub („Plugins + Scripts“, mit Tags).
 - Zurückgestellt (früher „wollen wir“, Details in BACKLOG): Session/Person-Aufteilung mit Session-Anbindung und Bootstrap-Plugin, zweite Figur als eigene Instanz, Client auf eigenem Atom.

@@ -47,6 +47,7 @@ Enforcement:
 | E25 | [vam-embody Embody.cs](https://github.com/acidbubbles/vam-embody/blob/e09e364f818b0389aa97d84c54ba5c65ad1183d6/src/Embody.cs) (L77, L950) and [vam-timeline SequencingScreen.cs](https://github.com/acidbubbles/vam-timeline/blob/54e294256d7b73ec7d00d4216fcc7f01bc9d8133/src/UI/Screens/SequencingScreen.cs) (L257-264, L500) (Acid Bubbles) | `chooser.popupOpenCallback = ...` refills `choices` when the menu opens; `choices = ...` on a popup that is on screen |
 | E26 | [TittyMagic WindowBase.cs](https://github.com/everlasterVR/TittyMagic/blob/eca6d093450994cf589e51e148ceaadf9adfbc79/src/UI/WindowBase.cs) (everlaster, L46-48) and [ExpressionRandomizer.cs](https://github.com/everlasterVR/Extraltodeus-ExpressionRND/blob/cd6c9c584ce87c1a52e9e30c2e75310df89ccc71/src/ExpressionRandomizer.cs) (L582-583, L597-598) | `UIDynamicSlider slider = CreateSlider(jsf, rightSide); slider.label = "...";`: a shown slider label that differs from the storable name; also `sliderDynamic.label = name` in [Dollmaster UI.cs](https://github.com/vamdeluxe/DeluxePlugin/blob/e606e780e79af214b2b4be0a53b1e7b45ecf59b7/Dollmaster/src/UI.cs) (L74) |
 | E27 | [vam-timeline AnimationsScreen.cs](https://github.com/acidbubbles/vam-timeline/blob/d6f7177c/src/UI/Screens/AnimationsScreen.cs) (`btn.buttonText.alignment = TextAnchor.MiddleLeft;`, `btn.label = ...`) and [vam-embody MainScreen.cs](https://github.com/acidbubbles/vam-embody/blob/e09e364f/src/Screens/MainScreen.cs) (`triggersBtn.buttonText.alignment = TextAnchor.MiddleLeft;`) (Acid Bubbles) | `UIDynamicButton.buttonText` (a `Text`) and its `alignment` (`TextAnchor`) on a button created with `CreateButton`; the shown button text is a plain string, so a `\n` makes a second line |
+| E28 | [vam-embody EyeTargetModule.cs](https://github.com/acidbubbles/vam-embody/blob/e09e364f818b0389aa97d84c54ba5c65ad1183d6/src/EyeTarget/EyeTargetModule.cs) (Acid Bubbles); the Glance lines of E12 are re-read at the same pinned commit | `GetStorableByID("Eyes")` as `EyesControl` (L79); `freeControllers.First(fc => fc.name == "eyeTargetControl")` (L83); remember `currentLookMode` and `eyeTarget.control.position` (L108-109); set `currentLookMode = EyesControl.LookMode.Target` (L116); move the target every frame: `_eyeTarget.control.position = eyesCenter + _head.forward * distance` (L209), `= lockTarget.transform.position` (L195); restore position and, if the mode is still `Target`, the old look mode (L166-168); **coexistence precedent:** `GetStorableIDs().Any(id => id.EndsWith("Glance"))` makes Embody's eye module step aside (L88). Glance (E12): `GetStorableByID("Eyes")` (L159), `currentLookMode` get/set (L652, L681, L732), `freeControllers` + `name` (L164, L178), `eyeTarget.control.position` get/set (L678, L704), `SuperController.singleton.centerCameraTarget.transform` (L647), `SuperController.singleton.GetAtoms()` (L180, L759, L797), `atom.mainController.control` (L812, L957), `head.rotation * ... * Vector3.forward` (L1182), `Vector3.zero` (L988) |
 
 ## Kept
 
@@ -57,6 +58,7 @@ Enforcement:
 | Speech playback + lip sync | `GetStorableByID("HeadAudioSource") as AudioSourceControl`, `PlayNow`, `Stop`, `volume`, `audioSource` (read `isPlaying` / `clip` for start/end detection) | E1, E2, E3 |
 | Morphs, expressions, breathing | `GetStorableByID("geometry") as DAZCharacterSelector`, `morphsControlUI`, `GetMorphByDisplayName`, `GetMorphByUid`, `morphValue` | E4, E5 |
 | Idle head motion, head gestures | `GetStorableByID("headControl") as FreeControllerV3`, `transform.rotation`, `currentRotationState` | E6, E2 |
+| Gaze (eyes) | `GetStorableByID("Eyes") as EyesControl`, `currentLookMode` (`LookMode.Target`), `freeControllers` / `name == "eyeTargetControl"`, `eyeTarget.control.position`, `centerCameraTarget.transform`, `GetAtoms()`, `atom.mainController.control`, `rotation * Vector3.forward`, `GetStorableIDs()` + `EndsWith("Glance")` | E12, E28, E6, E8 |
 | Timeline gestures | `GetStorableIDs()` + suffix match, `CallAction("Play <animation>")` | E8, E9 |
 | Pose presets | `GetStorableByID("PosePresets")`, `GetUrlJSONParam("presetBrowsePath")`, `NormalizePath`, `CallAction("LoadPreset")` | E7 (pattern; the `PosePresets` id itself is `TODO(verify)`) |
 | Generic trigger | `CallAction`, `GetFloatJSONParam`, `GetBoolJSONParam`, `GetStringJSONParam`, `GetStringChooserJSONParam` | E8, E12, E13 |
@@ -78,7 +80,6 @@ Enforcement:
 | `AudioSourceControl` "volume" float param lookup | no evidence; the `volume` field (E2) is used instead |
 | `JSONStorable.GetActionNames` checks before `CallAction` | no evidence; actions are called directly (E7, E8). A misspelled action is not detected |
 | `FileManagerSecure.GetFiles(dir, pattern)` | no evidence for the pattern overload; `GetFiles(dir)` (E11) plus a `.json` filter |
-| `SuperController.GetAtoms` | not needed by the single plugin |
 | `UnityEngine.Microphone` / mic capture in VaM | never used; the scan forbids it. Capture lives in the companion app (always the system default input, no device selection); the plugin sends settings and push-to-talk (`ptt` event file) |
 | Coroutines in the speech player | not needed after removing the download path |
 
@@ -228,7 +229,7 @@ from `Exception.ToString()`, not from reflection. The only additions outside the
   `Custom/Atom/Person/Pose/AIBody`, at most 200 files. TODO(verify): E11 shows `GetFiles` on
   `Saves/PluginData`, not on `Custom/`. Applying uses the existing `LoadPose` path (PosePresets,
   still TODO(verify) T5).
-- **No gaze tool:** AIBody has no gaze control, so the AI gets no look-at tool.
+- **Gaze tool:** was missing until version 25; see "After version 24: gaze control" at the end.
 - **Path display removed** from tabs Post and Config (the menu shows only what can be set); the
   paths go once to the log via `SuperController.LogMessage`. No new API.
 - **Latency / key hint:** text in the existing status box from the companion heartbeat; no new API.
@@ -369,3 +370,27 @@ existing `page.Popup`) and a `JSONStorableFloat` ("VAD strictness", `RegisterFlo
 shown with `page.Slider`), the same patterns as "Mic mode" and "VAD threshold". The values travel in the existing
 `mic` JSON (`vad_engine`, `vad_strictness`); `mic_state.vad` / `vad_note` are plain strings shown in the info field.
 No `foreach` over Dictionary `.Keys`/`.Values`, no file or network access added.
+
+## After version 24 (19.11.2026): gaze control (next version 25)
+
+New in the plugin (`GazeController.cs`), all with evidence E12 / E28 (see the table and the stub comments):
+
+- **Eyes:** `Eyes` storable as `EyesControl`; `currentLookMode` is read, set to `LookMode.Target` and restored;
+  the controller `eyeTargetControl` is found in `Atom.freeControllers` by `name`; its `control.position` is set every
+  frame (Embody's eye module does the same). Only the look-mode values that the evidence shows are declared in the
+  stubs (`Target`, `Custom`); the code uses `Target` only. NOT used (no evidence or not needed): `LookMode.Player` /
+  `None`, `lookAt1` / `lookAt2`, `Custom` mode with an own `GameObject`, blink / eyelid control, eye morphs.
+- **Targets:** the camera = `SuperController.singleton.centerCameraTarget.transform.position` (the player's view,
+  VR or screen; Glance L647); atoms = `SuperController.singleton.GetAtoms()` (a plain loop, no LINQ), a Person's
+  face = `headControl` as `FreeControllerV3` (E6) `.control.position`, any other atom = `mainController.control.position`;
+  straight ahead / away = own `headControl.control.position` plus `atom.transform.rotation * Vector3.forward`
+  (Glance L1182 uses the same `rotation * ... * Vector3.forward`; Embody uses `head.forward`). TODO(verify): that the
+  atom's own forward is the way the Person faces (the example scene turns the client by 180 degrees to face the AI).
+- **Menu / data:** a `JSONStorableBool` "Gaze control", a `JSONStorableStringChooser` "Default gaze" (registered, refilled
+  in `popupOpenCallback`, E25, shown with `CreateScrollablePopup`, E24) and a `JSONStorableBool` "Gaze follows speaker";
+  same patterns as the existing controls. The heartbeat gets `gaze_control` and `gaze_atoms` (plain bool / strings).
+- **Coexistence:** the plugin steps aside when `GetStorableIDs()` has an id ending in `Glance` (Embody's own check) and
+  gives the eyes back when someone else changes `currentLookMode` while it steers. TODO(verify): the id suffix of
+  Glance in a real scene, and how the Life plugin behaves (not detected by name; only the look-mode check protects).
+- No `foreach` over Dictionary `.Keys`/`.Values`, no LINQ, no file or network access added. A gaze exception only
+  stops the gaze (`_gazeBroken`), not the body.

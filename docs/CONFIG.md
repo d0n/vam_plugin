@@ -193,3 +193,10 @@ for `Engine ... ready`, the spoken sentences and any `failed (...)` warnings.
   `previous_response_id` (the stored system prompt is reused), so the persona goes out with the
   first request of a conversation only.
   <https://docs.x.ai/developers/rest-api-reference/inference/responses>
+
+## Gaze (tab AI Character > Gaze, since version 25)
+
+`body.gaze_control` (default true), `body.gaze_default` (`default` | `client` | `camera` | `forward` | `atom:<name>`),
+`body.gaze_follows_speaker` (default false). The AI directs its eyes with the tool `look_at` (client, camera, forward,
+away, off, or an atom name); without an order the eyes follow *Default gaze*. `default` leaves the eyes to VaM.
+With the Glance plugin on the same Person AIBody does not touch the eyes. See TECHNIK.md, section Gaze.

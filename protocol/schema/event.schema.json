@@ -244,6 +244,20 @@
       ],
       "description": "ready/heartbeat: Body control on (false = speech only, no body tools for the AI)"
     },
+    "gaze_control": {
+      "type": [
+        "boolean",
+        "string"
+      ],
+      "description": "ready/heartbeat: the AI may direct the gaze (menu switch 'Gaze control' on, no other eye plugin such as Glance on the Person, eyes not taken by someone else); false = the companion offers no look_at tool"
+    },
+    "gaze_atoms": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "ready/heartbeat: names (uids) of atoms in the scene the AI can look at with look_at target 'atom' (at most 30, this Person excluded)"
+    },
     "selftest": {
       "type": "object",
       "description": "ready/heartbeat: in-game self test of the body (Body.SelfTestJson): pose_storage (ok or why not), pose_files, poses, breath_morph, breath_morph_found, expression_morphs_found / _total / _missing, timeline_gestures, timeline, or error; the companion logs it once per change"

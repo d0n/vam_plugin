@@ -373,6 +373,44 @@
         "breath_morph": {
           "type": "string",
           "default": "Breath1"
+        },
+        "gaze_control": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "true",
+                "false",
+                "True",
+                "False"
+              ]
+            }
+          ],
+          "default": true
+        },
+        "gaze_default": {
+          "type": "string",
+          "default": "default"
+        },
+        "gaze_follows_speaker": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "true",
+                "false",
+                "True",
+                "False"
+              ]
+            }
+          ],
+          "default": false
         }
       },
       "description": "Tab 'AI Character', section 'Body (this Person only)'"

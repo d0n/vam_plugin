@@ -33,6 +33,8 @@ COMMANDS: dict[str, tuple[set[str], set[str]]] = {
     "trigger": ({"storable"}, {"action", "param", "value", "value_type"}),
     "idle": (set(), {"enabled", "intensity"}),
     "breathing": (set(), {"enabled", "rate", "depth"}),
+    # gaze: target client|camera|forward|away|off|atom (atom = name in "atom"); seconds 0 = until changed
+    "look_at": ({"target"}, {"atom", "seconds"}),
     # replies / feedback for the plugin's microphone menu
     "config_ack": (set(), {"reply_to", "applied", "errors", "mic_state"}),
     "mic_state": ({"enabled", "capturing"}, {"mode", "ptt_active", "error", "vad", "vad_note"}),
@@ -51,10 +53,12 @@ COMMANDS: dict[str, tuple[set[str], set[str]]] = {
 # Commands for the plugin's body (everything else is handled by its app link).
 BODY_COMMANDS = {
     "speak", "stop_speaking", "expression", "set_morphs", "reset_morphs",
-    "gesture", "pose", "trigger", "idle", "breathing",
+    "gesture", "pose", "trigger", "idle", "breathing", "look_at",
 }
 
 SPEAK_QUEUE_MODES = ("append", "interrupt")
+LOOK_TARGETS = ("client", "camera", "forward", "away", "off", "atom")
+LOOK_MAX_SECONDS = 60.0
 
 ENVELOPE_FIELDS = {"v", "type", "id", "ts", "ack"}
 
@@ -124,6 +128,14 @@ def validate_command(msg: Any) -> list[str]:
             errors.append(f"speak: queue must be one of {SPEAK_QUEUE_MODES}")
     if type_ == "pose" and not (msg.get("path") or msg.get("name")):
         errors.append("pose: needs 'path' or 'name'")
+    if type_ == "look_at":
+        if msg.get("target") not in LOOK_TARGETS:
+            errors.append(f"look_at: target must be one of {LOOK_TARGETS}")
+        if msg.get("target") == "atom" and not (isinstance(msg.get("atom"), str) and msg["atom"]):
+            errors.append("look_at: target 'atom' needs the atom's name in 'atom'")
+        seconds = msg.get("seconds", 0)
+        if isinstance(seconds, bool) or not isinstance(seconds, (int, float)) or not 0 <= seconds <= LOOK_MAX_SECONDS:
+            errors.append(f"look_at: seconds must be a number from 0 to {LOOK_MAX_SECONDS:g}")
     if type_ == "trigger" and not (msg.get("action") or msg.get("param")):
         errors.append("trigger: needs 'action' or 'param'")
     return errors

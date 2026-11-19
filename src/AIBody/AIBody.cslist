@@ -12,6 +12,7 @@ ExpressionController.cs
 BreathingController.cs
 IdleController.cs
 PoseController.cs
+GazeController.cs
 CommandRouter.cs
 Body.cs
 AIBody.cs

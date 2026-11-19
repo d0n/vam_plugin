@@ -352,7 +352,22 @@ Realtime: `function_call` -> commands to the plugin -> `function_call_output`; c
 with `tools`, the outputs go back with `previous_response_id` (at most 3 tool-only rounds per turn).
 Every call gets a result (`{"ok": true}` or `{"ok": false, "error": ...}`) so the model never waits.
 Not offered in `qa` (speech only) or with Body control off; a stray call is answered `ok: false`.
-There is no look-at tool: AIBody has no gaze control.
+`look_at` (`target`: client, camera, forward, away, off or an atom name from the plugin's `gaze_atoms`; optional
+`seconds`) is added while the plugin reports `gaze_control` (see "Gaze" below).
+
+### Gaze (since version 25)
+
+`GazeController.cs` uses VaM's own eye system, like Embody and Glance: the Person's `Eyes` storable is set to look
+mode *Target* and the `eyeTargetControl` is moved every frame to the point to look at; VaM's eyes do the rest. Targets:
+the Client Character's head (atom `Client Character`, else the first other Person; without one: the camera), the camera
+(the player's view), straight ahead, away (a short glance to the side, alternating sides), or any atom by name.
+Order of control: the AI's last `look_at` (until its `seconds` run out or `off`) > *Gaze follows speaker* (client while
+someone talks) > *Default gaze* (menu; "VaM default" = AIBody does not touch the eyes). Choosing a Default gaze in the
+menu ends an AI order. When AIBody lets go, the look mode and the eye target position are restored.
+Coexistence: with the Glance plugin on the Person AIBody stays out (menu info says so, no `look_at` tool); if anything
+else changes the Eyes look mode while AIBody steers, AIBody stops (and the AI gets no tool) until the user picks a
+Default gaze again. Life and other plugins are not detected by name, only by that look-mode check (TODO(verify)).
+Needs the level meter (tab Client Character) for *Gaze follows speaker* to notice the user's voice.
 
 ### Latency
 

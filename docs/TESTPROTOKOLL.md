@@ -255,3 +255,21 @@ Needs a real microphone and speakers. Companion started with a real xAI key (or 
    and in realtime mode. Watch for self-triggers right after the voice ends; if there are any, raise **Echo gate tail
    (s)**.
 4. Speak just after the character has finished: you are heard (tail only 0.4 s by default).
+
+## T14 – Gaze control (after version 24, next version 25)
+
+Needs VaM with the AI Character (AIBody) and the Client Character in the example scene. No Glance on the AI Character.
+
+1. Tab **AI Character** > **Gaze**: **Gaze control** on, **Default gaze** = *Client Character*: the AI's eyes turn to the
+   client's face. *Camera / player*: they look at you (VR or screen camera). *Straight ahead*: level, 2 m in front of the
+   face. Pick an *Atom: …* entry (open the list; it refills): the eyes look at that atom. *VaM default*: the eyes go back to
+   what they did before (VaM look mode and eye target position are restored).
+2. Info field (left): *Gaze now: looking at … (default gaze)* and the help text. Turn **Gaze control** off: *Gaze now: off*.
+3. Ask the AI (not Question and Answer mode) to look at you, at the client, away; the AI uses `look_at` (console line / log
+   `look_at`). *Away* looks to the side for about 3 s and returns to the default.
+4. **Gaze follows speaker** on, Default gaze = *VaM default*: while the AI or you talk, the eyes go to the client; silent: back.
+5. Coexistence: add the Glance plugin to the AI Character: the info field says *paused: Glance is on this Person*, the AI
+   gets no `look_at` tool. Remove it again (or switch the Eyes look mode by hand in VaM while AIBody steers): AIBody stops
+   and says so; picking a Default gaze takes the eyes again.
+6. Report: where the eyes look in each step (correct / mirrored / too high / too low), whether *Straight ahead* really is
+   the way the face points, the VaM error log.
