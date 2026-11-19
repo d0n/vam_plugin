@@ -1045,7 +1045,9 @@ class Companion:
             log.warning("Audio: %s", self.audio_note)
         elif failed_dir == current:
             self.audio_note = (f"VaM could load the WAVs neither from {self.cfg.audio_default_dirs[0]} nor from "
-                               f"{current} ({_short(message, 100)}) - see TESTPROTOKOLL T9")
+                               f"{current} ({_short(message, 100)}) - details in <VaM>/Saves/PluginData/AIBody/logs/companion.log; "
+                               "check that 'Play test tone' (tab Voice) is audible and that --vam-root is the "
+                               "VaM folder you start VaM from")
             log.warning("Audio: %s", self.audio_note)
         self._last_heartbeat = -HEARTBEAT_INTERVAL_S
         if failed_dir == self.cfg.audio_rel_dir or not path.exists():

@@ -226,6 +226,11 @@ class QaFlowTests(unittest.TestCase):
         self.sim.run(self.plugin, 3)
         self.assertEqual(len(self.speaks()), 2)
         self.assertIn("neither from", self.plugin.audio_out["note"])
+        note = self.plugin.audio_out["note"]
+        self.assertNotIn("TESTPROTOKOLL", note, "Leon took 'T9' for a log")
+        self.assertIn("Saves/PluginData/AIBody/logs/companion.log", note)
+        self.assertIn("'Play test tone' (tab Voice)", note)
+        self.assertIn("--vam-root", note)
 
     def test_fixed_audio_folder_is_not_switched(self):
         self.sim = Sim(self.tmp.name, self.clock, self.http, env={"XAI_API_KEY": KEY}, mode="qa")
