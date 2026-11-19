@@ -1,6 +1,6 @@
 # AIBody
 
-Virt-A-Mate-Plugin (VaM 1.22) mit Python-Begleit-App, das einer KI einen Körper in einer VaM-Szene gibt. Stand: Version 25, Paket `d0n.AIBody.25.var`, Release `v25`. Version 14 lädt in VaM 1.22 ohne Fehler (Init fertig, 200 Posen); die Funktionen sind in VaM noch nicht vollständig geprüft.
+Virt-A-Mate-Plugin (VaM 1.22) mit Python-Begleit-App, das einer KI einen Körper in einer VaM-Szene gibt. Stand: Version 26, Paket `d0n.AIBody.26.var`, Release `v26`. Version 14 lädt in VaM 1.22 ohne Fehler (Init fertig, 200 Posen); die Funktionen sind in VaM noch nicht vollständig geprüft.
 
 Versionsschema seit Version 12: Version = Paketnummer der `.var` (Plugin-Anzeige, Begleit-App, Git-Tag `v<N>`). Version 12 folgt auf 0.7.4 (= Paket 11); ältere Tags bleiben unverändert.
 
@@ -30,7 +30,7 @@ python -m aibody_companion --vam-root "D:\VaM"
   - Begleit-App `aibody_companion` (Python, läuft neben VaM auf demselben PC): Mikrofon, Spracherkennung, Sprachmodell, Sprachausgabe, Verbindung zu xAI (optional ElevenLabs).
 - Verbindung: Dateien unter `<VaM>/Saves/PluginData/AIBody/<Kanal>/`; Sprache als WAV unter `<VaM>/Custom/Sounds/AIBody/<Kanal>/`.
 - Ablauf: Plugin auf die KI-Figur laden → Begleit-App von Hand starten (`python -m aibody_companion --vam-root "D:\VaM"`, Abschnitt „Starten“, mit xAI-Key) → sprechen (oder in der Konsole tippen) → die Figur antwortet.
-- Kurzinstallation: `d0n.AIBody.25.var` nach `<VaM>/AddonPackages/`, ältere `d0n.AIBody.*`, `d0n.AIBodySession.*`, `d0n.AIBodyPerson.*`, `d0n.AIBodyPerson2.*` löschen; Person auswählen > Tab Plugins > Add Plugin > `AddonPackages > d0n.AIBody.25:/Custom/Scripts/d0n/AIBody/AIBody.cslist`; Begleit-App: siehe Abschnitt „Starten“ (`cd companion`, `pip install sounddevice`, dann starten). Details und Schritt-für-Schritt: Release-Notes.
+- Kurzinstallation: `d0n.AIBody.26.var` nach `<VaM>/AddonPackages/`, ältere `d0n.AIBody.*`, `d0n.AIBodySession.*`, `d0n.AIBodyPerson.*`, `d0n.AIBodyPerson2.*` löschen; Person auswählen > Tab Plugins > Add Plugin > `AddonPackages > d0n.AIBody.26:/Custom/Scripts/d0n/AIBody/AIBody.cslist`; Begleit-App: siehe Abschnitt „Starten“ (`cd companion`, `pip install sounddevice`, dann starten). Details und Schritt-für-Schritt: Release-Notes.
 
 ## 2. Wofür ausgelegt / Spezifikation
 
