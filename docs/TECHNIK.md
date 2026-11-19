@@ -528,6 +528,35 @@ Poses from VaMHub can be loaded with the `pose` command using the usual package 
 
 Agreed spec: [docs/SPEC.md](SPEC.md); status done / open: [docs/ANFORDERUNGEN.md](ANFORDERUNGEN.md).
 
+### Voice detection and echo lock (since 19.11.2026, next version 24)
+
+`audio/vad.py`, used by `audio/input_processor.py` for utterances (voice mode) and the level meter.
+
+- **Built-in detector** (`EnergyVad`, always available): frame RMS against a *noise floor*. The floor falls
+  quickly when the room gets quieter and rises slowly when it gets louder, and it never learns from speech.
+  *Hysteresis*: starting needs `strictness ratio` x floor (2 / 2.5 / 3 / 4, default 3), continuing only about half
+  of that, so a quiet syllable does not cut a word. *Hangover*: 3 frames (90 ms) bridge short gaps. The utterance
+  segmenter adds `min_utterance_ms` and `end_silence_ms`. *Steady-noise rule*: a level that hardly changes for about
+  6 s above the threshold (fan, hum) becomes the new floor instead of keeping the detector open; speech wobbles
+  from frame to frame and is not affected. `vad_threshold` is the lowest RMS that can ever count as speech.
+- **webrtcvad** (optional): `python -m pip install webrtcvad-wheels` (pre-built Windows wheels, imports as
+  `webrtcvad`, no torch). `mic.vad_strictness` is its mode 0-3. A frame counts only if webrtcvad says speech AND
+  RMS >= `vad_threshold`; same hangover. Needs 16-bit mono at 8/16/32/48 kHz and 10/20/30 ms frames (the defaults
+  16 kHz / 30 ms fit); otherwise the built-in detector runs.
+- **Selection** (`mic.vad_engine`): `auto` = webrtc if it imports, else built-in, quietly; `webrtc` = same, but the
+  status line says why it is not used; `energy` = built-in only. The detector that really runs is reported in
+  `mic_state.vad` / `vad_note` and shown in the info field.
+- **Echo lock** (checked 19.11.2026): `EchoGate` closes when a `speak` is sent and opens `echo_tail_s` after
+  `speech_ended` (failsafe deadlines, `audio_failed` / `ready` / `shutdown` open it). While it is closed
+  `InputProcessor` drops the frame, aborts a running utterance and puts the detector on `hold()`, so the body's own
+  voice can neither start an utterance nor teach the detector a higher noise floor (flaw fixed: it used to
+  learn from the echo). Realtime mode: `feed_mic` sends silence frames while `RealtimeVoice.echo_locked()`, which is
+  the gate OR an answer still being delivered (flaw fixed: between two clips of one answer the gate could open
+  and the server heard the body; failsafe 90 s). Not solved: there is no acoustic echo cancellation, so
+  interrupting by voice still needs headphones (`send_while_speaking`); push-to-talk always works.
+- Not testable without hardware: how a real microphone, room and speakers behave (thresholds, the tail length, whether
+  speaker sound leaks after the tail). See `docs/TESTPROTOKOLL.md` T13.
+
 ### Microphone diagnostics without VaM
 
 `python tools/mic_test.py` prints every PortAudio device raw, the input devices per host API and the

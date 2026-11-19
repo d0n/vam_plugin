@@ -85,9 +85,17 @@ up ("Realtime off: no answer …") until **API Reconnect** or a new AI mode, and
 answers (repeat the question). The info field (tab *Voice*) shows the active mode ("Mode: realtime – Realtime
 connected …").
 
+**Voice detection (`mic.vad_engine`, `mic.vad_strictness`):** `energy` is the built-in detector (noise floor that
+follows the room, a higher bar to start than to continue speech, a short hangover, and a constant hum is learned as
+noise after about 6 s); `webrtc` needs `python -m pip install webrtcvad-wheels`; `auto` (default) uses it when it is
+installed. Without the library the built-in detector runs (if you chose WebRTC yourself, the status line in the menu
+says how to install it). `vad_threshold` is
+the quietest level that can count as speech for every engine; `vad_strictness` 0-3 ignores more noise when higher.
+
 **Echo:** while the body talks, the companion streams silence instead of the microphone (there is
 no echo cancellation), so interrupting by voice needs **Voice barge-in (headphones)**. Push-to-talk
-always interrupts.
+always interrupts. The mic stays closed while a clip is queued or playing and for `echo_tail_s` after it ends; in
+realtime mode it also stays muted from the start of an answer until the answer is done (at most 90 s).
 
 **Chain** (`ai.mode` `chain`, or `auto` without xAI key / with ElevenLabs TTS): exactly the engines
 of *Voice > AI Character*, as before.

@@ -95,11 +95,13 @@ Spalte „Wo“: Tab im Plugin-Menü; „nur Datei“ = kein Bedienelement. Bere
 | `engines.tts` | string | `tone` | `tone`, `xai`, `elevenlabs` | Sprachausgabe (`tone` = offline, Summton) | Voice > AI Character: **Text-to-speech** |
 | `mic.enabled` | bool | true | | Mikrofon an | Client Character: **Mic enabled** |
 | `mic.mode` | string | `vad` | `vad`, `ptt` (Menü: „Voice activation“, „Push-to-talk“) | Sprachaktivierung oder Push-to-Talk | Client Character: **Mic mode** |
-| `mic.vad_threshold` | number | 0.01 | [0.001–0.5] | Pegel (RMS 0–1), ab dem ein Block als Sprache zählt | Client Character: **VAD threshold** |
+| `mic.vad_engine` | string | `auto` | `auto`, `energy`, `webrtc` | Spracherkennung: `energy` = eingebaut (lernt den Grundpegel, Hysterese, Nachlauf), `webrtc` = webrtcvad (optional, `python -m pip install webrtcvad-wheels`), `auto` = webrtc, wenn installiert, sonst eingebaut. Fehlt die Bibliothek, läuft der eingebaute Detektor weiter (Hinweis im Infofeld) | Client Character: **VAD engine** (Auto / Built-in / WebRTC) |
+| `mic.vad_strictness` | int | 2 | [0–3] | je höher, desto mehr Hintergrundgeräusch wird ignoriert (webrtcvad-Modus 0–3; eingebaut: Sprache muss 2 / 2,5 / 3 / 4-mal über dem Grundpegel liegen) | Client Character: **VAD strictness** |
+| `mic.vad_threshold` | number | 0.01 | [0.001–0.5] | leisester Pegel (RMS 0–1), der als Sprache zählen kann (für alle Engines) | Client Character: **VAD threshold** |
 | `mic.end_silence_ms` | int | 700 | [200–5000] | Stille, die eine Äußerung beendet | Client Character: **Silence timeout (ms)** |
 | `mic.min_utterance_ms` | int | 300 | [100–5000], kleiner als max | kürzere Äußerungen werden verworfen | Client Character: **Min utterance (ms)** |
 | `mic.max_utterance_ms` | int | 20000 | [1000–60000] | längere Äußerungen werden abgeschnitten | Client Character: **Max utterance (ms)** |
-| `mic.echo_tail_s` | number | 0.4 | [0–3] | Mikrofon bleibt so lange nach dem Sprechende der Figur zu (Echo-Sperre) | Client Character: **Echo gate tail (s)** |
+| `mic.echo_tail_s` | number | 0.4 | [0–3] | Mikrofon bleibt zu, solange die Figur spricht, und so lange danach (Echo-Sperre; auch im Realtime-Modus bis die ganze Antwort fertig ist) | Client Character: **Echo gate tail (s)** |
 | `mic.gain` | number | 1.0 | [0.1–8] | Verstärkung vor VAD und Spracherkennung | Client Character: **Input gain** |
 | `mic.ptt_interrupts` | bool | true | | Push-to-Talk drücken stoppt die laufende Antwort | Client Character: **Push-to-talk interrupts speech** |
 | `mic.level_meter` | bool | true | | Pegelanzeige im Plugin | Client Character: **Show level meter** |

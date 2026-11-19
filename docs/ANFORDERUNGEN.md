@@ -45,6 +45,7 @@ Stand: 19.11.2026, Version 23. Übersicht, was umgesetzt ist und was offen ist; 
 - Mikrofon nur in der Begleit-App (Aufnahme, VAD, Echo-Sperre); Push-to-Talk im Plugin, Meldung als Datei – v0.5.0.
 - Push-to-Talk unterbricht die laufende Antwort; Voice barge-in (Kopfhörer) im Realtime-Modus – v0.7.0/v0.7.1.
 - Mikrofon-Einstellungen live (0,3 s nach letzter Änderung), Pegelanzeige – v0.6.3.
+- Verbesserte Sprachaktivitätserkennung und geprüfte Echo-Sperre – umgesetzt 19.11.2026, noch nicht released (siehe „Nächste Version“).
 - Mikrofon-Menü repariert (leeres Menü): ein Eintrag je Gerät (nur Host-API des Standardgeräts, Windows listet sonst jedes Mikro mehrfach), Öffnen per Index, Fehlergrund der App wird angezeigt, Eintrag „System default microphone“, Knopf „Refresh microphones“, Statuszeile mit Geräteanzahl, Liste wird beim Öffnen neu angefragt (E24/E25) – v0.7.4. **Seit 19.11.2026 entfallen** (Mikrofon-Auswahl entfernt, siehe „Nächste Version“).
 - Mikrofon-Menü leer in VaM („(not selected)“, nicht einmal „Standard“) – Version 16: Menü ohne getrennte Anzeigenamen (`displayChoices`), „Standard (System-Mikrofon)“ (seit Version 18 „System default microphone“) immer drin, Infofeld mit Anzahl empfangen, Host-API, Uhrzeit, Menüeinträgen; Test `tools/mic_test.py`. TODO(verify) in VaM. **Seit 19.11.2026 entfallen** (Mikrofon-Auswahl entfernt, siehe „Nächste Version“).
 
@@ -106,6 +107,8 @@ _Version 21 hat das Feld „XAI API Token“ und den Knopf „Question and Answe
 - Alles, was in Leons Ansicht unter Config hängt („eigentlich quasi alles, was unter Config kommt“), insbesondere Expression and gesture und was darunter folgt (z. B. Body), unter den AI Character verschieben bzw. dort gruppieren, damit figurgebundene Steuerung eindeutig dem AI Character zugeordnet ist. Genaues Layout egal (Leon, 18.11.2026). Stand im Code seit Version 15: Expression and gesture und Body liegen schon im Tab AI Character; der Tab Config enthält nur Reload Config JSON, Companion inbox poll interval (s) und Verbose log (nicht figurgebunden). Klären, welche Version Leon in VaM sieht.
 - Die zwei Infotextfelder am unteren Rand des Tabs AI Character in das große Infofeld links übernehmen (rechts nur Bedienelemente; Regel: Konfigurierbares im Menü und in config.json gespiegelt, Infos links) (Leon, 18.11.2026). Welche zwei Felder genau: beim Umsetzen anhand von Leons Ansicht in Version 20 bestimmen.
 
+- **Umgesetzt am 19.11.2026, noch nicht released (Must-Have 3, Mikrofon/PTT/VAD/Echo-Sperre):** bessere Sprachaktivitätserkennung (eingebauter Detektor mit lernendem Grundpegel, Hysterese, Nachlauf und Dauerrauschen-Regel; optional `webrtcvad` über `python -m pip install webrtcvad-wheels`, automatischer Rückfall auf den eingebauten Detektor), neue Schlüssel `mic.vad_engine` (`auto`/`energy`/`webrtc`) und `mic.vad_strictness` (0–3) mit Menüeinträgen im Tab Client Character, Statuszeile „Voice detection“. Echo-Sperre geprüft und zwei Mängel behoben (Grundpegel lernte aus der eigenen Stimme; Realtime: Mikrofon bleibt für die ganze Antwort stumm). Offen bleibt die echte Echo-Unterdrückung (AEC, siehe BACKLOG). Test in VaM mit echtem Mikrofon: `docs/TESTPROTOKOLL.md` T13.
+
 ### Test in VaM (Anleitung `docs/TESTPROTOKOLL.md`)
 - T1: Laden aus der `.var`, Nachfrage zu Plugins aus dem Paket, alte Pakete entfernt.
 - T2: `ReadAllText`/`DeleteFile` akzeptieren die Pfade aus `GetFiles`.
@@ -142,7 +145,6 @@ _Version 21 hat das Feld „XAI API Token“ und den Knopf „Question and Answe
 - Session-Config vs. Person-Config: zurückgestellt bis nach den Tests, siehe Backlog.
 
 ### Noch nicht umgesetzt (vereinbart)
-- Bessere Sprachaktivitätserkennung (aktuell Energie-VAD).
 - Blicksteuerung (bis dahin Glance; kein Look-at-Tool für die KI, weil das Plugin keine Blicksteuerung hat).
 - Demo- bzw. Anleitungsszene.
 - Doku und Veröffentlichung auf dem VaM Hub („Plugins + Scripts“, mit Tags).

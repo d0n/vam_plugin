@@ -8,6 +8,7 @@ dependencies = []
 
 [project.optional-dependencies]
 mic = ["sounddevice>=0.4"]
+vad = ["webrtcvad-wheels>=2.0.10"]
 dev = ["ruff>=0.5"]
 
 [project.scripts]

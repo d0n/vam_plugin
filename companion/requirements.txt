@@ -1,3 +1,5 @@
 # Core and all engines run on the Python standard library only (HTTP via urllib).
 # Microphone capture (voice mode):
 sounddevice>=0.4
+# Optional, better voice detection (mic.vad_engine auto/webrtc; the built-in detector is used without it):
+# webrtcvad-wheels>=2.0.10

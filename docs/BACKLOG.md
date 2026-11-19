@@ -39,7 +39,7 @@ Grundregel seit v0.6.0: erst Lauffähigkeit (eine `.cslist`, ein MVRScript, ein 
 
 ## Begleit-App
 - **Lokale Engines** (STT faster-whisper/Vosk, LLM über Ollama o. Ä., TTS Piper/XTTS) – Backlog v0.6.0 – Cloud-Engines xAI/ElevenLabs sind umgesetzt (v0.7.0), lokale nicht.
-- **Bessere Sprachaktivitätserkennung** (webrtcvad/Silero) – Anforderungskatalog, TODO in `companion/aibody_companion/audio/vad.py` – Derzeit Energie-VAD, austauschbar über `is_speech(frame)`.
+- **Silero-VAD (neuronal)** – bewusst nicht umgesetzt (würde torch/onnxruntime erzwingen). Die bessere Sprachaktivitätserkennung (eingebauter Detektor mit lernendem Grundpegel, optional webrtcvad) ist seit 19.11.2026 umgesetzt, siehe SPEC; weitere Engines passen hinter `make_vad` in `audio/vad.py`.
 - **Unterbrechen per Stimme ohne Kopfhörer** (Echo-Unterdrückung, z. B. WebRTC AEC) – TODO in `companion/aibody_companion/audio/echo_gate.py` – Bis dahin Echo-Sperre; per Stimme nur mit Kopfhörer, Push-to-Talk immer.
 
 ## Entfernte Menüeinträge (Version 15) und ihre ursprüngliche Absicht

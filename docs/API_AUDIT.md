@@ -361,3 +361,11 @@ from `Exception.ToString()`, not from reflection. The only additions outside the
   and `ReadAllText` would alter binary data. The timeout diagnostics read `AudioSource.isPlaying` and
   `AudioClip.length` (already used). No `foreach` over Dictionary `.Keys`/`.Values`, no network, no
   threads or sleeps.
+
+## After version 23 (19.11.2026): VAD engine and VAD strictness in the Mic menu
+
+No new API. A `JSONStorableStringChooser` ("VAD engine", registered with `RegisterStringChooser`, shown with the
+existing `page.Popup`) and a `JSONStorableFloat` ("VAD strictness", `RegisterFloat` via the existing `Reg` helper,
+shown with `page.Slider`), the same patterns as "Mic mode" and "VAD threshold". The values travel in the existing
+`mic` JSON (`vad_engine`, `vad_strictness`); `mic_state.vad` / `vad_note` are plain strings shown in the info field.
+No `foreach` over Dictionary `.Keys`/`.Values`, no file or network access added.

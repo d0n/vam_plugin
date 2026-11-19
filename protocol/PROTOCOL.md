@@ -131,7 +131,7 @@ selection (since 19.11.2026 no `devices` command, no `list_devices` event, no `m
 | type         | fields | when |
 |--------------|--------|------|
 | `config_ack` | `reply_to`, `applied` (`{"mic": {...}, "engines": {...}, "ai": {...}, "advanced": {"verbose_log": true}}` settings in effect after clamping), `errors` (list of strings), `mic_state` | answer to every `config` event |
-| `mic_state`  | `enabled`, `capturing`, `mode`, `ptt_active`, `error` | when the microphone state changes, and after `ready` |
+| `mic_state`  | `enabled`, `capturing`, `mode`, `ptt_active`, `error`, `vad` (the detector that really runs, text), `vad_note` (why the chosen one is not used; only if so) | when the microphone state changes, and after `ready` |
 | `mic_level`  | `rms` (peak RMS 0..1 since the last message), `speech`, `gate_open` | 5 per second while capturing, if `level_meter` is on |
 
 ## Events (VaM -> companion)
@@ -176,7 +176,9 @@ leave the previous value in place. Numbers are clamped to the range.
 |--------------------|--------|---------|--------------|---------|
 | `enabled`          | bool   | true    |              | open the microphone |
 | `mode`             | string | `vad`   | `vad`, `ptt` | voice activation or push-to-talk |
-| `vad_threshold`    | number | 0.01    | 0.001..0.5   | RMS level (after gain) that counts as speech |
+| `vad_engine`       | string | `auto`  | `auto`, `energy`, `webrtc` | voice detector: `energy` = built-in (adaptive noise floor, hysteresis, hangover); `webrtc` = webrtcvad (optional `python -m pip install webrtcvad-wheels`); `auto` = webrtc if installed, else energy. A missing library never breaks the mic: the built-in detector runs and `mic_state.vad_note` says why |
+| `vad_strictness`   | int    | 2       | 0..3         | higher ignores more background noise (webrtcvad mode 0..3; built-in: speech must be 2 / 2.5 / 3 / 4 times above the noise floor) |
+| `vad_threshold`    | number | 0.01    | 0.001..0.5   | quietest RMS level (after gain) that can count as speech, for every engine |
 | `end_silence_ms`   | int    | 700     | 200..5000    | silence that ends an utterance |
 | `min_utterance_ms` | int    | 300     | 100..5000    | shorter utterances are dropped (must be < max) |
 | `max_utterance_ms` | int    | 20000   | 1000..60000  | longer utterances are cut |

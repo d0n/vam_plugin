@@ -240,3 +240,18 @@ Melden: `mic_test_output.txt`.
 
 **Ergebnis zurückschicken:** pro Punkt T1–T12 ✅/❌, die Screenshots, die roten „AIBody:“-Zeilen und
 bei Problemen mit einer Antwort die Datei `companion.log` (mit eingeschaltetem Verbose log).
+
+## T13 – Voice detection and echo lock (after version 23, next version 24)
+
+Needs a real microphone and speakers. Companion started with a real xAI key (or offline engines).
+
+1. Tab **Client Character**: **VAD engine** (Auto / Built-in / WebRTC), **VAD strictness** (0-3). Info field shows
+   `Voice detection: energy (built-in, ...)`. Without `webrtcvad-wheels`, choose WebRTC: a `Note:` line explains how
+   to install it and the built-in detector keeps working. After `python -m pip install webrtcvad-wheels` and a
+   companion restart, Auto shows `Voice detection: webrtc ...`.
+2. Speak a sentence with a pause between two words (about 0.3 s): one utterance, not two. Switch on a fan or play
+   music quietly: nothing is heard as speech with strictness 2-3 (raise it or **VAD threshold** if not).
+3. Echo: speakers (no headphones), let the character talk a long answer. The AI must not answer itself, in voice mode
+   and in realtime mode. Watch for self-triggers right after the voice ends; if there are any, raise **Echo gate tail
+   (s)**.
+4. Speak just after the character has finished: you are heard (tail only 0.4 s by default).
