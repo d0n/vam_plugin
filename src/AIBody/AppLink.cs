@@ -624,10 +624,10 @@ namespace AIBody
             return line + "\n";
         }
 
-        /// <summary>Tab "Client Character": the user's microphone and push-to-talk, voice barge-in.</summary>
+        /// <summary>Tab "Client Character": the user's microphone, voice activation and push-to-talk, voice barge-in.</summary>
         public void BuildClientCharacterTab(UiPage page)
         {
-            page.Header("<b>Client Character: microphone and push-to-talk</b>");
+            page.Header("<b>Client Character: microphone, voice activation and push-to-talk</b>");
             if (_mic != null) _mic.BuildTab(page);
             page.Toggle(_bargeInJson);
         }

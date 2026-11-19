@@ -7,6 +7,7 @@ import math
 import struct
 import tempfile
 import unittest
+from pathlib import Path
 from unittest import mock
 
 from aibody_companion.audio import EchoGate, EnergyVad, InputProcessor, MicSettings, apply_mic_config
@@ -304,6 +305,65 @@ class CompanionMicStateTests(unittest.TestCase):
         app = self.make({"vad_engine": "energy", "vad_strictness": 3})
         self.assertIn("strictness 3", app.mic_state()["vad"])
         self.assertEqual(app.input.vad.ratio, STRICTNESS_RATIO[3])
+
+
+class FrameSource:
+    """A fake capture device that hands out the queued frames once."""
+
+    queued: list[bytes] = []
+
+    def __init__(self, rate, ms):
+        pass
+
+    def start(self):
+        pass
+
+    def stop(self):
+        pass
+
+    def frames(self):
+        frames, FrameSource.queued = FrameSource.queued, []
+        return iter(frames)
+
+
+class HeardStt:
+    def transcribe(self, pcm16, sample_rate):
+        return "hello"
+
+
+class NoPluginTests(unittest.TestCase):
+    """Leon, 19.11.2026: with no AIBody plugin in the scene, the companion still listens with voice activation
+    from config.json alone. It never waits for a plugin handshake."""
+
+    def test_voice_activation_works_from_config_json_alone(self):
+        import json
+        from aibody_companion import settings_file
+        from aibody_companion.audio import MicController
+        from aibody_companion.cli import build_transport
+        with tempfile.TemporaryDirectory() as tmp:
+            path = settings_file.settings_path(tmp)
+            path.parent.mkdir(parents=True)
+            # an older config.json: a mic section without the new VAD keys, and no mode
+            path.write_text(json.dumps({"mic": {"enabled": True, "vad_threshold": 0.02}}), encoding="utf-8")
+            cfg = Config(vam_root=tmp)
+            self.assertEqual(settings_file.apply_to_config(cfg), [], "missing keys are filled, no complaints")
+            self.assertEqual((cfg.mic["mode"], cfg.mic["vad_engine"], cfg.mic["vad_strictness"]), ("vad", "auto", 2))
+            mic = MicController(capture_factory=FrameSource)
+            cfg.audio_dir.mkdir(parents=True, exist_ok=True)
+            app = Companion(cfg, build_transport(cfg), HeardStt(), EchoLlm(), ToneTts(), mic=mic)
+            self.assertFalse(app.transport.connected, "no plugin has ever written to the channel")
+            self.assertTrue(mic.capturing, "the microphone opens at start, not when a plugin shows up")
+            self.assertEqual((app.mic_settings.mode, app.mic_settings.vad_engine, app.mic_settings.vad_strictness),
+                             ("vad", "auto", 2))
+            silence = [tone(0.003)] * 40
+            speech = [tone(wobbly(0.08, i)) for i in range(25)]
+            FrameSource.queued = silence + speech + [tone(0.003)] * 40
+            app.tick()
+            self.assertEqual(app.history[-2:] and app.history[-2]["content"], "hello", "the utterance was answered")
+            inbox = Path(tmp) / "Saves/PluginData/AIBody" / cfg.channel / "inbox"
+            self.assertTrue(any('"speak"' in f.read_text(encoding="utf-8") for f in inbox.glob("*.json")),
+                            "the answer is queued for the plugin (it plays when the plugin starts)")
+            app.shutdown()
 
 
 class PluginVadMenuTests(unittest.TestCase):

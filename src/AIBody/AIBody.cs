@@ -24,7 +24,7 @@
 // tabs removes the old controls with the standard Remove* methods (UiPage, evidence E17/E18).
 // Tabs (version 15): Voice (Voice Mode: link, Question and Answer, realtime, API Reconnect, sound
 // test; Voice > AI Character: AI mode, voice, engines, proactive) | AI Character (poses, expression
-// and gesture, body of this Person) | Client Character (microphone, push-to-talk, voice barge-in)
+// and gesture, body of this Person) | Client Character (microphone, voice activation, push-to-talk, voice barge-in)
 // | Config (Reload Config JSON, Companion inbox poll interval = storable "File poll interval (s)",
 // how often the companion inbox is read; verbose log).
 //
