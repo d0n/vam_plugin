@@ -33,8 +33,10 @@ from the file is not clamped and written back changed.
 The plugin writes with VaM's SimpleJSON, which stores numbers and booleans as strings
 ("0.5", "true"); validate() accepts both (vamjson.py).
 
-API keys never go into this file: only the PATH of a key file (ai.xai.key_file,
-ai.elevenlabs.key_file), or the environment variables XAI_API_KEY / ELEVENLABS_API_KEY.
+API keys: the xAI token typed into the plugin field "XAI API Token" is stored here IN PLAIN TEXT as
+ai.xai.api_key (version 24; Leon's explicit decision, see ai.xai.api_key_warning, which holds the same warning).
+Anything else is a PATH of a key file (ai.xai.key_file, ai.elevenlabs.key_file) or the environment
+variables XAI_API_KEY / ELEVENLABS_API_KEY. The key is never written to the log (logsetup.add_secret).
 """
 from __future__ import annotations
 
@@ -49,6 +51,7 @@ from .audio.mic_settings import MicSettings, apply_mic_config
 from .config import ENGINES_AVAILABLE, PLUGIN_DATA_SUBDIR
 from .pipeline.context import DEFAULT_NUDGE_PROMPT
 from .pipeline.realtime import PCM_RATES
+from .logsetup import add_secret
 from .vamjson import as_bool, as_number
 
 log = logging.getLogger(__name__)
@@ -60,9 +63,16 @@ VERSION = 1
 # Written into config.json as ai.xai.key_hint (JSON has no comments). Any text is accepted.
 KEY_HINT_TEXT = (
     "An xAI API key from console.x.ai is required (a Grok subscription does not work). Provide it in one of "
-    "three ways: (1) in VaM, plugin tab Voice > Voice Mode, field 'XAI API Token' (below API Reconnect); "
-    "(2) the environment variable XAI_API_KEY; (3) ai.xai.key_file = path of a text file that holds the key. "
-    "If several are set, the field wins, then XAI_API_KEY, then key_file. Never write the key itself into this file.")
+    "four ways: (1) in VaM, plugin tab Voice > Voice Mode, field 'XAI API Token' (below API Reconnect); the plugin "
+    "saves it here as ai.xai.api_key; (2) write it into ai.xai.api_key yourself; (3) the environment variable "
+    "XAI_API_KEY; (4) ai.xai.key_file = path of a text file that holds the key. If several are set, the plugin "
+    "field (while VaM runs) wins, then ai.xai.api_key, then XAI_API_KEY, then key_file.")
+# Same text as AppLink.XaiTokenWarning in the plugin (tests/test_token_storage.py compares them).
+KEY_WARNING_TEXT = (
+    "SECURITY NOTICE: Your xAI token is stored as plain text in config.json (ai.xai.api_key). "
+    "Anyone who can read that file can read your token, so do not share or publish it. "
+    "Scenes keep only the masked token, but a scene saved with AIBody version 21 to 23 still contains the full token: "
+    "do not publish such a scene.")
 
 DEFAULTS: dict[str, dict[str, Any]] = {
     "connection": {
@@ -123,7 +133,9 @@ DEFAULTS: dict[str, dict[str, Any]] = {
         "xai": {
             "base_url": "https://api.x.ai/v1",
             "key_hint": KEY_HINT_TEXT,  # a note for the reader of this file (JSON has no comments); ignored by the app
-            "key_file": "",  # path of a file holding the key; used after the plugin field and XAI_API_KEY
+            "api_key": "",  # the xAI token in PLAIN TEXT (the plugin writes the field here); used after the plugin field, before XAI_API_KEY
+            "api_key_warning": KEY_WARNING_TEXT,  # a note for the reader of this file (JSON has no comments); ignored by the app
+            "key_file": "",  # path of a file holding the key; used after the plugin field, api_key and XAI_API_KEY
             "model": "grok-4.7",
             "max_output_tokens": 400,
             "stt_model": "grok-voice-transcribe-2.0",
@@ -388,5 +400,6 @@ def apply_to_config(cfg: Any, channel_from_cli: bool = False) -> list[str]:
                           f"using {getattr(cfg, kind)!r}")
     cfg.ai = json.loads(json.dumps(data["ai"]))
     cfg.verbose_log = bool(data["advanced"]["verbose_log"])
+    add_secret(str(data["ai"]["xai"].get("api_key") or ""))  # before anything can log it
     log.info("Settings from %s: engines %s, mic mode %s", path, data["engines"], data["mic"]["mode"])
     return errors

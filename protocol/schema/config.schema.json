@@ -620,13 +620,23 @@
             },
             "key_hint": {
               "type": "string",
-              "default": "An xAI API key from console.x.ai is required (a Grok subscription does not work). Provide it in one of three ways: (1) in VaM, plugin tab Voice > Voice Mode, field 'XAI API Token' (below API Reconnect); (2) the environment variable XAI_API_KEY; (3) ai.xai.key_file = path of a text file that holds the key. If several are set, the field wins, then XAI_API_KEY, then key_file. Never write the key itself into this file.",
+              "default": "An xAI API key from console.x.ai is required (a Grok subscription does not work). Provide it in one of four ways: (1) in VaM, plugin tab Voice > Voice Mode, field 'XAI API Token' (below API Reconnect); the plugin saves it here as ai.xai.api_key; (2) write it into ai.xai.api_key yourself; (3) the environment variable XAI_API_KEY; (4) ai.xai.key_file = path of a text file that holds the key. If several are set, the plugin field (while VaM runs) wins, then ai.xai.api_key, then XAI_API_KEY, then key_file.",
               "description": "Note for the reader (JSON has no comments): an xAI API key is required; the plugin field 'XAI API Token', XAI_API_KEY or key_file. Not used by the app; any text is accepted"
+            },
+            "api_key": {
+              "type": "string",
+              "default": "",
+              "description": "The xAI API token in PLAIN TEXT. The plugin writes the field 'XAI API Token' here and fills the field from it on start; the app reads it too. Used after the live plugin field and before XAI_API_KEY and key_file. Never log, share or publish this file with a token in it"
+            },
+            "api_key_warning": {
+              "type": "string",
+              "default": "SECURITY NOTICE: Your xAI token is stored as plain text in config.json (ai.xai.api_key). Anyone who can read that file can read your token, so do not share or publish it. Scenes keep only the masked token, but a scene saved with AIBody version 21 to 23 still contains the full token: do not publish such a scene.",
+              "description": "Note for the reader (JSON has no comments): security notice for api_key. Not used by the app; the plugin keeps it"
             },
             "key_file": {
               "type": "string",
               "default": "",
-              "description": "Path of a file holding the xAI key (absolute, or relative to the home folder); used after the plugin field 'XAI API Token' and XAI_API_KEY"
+              "description": "Path of a file holding the xAI key (absolute, or relative to the home folder); used after the plugin field 'XAI API Token', xai.api_key and XAI_API_KEY"
             },
             "model": {
               "type": "string",
@@ -755,7 +765,7 @@
           "description": "ElevenLabs TTS: POST /v1/text-to-speech/{voice_id}?output_format=pcm_*"
         }
       },
-      "description": "Companion app only (no tab; the plugin keeps this section unchanged). NEVER put an API key here. xAI key precedence: 1. the plugin field 'XAI API Token' (tab Voice; sent in the config event, saved with the scene, NOT in this file), 2. XAI_API_KEY, 3. the PATH of a key file (key_file). ElevenLabs: ELEVENLABS_API_KEY or key_file (no menu field)"
+      "description": "Companion app only (no tab; the plugin keeps this section unchanged, except the keys it has controls for). The only API key stored here is the xAI token in PLAIN TEXT (xai.api_key, written by the plugin field). xAI key precedence: 1. the plugin field 'XAI API Token' (tab Voice; sent in the config event while VaM runs), 2. xai.api_key, 3. XAI_API_KEY, 4. the PATH of a key file (key_file). ElevenLabs: ELEVENLABS_API_KEY or key_file (no menu field)"
     }
   }
 }

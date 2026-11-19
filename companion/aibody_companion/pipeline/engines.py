@@ -12,9 +12,10 @@ null / echo / tone) runs instead, and the status says so. Keys come from the env
 (XAI_API_KEY, ELEVENLABS_API_KEY) or from a key file named in config.json; refresh() re-reads
 key files, so a key file added later is picked up without restarting.
 
-xAI key precedence (version 21): 1. the token typed into the plugin's "XAI API Token" field (arrives
-in the config event as keys.xai, set_ui_key), 2. the XAI_API_KEY environment variable, 3. the key
-file ai.xai.key_file. An empty field falls through to 2 and 3. ElevenLabs has no menu field.
+xAI key precedence (version 24): 1. the token typed into the plugin's "XAI API Token" field (arrives
+in the config event as keys.xai, set_ui_key), 2. ai.xai.api_key in config.json (plain text; the plugin
+writes the field there, so after a restart it is the same token), 3. the XAI_API_KEY environment variable,
+4. the key file ai.xai.key_file. An empty field falls through. ElevenLabs has no menu field.
 
 set_override() runs other engines than the selected ones without touching the selection: with an
 xAI key the simple Q&A mode (and typed text / the realtime fallback) uses xai instead of the
@@ -47,6 +48,9 @@ NOT_CONFIGURED = "not configured"
 KEYED = {"xai": (xai.ENV_KEY, "xai"), "elevenlabs": (elevenlabs.ENV_KEY, "elevenlabs")}
 # where a key typed into the plugin comes from (only xAI has a menu field; never the key itself)
 UI_KEY_SOURCE = {"xai": "plugin field 'XAI API Token'"}
+# a key stored in config.json (provider -> key in its "ai" section); plain text, never logged
+CONFIG_KEY = {"xai": "api_key"}
+CONFIG_KEY_SOURCE = {"xai": "config.json ai.xai.api_key"}
 # What kind of key works. xAI: an API key from console.x.ai (pay-as-you-go API credit); the login /
 # subscription of grok.com or the X app (SuperGrok, Premium) is no API key and is refused by api.x.ai.
 KEY_HINT = {
@@ -96,6 +100,11 @@ class EngineSet:
                 add_secret(typed)  # before anything can log it
                 keys[name] = (typed, UI_KEY_SOURCE[name])
                 continue
+            stored = str(self.ai[section].get(CONFIG_KEY.get(name, "")) or "").strip() if name in CONFIG_KEY else ""
+            if stored:
+                add_secret(stored)
+                keys[name] = (stored, CONFIG_KEY_SOURCE[name])
+                continue
             keys[name] = resolve_key(env_name, str(self.ai[section].get("key_file") or ""), self.env)
         changed = {n: k[0] for n, k in keys.items()} != {n: k[0] for n, k in self._keys.items()}
         for name in keys:
@@ -112,6 +121,9 @@ class EngineSet:
         value = value.strip()
         if value == self.ui_keys.get(name, ""):
             return False
+        if not value and name in CONFIG_KEY:
+            # The user emptied the field: the plugin writes "" into config.json too, so forget the stored key here.
+            self.ai[KEYED[name][1]][CONFIG_KEY[name]] = ""
         add_secret(value)
         self.ui_keys[name] = value
         return self.refresh()

@@ -35,9 +35,10 @@ DESCRIPTIONS = {
                                           "how often the plugin checks the companion app's inbox folder "
                                           "Saves/PluginData/AIBody/<channel>/inbox/ for messages (speech, poses, "
                                           "expressions). Does not reload config.json",
-    ("ai",): "Companion app only (no tab; the plugin keeps this section unchanged). NEVER put an API key here. "
-             "xAI key precedence: 1. the plugin field 'XAI API Token' (tab Voice; sent in the config event, saved "
-             "with the scene, NOT in this file), 2. XAI_API_KEY, 3. the PATH of a key file (key_file). "
+    ("ai",): "Companion app only (no tab; the plugin keeps this section unchanged, except the keys it has controls for). "
+             "The only API key stored here is the xAI token in PLAIN TEXT (xai.api_key, written by the plugin field). "
+             "xAI key precedence: 1. the plugin field 'XAI API Token' (tab Voice; sent in the config event while VaM runs), "
+             "2. xai.api_key, 3. XAI_API_KEY, 4. the PATH of a key file (key_file). "
              "ElevenLabs: ELEVENLABS_API_KEY or key_file (no menu field)",
     ("ai", "persona"): "Persona / system prompt for the language model (xAI: 'instructions')",
     ("ai", "language"): "'auto' or a language code (de, en, ...): STT bias and TTS language",
@@ -46,8 +47,13 @@ DESCRIPTIONS = {
                    "STT POST /v1/stt, TTS POST /v1/tts",
     ("ai", "xai", "key_hint"): "Note for the reader (JSON has no comments): an xAI API key is required; the plugin field "
                                "'XAI API Token', XAI_API_KEY or key_file. Not used by the app; any text is accepted",
+    ("ai", "xai", "api_key"): "The xAI API token in PLAIN TEXT. The plugin writes the field 'XAI API Token' here and fills "
+                              "the field from it on start; the app reads it too. Used after the live plugin field and "
+                              "before XAI_API_KEY and key_file. Never log, share or publish this file with a token in it",
+    ("ai", "xai", "api_key_warning"): "Note for the reader (JSON has no comments): security notice for api_key. "
+                                      "Not used by the app; the plugin keeps it",
     ("ai", "xai", "key_file"): "Path of a file holding the xAI key (absolute, or relative to the home folder); "
-                               "used after the plugin field 'XAI API Token' and XAI_API_KEY",
+                               "used after the plugin field 'XAI API Token', xai.api_key and XAI_API_KEY",
     ("ai", "elevenlabs"): "ElevenLabs TTS: POST /v1/text-to-speech/{voice_id}?output_format=pcm_*",
     ("ai", "elevenlabs", "key_file"): "Path of a file holding the ElevenLabs key; ELEVENLABS_API_KEY wins; no menu field",
 }
