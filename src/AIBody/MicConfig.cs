@@ -19,6 +19,11 @@ namespace AIBody
         public const string ModeVad = "Voice activation";
         public const string ModePtt = "Push-to-talk";
 
+        // Voice detector choice (config.json mic.vad_engine: auto / energy / webrtc).
+        public const string VadAuto = "Auto";
+        public const string VadBuiltIn = "Built-in";
+        public const string VadWebRtc = "WebRTC";
+
         /// <summary>Start command of the companion app, shown when it is not running.</summary>
         public const string StartHint = "python -m aibody_companion --vam-root \"D:\\VaM\"";
 
@@ -28,6 +33,8 @@ namespace AIBody
         public JSONStorableBool Enabled;
         public JSONStorableStringChooser Mode;
         public JSONStorableFloat Threshold;
+        public JSONStorableStringChooser VadEngine;
+        public JSONStorableFloat VadStrictness;
         public JSONStorableFloat SilenceMs;
         public JSONStorableFloat MinUtteranceMs;
         public JSONStorableFloat MaxUtteranceMs;
@@ -71,6 +78,12 @@ namespace AIBody
             _plugin.RegisterStringChooser(Mode);
             // RMS level (0..1) above which a frame counts as speech.
             Threshold = Reg(new JSONStorableFloat("VAD threshold", 0.01f, (float v) => MarkDirty(), 0.001f, 0.5f));
+            // Voice detector: Auto = WebRTC if the companion app has it installed, else the built-in one.
+            VadEngine = new JSONStorableStringChooser("VAD engine", new List<string> { VadAuto, VadBuiltIn, VadWebRtc }, VadAuto,
+                "VAD engine", (string v) => MarkDirty());
+            _plugin.RegisterStringChooser(VadEngine);
+            // 0..3: higher = ignores more background noise.
+            VadStrictness = Reg(new JSONStorableFloat("VAD strictness", 2f, (float v) => MarkDirty(), 0f, 3f));
             SilenceMs = Reg(new JSONStorableFloat("Silence timeout (ms)", 700f, (float v) => MarkDirty(), 200f, 5000f));
             MinUtteranceMs = Reg(new JSONStorableFloat("Min utterance (ms)", 300f, (float v) => MarkDirty(), 100f, 5000f));
             MaxUtteranceMs = Reg(new JSONStorableFloat("Max utterance (ms)", 20000f, (float v) => MarkDirty(), 1000f, 60000f));
@@ -87,6 +100,9 @@ namespace AIBody
                 "Push-to-talk active: while this is checked the companion app listens to your microphone, like holding the "
                 + "talk button of a walkie-talkie. It only works when Mic mode is 'Push-to-talk'. "
                 + "The microphone is always the system default input (change it in your system sound settings). "
+                + "VAD engine: how speech is told from noise. 'Auto' uses WebRTC if the companion app has it (python -m pip install webrtcvad-wheels), "
+                + "otherwise the built-in detector. VAD strictness 0-3: higher ignores more background noise. "
+                + "VAD threshold is the quietest level that can count as speech. While the character talks (and a moment after) the microphone is muted on purpose, so the AI never hears itself. "
                 + "You can also use the actions 'Push-to-talk start / stop / toggle' from triggers or keys.");
 
             _plugin.RegisterAction(new JSONStorableAction("Push-to-talk start", () => _pttActive.val = true));
@@ -105,7 +121,9 @@ namespace AIBody
             page.Toggle(_pttActive);
             page.Toggle(PttInterrupts);
             page.Toggle(LevelMeter);
+            page.Popup(VadEngine);
             page.Slider(Threshold);
+            page.Slider(VadStrictness);
             page.Slider(Gain);
             page.Slider(SilenceMs);
             page.Slider(MinUtteranceMs);
@@ -168,6 +186,8 @@ namespace AIBody
             mic["enabled"].AsBool = Enabled.val;
             mic["mode"] = Mode.val == ModePtt ? "ptt" : "vad";
             mic["vad_threshold"].AsFloat = Threshold.val;
+            mic["vad_engine"] = VadEngine.val == VadBuiltIn ? "energy" : VadEngine.val == VadWebRtc ? "webrtc" : "auto";
+            mic["vad_strictness"].AsInt = Mathf.RoundToInt(VadStrictness.val);
             mic["end_silence_ms"].AsInt = Mathf.RoundToInt(SilenceMs.val);
             mic["min_utterance_ms"].AsInt = Mathf.RoundToInt(MinUtteranceMs.val);
             mic["max_utterance_ms"].AsInt = Mathf.RoundToInt(MaxUtteranceMs.val);
@@ -185,6 +205,12 @@ namespace AIBody
             Enabled.val = Protocol.GetBool(mic, "enabled", Enabled.val);
             if (Protocol.Has(mic, "mode")) Mode.val = Protocol.GetString(mic, "mode", "vad") == "ptt" ? ModePtt : ModeVad;
             Threshold.val = Protocol.GetFloat(mic, "vad_threshold", Threshold.val);
+            if (Protocol.Has(mic, "vad_engine"))
+            {
+                string engine = Protocol.GetString(mic, "vad_engine", "auto");
+                VadEngine.val = engine == "energy" ? VadBuiltIn : engine == "webrtc" ? VadWebRtc : VadAuto;
+            }
+            VadStrictness.val = Protocol.GetFloat(mic, "vad_strictness", VadStrictness.val);
             SilenceMs.val = Protocol.GetFloat(mic, "end_silence_ms", SilenceMs.val);
             MinUtteranceMs.val = Protocol.GetFloat(mic, "min_utterance_ms", MinUtteranceMs.val);
             MaxUtteranceMs.val = Protocol.GetFloat(mic, "max_utterance_ms", MaxUtteranceMs.val);
@@ -216,6 +242,10 @@ namespace AIBody
             string text = Protocol.GetBool(msg, "capturing", false) ? "capturing" : "not capturing";
             text += " | microphone: system default input";
             text += " | mode: " + Protocol.GetString(msg, "mode", "?");
+            string vad = Protocol.GetString(msg, "vad", "");
+            if (vad.Length > 0) text += "\nVoice detection: " + vad;
+            string vadNote = Protocol.GetString(msg, "vad_note", "");
+            if (vadNote.Length > 0) text += "\nNote: " + vadNote;
             if (Protocol.GetBool(msg, "ptt_active", false)) text += " | TALKING (PTT)";
             string error = Protocol.GetString(msg, "error", "");
             if (error.Length > 0) text += "\nError: " + error;
