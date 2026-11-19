@@ -69,8 +69,7 @@ Saves/PluginData/AIBody/<channel>/audio/    its fallback if VaM cannot load the 
 - The reader deletes each file after processing. The companion clears both folders on start.
 - The plugin polls its inbox every 0.1 s (slider "Companion inbox poll interval (s)" in the Config tab;
   stored name "File poll interval (s)", config.json `advanced.file_poll_interval_s`). This is only
-  the companion message inbox; config.json is never reloaded automatically. It sends `ready`, its `config` and
-  `list_devices` on start and a `heartbeat` every 2 s.
+  the companion message inbox; config.json is never reloaded automatically. It sends `ready`, its `config` on start and a `heartbeat` every 2 s.
 - The companion counts the plugin as connected while it received an event in the last 5 s, and
   while connected sends `companion_heartbeat` every 2 s. The plugin counts the companion as
   connected while a `companion_heartbeat` arrived in the last 6 s. A new `session` id in
@@ -125,14 +124,14 @@ not detected by the plugin; a missing storable or parameter is reported as `comm
 ### Microphone feedback (app link)
 
 The microphone is opened only by the companion app. The plugin never touches a VaM/Unity
-microphone API: it shows the device names from `devices`, and sends settings (`config`) and
-push-to-talk (`ptt`) as event files.
+microphone API: it sends settings (`config`) and push-to-talk (`ptt`) as event files and shows the
+state the app reports. The app always records from the system default input; there is no device
+selection (since 19.11.2026 no `devices` command, no `list_devices` event, no `mic.device`).
 
 | type         | fields | when |
 |--------------|--------|------|
 | `config_ack` | `reply_to`, `applied` (`{"mic": {...}, "engines": {...}, "ai": {...}, "advanced": {"verbose_log": true}}` settings in effect after clamping), `errors` (list of strings), `mic_state` | answer to every `config` event |
-| `devices`    | `devices`: list of `{name, index, default, channels, sample_rate}`, `error`, `reply_to` | answer to `list_devices` |
-| `mic_state`  | `enabled`, `capturing`, `device`, `mode`, `ptt_active`, `error` | when the microphone state changes, and after `ready` |
+| `mic_state`  | `enabled`, `capturing`, `mode`, `ptt_active`, `error` | when the microphone state changes, and after `ready` |
 | `mic_level`  | `rms` (peak RMS 0..1 since the last message), `speech`, `gate_open` | 5 per second while capturing, if `level_meter` is on |
 
 ## Events (VaM -> companion)
@@ -147,7 +146,6 @@ All events come from the one plugin:
 | `error`          | `reply_to`, `code`, `message`                       | `bad_json`, `command_failed`, `audio_failed` |
 | `config`         | `mic` (see below), `engines` (`{"stt", "llm", "tts"}`), `ai` (`{"mode", "proactive": {"enabled", "idle_seconds"}, "realtime": {"send_while_speaking", "voice"}, "xai": {"voice", "key_file"?}, "elevenlabs": {"key_file"}?}`, key file paths only when set), `keys` (`{"xai": "<token>"}`, version 21: the plugin field "XAI API Token", plain text, `""` = field empty; always sent; wins over `XAI_API_KEY` and `ai.xai.key_file`; masked in logs on both sides, never in `config.json`), `advanced` (`{"verbose_log"}`: Erweitert > Verbose log, turns the companion's turn trace on/off live) | after (re)connect and 0.3 s after the last settings change |
 | `ptt`            | `active` (bool)                                     | push-to-talk pressed / released |
-| `list_devices`   | -                                                   | after (re)connect, on "Refresh mic devices", when the Mic device menu opens, and every 10 s while the companion runs but no list arrived (version 20); the companion also sends `devices` after every `ready` |
 | `test_tone`      | -                                                   | button "Test-Ton über Companion": the app answers with a `speak` (queue `interrupt`, text "Test-Ton") of a 1.5 s chime WAV in its audio folder |
 | `reconnect`      | -                                                   | button "API Reconnect": the app re-reads its API keys and reopens the realtime connection |
 | `shutdown`       | -                                                   | plugin is stopping its transport |
@@ -178,7 +176,6 @@ leave the previous value in place. Numbers are clamped to the range.
 |--------------------|--------|---------|--------------|---------|
 | `enabled`          | bool   | true    |              | open the microphone |
 | `mode`             | string | `vad`   | `vad`, `ptt` | voice activation or push-to-talk |
-| `device`           | string | `""`    |              | input device name from `devices`, `""` = system default |
 | `vad_threshold`    | number | 0.01    | 0.001..0.5   | RMS level (after gain) that counts as speech |
 | `end_silence_ms`   | int    | 700     | 200..5000    | silence that ends an utterance |
 | `min_utterance_ms` | int    | 300     | 100..5000    | shorter utterances are dropped (must be < max) |

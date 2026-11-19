@@ -108,8 +108,7 @@ src/AIBody/                the plugin (C# 6), one flat folder = what ships
   AppLink.cs                 companion app link: transport, channel, heartbeat, engine menus
   FileTransport.cs           JSON files in Saves/PluginData via FileManagerSecure
   ITransport.cs              transport interface
-  MicDeviceList.cs           mic menu entries (pure list logic, tested with plain .NET: tools/cs_tests)
-  MicConfig.cs               microphone menu, device list, push-to-talk, level meter
+  MicConfig.cs               microphone settings, push-to-talk, level meter (no device selection)
   Body.cs                    the character: settings, controllers, body state for heartbeats
   CommandRouter.cs           dispatches body commands, ack / error events
   SpeechPlayer.cs            speech queue: file path via URLAudioClipManager, playback, events
@@ -166,7 +165,7 @@ d0n.AIBody.22.var
 ├── meta.json
 └── Custom/Scripts/d0n/AIBody/
     ├── AIBody.cslist
-    └── Log.cs, Diag.cs, Protocol.cs, UiHelper.cs, ITransport.cs, FileTransport.cs, MicDeviceList.cs, MicConfig.cs,
+    └── Log.cs, Diag.cs, Protocol.cs, UiHelper.cs, ITransport.cs, FileTransport.cs, MicConfig.cs,
         AppLink.cs, MorphHelper.cs, SpeechPlayer.cs, ExpressionController.cs,
         BreathingController.cs, IdleController.cs, PoseController.cs, CommandRouter.cs,
         Body.cs, AIBody.cs
@@ -259,7 +258,7 @@ same atom.
 ```
 cd companion
 pip install sounddevice                                   # microphone support
-python -m aibody_companion --list-devices                 # check the microphone
+python -m aibody_companion --list-devices                 # diagnostics: list the input devices (the default one is used)
 python -m aibody_companion --vam-root "D:\VaM"            # channel from config.json ("default")
 ```
 
@@ -424,8 +423,9 @@ members, so using anything else fails the compile.
 - **C# 6 only.** No tuples, `out var`, pattern matching or other C# 7+ features.
 - **One MVRScript per `.cslist`**, flat file list (sub folder paths inside a `.var` are
   unverified).
-- **No microphone API in the plugin.** Capture and device listing live in the companion app; the
-  plugin only shows the device names it reports and sends settings and push-to-talk as files.
+- **No microphone API in the plugin.** Capture lives in the companion app, always from the system
+  default input (no device selection, no device list); the plugin only sends settings and
+  push-to-talk as files and shows the state the app reports.
 
 ### API audit (v0.6.1)
 
@@ -449,11 +449,11 @@ object with `v`, `type`, `id` and `ts`.
 
 Companion app to VaM: body commands `speak`, `stop_speaking`, `expression`, `set_morphs`,
 `reset_morphs`, `gesture`, `pose`, `trigger`, `idle`, `breathing`; `ping`,
-`companion_heartbeat`, and for the microphone menu `config_ack`, `devices`, `mic_state`,
+`companion_heartbeat`, and for the microphone settings `config_ack`, `mic_state`,
 `mic_level`.
 
 VaM to companion app: `ready`, `heartbeat`, `pong` (with the body's state), `config`, `ptt`,
-`list_devices`, `shutdown`, `speech_started`, `speech_ended`, `gesture_done`, `ack`, `error`.
+`shutdown`, `speech_started`, `speech_ended`, `gesture_done`, `ack`, `error`.
 
 Example:
 
@@ -503,13 +503,13 @@ Poses from VaMHub can be loaded with the `pose` command using the usual package 
 
 Agreed spec: [docs/SPEC.md](SPEC.md); status done / open: [docs/ANFORDERUNGEN.md](ANFORDERUNGEN.md).
 
-### Microphone list without VaM (version 16)
+### Microphone diagnostics without VaM
 
-`python tools/mic_test.py [--vam-root "D:\VaM"] [--channel <name>]` prints every PortAudio device
-raw, the input devices per host API and the exact list the companion sends (`list_input_devices`),
-and writes `mic_test_output.txt` and `mic_test_devices.json`. With `--vam-root` it also puts that
-`devices` command into the plugin's inbox (same file format as the companion's `FileTransport`), so
-the plugin's menu can be checked without the companion. The plugin's menu entries come from
-`MicDeviceList.Build` (always `System default microphone` first, plain choices, no
-`displayChoices`); `companion/tests/test_mic_device_list_cs.py` runs its tests with plain .NET.
+`python tools/mic_test.py` prints every PortAudio device raw, the input devices per host API and the
+input devices of the default host API (`list_input_devices`, the same list as `--list-devices`), and
+writes `mic_test_output.txt`. Diagnostics only: the companion app always records from the system
+default input (`sounddevice` default, `MicCapture` opens `device=None`), there is no device menu and
+no `devices`/`list_devices` message since 19.11.2026. An old `mic.device` in config.json, a `config`
+event or a saved scene, and an old plugin's `list_devices` event are ignored quietly
+(`audio/mic_settings.py` `RETIRED`, `protocol.RETIRED_EVENTS`).
 

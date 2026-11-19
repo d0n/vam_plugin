@@ -79,7 +79,7 @@ Enforcement:
 | `JSONStorable.GetActionNames` checks before `CallAction` | no evidence; actions are called directly (E7, E8). A misspelled action is not detected |
 | `FileManagerSecure.GetFiles(dir, pattern)` | no evidence for the pattern overload; `GetFiles(dir)` (E11) plus a `.json` filter |
 | `SuperController.GetAtoms` | not needed by the single plugin |
-| `UnityEngine.Microphone` / mic capture in VaM | never used; the scan forbids it. Capture and device listing live in the companion app; the plugin only shows device names, sends settings and push-to-talk (`ptt` event file) |
+| `UnityEngine.Microphone` / mic capture in VaM | never used; the scan forbids it. Capture lives in the companion app (always the system default input, no device selection); the plugin sends settings and push-to-talk (`ptt` event file) |
 | Coroutines in the speech player | not needed after removing the download path |
 
 ## Still TODO(verify) in VaM 1.22
@@ -92,7 +92,7 @@ These use evidenced APIs but in a combination nobody has shown publicly, or depe
 3. `NormalizeMediaPath` + `QueueClip` with a `Saves/PluginData/...` relative path (evidence uses
    file-browser paths), and `PlayNow` on a still loading clip being retried safely; start/end
    detection via `AudioSource.isPlaying` / `clip`; lip sync follows (`SpeechPlayer.cs`).
-4. ~~`JSONStorableStringChooser.choices` refreshes an open popup~~: now evidenced (E24, E25: set on popups that are on screen, refilled from `popupOpenCallback`). Still to see in VaM: the mic list after **Refresh microphones** (T11).
+4. ~~`JSONStorableStringChooser.choices` refreshes an open popup~~: now evidenced (E24, E25: set on popups that are on screen, refilled from `popupOpenCallback`). The mic menu that first used it is gone (19.11.2026); E24/E25 stay in use for the pose, expression and gesture choosers (`Body.cs`).
 5. The `InputField` text field pattern on `CreateTextField` (`UiHelper.cs`).
 6. The `PosePresets` storable id and its `presetBrowsePath` / `LoadPreset` (`PoseController.cs`).
 7. Morph names of the built-in expressions and the breath morph (`ExpressionController.cs`,
@@ -299,7 +299,7 @@ from `Exception.ToString()`, not from reflection. The only additions outside the
   name (saved in scenes) and the polling behaviour are unchanged; the compile stub declares the
   member with the E26 tag. No `foreach` over Dictionary `.Keys`/`.Values` (CS584 rule).
 
-## Version 20: mic menu without the companion app
+## Version 20: mic menu without the companion app (superseded: the whole mic device menu was removed on 19.11.2026)
 
 - No new VaM API. The Mic device chooser gets a new `choices` list when its popup opens (inside
   `popupOpenCallback`, as E25 does), on "Refresh microphones" and when the tab is built (E24, E25).
@@ -325,3 +325,15 @@ from `Exception.ToString()`, not from reflection. The only additions outside the
   outbox, E10, E11, E15); the token is an extra `keys` object in the `config` event. The plugin never
   writes it to config.json and never logs it. No network API in the plugin, no `foreach` over
   Dictionary `.Keys`/`.Values` (CS584 rule).
+
+## After version 22 (19.11.2026): microphone device selection removed
+
+- No new VaM API; code and API uses only go away. Removed: the "Mic device" chooser (with
+  `popupOpenCallback` refill, `choices` refresh and `CreateScrollablePopup` for it), the "Refresh
+  microphones" button and the "Refresh mic devices" action. **E24 and E25 stay in use**: the pose,
+  expression and gesture choosers (`Body.cs`: `popupOpenCallback = RefreshCharacterChoices`,
+  `choices` set on a shown popup) and `UiPage.ScrollablePopup` for the pose menu still rely on
+  them, so those entries are not obsolete. The Version 20 section above only describes the removed menu.
+- Old scenes that saved "Mic device" simply have a stored value no storable reads any more (VaM
+  skips unknown stored parameters of a plugin). TODO(verify): loading such a scene in VaM shows no
+  error in the log.

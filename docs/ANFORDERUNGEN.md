@@ -42,11 +42,11 @@ Stand: 17.11.2026, Version 12. Übersicht, was umgesetzt ist und was offen ist; 
 - Latenzmessung Sprechende → erster Ton mit Aufschlüsselung (STT, LLM first token, first sentence, TTS, file write, to plugin, plugin start), Logzeile pro Runde, letzter Wert + Mittel im Statusfeld (*Live*, „Latency to first sound“) – v0.7.4.
 
 ### Mikrofon
-- Mikrofon nur in der Begleit-App (Aufnahme, Geräteliste, VAD, Echo-Sperre); Push-to-Talk im Plugin, Meldung als Datei – v0.5.0.
+- Mikrofon nur in der Begleit-App (Aufnahme, VAD, Echo-Sperre); Push-to-Talk im Plugin, Meldung als Datei – v0.5.0.
 - Push-to-Talk unterbricht die laufende Antwort; Voice barge-in (Kopfhörer) im Realtime-Modus – v0.7.0/v0.7.1.
 - Mikrofon-Einstellungen live (0,3 s nach letzter Änderung), Pegelanzeige – v0.6.3.
-- Mikrofon-Menü repariert (leeres Menü): ein Eintrag je Gerät (nur Host-API des Standardgeräts, Windows listet sonst jedes Mikro mehrfach), Öffnen per Index, Fehlergrund der App wird angezeigt, Eintrag „System default microphone“, Knopf „Refresh microphones“, Statuszeile mit Geräteanzahl, Liste wird beim Öffnen neu angefragt (E24/E25) – v0.7.4.
-- Mikrofon-Menü leer in VaM („(not selected)“, nicht einmal „Standard“) – Version 16: Menü ohne getrennte Anzeigenamen (`displayChoices`), „Standard (System-Mikrofon)“ (seit Version 18 „System default microphone“) immer drin, Infofeld mit Anzahl empfangen, Host-API, Uhrzeit, Menüeinträgen; Test `tools/mic_test.py`. TODO(verify) in VaM.
+- Mikrofon-Menü repariert (leeres Menü): ein Eintrag je Gerät (nur Host-API des Standardgeräts, Windows listet sonst jedes Mikro mehrfach), Öffnen per Index, Fehlergrund der App wird angezeigt, Eintrag „System default microphone“, Knopf „Refresh microphones“, Statuszeile mit Geräteanzahl, Liste wird beim Öffnen neu angefragt (E24/E25) – v0.7.4. **Seit 19.11.2026 entfallen** (Mikrofon-Auswahl entfernt, siehe „Nächste Version“).
+- Mikrofon-Menü leer in VaM („(not selected)“, nicht einmal „Standard“) – Version 16: Menü ohne getrennte Anzeigenamen (`displayChoices`), „Standard (System-Mikrofon)“ (seit Version 18 „System default microphone“) immer drin, Infofeld mit Anzahl empfangen, Host-API, Uhrzeit, Menüeinträgen; Test `tools/mic_test.py`. TODO(verify) in VaM. **Seit 19.11.2026 entfallen** (Mikrofon-Auswahl entfernt, siehe „Nächste Version“).
 
 ### Sprachausgabe
 - VaMs Audio-Lader (`NormalizeMediaPath` → `URLAudioClipManager.QueueClip` → `PlayNow` auf `HeadAudioSource`) mit eingebautem Lippensync, nur lokale Dateien – v0.6.x.
@@ -65,7 +65,7 @@ Stand: 17.11.2026, Version 12. Übersicht, was umgesetzt ist und was offen ist; 
 - Infofeld 1800 hoch, links nur das Infofeld (Kopfzeile mit Hinweis entfernt), Infotexte gekürzt, „Reload expressions“ beim Ausdruck – Version 17 (Leon, 18.11.2026).
 - Plugin-Oberfläche, Begleit-App-Ausgaben und `tools/mic_test.py` auf Englisch (internationaler Standard, unabhängig von der Systemsprache); vom System gelieferte Namen (Mikrofone, Host-APIs) unverändert; alte Szenen und config.json bleiben gültig – Version 18 (Leon, 18.11.2026).
 - Regler im Tab Config heißt in der Oberfläche „Companion inbox poll interval (s)“ statt „File poll interval (s)“: er bestimmt, wie oft das Plugin den Eingang der Companion-App (`Saves/PluginData/AIBody/<Kanal>/inbox/`) auf Nachrichten prüft (Sprache, Posen, Ausdrücke), nicht config.json (wird nie automatisch neu geladen). Hinweis dazu im Infofeld des Tabs Config; gespeicherter Name „File poll interval (s)“ und config.json-Schlüssel `advanced.file_poll_interval_s` unverändert, Abfrageverhalten unverändert – Version 19 (Leon, 18.11.2026).
-- Mikrofon-Menü ohne Begleit-App (Leon, 18.11.2026 19:15: Menü leer, „Refresh microphones“ ändert nichts, Infofeld „no answer from the companion app“): Infofeld sagt rot, dass die App nicht läuft, mit Startbefehl `python -m aibody_companion --vam-root "D:\VaM"` („no answer“ nur bei laufender App); Menü wird beim Öffnen, bei „Refresh microphones“ und beim Tab-Aufbau immer neu gesetzt (mindestens „System default microphone“); erneute Anfrage alle 10 s bei laufender App ohne Liste; App schickt die Liste nach jedem `ready` und loggt die Rohzahlen – Version 20.
+- Mikrofon-Menü ohne Begleit-App (Leon, 18.11.2026 19:15: Menü leer, „Refresh microphones“ ändert nichts, Infofeld „no answer from the companion app“): Infofeld sagt rot, dass die App nicht läuft, mit Startbefehl `python -m aibody_companion --vam-root "D:\VaM"` („no answer“ nur bei laufender App); Menü wird beim Öffnen, bei „Refresh microphones“ und beim Tab-Aufbau immer neu gesetzt (mindestens „System default microphone“); erneute Anfrage alle 10 s bei laufender App ohne Liste; App schickt die Liste nach jedem `ready` und loggt die Rohzahlen – Version 20. **Seit 19.11.2026 entfallen** (Mikrofon-Auswahl entfernt, siehe „Nächste Version“).
 - Infofeld größer (1600) und nur mit den Infos des offenen Tabs; Selbsttest, Recent events, Startup log im Tab Config; Startergebnis als eine Zeile auf jedem Tab; keine leere Posen-Auswahl; geprüft: kein Menü und kein Abschnitt, der nur „default“ zeigt – Version 16 (Leon, 18.11.2026).
 - „Posen“ statt „Post“: Tab Post entfernt, Posen im Tab AI Character; Erweitert in Config aufgegangen – Version 15. Ursprüngliche Absicht der entfernten Einträge: `docs/BACKLOG.md`.
 
@@ -89,6 +89,8 @@ Stand: 17.11.2026, Version 12. Übersicht, was umgesetzt ist und was offen ist; 
 
 ### Nächste Version (noch nicht umgesetzt)
 _Version 21 hat das Feld „XAI API Token“ und den Knopf „Question and Answer“ umgesetzt (siehe oben, KI und Sprache)._
+- **Umgesetzt am 19.11.2026, noch nicht released (nach Version 22):** Mikrofon-Auswahl entfernt (Leon, Sprachnachricht: die Begleit-App nimmt unter Windows ohnehin vom Standardgerät auf, die Auswahl war überflüssig). Entfallen: Menü „Mic device“, Knopf „Refresh microphones“, Aktion „Refresh mic devices“, `MicDeviceList.cs`, Mikrofonliste/Geräteanzahl im Infofeld, Einstellung `mic.device`, Nachrichten `list_devices`/`devices`, Geräteparameter der Aufnahme. Die Aufnahme nutzt immer das Standard-Eingabegerät (sounddevice). Alte Szenen, config.json und ältere Plugins mit `device`/`list_devices` werden stillschweigend toleriert. Rote Zeile „Companion app not running. Start it: …“ bleibt im Infofeld. `--list-devices` und `tools/mic_test.py` bleiben als Diagnose.
+- **Schon in der Begleit-App, noch nicht released (Commit 45b6993):** Der erkannte Sprachtext (STT) wird immer, auch ohne Verbose log, als INFO-Zeile `Heard (STT …): …` in die Konsole geschrieben, bevor die Antwort kommt.
 - Alle Posen-Einträge (Apply pose, Reload poses und alles weitere zu Posen) gehören in einen Unterpunkt „Poses“ im Tab AI Character, nicht in Config. Grund: Posen gehören zu einer Figur und sind nur für den AI Character sinnvoll, nicht für den Client Character (Leon, 18.11.2026). Stand im Code seit Version 15: Apply pose und Reload poses liegen schon im Abschnitt Poses im Tab AI Character; Config enthält nur Reload Config JSON, Companion inbox poll interval (s) (bis Version 18 „File poll interval (s)“), Verbose log. In VaM prüfen, ob dort noch Posen-Einträge unter Config erscheinen (ggf. ältere Paketversion geladen).
 - Alles, was in Leons Ansicht unter Config hängt („eigentlich quasi alles, was unter Config kommt“), insbesondere Expression and gesture und was darunter folgt (z. B. Body), unter den AI Character verschieben bzw. dort gruppieren, damit figurgebundene Steuerung eindeutig dem AI Character zugeordnet ist. Genaues Layout egal (Leon, 18.11.2026). Stand im Code seit Version 15: Expression and gesture und Body liegen schon im Tab AI Character; der Tab Config enthält nur Reload Config JSON, Companion inbox poll interval (s) und Verbose log (nicht figurgebunden). Klären, welche Version Leon in VaM sieht.
 - Die zwei Infotextfelder am unteren Rand des Tabs AI Character in das große Infofeld links übernehmen (rechts nur Bedienelemente; Regel: Konfigurierbares im Menü und in config.json gespiegelt, Infos links) (Leon, 18.11.2026). Welche zwei Felder genau: beim Umsetzen anhand von Leons Ansicht in Version 20 bestimmen.
@@ -104,7 +106,7 @@ _Version 21 hat das Feld „XAI API Token“ und den Knopf „Question and Answe
 - T8: Realtime mit echtem xAI-Key, Unterbrechen, proaktives Sprechen.
 - T9: Frage → hörbare Antwort im Spiel.
 - T10: Verbose log, Echtzeit-Schalter.
-- T11: Mikrofon-Menü, Posen-/Ausdrucks-Menü, Tool-Aufrufe, Latenzanzeige.
+- T11: Mikrofon-Einstellungen (ohne Geräteauswahl), Posen-/Ausdrucks-Menü, Tool-Aufrufe, Latenzanzeige.
 - T12: Feld „XAI API Token“ (Einfügen, Status, Szene speichern/laden), Knopf „Question and Answer“ zweizeilig mittig (ab Version 21).
 - Engines noch nie gegen die echten xAI-/ElevenLabs-APIs gelaufen (nur nachgebauter Server).
 
@@ -119,7 +121,7 @@ _Version 21 hat das Feld „XAI API Token“ und den Knopf „Question and Answe
 - Storable „PosePresets“ folgt dem belegten Muster (1.22).
 - Morph-Namen für Ausdrücke an Standard-Figuren (weiblich/männlich).
 - Szene: Personen in Blickrichtung +Z (0°/180° = einander zugewandt), Aussehen ohne festgelegte Kleidung, Camera Background Color auf einem Person-Atom.
-- Ursache des leeren Mikrofon-Menüs bei Leon (Version 16): Vermutung `displayChoices` (einzige Auswahl des Plugins damit); Bestätigung über Screenshot des Infofelds (Zeile „Mic device menu: N entries …“) und Ausgabe von `tools/mic_test.py` steht aus.
+- ~~Ursache des leeren Mikrofon-Menüs bei Leon (Version 16)~~: hinfällig, die Mikrofon-Auswahl ist seit 19.11.2026 entfernt.
 - Sichtbare Höhe des Infofelds (1800) in VaM.
 
 ### Offene Fragen an Leon

@@ -60,7 +60,7 @@ Companion-App: erscheinen `speech_started`/`speech_ended` bzw. Fehler wie `audio
 
 Tabs ab Version 15: Voice, AI Character, Client Character, Config (davor: Voice Mode, AI, AI Character, Client Character, Post, Config, Erweitert). Links ein großes Infofeld, in den Tabs nur Bedienelemente.
 
-1. Tab **Client Character** öffnen > **Refresh microphones** > Auswahl **Mic device** öffnen. Im Infofeld links oben steht „Info: Client Character“ mit Push-to-Talk-Erklärung und Mikrofon-Status.
+1. Tab **Client Character** öffnen. Im Infofeld links oben steht „Info: Client Character“ mit Push-to-Talk-Erklärung und Mikrofon-Status.
 2. Tab **Voice** öffnen: oben Abschnitt *Voice Mode*, darunter *Voice > AI Character*; die Auswahllisten öffnen. Im Infofeld: Q&A-Hilfe, AI-mode-Hilfe, Key-Status, Engine-Status.
 3. Tab **Config**: **Reload Config JSON** drücken; im Infofeld stehen Pfad der config.json, Kanal und das Ergebnis.
 4. Tab **AI Character**: Abschnitt **Poses** vorhanden; ins beschriftete Feld unter „Breath morph“ klicken und einen Buchstaben ändern, dann zurück.
@@ -182,16 +182,13 @@ bitte trotzdem kurz reinschauen) und einen Screenshot des Statusfelds mit *Recen
 
 ## T11 – Mikrofon-Menü, Posen-Menü, KI-Körpersteuerung, Latenz (ab v0.7.4)
 
-1. Tab **Client Character** > **Refresh microphones**. Im Infofeld links steht (ab Version 16)
-   `Microphone list: N received from the companion app (host API …) at HH:MM:SS, requested HH:MM:SS`
-   oder rot mit Grund, darunter `Mic device menu: M entries: System default microphone, …` und
-   `Selected: … | Windows default: …`. Die Companion-Konsole zeigt `Microphones: N found (…): …`.
-   Menü **Mic device** öffnen: erster Eintrag `System default microphone` (auch ohne App), darunter
-   jedes Mikrofon einmal. Ab Version 20 ohne laufende Begleit-App: rote Zeile
-   `Microphone list: companion app not running. Start it: python -m aibody_companion --vam-root "D:\VaM"`
-   und im Menü nur `System default microphone`; nach dem Start der App kommt die Liste von selbst
-   (spätestens nach etwa 10 s). Eins wählen, sprechen
-   (Pegel bewegt sich), Szene speichern, neu laden: die Wahl ist noch da.
+1. Tab **Client Character** (seit 19.11.2026 ohne Mikrofon-Auswahl): kein Menü **Mic device**, kein Knopf
+   **Refresh microphones**. Im Infofeld links steht `Mic: capturing | input: system default | mode: …`.
+   Ohne laufende Begleit-App: rote Zeile
+   `Companion app not running. Start it: python -m aibody_companion --vam-root "D:\VaM"`; nach dem Start
+   der App verschwindet sie. Sprechen (Pegel bewegt sich): die App nimmt vom Windows-Standard-Eingabegerät auf.
+   Anderes Mikrofon: in Windows als Standardgerät einstellen und die App neu starten. Eine alte Szene mit
+   gespeichertem „Mic device“ lädt ohne Fehler (Wert wird ignoriert).
 2. Tab **AI Character** > Abschnitt **Poses**: Menü öffnen (Posen aus `gestures.json` und aus
    `<VaM>/Custom/Atom/Person/Pose/` bzw. `.../Pose/AIBody/`), eine wählen, **Apply pose**.
    Statusfeld: Ergebnis der Aktion. **Reload poses** nach dem Ablegen einer neuen Pose-Datei.
@@ -205,7 +202,7 @@ bitte trotzdem kurz reinschauen) und einen Screenshot des Statusfelds mit *Recen
 6. Tab **Voice** ohne Key: im Infofeld Key-Status `fehlt` mit `nötig: API-Key von console.x.ai … ein Grok-Abo /
    grok.com-Token funktioniert nicht`.
 
-Melden: Screenshot von Infofeld und geöffnetem Menü **Mic device**, Screenshot des Statusfelds mit der
+Melden: Screenshot des Infofelds (Tab Client Character), Screenshot des Statusfelds mit der
 Latenz, Konsolenausgabe.
 
 ## T12 – Feld „XAI API Token“ und Knopf „Question and Answer“ (ab Version 21)
@@ -226,17 +223,14 @@ Latenz, Konsolenausgabe.
 Melden: Screenshot des Tabs **Voice** (Knopf, Feld, Hinweis), Infofeld links, rote `AIBody:`-Zeilen, Ausgabe der
 Begleit-App-Konsole. Wichtig: ob Einfügen per Strg+V im Feld klappt, ob der Knopf zweizeilig mittig steht.
 
-### T11a – Mikrofon-Test ohne VaM (`tools/mic_test.py`, ab Version 16)
+### T11a – Mikrofon-Diagnose ohne VaM (`tools/mic_test.py`, ab Version 16)
 
 1. Companion-App beenden. Im Repo-Ordner (nach `git pull`): `python tools/mic_test.py`.
-   Ausgabe: Versionen, Host-APIs, alle Geräte roh, Eingabegeräte je Host-API, die Liste, die die App
-   an das Plugin schickt. Dateien `mic_test_output.txt` und `mic_test_devices.json` im aktuellen Ordner.
-2. VaM mit der Szene offen, Tab **Client Character**:
-   `python tools/mic_test.py --vam-root "D:\VaM"` (bei anderem Kanal `--channel <Kanal>`).
-   Das Skript legt die Liste in `<VaM>/Saves/PluginData/AIBody/<Kanal>/inbox/`. Erwartet: Infofeld zeigt
-   `Microphone list: N received …`, das Menü **Mic device** die Mikrofone.
+   Ausgabe: Versionen, Host-APIs, alle Geräte roh, Eingabegeräte je Host-API, Eingabegeräte der Standard-Host-API
+   (`*` = Standardgerät, von dem die App aufnimmt). Datei `mic_test_output.txt` im aktuellen Ordner.
+   Seit 19.11.2026 nur Diagnose: keine Mikrofon-Auswahl, keine Nachricht an das Plugin, kein `--vam-root`.
 
-Melden: `mic_test_output.txt`, Screenshot von Infofeld und geöffnetem Menü nach Schritt 2.
+Melden: `mic_test_output.txt`.
 
 **Ergebnis zurückschicken:** pro Punkt T1–T12 ✅/❌, die Screenshots, die roten „AIBody:“-Zeilen und
 bei Problemen mit einer Antwort die Datei `companion.log` (mit eingeschaltetem Verbose log).
