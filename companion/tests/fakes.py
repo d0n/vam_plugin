@@ -460,7 +460,7 @@ class FakePlugin:
         return "DISCONNECTED" if self.last_session else "not seen yet"
 
 
-PLUGIN_VERSION = "26"  # AIBody.cs PluginVersion
+PLUGIN_VERSION = "27"  # AIBody.cs PluginVersion
 
 
 def _from_vam(value: Any, like: Any) -> Any:
