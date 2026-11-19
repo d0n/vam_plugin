@@ -130,7 +130,7 @@ of *Voice > AI Character*, as before.
 `config.json` also carries `ai.xai.key_hint` (version 22): a plain-text note (JSON has no comments) saying that an xAI
 API key is required and the three ways to give it. The app ignores it; any text is accepted.
 
-**Plugging in the xAI key (version 21, stored in config.json since the next version, 24):** paste it into
+**Plugging in the xAI key (version 21, stored in config.json since version 24):** paste it into
 the field **XAI API Token** (tab *Voice*, section *Voice Mode*, below **API Reconnect**). Plain text, no
 format check. The plugin saves it in `config.json` as `ai.xai.api_key` (PLAIN TEXT, at Leon's explicit
 request; `ai.xai.api_key_warning` next to it carries the security notice), fills the field from it on

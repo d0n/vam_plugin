@@ -207,7 +207,7 @@ surrounding blanks are stripped. A changed key re-reads the engines and reconnec
 string clears it (also the stored `ai.xai.api_key`; the environment variable / key file apply again); an event without `keys` leaves the
 token as it is. Wrong types are reported in `config_ack.errors` without the value. The value is
 registered with the app's log redaction before the event is validated, and `config` events are only
-logged masked. There is no `keys.elevenlabs`. Since the next version (24) the plugin also stores the token in
+logged masked. There is no `keys.elevenlabs`. Since version 24 the plugin also stores the token in
 `config.json` as `ai.xai.api_key` (plain text, never in a `config` event's `ai` object) with the notice
 `ai.xai.api_key_warning` next to it; the app reads both keys when it starts (precedence: field, `api_key`,
 `XAI_API_KEY`, `key_file`; protocol version unchanged).

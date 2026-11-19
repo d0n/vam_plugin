@@ -229,7 +229,7 @@ from `Exception.ToString()`, not from reflection. The only additions outside the
   `Custom/Atom/Person/Pose/AIBody`, at most 200 files. TODO(verify): E11 shows `GetFiles` on
   `Saves/PluginData`, not on `Custom/`. Applying uses the existing `LoadPose` path (PosePresets,
   still TODO(verify) T5).
-- **Gaze tool:** was missing until version 25; see "After version 24: gaze control" at the end.
+- **Gaze tool:** was missing until version 24; added in version 25, see "Version 25: gaze control" at the end.
 - **Path display removed** from tabs Post and Config (the menu shows only what can be set); the
   paths go once to the log via `SuperController.LogMessage`. No new API.
 - **Latency / key hint:** text in the existing status box from the companion heartbeat; no new API.
@@ -307,7 +307,7 @@ from `Exception.ToString()`, not from reflection. The only additions outside the
   TODO(verify): why VaM showed no entry at all; the info field line "Mic device menu: N entries"
   reads the chooser back. No `foreach` over Dictionary `.Keys`/`.Values` (CS584 rule).
 
-## After version 22 (next version, 24): XAI API Token in config.json, masked display
+## After version 22 (version 24): XAI API Token in config.json, masked display
 
 - **No new VaM API.** The token is read and written through the already audited config.json path
   (`FileManagerSecure.ReadAllText` / `WriteAllText`, E11, with the existing SimpleJSON merge in
@@ -371,7 +371,7 @@ shown with `page.Slider`), the same patterns as "Mic mode" and "VAD threshold". 
 `mic` JSON (`vad_engine`, `vad_strictness`); `mic_state.vad` / `vad_note` are plain strings shown in the info field.
 No `foreach` over Dictionary `.Keys`/`.Values`, no file or network access added.
 
-## After version 24 (19.11.2026): gaze control (next version 25)
+## Version 25 (19.11.2026): gaze control
 
 New in the plugin (`GazeController.cs`), all with evidence E12 / E28 (see the table and the stub comments):
 
