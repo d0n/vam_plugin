@@ -5,5 +5,5 @@ turns it into text, asks a language model for a reply, synthesizes speech and se
 commands to the VaM plugin. See ../protocol/PROTOCOL.md.
 """
 
-__version__ = "20"  # = package number d0n.AIBody.17.var (scheme since version 12)
+__version__ = "21"  # = package number d0n.AIBody.17.var (scheme since version 12)
 PROTOCOL_VERSION = 3
