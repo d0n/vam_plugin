@@ -42,11 +42,13 @@ from typing import Any
 from . import __version__, body_tools, logsetup, protocol
 from .atomicfile import atomic_copy
 from .audio import (
+    BargeInRule,
     EchoGate,
     InputProcessor,
     MicController,
     MicSettings,
     apply_mic_config,
+    silero_model_path,
 )
 from .config import ENGINES_AVAILABLE, PLUGIN_DATA_SUBDIR, Config
 from .emotion import EmotionDirector, offered as offered_expressions
@@ -164,7 +166,9 @@ class Companion:
             log.warning("config 'mic': %s", e)
         self.mic_settings = settings
         self.gate = gate or EchoGate(tail_s=settings.echo_tail_s)
-        self.input = InputProcessor(settings, self.gate, config.sample_rate, config.frame_ms)
+        self.input = InputProcessor(settings, self.gate, config.sample_rate, config.frame_ms,
+                                    silero_model=silero_model_path(config.vam_root))
+        self._configure_barge()
         self.mic = mic  # None = no microphone (text only)
         self.latency = LatencyStats()  # end of speech -> first sound, last value + rolling average
         self.history: list[dict[str, str]] = []
@@ -285,6 +289,8 @@ class Companion:
         if mode == "qa":
             if has_key:
                 return False, "Question and Answer: xAI speech recognition -> Grok -> xAI voice, speech only"
+            if any(v != OFFLINE_ENGINES[k] for k, v in self.engine_set.requested.items()):
+                return False, "Question and Answer with the engines selected in the menu (no xAI API key)"
             return False, ("Question and Answer without an xAI API key: test engines only (echo + tone) - "
                            "enter an API key from console.x.ai (not a Grok subscription token) in the plugin field "
                            "'XAI API Token', or set XAI_API_KEY / a key file in config.json ai.xai.key_file")
@@ -953,7 +959,40 @@ class Companion:
             self.realtime.feed_mic(frame)
             return None
         utterance = self.input.process(frame)
+        if self.input.barge_frames:
+            return self.voice_barge_in(self.input.take_barge() or [])
         return self.handle_utterance(utterance) if utterance else None
+
+    def _configure_barge(self) -> None:
+        """ai.barge_in (config.json only): the loudness rule for talking over the body without headphones."""
+        cfg = self.engine_set.ai.get("barge_in") or {}
+        if not cfg.get("enabled"):
+            self.input.barge = None
+            return
+        self.input.barge = BargeInRule(float(cfg["ratio"]), int(cfg["min_ms"]), self.cfg.frame_ms, float(cfg["floor"]))
+        log.info("Voice barge-in by loudness rule: on (user %.1f times louder than the echo for %d ms) - only "
+                 "voice activation mode; see docs/LOKALE_ENGINES.md", float(cfg["ratio"]), int(cfg["min_ms"]))
+
+    def voice_barge_in(self, frames: list[bytes]) -> str | None:
+        """The loudness rule fired: the user talks over the body. The body (and every peer figure) stops, the
+        gates open, the frames of the user's stretch are processed as the start of the utterance."""
+        log.info("Voice barge-in: the user talks over the body - stopping it")
+        for figure in [self, *self.peers]:
+            figure.cancel_turns()
+            figure.send(figure.body_command("stop_speaking"))
+            figure.gate.force_open()
+            if figure.realtime is not None and figure.active_mode == "realtime":
+                figure.realtime.barge_in(manual=True)
+        self.on_user_activity()
+        if self.active_mode == "realtime":
+            self.realtime.send_frames(frames)
+            return None
+        text = None
+        for frame in frames:
+            utterance = self.input.process(frame, gained=True)
+            if utterance:
+                text = self.handle_utterance(utterance)
+        return text
 
     def handle_utterance(self, utterance: bytes) -> str:
         """Transcribes and answers an utterance. Returns the text (inline) or "" (queued)."""

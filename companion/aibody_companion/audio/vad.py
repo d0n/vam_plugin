@@ -4,7 +4,7 @@ Pure Python so it runs and tests without numpy. Audio is mono 16-bit PCM in fram
 fixed length (default 30 ms at 16 kHz = 480 samples).
 
 EnergyVad is the built-in detector (adaptive noise floor, hysteresis, hangover); WebRtcVad uses the optional
-webrtcvad package. make_vad() picks one from the settings mic.vad_engine / mic.vad_strictness.
+webrtcvad package; SileroVad (silero.py) uses onnxruntime and the Silero model file. make_vad() picks one from the settings mic.vad_engine / mic.vad_strictness.
 
 UtteranceSegmenter turns per-frame speech decisions into utterances:
   - speech starts after `start_ms` of consecutive speech frames
@@ -18,6 +18,7 @@ import array
 import importlib
 import logging
 import math
+import os
 from collections import deque
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -54,7 +55,7 @@ class Vad(Protocol):
 # mode 0..3). For the built-in detector it sets how far above the noise floor a frame must be to START speech;
 # 2 (default) is the old fixed ratio of 3.
 STRICTNESS_RATIO = (2.0, 2.5, 3.0, 4.0)
-VAD_ENGINES = ("auto", "energy", "webrtc")
+VAD_ENGINES = ("auto", "energy", "webrtc", "silero")
 WEBRTC_RATES = (8000, 16000, 32000, 48000)
 WEBRTC_FRAME_MS = (10, 20, 30)
 WEBRTC_INSTALL = "python -m pip install webrtcvad-wheels"
@@ -197,25 +198,43 @@ class VadInfo:
 
 
 def make_vad(engine: str, strictness: int, min_rms: float, sample_rate: int = 16000, frame_ms: int = 30,
-             importer: Callable[[str], Any] | None = None) -> tuple[Vad, VadInfo]:
-    """Builds the voice detector for the setting mic.vad_engine ("auto" | "energy" | "webrtc") and
-    mic.vad_strictness. "auto" and "webrtc" use webrtcvad when it is installed and the frame size fits, else the
-    built-in detector (a note says so for "webrtc"; "auto" stays quiet because webrtcvad is optional)."""
+             importer: Callable[[str], Any] | None = None, silero_model: str | None = None) -> tuple[Vad, VadInfo]:
+    """Builds the voice detector for the setting mic.vad_engine ("auto" | "energy" | "webrtc" | "silero") and
+    mic.vad_strictness. "silero" needs onnxruntime and the model file (silero.py); "auto" tries silero only when
+    that model file exists, then webrtcvad when it is installed and the frame size fits, else the built-in
+    detector (a note says so for "webrtc" / "silero"; "auto" stays quiet because both are optional)."""
     strictness = min(max(int(strictness), 0), 3)
     energy = EnergyVad(ratio=STRICTNESS_RATIO[strictness], min_rms=min_rms)
     built_in = VadInfo("energy", f"energy (built-in, adaptive noise floor), strictness {strictness}")
     if engine == "energy":
         return energy, built_in
     note = ""
+    if engine in ("auto", "silero"):
+        from . import silero  # local import: silero imports this module
+        path = silero_model or ""
+        if path and (engine == "silero" or os.path.isfile(path)):
+            if not os.path.isfile(path):
+                note = f"silero model not found ({silero.DOWNLOAD.format(folder=os.path.dirname(path))}), so the built-in detector is used."
+            else:
+                vad, why = silero.load_silero(path, sample_rate, strictness, min_rms, importer or importlib.import_module)
+                if vad is not None:
+                    return vad, VadInfo("silero", f"silero (onnxruntime), strictness {strictness}")
+                note = f"{why}, so another detector is used."
+        elif engine == "silero":
+            note = "silero: no model path known, so the built-in detector is used."
+        if engine == "silero":
+            return energy, VadInfo("energy", built_in.text, note)
     module = None
     if sample_rate not in WEBRTC_RATES or frame_ms not in WEBRTC_FRAME_MS:
-        note = (f"webrtcvad needs 8/16/32/48 kHz and 10/20/30 ms frames, this app uses {sample_rate} Hz / {frame_ms} ms, "
-                "so the built-in detector is used.")
+        if engine == "webrtc":
+            note = (f"webrtcvad needs 8/16/32/48 kHz and 10/20/30 ms frames, this app uses {sample_rate} Hz / {frame_ms} ms, "
+                    "so the built-in detector is used.")
     else:
         try:
             module = (importer or importlib.import_module)("webrtcvad")
         except ImportError:
-            note = f"webrtcvad is not installed, so the built-in detector is used. To use it: {WEBRTC_INSTALL}"
+            if engine == "webrtc":
+                note = f"webrtcvad is not installed, so the built-in detector is used. To use it: {WEBRTC_INSTALL}"
         except Exception as e:  # noqa: BLE001 - a broken native library must not stop the app
             note = f"webrtcvad could not be loaded ({type(e).__name__}), so the built-in detector is used."
     if module is not None:
@@ -224,8 +243,6 @@ def make_vad(engine: str, strictness: int, min_rms: float, sample_rate: int = 16
                     VadInfo("webrtc", f"webrtc (webrtcvad), strictness {strictness}"))
         except Exception as e:  # noqa: BLE001
             note = f"webrtcvad failed to start ({type(e).__name__}), so the built-in detector is used."
-    if engine == "auto":
-        return energy, VadInfo("energy", built_in.text, "")
     return energy, VadInfo("energy", built_in.text, note)
 
 

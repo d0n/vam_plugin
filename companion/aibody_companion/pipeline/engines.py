@@ -3,7 +3,7 @@ llm, tts}, changeable live from the plugin's tab Voice > AI Character) with thei
 section, and falls back when an engine cannot run.
 
   stt   null (offline, recognizes nothing) | xai
-  llm   echo (offline test model)         | xai (Grok, Responses API, streaming)
+  llm   echo (offline test model)         | xai (Grok, Responses API, streaming) | ollama (local, no key)
   tts   tone (offline test tone)          | xai | elevenlabs
 
 A cloud engine without an API key is "not configured": it stays selectable (so the plugin
@@ -29,7 +29,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from ..config import ENGINES_AVAILABLE
-from . import elevenlabs, xai
+from . import elevenlabs, ollama, xai
 from .http import HttpClient, is_key_rejection
 from ..logsetup import add_secret
 from ..personas import Persona, memory_block
@@ -192,6 +192,8 @@ class EngineSet:
 
     def memory_llm(self) -> Any:
         """A language model for memory summaries (xAI with the key there is), or None."""
+        if self.effective("llm") == "ollama":  # the notes about the user stay on this computer
+            return ollama.OllamaLlm(self.ai["ollama"], self.http)
         key = self.key("xai")
         return xai.XaiLlm(self.ai["xai"], key, self.http) if key else None
 
@@ -199,6 +201,9 @@ class EngineSet:
         return self._keys.get(name, (None, ""))[0]
 
     def status_of(self, name: str) -> str:
+        if name == "ollama":
+            s = self.ai["ollama"]
+            return f"{READY} (local: model {s['model']} at {s['base_url']}; reachable is checked when it is used)"
         if name not in KEYED:
             return f"{READY} (offline)"
         key, where = self._keys.get(name, (None, ""))
@@ -229,6 +234,8 @@ class EngineSet:
             if kind == "llm":
                 return xai.XaiLlm(settings, key, self.http, persona=self.persona_text())
             return xai.XaiTts(settings, key, self.http, language=language)
+        if name == "ollama" and kind == "llm":
+            return ollama.OllamaLlm(self.ai["ollama"], self.http, persona=self.persona_text())
         if name == "elevenlabs" and kind == "tts":
             return elevenlabs.ElevenLabsTts(self.elevenlabs_settings(), self.key("elevenlabs"), self.http,
                                             language=language)

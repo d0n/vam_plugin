@@ -13,9 +13,9 @@ nach durchgehen und das Ergebnis eintragen (✅ / ❌ / unklar). Dauer: etwa 20 
 **Vorbereitung**
 
 - VaM schließen. In `<VaM-Hauptordner>/AddonPackages/` alle alten AIBody-Pakete löschen:
-  `d0n.AIBody.1.var` bis `d0n.AIBody.27.var`, `d0n.AIBodySession.*`, `d0n.AIBodyPerson.*`,
+  `d0n.AIBody.1.var` bis `d0n.AIBody.28.var`, `d0n.AIBodySession.*`, `d0n.AIBodyPerson.*`,
   `d0n.AIBodyPerson2.*`. Lose Dateien unter `Custom/Scripts/d0n/AIBody/` ebenfalls entfernen.
-- `d0n.AIBody.28.var` nach `<VaM-Hauptordner>/AddonPackages/` kopieren.
+- `d0n.AIBody.29.var` nach `<VaM-Hauptordner>/AddonPackages/` kopieren.
 - Companion-App bereithalten (noch **nicht** starten):
   `python -m aibody_companion --vam-root "D:\VaM"` (Pfad zum eigenen VaM-Ordner anpassen).
   Für T9 den xAI-Key im Plugin eintragen (Tab **Voice** > Feld **XAI API Token**, ab Version 21) oder vor dem Start setzen: `set XAI_API_KEY=xai-...` (cmd) bzw. `$env:XAI_API_KEY="xai-..."` (PowerShell); das Feld gewinnt.
@@ -273,6 +273,16 @@ Needs VaM with the AI Character (AIBody) and the Client Character in the example
    and says so; picking a Default gaze takes the eyes again.
 6. Report: where the eyes look in each step (correct / mirrored / too high / too low), whether *Straight ahead* really is
    the way the face points, the VaM error log.
+
+## T18 – Local engines, Silero, voice barge-in (version 29)
+
+Needs VaM with the AI Character (AIBody 29) and the companion app from this version. Steps 1-2 need [Ollama](https://ollama.com) with a model, step 3 needs `python -m pip install onnxruntime` and the file `silero_vad.onnx` (see `docs/LOKALE_ENGINES.md`), step 4 needs speakers (no headphones).
+
+1. **Ollama:** `ollama pull llama3.2`, tab Voice > AI Character > **Language model** = `ollama`, AI mode *chain*. Type into the app console or speak (Speech-to-text xai or typed): the character answers with the local model; the status line (info field) names the engine `ollama`. Report: answer quality and delay, do expressions follow (the `<<tag>>` or the fallback from the words), anything spoken that should not be (tags read aloud, markdown)?
+2. **Ollama problems:** stop Ollama: the next question gives the red message *no connection to Ollama … ollama serve* and the test model answers. Choose a model that is not installed (`ai.ollama.model`): *model … is not installed - run: ollama pull …*. Memory switch on with Ollama selected: the summary at the end must not contact xAI (check the app log).
+3. **Silero:** copy the model file, tab Client Character > **VAD engine** = *Silero*: the info field says `silero (onnxruntime), strictness 2`. Speak, pause, speak: utterances are cut at your pauses; in a noisy room compare with *Built-in* and *WebRTC*. Report: false triggers by noise, missed quiet speech, strictness 0 to 3 effect. Without the file the info field says why it is not used (no crash).
+4. **Voice barge-in:** set `ai.barge_in.enabled` true in `config.json`, restart the app, voice activation mode, speakers on. Let the character speak a long answer, then talk clearly louder over it: after about 0.6 s the character stops and your sentence is answered (console: `Voice barge-in: …`). Report: how loud do you need to be, does the character's own voice ever trigger it (then raise `ratio` or `min_ms`), is the start of your sentence kept? Do the same in realtime mode.
+5. Report the VaM error log lines with `AIBody:` and `companion.log`.
 
 ## T17 – Several figures, Channel field (version 28)
 

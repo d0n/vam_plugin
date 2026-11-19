@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "written_by": "AIBody companion app 28 (example)",
+  "written_by": "AIBody companion app 29 (example)",
   "connection": {
     "channel": "default",
     "active": true,
@@ -92,6 +92,12 @@
       "fade_seconds": 2.5,
       "listening": true
     },
+    "barge_in": {
+      "enabled": false,
+      "ratio": 2.0,
+      "min_ms": 600,
+      "floor": 0.02
+    },
     "xai": {
       "base_url": "https://api.x.ai/v1",
       "key_hint": "An xAI API key from console.x.ai is required (a Grok subscription does not work). Provide it in one of four ways: (1) in VaM, plugin tab Voice > Voice Mode, field 'XAI API Token' (below API Reconnect); the plugin saves it here as ai.xai.api_key; (2) write it into ai.xai.api_key yourself; (3) the environment variable XAI_API_KEY; (4) ai.xai.key_file = path of a text file that holds the key. If several are set, the plugin field (while VaM runs) wins, then ai.xai.api_key, then XAI_API_KEY, then key_file.",
@@ -105,6 +111,15 @@
       "speed": 1.0,
       "sample_rate": 24000,
       "timeout_s": 60.0
+    },
+    "ollama": {
+      "base_url": "http://127.0.0.1:11434",
+      "model": "llama3.2",
+      "max_output_tokens": 400,
+      "temperature": 0.7,
+      "keep_alive": "10m",
+      "max_messages": 40,
+      "timeout_s": 120.0
     },
     "elevenlabs": {
       "base_url": "https://api.elevenlabs.io/v1",

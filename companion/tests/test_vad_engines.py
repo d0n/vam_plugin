@@ -213,7 +213,7 @@ class MicSettingsTests(unittest.TestCase):
         self.assertEqual((errors, s.vad_engine, s.vad_strictness), ([], "webrtc", 3))
         s, errors = apply_mic_config(MicSettings(), {"vad_strictness": 9})
         self.assertEqual((errors, s.vad_strictness), ([], 3), "clamped like every other number")
-        s, errors = apply_mic_config(MicSettings(), {"vad_engine": "silero"})
+        s, errors = apply_mic_config(MicSettings(), {"vad_engine": "kaldi"})
         self.assertTrue(errors and "vad_engine" in errors[0])
         self.assertEqual(s.vad_engine, "auto")
 

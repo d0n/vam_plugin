@@ -2,7 +2,7 @@
 //
 // Only members with public evidence of use in sandboxed VaM plugins are declared here, so the
 // compile check fails if the plugin starts using anything else. Each group names its evidence
-// (keys E1..E20 = links in docs/API_AUDIT.md). Deliberately NOT declared: NamedAudioClip.clipToPlay,
+// (keys E1..E20 = links in docs/API_AUDIT.md). Deliberately NOT declared: NamedAudioClip.clipToPlay (evidenced by vam-timeline CustomTrigger.cs L86, but AIBody does not use it),
 // JSONStorable.GetActionNames, FileManagerSecure.GetFiles(dir, pattern),
 // UnityEngine.Networking / UnityWebRequest (no stub file exists for them at all).
 #pragma warning disable 0067, 0649, 0169, 1591

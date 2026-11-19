@@ -20,7 +20,7 @@ SOUNDS_SUBDIR = "Custom/Sounds/AIBody"
 # an API key (environment variable or key file, see pipeline/engines.py) and network access.
 ENGINES_AVAILABLE: dict[str, list[str]] = {
     "stt": ["null", "xai"],
-    "llm": ["echo", "xai"],
+    "llm": ["echo", "xai", "ollama"],
     "tts": ["tone", "xai", "elevenlabs"],
 }
 

@@ -23,6 +23,7 @@ from typing import TYPE_CHECKING, Any
 
 from . import body_tools, protocol
 from .emotion import offered as offered_expressions
+from .audio.vad import frame_rms
 from .latency import LatencyTrace
 from .logsetup import Turn
 from .pipeline.context import is_silent, time_rules
@@ -177,9 +178,18 @@ class RealtimeVoice:
             send = send and self.c.input.ptt_active and (s.ptt_interrupts or self.c.gate.is_open)
         elif self.echo_locked() and not bool(self.settings["send_while_speaking"]):
             send = False  # the body is talking: the mic would hear it (no echo cancellation)
+            frames = self.c.input.watch_barge(frame, frame_rms(frame))  # ... unless the user clearly talks over it
+            if frames:
+                self.c.voice_barge_in(frames)
+                return
         data = frame if send else bytes(len(frame))
         data = resample_pcm16(data, self.c.cfg.sample_rate, self.in_rate)
         self.client.append_audio(data)
+
+    def send_frames(self, frames: list[bytes]) -> None:
+        """Frames of a voice barge-in (the first words of the user) go to the server although the mic was locked."""
+        for frame in frames:
+            self.client.append_audio(resample_pcm16(frame, self.c.cfg.sample_rate, self.in_rate))
 
     # -- server events (tick thread) -------------------------------------------------------
 

@@ -19,10 +19,11 @@ namespace AIBody
         public const string ModeVad = "Voice activation";
         public const string ModePtt = "Push-to-talk";
 
-        // Voice detector choice (config.json mic.vad_engine: auto / energy / webrtc).
+        // Voice detector choice (config.json mic.vad_engine: auto / energy / webrtc / silero).
         public const string VadAuto = "Auto";
         public const string VadBuiltIn = "Built-in";
         public const string VadWebRtc = "WebRTC";
+        public const string VadSilero = "Silero";
 
         /// <summary>Start command of the companion app, shown when it is not running.</summary>
         public const string StartHint = "python -m aibody_companion --vam-root \"D:\\VaM\"";
@@ -80,7 +81,7 @@ namespace AIBody
             // RMS level (0..1) above which a frame counts as speech.
             Threshold = Reg(new JSONStorableFloat("VAD threshold", 0.01f, (float v) => MarkDirty(), 0.001f, 0.5f));
             // Voice detector: Auto = WebRTC if the companion app has it installed, else the built-in one.
-            VadEngine = new JSONStorableStringChooser("VAD engine", new List<string> { VadAuto, VadBuiltIn, VadWebRtc }, VadAuto,
+            VadEngine = new JSONStorableStringChooser("VAD engine", new List<string> { VadAuto, VadBuiltIn, VadWebRtc, VadSilero }, VadAuto,
                 "VAD engine", (string v) => MarkDirty());
             _plugin.RegisterStringChooser(VadEngine);
             // 0..3: higher = ignores more background noise.
@@ -101,7 +102,7 @@ namespace AIBody
                 "Push-to-talk active: while this is checked the companion app listens to your microphone, like holding the "
                 + "talk button of a walkie-talkie. It only works when Mic mode is 'Push-to-talk'. "
                 + "The microphone is always the system default input (change it in your system sound settings). "
-                + "VAD engine: how speech is told from noise. 'Auto' uses WebRTC if the companion app has it (python -m pip install webrtcvad-wheels), "
+                + "VAD engine: how speech is told from noise. 'Auto' uses Silero if its model file is installed (docs/TECHNIK.md), else WebRTC if the companion app has it (python -m pip install webrtcvad-wheels), "
                 + "otherwise the built-in detector. VAD strictness 0-3: higher ignores more background noise. "
                 + "VAD threshold is the quietest level that can count as speech. While the character talks (and a moment after) the microphone is muted on purpose, so the AI never hears itself. "
                 + "You can also use the actions 'Push-to-talk start / stop / toggle' from triggers or keys.");
@@ -188,7 +189,7 @@ namespace AIBody
             mic["enabled"].AsBool = Enabled.val;
             mic["mode"] = Mode.val == ModePtt ? "ptt" : "vad";
             mic["vad_threshold"].AsFloat = Threshold.val;
-            mic["vad_engine"] = VadEngine.val == VadBuiltIn ? "energy" : VadEngine.val == VadWebRtc ? "webrtc" : "auto";
+            mic["vad_engine"] = VadEngine.val == VadBuiltIn ? "energy" : VadEngine.val == VadWebRtc ? "webrtc" : VadEngine.val == VadSilero ? "silero" : "auto";
             mic["vad_strictness"].AsInt = Mathf.RoundToInt(VadStrictness.val);
             mic["end_silence_ms"].AsInt = Mathf.RoundToInt(SilenceMs.val);
             mic["min_utterance_ms"].AsInt = Mathf.RoundToInt(MinUtteranceMs.val);
@@ -210,7 +211,7 @@ namespace AIBody
             if (Protocol.Has(mic, "vad_engine"))
             {
                 string engine = Protocol.GetString(mic, "vad_engine", "auto");
-                VadEngine.val = engine == "energy" ? VadBuiltIn : engine == "webrtc" ? VadWebRtc : VadAuto;
+                VadEngine.val = engine == "energy" ? VadBuiltIn : engine == "webrtc" ? VadWebRtc : engine == "silero" ? VadSilero : VadAuto;
             }
             VadStrictness.val = Protocol.GetFloat(mic, "vad_strictness", VadStrictness.val);
             SilenceMs.val = Protocol.GetFloat(mic, "end_silence_ms", SilenceMs.val);

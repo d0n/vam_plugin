@@ -166,6 +166,15 @@ DEFAULTS: dict[str, dict[str, Any]] = {
             "fade_seconds": 2.5,
             "listening": True,
         },
+        # Voice barge-in without headphones by a loudness rule (version 29, config.json only, off by default): while the
+        # body speaks, a stretch of min_ms that is `ratio` times louder than the learned echo (and above `floor`, RMS 0..1)
+        # counts as the user talking: the body stops and the app listens. Needs a clearly louder voice than the speakers.
+        "barge_in": {
+            "enabled": False,
+            "ratio": 2.0,
+            "min_ms": 600,
+            "floor": 0.02,
+        },
         "xai": {
             "base_url": "https://api.x.ai/v1",
             "key_hint": KEY_HINT_TEXT,  # a note for the reader of this file (JSON has no comments); ignored by the app
@@ -179,6 +188,17 @@ DEFAULTS: dict[str, dict[str, Any]] = {
             "speed": 1.0,
             "sample_rate": 24000,
             "timeout_s": 60.0,
+        },
+        # Local language model (version 29): choose "ollama" as Language model. No key. The model must be installed
+        # (ollama pull <model>). Chain mode only (not realtime); no body tools, the answer carries the <<tag>>.
+        "ollama": {
+            "base_url": "http://127.0.0.1:11434",
+            "model": "llama3.2",
+            "max_output_tokens": 400,
+            "temperature": 0.7,
+            "keep_alive": "10m",  # how long Ollama keeps the model loaded after the last answer
+            "max_messages": 40,  # conversation turns kept in memory (the app sends them again each time)
+            "timeout_s": 120.0,
         },
         "elevenlabs": {
             "base_url": "https://api.elevenlabs.io/v1",
@@ -200,6 +220,13 @@ RANGES: dict[tuple[str, str], tuple[float, float]] = {
     ("ai", "xai", "max_output_tokens"): (16, 8000),
     ("ai", "xai", "speed"): (0.7, 1.5),
     ("ai", "xai", "timeout_s"): (5.0, 600.0),
+    ("ai", "barge_in", "ratio"): (1.2, 10.0),
+    ("ai", "barge_in", "min_ms"): (150, 3000),
+    ("ai", "barge_in", "floor"): (0.002, 0.5),
+    ("ai", "ollama", "max_output_tokens"): (16, 8000),
+    ("ai", "ollama", "temperature"): (0.0, 2.0),
+    ("ai", "ollama", "max_messages"): (2, 400),
+    ("ai", "ollama", "timeout_s"): (5.0, 3600.0),
     ("ai", "elevenlabs", "timeout_s"): (5.0, 600.0),
     ("ai", "realtime", "speed"): (0.7, 1.5),
     ("ai", "realtime", "first_segment_s"): (0.3, 5.0),

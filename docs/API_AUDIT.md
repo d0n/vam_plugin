@@ -78,7 +78,7 @@ Enforcement:
 | Audio download over HTTP (`UnityWebRequestMultimedia`), `speak.url` field | same rule; audio comes only from a local file via `URLAudioClipManager` |
 | Transport chooser in the plugin UI | only one transport is left |
 | Companion app HTTP server, `auto` mode, `--transport/--host/--port`, `http_host/http_port/audio_cache_dir` | no plugin can talk HTTP any more |
-| Clip readiness check via `NamedAudioClip.clipToPlay` | no public plugin shows it; replaced by `PlayNow` retries (1 s) and watching `AudioSource.isPlaying/clip`, 15 s timeout -> `audio_failed` |
+| Clip readiness check via `NamedAudioClip.clipToPlay` | **Correction (19.11.2026): it IS evidenced** (acidbubbles/vam-timeline `CustomTrigger.cs` L86-92, commit 54e2942: `NamedAudioClip.clipToPlay` read after `QueueClip`), the earlier "no public plugin shows it" was wrong. AIBody still does not use it: replaced by `PlayNow` retries (1 s) and watching `AudioSource.isPlaying/clip`, 15 s timeout -> `audio_failed` (a switch to `clipToPlay` is a Backlog item, needs a VaM test). `AudioSourceControl.clipLoudness` is in Dollmaster (E1, `ExpressionController.cs` L84-141) |
 | Direct `AudioSource.Play` fallback, `AudioSource.volume` writes | playback only through `AudioSourceControl` as in E1-E3 |
 | `AudioSourceControl` "volume" float param lookup | no evidence; the `volume` field (E2) is used instead |
 | `JSONStorable.GetActionNames` checks before `CallAction` | no evidence; actions are called directly (E7, E8). A misspelled action is not detected |
@@ -397,6 +397,11 @@ New in the plugin (`GazeController.cs`), all with evidence E12 / E28 (see the ta
   Glance in a real scene, and how the Life plugin behaves (not detected by name; only the look-mode check protects).
 - No `foreach` over Dictionary `.Keys`/`.Values`, no LINQ, no file or network access added. A gaze exception only
   stops the gaze (`_gazeBroken`), not the body.
+
+## Version 29 (19.11.2026): local engines, Silero, voice barge-in
+
+- **No new VaM API.** Everything runs in the companion app. The plugin only gets one more entry in the existing **VAD engine** `JSONStorableStringChooser` ("Silero", mapped to `mic.vad_engine: "silero"`; the same code path as the other three entries).
+- **Plain evidence facts (19.11.2026):** `NamedAudioClip.clipToPlay` is used by Timeline (`CustomTrigger.cs` L86-92, commit 54e2942); `AudioSourceControl.clipLoudness` is used in Dollmaster (E1, `ExpressionController.cs` L84-141, commit e606e78). AIBody uses neither.
 
 ## Version 28 (19.11.2026): several figures, Channel field
 

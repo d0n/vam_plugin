@@ -117,3 +117,7 @@ class LinkedGate(EchoGate):
     @property
     def is_open(self) -> bool:
         return self.own_open and all(p.own_open for p in self.peers)
+
+    @property
+    def is_speaking(self) -> bool:
+        return self._speaking or any(p._speaking for p in self.peers)

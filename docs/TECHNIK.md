@@ -6,9 +6,9 @@ German [README](../README.md).
 
 ## Load flow (the whole setup)
 
-1. Copy `d0n.AIBody.28.var` to `<VaM>/AddonPackages/` (remove older AIBody packages, see below).
+1. Copy `d0n.AIBody.29.var` to `<VaM>/AddonPackages/` (remove older AIBody packages, see below).
 2. In VaM select the AI character's Person atom > **Plugins** tab > **Add Plugin** > choose
-   `AddonPackages > d0n.AIBody.28:/Custom/Scripts/d0n/AIBody/AIBody.cslist`.
+   `AddonPackages > d0n.AIBody.29:/Custom/Scripts/d0n/AIBody/AIBody.cslist`.
 3. Start the companion app: `python -m aibody_companion --vam-root "D:\VaM"`.
 
 That's it. The plugin's status box shows "Companion app: running ..." once both sides see each
@@ -146,22 +146,22 @@ tools/                     assemble_plugins.py (plugin folder), build_var.py (pa
 
 ### Install the package
 
-Download `d0n.AIBody.28.var` from the [releases](https://github.com/d0n/vam_plugin/releases), or
-build it with `python tools/build_var.py` (writes `dist/d0n.AIBody.28.var`), and copy it to:
+Download `d0n.AIBody.29.var` from the [releases](https://github.com/d0n/vam_plugin/releases), or
+build it with `python tools/build_var.py` (writes `dist/d0n.AIBody.29.var`), and copy it to:
 
 ```
-<VaM>/AddonPackages/d0n.AIBody.28.var
+<VaM>/AddonPackages/d0n.AIBody.29.var
 ```
 
 Remove all older AIBody packages from `AddonPackages`: `d0n.AIBody.1.var`, `d0n.AIBody.2.var`,
-`d0n.AIBody.3.var` to `d0n.AIBody.27.var`, `d0n.AIBodySession.*.var`, `d0n.AIBodyPerson.*.var`,
+`d0n.AIBody.3.var` to `d0n.AIBody.28.var`, `d0n.AIBodySession.*.var`, `d0n.AIBodyPerson.*.var`,
 `d0n.AIBodyPerson2.*.var`. Scenes saved with an older package point at that package's path, so
-remove the old plugin entry from the character and add `d0n.AIBody.28` again, then save.
+remove the old plugin entry from the character and add `d0n.AIBody.29` again, then save.
 
 Contents:
 
 ```
-d0n.AIBody.28.var
+d0n.AIBody.29.var
 ├── meta.json
 └── Custom/Scripts/d0n/AIBody/
     ├── AIBody.cslist
@@ -581,6 +581,12 @@ default input (`sounddevice` default, `MicCapture` opens `device=None`), there i
 no `devices`/`list_devices` message since 19.11.2026. An old `mic.device` in config.json, a `config`
 event or a saved scene, and an old plugin's `list_devices` event are ignored quietly
 (`audio/mic_settings.py` `RETIRED`, `protocol.RETIRED_EVENTS`).
+
+### Local engines, Silero, voice barge-in (since version 29)
+
+- **Ollama** (`pipeline/ollama.py`, `OllamaLlm`): `POST {base}/api/chat` with NDJSON streaming, no key. Ollama keeps no conversation: the class keeps `messages` (last `max_messages`; only a real answer enters), the system message is persona + `xai.STYLE_RULES` (the `<<expression gesture>>` tag; no tool calls: `supports_tools = False`). `complete()` is a plain request (memory summaries); `EngineSet.memory_llm()` returns an `OllamaLlm` when ollama is the effective llm. Errors: connection refused / unknown model are turned into plain messages (`ollama serve`, `ollama pull <model>`); the normal fallback (echo) answers meanwhile. The engine needs no key, so `configured()` is true; its status line says it is checked on use.
+- **Silero** (`audio/silero.py`): `SileroVad` over an onnxruntime session (model v5: inputs `input` [1, 64 context + 512], `state` [2,1,128], `sr`). 30 ms frames are collected into 512-sample chunks, the last probability counts; threshold from `vad_strictness` (0.3/0.4/0.5/0.65), `vad_threshold` stays an RMS floor, 3 frames of hangover. `hold()` (gate closed) resets state and buffer. `load_silero` runs one chunk at load, refuses other sample rates and model versions with a plain note. `make_vad(..., silero_model=...)`: `silero` = silero or the energy detector with a note; `auto` = silero only when the model file exists, then webrtcvad, then energy. Path: `AIBODY_SILERO_MODEL` or `<VaM>/Saves/PluginData/AIBody/models/silero_vad.onnx` (`silero_model_path`); the model is not in the package. Plugin: one more entry in the **VAD engine** popup (`mic.vad_engine: "silero"`).
+- **Voice barge-in** (`audio/barge.py`, `BargeInRule`, `ai.barge_in`): while the gate is closed and `gate.is_speaking` (speech_started seen; `LinkedGate` includes peers), the echo level is a decaying peak (teaching only with frames that are not loud, first 450 ms only teach); `min_ms` of frames above `ratio` times echo and `floor` fire the rule and return the frames (kept with their gain). Chain: `InputProcessor.process` stores them (`barge_frames`), `Companion.handle_audio_frame` calls `voice_barge_in`: cancel turns, `stop_speaking`, gate `force_open` (and the same for all peer figures), realtime `barge_in(manual=True)`, then the frames go through `process(gained=True)` (chain) or `RealtimeVoice.send_frames` (realtime; `feed_mic` hook). Only in mode `vad`. Off by default.
 
 ### Several figures in one app (since version 28)
 

@@ -135,7 +135,8 @@
           "enum": [
             "auto",
             "energy",
-            "webrtc"
+            "webrtc",
+            "silero"
           ]
         },
         "vad_strictness": {
@@ -585,7 +586,8 @@
               "default": "echo",
               "enum": [
                 "echo",
-                "xai"
+                "xai",
+                "ollama"
               ]
             },
             "tts": {
@@ -873,6 +875,71 @@
             }
           }
         },
+        "barge_in": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "true",
+                    "false",
+                    "True",
+                    "False"
+                  ]
+                }
+              ],
+              "default": false
+            },
+            "ratio": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 1.2,
+                  "maximum": 10.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^\\s*-?[0-9]+(\\.[0-9]+)?([eE][-+]?[0-9]+)?\\s*$"
+                }
+              ],
+              "default": 2.0
+            },
+            "min_ms": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 150,
+                  "maximum": 3000
+                },
+                {
+                  "type": "string",
+                  "pattern": "^\\s*-?[0-9]+(\\.[0-9]+)?([eE][-+]?[0-9]+)?\\s*$"
+                }
+              ],
+              "default": 600
+            },
+            "floor": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.002,
+                  "maximum": 0.5
+                },
+                {
+                  "type": "string",
+                  "pattern": "^\\s*-?[0-9]+(\\.[0-9]+)?([eE][-+]?[0-9]+)?\\s*$"
+                }
+              ],
+              "default": 0.02
+            }
+          }
+        },
         "xai": {
           "type": "object",
           "additionalProperties": false,
@@ -977,6 +1044,80 @@
             }
           },
           "description": "xAI (https://api.x.ai/v1): Grok via POST /v1/responses (stream), STT POST /v1/stt, TTS POST /v1/tts"
+        },
+        "ollama": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "base_url": {
+              "type": "string",
+              "default": "http://127.0.0.1:11434"
+            },
+            "model": {
+              "type": "string",
+              "default": "llama3.2"
+            },
+            "max_output_tokens": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 16,
+                  "maximum": 8000
+                },
+                {
+                  "type": "string",
+                  "pattern": "^\\s*-?[0-9]+(\\.[0-9]+)?([eE][-+]?[0-9]+)?\\s*$"
+                }
+              ],
+              "default": 400
+            },
+            "temperature": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0,
+                  "maximum": 2.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^\\s*-?[0-9]+(\\.[0-9]+)?([eE][-+]?[0-9]+)?\\s*$"
+                }
+              ],
+              "default": 0.7
+            },
+            "keep_alive": {
+              "type": "string",
+              "default": "10m"
+            },
+            "max_messages": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 2,
+                  "maximum": 400
+                },
+                {
+                  "type": "string",
+                  "pattern": "^\\s*-?[0-9]+(\\.[0-9]+)?([eE][-+]?[0-9]+)?\\s*$"
+                }
+              ],
+              "default": 40
+            },
+            "timeout_s": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 5.0,
+                  "maximum": 3600.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^\\s*-?[0-9]+(\\.[0-9]+)?([eE][-+]?[0-9]+)?\\s*$"
+                }
+              ],
+              "default": 120.0
+            }
+          }
         },
         "elevenlabs": {
           "type": "object",

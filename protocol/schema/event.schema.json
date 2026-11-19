@@ -166,9 +166,10 @@
           "enum": [
             "auto",
             "energy",
-            "webrtc"
+            "webrtc",
+            "silero"
           ],
-          "description": "Voice detector: auto = webrtcvad if installed, else the built-in one"
+          "description": "Voice detector: auto = silero if its model file is there, else webrtcvad if installed, else the built-in one"
         },
         "vad_strictness": {
           "type": "integer",

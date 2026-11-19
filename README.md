@@ -1,6 +1,6 @@
 # AIBody
 
-Virt-A-Mate-Plugin (VaM 1.22) mit Python-Begleit-App, das einer KI einen Körper in einer VaM-Szene gibt. Stand: Version 28, Paket `d0n.AIBody.28.var`, Release `v28`. Version 14 lädt in VaM 1.22 ohne Fehler (Init fertig, 200 Posen); die Funktionen sind in VaM noch nicht vollständig geprüft.
+Virt-A-Mate-Plugin (VaM 1.22) mit Python-Begleit-App, das einer KI einen Körper in einer VaM-Szene gibt. Stand: Version 29, Paket `d0n.AIBody.29.var`, Release `v29`. Version 14 lädt in VaM 1.22 ohne Fehler (Init fertig, 200 Posen); die Funktionen sind in VaM noch nicht vollständig geprüft.
 
 Versionsschema seit Version 12: Version = Paketnummer der `.var` (Plugin-Anzeige, Begleit-App, Git-Tag `v<N>`). Version 12 folgt auf 0.7.4 (= Paket 11); ältere Tags bleiben unverändert.
 
@@ -24,13 +24,13 @@ python -m aibody_companion --vam-root "D:\VaM"
 
 ## 1. Wozu und wie benutzt
 
-- Der Nutzer spricht mit einer Figur in VaM. Die Figur antwortet mit Stimme und Lippensync und kann Ausdrücke, Gesten und Posen zeigen; dazu Atmung und Kopf-Leerlauf. Seit Version 27: Ausdrücke auch ohne Zutun der KI (aus den Worten, Zurückblenden, Zuhör-Gesicht), **Personas** (Charakter, Sprache, Stimme je Ordner) und optionales **Gedächtnis** über den Nutzer, siehe [docs/PERSONAS.md](docs/PERSONAS.md). Seit Version 28: **mehrere Figuren in einer App** (`--channel anna,marc`, Feld **Channel** im Tab Config, Anrede mit dem Namen), siehe [docs/FIGUREN.md](docs/FIGUREN.md).
+- Der Nutzer spricht mit einer Figur in VaM. Die Figur antwortet mit Stimme und Lippensync und kann Ausdrücke, Gesten und Posen zeigen; dazu Atmung und Kopf-Leerlauf. Seit Version 27: Ausdrücke auch ohne Zutun der KI (aus den Worten, Zurückblenden, Zuhör-Gesicht), **Personas** (Charakter, Sprache, Stimme je Ordner) und optionales **Gedächtnis** über den Nutzer, siehe [docs/PERSONAS.md](docs/PERSONAS.md). Seit Version 29: **lokales Sprachmodell Ollama**, **Silero** als Sprachaktivitätserkennung, **Stimm-Unterbrechung per Pegelregel** (alles in der Begleit-App), siehe [docs/LOKALE_ENGINES.md](docs/LOKALE_ENGINES.md). Seit Version 28: **mehrere Figuren in einer App** (`--channel anna,marc`, Feld **Channel** im Tab Config, Anrede mit dem Namen), siehe [docs/FIGUREN.md](docs/FIGUREN.md).
 - Zwei Teile, beide nötig:
   - Plugin `AIBody` (C#, ohne Netzwerkcode): wird einmal im Plugins-Tab der KI-Figur (Person-Atom) geladen; spielt Sprache ab, steuert den Körper, zeigt Status und Einstellungen.
   - Begleit-App `aibody_companion` (Python, läuft neben VaM auf demselben PC): Mikrofon, Spracherkennung, Sprachmodell, Sprachausgabe, Verbindung zu xAI (optional ElevenLabs).
 - Verbindung: Dateien unter `<VaM>/Saves/PluginData/AIBody/<Kanal>/`; Sprache als WAV unter `<VaM>/Custom/Sounds/AIBody/<Kanal>/`.
 - Ablauf: Plugin auf die KI-Figur laden → Begleit-App von Hand starten (`python -m aibody_companion --vam-root "D:\VaM"`, Abschnitt „Starten“, mit xAI-Key) → sprechen (oder in der Konsole tippen) → die Figur antwortet.
-- Kurzinstallation: `d0n.AIBody.28.var` nach `<VaM>/AddonPackages/`, ältere `d0n.AIBody.*`, `d0n.AIBodySession.*`, `d0n.AIBodyPerson.*`, `d0n.AIBodyPerson2.*` löschen; Person auswählen > Tab Plugins > Add Plugin > `AddonPackages > d0n.AIBody.28:/Custom/Scripts/d0n/AIBody/AIBody.cslist`; Begleit-App: siehe Abschnitt „Starten“ (`cd companion`, `pip install sounddevice`, dann starten). Details und Schritt-für-Schritt: Release-Notes.
+- Kurzinstallation: `d0n.AIBody.29.var` nach `<VaM>/AddonPackages/`, ältere `d0n.AIBody.*`, `d0n.AIBodySession.*`, `d0n.AIBodyPerson.*`, `d0n.AIBodyPerson2.*` löschen; Person auswählen > Tab Plugins > Add Plugin > `AddonPackages > d0n.AIBody.29:/Custom/Scripts/d0n/AIBody/AIBody.cslist`; Begleit-App: siehe Abschnitt „Starten“ (`cd companion`, `pip install sounddevice`, dann starten). Details und Schritt-für-Schritt: Release-Notes.
 
 ## 2. Wofür ausgelegt / Spezifikation
 
@@ -92,11 +92,11 @@ Spalte „Wo“: Tab im Plugin-Menü; „nur Datei“ = kein Bedienelement. Bere
 | `connection.paths.gestures` | string | `Saves/PluginData/AIBody/gestures.json` | wie oben | Datei mit Gesten/Posen (4.6) | nur Datei |
 | `connection.paths.audio` | string | `""` | `""` oder relativ unter `Saves/`/`Custom/` | Ordner für die Sprach-WAVs. `""` = automatisch `Custom/Sounds/AIBody/<Kanal>`; kann VaM eine WAV dort nicht laden, wechselt die App einmal nach `Saves/PluginData/AIBody/<Kanal>/audio` und spielt neu ab (rote Zeile im Statusfeld). Fester Ordner = kein Wechsel | nur Datei |
 | `engines.stt` | string | `null` | `null`, `xai` | Spracherkennung (`null` = offline, hört nichts) | Voice > AI Character: **Speech-to-text** |
-| `engines.llm` | string | `echo` | `echo`, `xai` | Sprachmodell (`echo` = offline, „You said: …“) | Voice > AI Character: **Language model** |
+| `engines.llm` | string | `echo` | `echo`, `xai`, `ollama` | Sprachmodell (`echo` = offline, „You said: …“; `ollama` = lokal, Version 29, siehe [docs/LOKALE_ENGINES.md](docs/LOKALE_ENGINES.md)) | Voice > AI Character: **Language model** |
 | `engines.tts` | string | `tone` | `tone`, `xai`, `elevenlabs` | Sprachausgabe (`tone` = offline, Summton) | Voice > AI Character: **Text-to-speech** |
 | `mic.enabled` | bool | true | | Mikrofon an | Client Character: **Mic enabled** |
 | `mic.mode` | string | `vad` | `vad`, `ptt` (Menü: „Voice activation“, „Push-to-talk“) | Sprachaktivierung oder Push-to-Talk | Client Character: **Mic mode** |
-| `mic.vad_engine` | string | `auto` | `auto`, `energy`, `webrtc` | Spracherkennung: `energy` = eingebaut (lernt den Grundpegel, Hysterese, Nachlauf), `webrtc` = webrtcvad (optional, `python -m pip install webrtcvad-wheels`), `auto` = webrtc, wenn installiert, sonst eingebaut. Fehlt die Bibliothek, läuft der eingebaute Detektor weiter (Hinweis im Infofeld) | Client Character: **VAD engine** (Auto / Built-in / WebRTC) |
+| `mic.vad_engine` | string | `auto` | `auto`, `energy`, `webrtc`, `silero` | Spracherkennung: `energy` = eingebaut (lernt den Grundpegel, Hysterese, Nachlauf), `webrtc` = webrtcvad (optional, `python -m pip install webrtcvad-wheels`), `silero` = Silero über onnxruntime ohne torch (Version 29, Modelldatei `silero_vad.onnx` nötig, siehe [docs/LOKALE_ENGINES.md](docs/LOKALE_ENGINES.md)), `auto` = silero, wenn die Modelldatei da ist, sonst webrtc, wenn installiert, sonst eingebaut. Fehlt die Bibliothek, läuft der eingebaute Detektor weiter (Hinweis im Infofeld) | Client Character: **VAD engine** (Auto / Built-in / WebRTC / Silero) |
 | `mic.vad_strictness` | int | 2 | [0–3] | je höher, desto mehr Hintergrundgeräusch wird ignoriert (webrtcvad-Modus 0–3; eingebaut: Sprache muss 2 / 2,5 / 3 / 4-mal über dem Grundpegel liegen) | Client Character: **VAD strictness** |
 | `mic.vad_threshold` | number | 0.01 | [0.001–0.5] | leisester Pegel (RMS 0–1), der als Sprache zählen kann (für alle Engines) | Client Character: **VAD threshold** |
 | `mic.end_silence_ms` | int | 700 | [200–5000] | Stille, die eine Äußerung beendet | Client Character: **Silence timeout (ms)** |
@@ -161,6 +161,11 @@ Spalte „Wo“: Tab im Plugin-Menü; „nur Datei“ = kein Bedienelement. Bere
 | `ai.xai.speed` | number | 1.0 | [0.7–1.5] | TTS-Tempo | nur Datei |
 | `ai.xai.sample_rate` | int | 24000 | 8000, 16000, 22050, 24000, 44100, 48000 | TTS-Abtastrate (PCM, als WAV) | nur Datei |
 | `ai.xai.timeout_s` | number | 60 | [5–600] | Anfrage-Timeout | nur Datei |
+| `ai.ollama.base_url` | string | `http://127.0.0.1:11434` | | Adresse von Ollama (Version 29, lokales Sprachmodell ohne Schlüssel) | nur Datei |
+| `ai.ollama.model` | string | `llama3.2` | | Modellname (`ollama pull <Modell>`) | nur Datei |
+| `ai.ollama.max_output_tokens` / `temperature` / `keep_alive` / `max_messages` / `timeout_s` | number / number / string / number / number | 400 / 0,7 / `10m` / 40 / 120 | [16–8000] / [0–2] / – / [2–400] / [5–3600] | Länge der Antwort, Zufälligkeit, wie lange das Modell geladen bleibt, Gesprächsrunden, die mitgeschickt werden, Timeout | nur Datei |
+| `ai.barge_in.enabled` | bool | false | | Stimm-Unterbrechung ohne Kopfhörer per Pegelregel (Version 29, siehe [docs/LOKALE_ENGINES.md](docs/LOKALE_ENGINES.md)) | nur Datei |
+| `ai.barge_in.ratio` / `min_ms` / `floor` | number | 2,0 / 600 / 0,02 | [1,2–10] / [150–3000] / [0,002–0,5] | wie viel lauter als das Echo, wie lange, ab welchem Pegel | nur Datei |
 | `ai.elevenlabs.base_url` | string | `https://api.elevenlabs.io/v1` | | REST-Basis | nur Datei |
 | `ai.elevenlabs.key_file` | string | `""` | wie `ai.xai.key_file` | Datei mit dem ElevenLabs-Key; `ELEVENLABS_API_KEY` gewinnt | nur Datei (seit Version 15 kein Menüfeld; auch in Version 21 kein ElevenLabs-Feld) |
 | `ai.elevenlabs.voice_id` | string | `JBFqnCBsd6RMkjVDRZzb` | | Stimme | nur Datei |

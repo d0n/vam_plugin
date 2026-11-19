@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import logging
 
+from .barge import BargeInRule
 from .echo_gate import EchoGate
 from .mic_settings import MicSettings
 from .vad import SegmenterConfig, UtteranceSegmenter, apply_gain, frame_rms, make_vad
@@ -20,12 +21,16 @@ log = logging.getLogger(__name__)
 
 
 class InputProcessor:
-    def __init__(self, settings: MicSettings, gate: EchoGate, sample_rate: int = 16000, frame_ms: int = 30):
+    def __init__(self, settings: MicSettings, gate: EchoGate, sample_rate: int = 16000, frame_ms: int = 30,
+                 silero_model: str | None = None):
         self.sample_rate = sample_rate
         self.frame_ms = frame_ms
         self.gate = gate
+        self.silero_model = silero_model  # path of silero_vad.onnx (the file may not exist)
+        self.barge: BargeInRule | None = None  # voice barge-in by a loudness rule (ai.barge_in), off by default
+        self.barge_frames: list[bytes] | None = None  # the user's stretch when the rule fired, until taken
         self.vad, self.vad_info = make_vad(settings.vad_engine, settings.vad_strictness, settings.vad_threshold,
-                                           sample_rate, frame_ms)
+                                           sample_rate, frame_ms, silero_model=silero_model)
         self.segmenter = UtteranceSegmenter(self.vad, self._segmenter_config(settings))
         self.settings = settings
         self._log_vad()
@@ -54,7 +59,7 @@ class InputProcessor:
         self.settings = settings
         if detector_changed:
             self.vad, self.vad_info = make_vad(settings.vad_engine, settings.vad_strictness, settings.vad_threshold,
-                                               self.sample_rate, self.frame_ms)
+                                               self.sample_rate, self.frame_ms, silero_model=self.silero_model)
             self.segmenter.vad = self.vad
             self.segmenter.reset()
             self._log_vad()
@@ -65,6 +70,18 @@ class InputProcessor:
             self.segmenter.reset()
             self._ptt_frames.clear()
             self.ptt_active = False
+
+    # -- voice barge-in by a loudness rule -----------------------------------------------
+
+    def watch_barge(self, frame: bytes, rms: float) -> list[bytes] | None:
+        """Gate closed (the body talks): True-ish result = the user talks over it. Frames of that stretch."""
+        if self.barge is None or self.settings.mode != "vad" or not self.settings.enabled:
+            return None
+        return self.barge.push(frame, rms, self.gate.is_speaking)
+
+    def take_barge(self) -> list[bytes] | None:
+        frames, self.barge_frames = self.barge_frames, None
+        return frames
 
     # -- push-to-talk ----------------------------------------------------------------
 
@@ -106,9 +123,11 @@ class InputProcessor:
             return False
         return self.vad.decide(frame, rms)
 
-    def process(self, frame: bytes) -> bytes | None:
-        """Feeds one raw mic frame. Returns a finished utterance or None."""
-        frame = apply_gain(frame, self.settings.gain)
+    def process(self, frame: bytes, gained: bool = False) -> bytes | None:
+        """Feeds one raw mic frame (gained=True: gain was applied already, e.g. frames kept by the barge-in rule).
+        Returns a finished utterance or None."""
+        if not gained:
+            frame = apply_gain(frame, self.settings.gain)
         rms = frame_rms(frame)
         self._level_peak = max(self._level_peak, rms)
         speech = self._detect(frame, rms)
@@ -128,7 +147,12 @@ class InputProcessor:
             # The body is talking: what the mic hears now is (mostly) our own voice.
             if self.segmenter.in_speech:
                 self.segmenter.reset()
+            frames = self.watch_barge(frame, rms)
+            if frames:
+                self.barge_frames = frames  # the companion stops the body and feeds them back (take_barge)
             return None
+        if self.barge is not None:
+            self.barge.reset()  # the gate is open: the next answer teaches the echo level anew
         return self.segmenter.push(frame, speech)
 
     def take_level(self) -> dict:

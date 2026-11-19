@@ -34,6 +34,12 @@ Die drei Listen sind getrennt: **Umgesetzt** (steht im Code, mit Version), **Won
 - **Feld „Channel“ im Menü** (Tab Config, Neustart der Verbindung nach einer Sekunde ohne Tippen; „Reload Config JSON“ lässt den Kanal in Ruhe) – Katalog 6, „Kanal im Menü“.
 - **Mehrere Figuren in einer App** (`--channel anna,marc` oder `ai.channels`; je Kanal eigenes Gespräch mit eigener Persona und eigenem Gedächtnis; ein Mikrofon, das nur der aktiven Figur zuhört; Anrede mit dem Namen am Satzanfang oder -ende, sonst die zuletzt sprechende; Echo-Sperre über alle Figuren; Anzeige im Infofeld) – Katalog 6, Ansatz B. Ansatz A (je Figur eine App) läuft weiter, ist aber schlechter (siehe `FIGUREN.md`).
 
+**Version 29 (19.11.2026)** – ausführlich in `SPEC.md` und `LOKALE_ENGINES.md`, getestet nur mit Unit-Tests (Silero zusätzlich einmal mit dem echten Modell auf Rauschen), **nicht in VaM** und nicht gegen ein echtes Ollama (`TESTPROTOKOLL.md` T18):
+
+- **Ollama als lokales Sprachmodell** (`engines.llm: ollama`, `ai.ollama.*`, kein Schlüssel, Verlauf in der App, ohne Körper-Werkzeuge; das Gedächtnis fasst bei Ollama lokal zusammen) – Katalog „Lokale Engines“.
+- **Silero-VAD per onnxruntime ohne torch** (Menüwert „Silero“ in **VAD engine**, `Auto` nimmt es, sobald die Modelldatei da ist) – Katalog „Silero-VAD“.
+- **Stimm-Unterbrechung ohne Kopfhörer per Pegelregel** (`ai.barge_in`, aus als Standard) – Katalog „Unterbrechen per Stimme“.
+
 ### Won't work (zum späteren Neubewerten)
 
 | Eintrag | Grund | Neu bewerten, wenn … |
@@ -41,13 +47,13 @@ Die drei Listen sind getrennt: **Umgesetzt** (steht im Code, mit Version), **Won
 | **HTTP / Netzwerk im Plugin** (Katalog 3) | Feste Regel (kein `UnityWebRequest`, kein `UnityEngine.Networking`). Zusätzlich hängt es in VaM an der Einstellung „Allow Plugins Network Access“ (standardmäßig aus, laut MeshedVR die riskanteste Einstellung). Ersatz siehe unten bei „Transport“. | die Regel von Leon geändert wird |
 | **Client-Logik auf eigenem Atom** (Mikrofon, Engines, Status auf der Figur des Nutzers) | Braucht ein zweites Plugin und eine Plugin-zu-Plugin-Brücke (verstößt gegen „ein Plugin / eine `.cslist`“). Nutzen gering: Mikrofon und Engines laufen ohnehin in der Begleit-App. | ein zweites Plugin erlaubt ist |
 | **Session-/Person-Plugins trennen**, **Session-Bootstrap** per `CreatePlugin()`, **Sub-Plugins / Verschachtelung** | Alle drei brauchen ein weiteres Plugin oder einen API-Aufruf ohne Beleg (`MVRPluginManager.CreatePlugin`, `pluginURLJSON`). Gegen die Ein-Plugin-Regel und gegen „nur belegte APIs“. | ein belegter Aufruf und die Erlaubnis für ein zweites Plugin vorliegen |
-| **Viseme-Lippensync aus TTS-Zeitdaten** | VaM macht den Lippensync selbst aus dem Audio der `HeadAudioSource`, über die AIBody ohnehin abspielt (E1). Eigene Visem-Morphs würden gegen VaMs Lippensync arbeiten oder von ihm überschrieben; Zeitdaten der TTS-Engines sind dafür nicht nötig und bei xAI TTS nicht belegt (TODO(verify)). Kein Gewinn. | VaM den Lippensync abschaltbar macht (belegt) und eine Engine Visem-Zeiten liefert |
 | **Herzschlag, Atemgeräusche** aus Life nachbauen | Die Aufnahmen von Life sind lizenziert und liegen als AssetBundle vor (nicht in unserem Paket nutzbar); eigene Geräusche würden sich die `HeadAudioSource` mit der Sprache teilen und sie unterbrechen. Atmung als Brust-Morph gibt es schon (E4). Wer Life-Atemgeräusche will, nutzt Life neben AIBody (siehe „Lebendigkeit“). | eine eigene, lizenzfreie Atemgeräusch-Sammlung und eine zweite `AudioSource` belegt sind |
 | **Push-to-Talk-Erklärung als Tooltip/Mouseover** | Kein belegter Sandbox-Weg für einen VaM-Schalter (einzige Fundstelle: via5/VUI mit eigenem UI-System). Der Erklärtext im Infofeld bleibt. | ein belegtes Muster auftaucht |
 | **Echte Echo-Unterdrückung (AEC), z. B. WebRTC** | Das Referenzsignal (was die Figur gerade abspielt) liegt in VaM, nicht in der Begleit-App; die Latenz zwischen WAV-Datei und Lautsprecher ist unbekannt und schwankt. Eine AEC ohne genaues Referenzsignal löscht schlecht. Ersatz im Backlog: Unterbrechen per Stimme mit Pegel-/Längenregel. | VaM den Abspielzeitpunkt melden kann oder die Begleit-App selbst abspielt |
 | **Eigenes Mikrofon je Figur** (Version 28) | Die Figuren stehen im selben Raum wie der Nutzer: zwei Mikrofone hören dieselbe Stimme doppelt, und die Zuordnung ginge ohnehin nur über die Anrede. Ein Mikrofon mit Namensregel löst dasselbe einfacher. | zwei getrennte Nutzer an einem Rechner gebraucht werden |
 | **Blick auf Spiegel** | Kein belegter Zugriff auf Spiegelbilder; kaum Nutzen. | – |
 | **VaM2-Kompatibilität** | VaM2 hat laut MeshedVR (Entwicklungsbericht Oktober 2026) noch keine Plugins; sie sind das Hauptziel von Beta 1.3 ohne Termin, die Sicherheitsarbeit (eingeschränktes Dateisystem, Ersatz für Systemklassen) läuft noch. Es gibt keine API, gegen die man prüfen kann. Vorbereitung ist schon da: Protokoll v3 und Begleit-App kennen VaM nicht, nur den Dateikanal. | Beta 1.3 mit Plugin-Kit und Dokumentation erschienen ist |
+| **Lippensync (eigene Mundbewegung, Visem-Zeitdaten, Mund-Zeitleiste zur WAV)** | Gestrichen: wegen des Tons im Spiel (der VaM-Audiopfad bleibt die Quelle des Lippensyncs) und wegen des Verzögerungs- und Synchronisationsrisikos zwischen Ton und Mund. VaM macht den Lippensync selbst aus dem Audio der `HeadAudioSource`, über die AIBody abspielt (E1). | Leon die Entscheidung ändert |
 
 ### Backlog: machbar, noch offen
 
@@ -65,11 +71,11 @@ Die drei Listen sind getrennt: **Umgesetzt** (steht im Code, mit Version), **Won
 
 **Personas und Gedächtnis (Katalog 6):** *seit Version 27 umgesetzt (siehe „Umgesetzt“, `PERSONAS.md`).* Offen und machbar: **Sounds in Persona-Ordnern** (Begrüßungs- oder Stimmungsklänge im DollMaster-Stil; abgespielt als `speak` über die Kopf-Audioquelle, S–M), **Gedächtnis per lokalem Modell** (wenn lokale Engines da sind), **Gedächtnis-Ansicht im Menü** (die Notizen als Text im Infofeld, S; heute nur die Anzahl).
 
-**Lokale Engines (Begleit-App):** *machbar, je Engine M, keine Sandbox-Frage.* Reihenfolge nach Nutzen: LLM über Ollama (lokale HTTP-Schnittstelle, ähnlich `pipeline/http.py`; Tool-Aufrufe je nach Modell), STT mit faster-whisper, TTS mit Piper. Optionale Abhängigkeiten wie bei `webrtcvad`; Tests mit Fakes. Risiko: Modellgröße, Latenz, GPU; keine VaM-Tests.
+**Lokale Engines (Begleit-App):** *LLM über Ollama seit Version 29 umgesetzt (siehe „Umgesetzt“, `LOKALE_ENGINES.md`); Rest machbar, je Engine M, keine Sandbox-Frage.* Offen: **STT mit faster-whisper**, **TTS mit Piper**, **Tool-Aufrufe für Ollama** (Funktionsaufrufe je nach Modell uneinheitlich; mit einer Modell-Whitelist denkbar), **Modellliste von Ollama** (`/api/tags`) als Auswahl im Menü (S). Optionale Abhängigkeiten wie bei `webrtcvad`; Tests mit Fakes. Risiko: Modellgröße, Latenz, GPU.
 
-**Silero-VAD:** *teilweise machbar (neu bewertet).* Silero läuft auch ohne `torch` mit `onnxruntime` und dem kleinen ONNX-Modell (MIT-Lizenz), als optionale Engine hinter `make_vad` (wie WebRTC). Aufwand S–M, Risiko: Abhängigkeit (`onnxruntime`), Modelldatei muss mitgeliefert oder geladen werden; Test mit echtem Mikrofon nötig. Bisherige Aussage „würde torch erzwingen“ ist damit überholt.
+**Silero-VAD:** *seit Version 29 umgesetzt* (onnxruntime ohne torch, Modelldatei `silero_vad.onnx` selbst laden, Menüwert „Silero“; siehe `LOKALE_ENGINES.md`). Offen: Modell-Download-Hilfe in der App (S, braucht Netzwerkzugriff der App auf GitHub; bewusst nicht automatisch), Silero-Modell v4 (S, wenn jemand es braucht).
 
-**Unterbrechen per Stimme ohne Kopfhörer:** *teilweise machbar (ohne echte AEC).* Regel statt Echo-Löschung: Während die Figur spricht, zählt Sprache nur, wenn sie deutlich lauter als der gemessene Echopegel ist (gelernt aus dem eigenen Sprechen) und länger als etwa 0,6 s dauert. S–M, Risiko: Fehlauslösung; Test mit Lautsprechern nötig.
+**Unterbrechen per Stimme ohne Kopfhörer:** *seit Version 29 per Pegelregel umgesetzt* (`ai.barge_in`, aus als Standard, nur Voice activation; siehe `LOKALE_ENGINES.md`). Offen: **Menü-Schalter** im Plugin (S–M: JSONStorableBool, `BuildAiJson`/`MergeAi`/`ApplySettings`), **Regel mit Sprecher-Merkmal** (Tonhöhe/Spektrum statt nur Pegel, M, Test mit Lautsprechern nötig), Feinabstimmung nach den VaM-Tests (T18).
 
 **Mitgelieferte Plugin-Presets:** *machbar, S.* Ein Plugin-Preset (`.vap`) für Personen im Paket unter `Custom/Atom/Person/Plugins/`, das die `.cslist` einträgt. Risiko: Format von VaM (VaM-Test: Preset laden, Plugin erscheint), `licenseType` bleibt unberührt.
 
@@ -85,7 +91,7 @@ Die drei Listen sind getrennt: **Umgesetzt** (steht im Code, mit Version), **Won
 4. ~~**Personas und Gedächtnis**~~ – umgesetzt in Version 27.
 5. ~~**Mehrere Figuren** (eine App, mehrere Kanäle) und Kanal im Menü~~ – umgesetzt in Version 28.
 6. **Demo-Szene im Paket und Hub-Beschreibung** (Entscheidung von Leon nötig).
-7. **Lokale Engines** (Ollama zuerst), **Silero per ONNX**, **Stimm-Unterbrechung per Regel**.
+7. ~~**Lokale Engines** (Ollama zuerst), **Silero per ONNX**, **Stimm-Unterbrechung per Regel**~~ – umgesetzt in Version 29 (faster-whisper, Piper offen).
 8. **Trigger-UI Stufe 2** (echte ausgehende Trigger) – größtes Risiko, erst nach VaM-Tests der Stufe 1.
 9. **Fernsteuerung/Web-Oberfläche in der App**, **Mitgelieferte Plugin-Presets**.
 
@@ -116,16 +122,16 @@ Die drei Listen sind getrennt: **Umgesetzt** (steht im Code, mit Version), **Won
 - **Blicksteuerung, Rest:** Grundfunktion (Tool `look_at`, Menü „Gaze“) seit Version 25, natürlicher Blick (Zufallsblicke, Wegschauen beim Nachdenken), Blinzeln und Life-Erkennung seit Version 26 (siehe SPEC). Offen: feinere Mikro-Sakkaden wie in Glance, Wirkung der Werte in VaM prüfen (T14, T15).
 - **Personas als Datenordner** `Saves/PluginData/AIBody/personas/<name>/` – Anforderungskatalog – Umgesetzt in Version 27 (JSON; Sounds im Ordner und männliche Personas als Vorlagen offen: siehe „Machbarkeit“).
 - **Zustände als Trigger** (idle, hört zu, denkt, spricht) für Szenen-Logik – Anforderungskatalog – Teilweise (Version 26: lesbare Werte „AI speaking“ / „User speaking“); echte ausgehende Trigger siehe „Machbarkeit“, Stufe 2.
-- **Viseme-Lippensync** aus TTS-Zeitdaten statt VaMs Audio-Lippensync – Anforderungskatalog – Nicht begonnen.
+- **Viseme-Lippensync** aus TTS-Zeitdaten statt VaMs Audio-Lippensync – Anforderungskatalog – Gestrichen (siehe „Won't work“, letzter Eintrag).
 - **Emotionen auf Morphs**, Gestik passend zum Gesagten – Anforderungskatalog – Tool-Aufrufe seit v0.7.4, Rückfall aus den Worten, Abklingen und Zuhör-Gesicht seit Version 27; Betonung und Gesten aus Worten offen (siehe „Machbarkeit“).
 - **Lebendigkeit wie MacGruber Life** (Atmung mit Brustbewegung und Atemgeräusch, Herzschlag, Blinzeln, Schwanken) – Anforderungskatalog – Blinzeln und Blickverhalten seit Version 26 (siehe „Machbarkeit“); Atemgeräusche und Herzschlag: Won't work (siehe dort), dafür Life auf derselben Figur.
 - **LogicBricks-artige Reaktionen** auf Szenen-Ereignisse (Berührung, Nähe, Trigger) und Rückmeldung an die App, engere Timeline-Anbindung – Anforderungskatalog – Eingänge seit Version 26 (Scene event, Aktionen); ausgehende Trigger (Stufe 2) offen, siehe „Machbarkeit“.
 - **Persönlichkeitsprofile und Gedächtnis** der KI – Anforderungskatalog – Umgesetzt in Version 27 (Personas, Memory), siehe `PERSONAS.md`.
 
 ## Begleit-App
-- **Lokale Engines** (STT faster-whisper/Vosk, LLM über Ollama o. Ä., TTS Piper/XTTS) – Backlog v0.6.0 – Cloud-Engines xAI/ElevenLabs sind umgesetzt (v0.7.0), lokale nicht.
-- **Silero-VAD (neuronal)** – bewusst nicht umgesetzt (würde torch/onnxruntime erzwingen). Die bessere Sprachaktivitätserkennung (eingebauter Detektor mit lernendem Grundpegel, optional webrtcvad) ist seit 19.11.2026 umgesetzt, siehe SPEC; weitere Engines passen hinter `make_vad` in `audio/vad.py`.
-- **Unterbrechen per Stimme ohne Kopfhörer** (Echo-Unterdrückung, z. B. WebRTC AEC) – TODO in `companion/aibody_companion/audio/echo_gate.py` – Bis dahin Echo-Sperre; per Stimme nur mit Kopfhörer, Push-to-Talk immer.
+- **Lokale Engines** (STT faster-whisper/Vosk, LLM über Ollama o. Ä., TTS Piper/XTTS) – Backlog v0.6.0 – Cloud-Engines xAI/ElevenLabs seit v0.7.0, Ollama seit Version 29; STT und TTS lokal offen.
+- **Silero-VAD (neuronal)** – früher bewusst nicht umgesetzt (torch); seit Version 29 per onnxruntime ohne torch umgesetzt, siehe SPEC und `LOKALE_ENGINES.md`.
+- **Unterbrechen per Stimme ohne Kopfhörer** – Echte Echo-Unterdrückung (AEC) bleibt „Won't work“; seit Version 29 gibt es die Pegelregel `ai.barge_in` (aus als Standard); sonst Echo-Sperre, per Stimme mit Kopfhörer, Push-to-Talk immer.
 
 ## Entfernte Menüeinträge (Version 15) und ihre ursprüngliche Absicht
 
