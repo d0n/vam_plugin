@@ -1,8 +1,7 @@
 [project]
 name = "aibody-companion"
-version = "21"
+version = "22"
 description = "Companion app (mic, VAD, STT, LLM, TTS) for the Virt-A-Mate AIBody plugin"
-readme = "../README.md"
 requires-python = ">=3.10"
 license = { text = "LGPL-2.1-only" }
 dependencies = []

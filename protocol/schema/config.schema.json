@@ -622,6 +622,11 @@
               "type": "string",
               "default": "https://api.x.ai/v1"
             },
+            "key_hint": {
+              "type": "string",
+              "default": "An xAI API key from console.x.ai is required (a Grok subscription does not work). Provide it in one of three ways: (1) in VaM, plugin tab Voice > Voice Mode, field 'XAI API Token' (below API Reconnect); (2) the environment variable XAI_API_KEY; (3) ai.xai.key_file = path of a text file that holds the key. If several are set, the field wins, then XAI_API_KEY, then key_file. Never write the key itself into this file.",
+              "description": "Note for the reader (JSON has no comments): an xAI API key is required; the plugin field 'XAI API Token', XAI_API_KEY or key_file. Not used by the app; any text is accepted"
+            },
             "key_file": {
               "type": "string",
               "default": "",

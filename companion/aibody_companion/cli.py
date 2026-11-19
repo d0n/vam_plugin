@@ -21,7 +21,7 @@ log = logging.getLogger("aibody_companion")
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="aibody_companion", description="Companion app for the VaM AIBody plugin")
     p.add_argument("--config", help="JSON config file (see config.example.json)")
-    p.add_argument("--vam-root", dest="vam_root", help="VaM install folder (required)")
+    p.add_argument("--vam-root", dest="vam_root", help='VaM install folder (required), e.g. "D:\\VaM"')
     p.add_argument(
         "--channel",
         help="AIBody plugin channel (default: connection.channel from Saves/PluginData/AIBody/config.json)",

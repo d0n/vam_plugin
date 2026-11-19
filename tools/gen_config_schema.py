@@ -44,6 +44,8 @@ DESCRIPTIONS = {
     ("ai", "fallback"): "Engines used when the selected one has no API key or a request fails",
     ("ai", "xai"): "xAI (https://api.x.ai/v1): Grok via POST /v1/responses (stream), "
                    "STT POST /v1/stt, TTS POST /v1/tts",
+    ("ai", "xai", "key_hint"): "Note for the reader (JSON has no comments): an xAI API key is required; the plugin field "
+                               "'XAI API Token', XAI_API_KEY or key_file. Not used by the app; any text is accepted",
     ("ai", "xai", "key_file"): "Path of a file holding the xAI key (absolute, or relative to the home folder); "
                                "used after the plugin field 'XAI API Token' and XAI_API_KEY",
     ("ai", "elevenlabs"): "ElevenLabs TTS: POST /v1/text-to-speech/{voice_id}?output_format=pcm_*",

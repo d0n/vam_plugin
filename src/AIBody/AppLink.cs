@@ -1026,7 +1026,7 @@ namespace AIBody
                 if (_latency != null) text += LatencyLine() + "\n";
             }
             else if (_lastSession != null) text += "Companion app: DISCONNECTED – reconnects automatically as soon as the app runs again\n";
-            else text += "Companion app: not seen yet – start it: python -m aibody_companion --vam-root \"<VaM>\" --channel " + Channel + "\n";
+            else text += "Companion app: not seen yet – start it: python -m aibody_companion --vam-root \"D:\\VaM\" --channel " + Channel + "\n";
             return text;
         }
     }

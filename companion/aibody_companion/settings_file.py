@@ -57,6 +57,13 @@ FILE_NAME = "config.json"
 VERSION = 1
 
 # category -> key -> (type, default); numbers carry (min, max) in RANGES
+# Written into config.json as ai.xai.key_hint (JSON has no comments). Any text is accepted.
+KEY_HINT_TEXT = (
+    "An xAI API key from console.x.ai is required (a Grok subscription does not work). Provide it in one of "
+    "three ways: (1) in VaM, plugin tab Voice > Voice Mode, field 'XAI API Token' (below API Reconnect); "
+    "(2) the environment variable XAI_API_KEY; (3) ai.xai.key_file = path of a text file that holds the key. "
+    "If several are set, the field wins, then XAI_API_KEY, then key_file. Never write the key itself into this file.")
+
 DEFAULTS: dict[str, dict[str, Any]] = {
     "connection": {
         "channel": "default",
@@ -115,7 +122,8 @@ DEFAULTS: dict[str, dict[str, Any]] = {
         },
         "xai": {
             "base_url": "https://api.x.ai/v1",
-            "key_file": "",  # path of a file holding the key; XAI_API_KEY (environment) wins
+            "key_hint": KEY_HINT_TEXT,  # a note for the reader of this file (JSON has no comments); ignored by the app
+            "key_file": "",  # path of a file holding the key; used after the plugin field and XAI_API_KEY
             "model": "grok-4.7",
             "max_output_tokens": 400,
             "stt_model": "grok-voice-transcribe-2.0",

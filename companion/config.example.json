@@ -1,5 +1,5 @@
 {
-  "vam_root": "C:/VaM",
+  "vam_root": "D:\\VaM",
   "channel": "default",
   "sample_rate": 16000,
   "frame_ms": 30,

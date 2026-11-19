@@ -70,7 +70,7 @@ namespace AIBody
         }
 
         /// <summary>Start command of the companion app, shown when it is not running.</summary>
-        public const string StartHint = "python -m aibody_companion --vam-root \"<VaM>\"";
+        public const string StartHint = "python -m aibody_companion --vam-root \"D:\\VaM\"";
 
         /// <summary>
         /// Info line while no device list has arrived (version 20): says plainly why and what to do.
