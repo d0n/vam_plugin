@@ -64,10 +64,18 @@ namespace AIBody
         // Since version 15 the path fields are not in the menu (they showed as empty, unlabeled
         // boxes); the paths come from config.json ai.xai.key_file / ai.elevenlabs.key_file and are
         // still saved with the scene and sent to the companion (docs/BACKLOG.md).
-        // Version 21: "XAI API Token", a plain free-text field (Voice tab, Voice Mode). Saved with the scene
-        // (hence the hint "(beware: scenes save it)"), sent to the companion app only in the config event
-        // (files in the channel folders), never written to config.json, never logged.
+        // "XAI API Token": a plain free-text field (Voice tab, Voice Mode), no format check.
+        // Version 21: saved with the scene only. Version 24: the real token lives in _xaiToken and is
+        // saved in config.json (ai.xai.api_key, plain text, at Leon's explicit request); the storable
+        // _xaiTokenJson is only what the field SHOWS: the masked token ("xai-****abcd") once it is saved,
+        // so the scene keeps the mask and the mask never overwrites the token (see OnTokenEdited).
+        // The token is sent to the companion app in the config event (files in the channel folders)
+        // and is never logged.
         private JSONStorableString _xaiTokenJson;
+        private string _xaiToken = "";                       // the real token (trimmed)
+        private bool _tokenReady;                            // config.json was read; before that nothing is written or cleared
+        private bool _settingTokenDisplay;                   // we set the field's text ourselves
+        private float _tokenMaskTimer = -1f;                 // >= 0: seconds since the last edit; the mask is shown after TokenMaskDelay
         private JSONStorableString _xaiKeyFileJson;
         private JSONStorableString _elevenKeyFileJson;
         private JSONClass _keyInfo;                          // companion heartbeat "keys"
@@ -139,7 +147,7 @@ namespace AIBody
                 "eve", "Voice", (string v) => MarkConfigDirty());
             _plugin.RegisterStringChooser(_voiceJson);
             // No format check on purpose (Leon, 18.11.2026): whatever is typed or pasted is sent as is.
-            _xaiTokenJson = new JSONStorableString(XaiTokenLabel, "", (string v) => { UpdateKeyStatus(); MarkConfigDirty(); });
+            _xaiTokenJson = new JSONStorableString(XaiTokenLabel, "", OnTokenEdited);
             _plugin.RegisterString(_xaiTokenJson);
             _xaiKeyFileJson = new JSONStorableString("xAI key file", "", (string v) => CheckKeyFile(_xaiKeyFileJson, v));
             _plugin.RegisterString(_xaiKeyFileJson);
@@ -155,12 +163,91 @@ namespace AIBody
         }
 
         public const string XaiTokenLabel = "XAI API Token";
-        public const string XaiTokenHint = "(beware: scenes save it)";
+        public const string XaiTokenHint = "Paste your xAI API key here. Once it is saved, the field shows it masked (like xai-****abcd). "
+            + "To change it, select everything in the field and paste the new key. To remove it, empty the field.";
+        /// <summary>
+        /// Security notice at the top of the big info field on the left (tab Voice); the same text is in config.json
+        /// (ai.xai.api_key_warning, next to ai.xai.api_key). Not shown under the token field.
+        /// </summary>
+        public const string XaiTokenWarning = "SECURITY NOTICE: Your xAI token is stored as plain text in config.json (ai.xai.api_key). "
+            + "Anyone who can read that file can read your token, so do not share or publish it. "
+            + "Scenes keep only the masked token, but a scene saved with AIBody version 21 to 23 still contains the full token: "
+            + "do not publish such a scene.";
+        public const float TokenMaskDelay = 4f;             // seconds without an edit before the field shows the mask
 
-        /// <summary>The token as typed, without surrounding blanks / line breaks (nothing else is checked).</summary>
-        private string XaiToken
+        /// <summary>The real token (as typed or read from config.json, without surrounding blanks / line breaks; nothing else is checked).</summary>
+        private string XaiToken { get { return _xaiToken; } }
+
+        /// <summary>"xai-****abcd": the start "xai-" (only if present) and the last 4 characters; short tokens show just "****".</summary>
+        public static string MaskToken(string token)
         {
-            get { return _xaiTokenJson != null && _xaiTokenJson.val != null ? _xaiTokenJson.val.Trim() : ""; }
+            string t = (token ?? "").Trim();
+            if (t.Length == 0) return "";
+            if (t.Length < 12) return "****";
+            string head = t.StartsWith("xai-") ? "xai-" : "";
+            return head + "****" + t.Substring(t.Length - 4);
+        }
+
+        /// <summary>True for text the field shows as a mask. A real key never contains four asterisks in a row.</summary>
+        public static bool IsMaskedToken(string value)
+        {
+            return value != null && value.Contains("****");
+        }
+
+        /// <summary>The field's text changed: a typed / pasted key becomes the token; the mask itself is ignored.</summary>
+        private void OnTokenEdited(string v)
+        {
+            if (_settingTokenDisplay) return;
+            string typed = (v ?? "").Trim();
+            if (IsMaskedToken(typed))
+            {
+                _tokenMaskTimer = 0f;                        // somebody typed into the mask: put the correct mask back soon
+                return;
+            }
+            if (!_tokenReady)
+            {
+                // Scene restore before config.json was read: an old scene (version 21-23) may carry the real token.
+                if (typed.Length > 0) _xaiToken = typed;
+                return;
+            }
+            _xaiToken = typed;                               // written to config.json by the plugin's settings writer
+            _tokenMaskTimer = typed.Length > 0 ? 0f : -1f;
+            UpdateKeyStatus();
+            MarkConfigDirty();
+        }
+
+        private void ShowTokenMask()
+        {
+            string shown = MaskToken(_xaiToken);
+            _tokenMaskTimer = -1f;
+            if (_xaiTokenJson == null || _xaiTokenJson.val == shown) return;
+            _settingTokenDisplay = true;
+            try { _xaiTokenJson.val = shown; }
+            finally { _settingTokenDisplay = false; }
+        }
+
+        /// <summary>
+        /// On start (and "Reload Config JSON") the token comes from config.json ai.xai.api_key and fills the field.
+        /// If the file has none, a token an older scene restored into the field is kept and written to the file.
+        /// </summary>
+        public void AdoptToken(JSONClass root)
+        {
+            JSONClass ai = root != null ? root["ai"] as JSONClass : null;
+            JSONClass xai = ai != null ? ai["xai"] as JSONClass : null;
+            string fromFile = xai != null ? Protocol.GetString(xai, "api_key", "").Trim() : "";
+            if (fromFile.Length > 0) _xaiToken = fromFile;
+            _tokenReady = true;
+            ShowTokenMask();
+            UpdateKeyStatus();
+            MarkConfigDirty();
+        }
+
+        /// <summary>Called every frame: shows the mask a few seconds after the last edit.</summary>
+        private void TickTokenMask(float dt)
+        {
+            if (_tokenMaskTimer < 0f) return;
+            _tokenMaskTimer += dt;
+            if (_tokenMaskTimer >= TokenMaskDelay) ShowTokenMask();
         }
 
         /// <summary>Same rule as the companion's looks_like_secret: a pasted key is refused and cleared.</summary>
@@ -209,7 +296,7 @@ namespace AIBody
             engines["llm"] = _llmJson.val;
             engines["tts"] = _ttsJson.val;
             configEvent["engines"] = engines;
-            configEvent["ai"] = BuildAiJson();
+            configEvent["ai"] = BuildAiJson(false);
             // Version 21: the token travels in the config event only ("keys"), always present so that
             // clearing the field also clears it in the companion app. Not part of BuildAiJson (config.json).
             JSONClass keys = new JSONClass();
@@ -221,7 +308,7 @@ namespace AIBody
         }
 
         /// <summary>The ai keys the plugin UI controls: mode, proactive on/off + idle, voice barge-in.</summary>
-        private JSONClass BuildAiJson()
+        private JSONClass BuildAiJson(bool forFile)
         {
             JSONClass ai = new JSONClass();
             ai["mode"] = _aiModeJson.val;
@@ -237,6 +324,13 @@ namespace AIBody
             xai["voice"] = _voiceJson.val;
             // Key file paths only when set, so an empty field never wipes a path entered in config.json.
             if (_xaiKeyFileJson.val.Length > 0) xai["key_file"] = _xaiKeyFileJson.val;
+            // The token goes into config.json only (never into the config event) and only once config.json was read,
+            // so an early write cannot wipe a saved token. The warning text stays next to it.
+            if (forFile && _tokenReady)
+            {
+                xai["api_key"] = _xaiToken;
+                xai["api_key_warning"] = XaiTokenWarning;
+            }
             ai["xai"] = xai;
             if (_elevenKeyFileJson.val.Length > 0)
             {
@@ -280,6 +374,8 @@ namespace AIBody
             MergeSection(target, ui, "realtime", "voice");
             MergeSection(target, ui, "xai", "voice");
             MergeSection(target, ui, "xai", "key_file");
+            MergeSection(target, ui, "xai", "api_key");
+            MergeSection(target, ui, "xai", "api_key_warning");
             MergeSection(target, ui, "elevenlabs", "key_file");
         }
 
@@ -371,7 +467,7 @@ namespace AIBody
         {
             UpdateKeyStatus();
             UpdateEngineInfo();
-            string text = _modeHelpJson.val + "\n" + _keyStatusJson.val + "\n";
+            string text = XaiTokenWarning + "\n\n" + _modeHelpJson.val + "\n" + _keyStatusJson.val + "\n";
             if (_engineStatus != null) text += _engineInfoJson.val;   // before the first heartbeat the connection section says "not seen yet"
             return text;
         }
@@ -447,7 +543,8 @@ namespace AIBody
             // Version 21: the token field is the main way; the environment variable and key file are optional.
             if (_keyInfo == null || !KeyConfigured("xai"))
                 text += "No xAI key yet: paste your xAI API key (from console.x.ai) into the field '" + XaiTokenLabel + "' (tab Voice). "
-                    + "Alternatives: the XAI_API_KEY environment variable, or a key file set in config.json (ai.xai.key_file). The field is used first.\n";
+                    + "It is saved in config.json (ai.xai.api_key), so you only do this once. "
+                    + "Alternatives: the XAI_API_KEY environment variable, or a key file set in config.json (ai.xai.key_file).\n";
             if (_keyInfo != null && !KeyConfigured("elevenlabs"))
                 text += "ElevenLabs (optional, only for ElevenLabs voices): set the ELEVENLABS_API_KEY environment variable or a key file in config.json (ai.elevenlabs.key_file). There is no field for it here.";
             _keyStatusJson.val = text;
@@ -658,7 +755,7 @@ namespace AIBody
             engines["llm"] = _llmJson.val;
             engines["tts"] = _ttsJson.val;
             root["engines"] = engines;
-            root["ai"] = BuildAiJson();
+            root["ai"] = BuildAiJson(true);
             if (_mic != null) root["mic"] = _mic.BuildMicJson();
             JSONClass advanced = new JSONClass();
             advanced["file_poll_interval_s"].AsFloat = _filePollJson.val;
@@ -958,6 +1055,7 @@ namespace AIBody
 
         public void Update(float dt)
         {
+            TickTokenMask(dt);
             bool connected = false;
             if (_transport != null)
             {

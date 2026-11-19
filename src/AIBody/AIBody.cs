@@ -277,6 +277,7 @@ namespace AIBody
                     return;
                 }
                 _link.ApplySettings(file);
+                _link.AdoptToken(file);
                 if (_body != null) _body.ApplySettings(file);
                 JSONClass advanced = file["advanced"] as JSONClass;
                 if (advanced != null && _verboseJson != null)
@@ -303,8 +304,12 @@ namespace AIBody
                 if (_settingsAge < 1.5f) return;
                 _settingsChecked = true;
                 JSONClass file = null;
-                _diag.Run("Read config.json", () => file = _link.LoadSettingsFile());
+                bool readOk = false;
+                _diag.Run("Read config.json", () => { file = _link.LoadSettingsFile(); readOk = true; });
                 if (file != null) _diag.Run("Key file paths from config.json", () => _link.AdoptKeyFiles(file));
+                // The XAI API Token comes from config.json ai.xai.api_key (a missing file is fine; an unreadable one
+                // is not: then nothing is written back, so a saved token cannot be overwritten).
+                if (readOk) _diag.Run("XAI API Token from config.json", () => _link.AdoptToken(file));
                 if (file != null && !_settingsInitJson.val)
                 {
                     _diag.Run("Apply settings from config.json (new scene)", () =>
