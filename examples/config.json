@@ -48,6 +48,9 @@
     "file_poll_interval_s": 0.1,
     "verbose_log": false
   },
+  "ui": {
+    "first_run_hint_dismissed": false
+  },
   "ai": {
     "mode": "qa",
     "persona": "You are a friendly, curious character living in a 3D scene. You talk with the user face to face. Answer briefly and naturally, in the language the user speaks.",

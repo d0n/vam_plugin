@@ -499,6 +499,30 @@
       },
       "description": "Tab 'Config' (companion inbox poll interval, verbose log)"
     },
+    "ui": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "first_run_hint_dismissed": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "true",
+                "false",
+                "True",
+                "False"
+              ]
+            }
+          ],
+          "default": false
+        }
+      },
+      "description": "Plugin UI state: first_run_hint_dismissed = the short note about the xAI token at the top of the plugin UI was closed or answered, so it is not shown again"
+    },
     "ai": {
       "type": "object",
       "additionalProperties": false,

@@ -30,6 +30,8 @@ DESCRIPTIONS = {
                   "stays selected but the fallback (ai.fallback) runs",
     ("mic",): "Tab 'Client Character': captured by the companion app; push-to-talk state itself is never saved",
     ("body",): "Tab 'AI Character', section 'Body (this Person only)'",
+    ("ui",): "Plugin UI state: first_run_hint_dismissed = the short note about the xAI token at the top of the plugin UI was closed or answered, "
+             "so it is not shown again",
     ("advanced",): "Tab 'Config' (companion inbox poll interval, verbose log)",
     ("advanced", "file_poll_interval_s"): "Slider 'Companion inbox poll interval (s)' (stored name 'File poll interval (s)'): "
                                           "how often the plugin checks the companion app's inbox folder "

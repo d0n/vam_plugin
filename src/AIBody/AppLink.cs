@@ -26,6 +26,15 @@ namespace AIBody
         private readonly Diag _diag;
 
         private JSONStorableBool _activeJson;
+        // Version 30: the short first-run note at the top of the plugin UI (no token anywhere yet).
+        private JSONStorableString _hintTokenJson;      // "First run token"; never registered, so never in the scene
+        private InputField _hintInput;
+        private UIDynamicButton _hintButton;
+        private string _hintTyped = "";                      // what the user typed into the note's field (the field itself only shows the mask)
+        private bool _hintDismissed;                         // config.json ui.first_run_hint_dismissed
+        private bool _hintShown;                             // the state the last UI build used
+        private bool _settingHintDisplay;
+        public Action OnHintChanged;                         // the plugin rebuilds the tab when the note appears or goes away
         private JSONStorableBool _networkJson;         // "Network Active" (version 30)
         private NetworkTransport _network;             // null while the toggle is off: no socket code runs then
         private int _networkPort = SocketLink.DefaultPort;
@@ -113,6 +122,77 @@ namespace AIBody
         }
 
         public bool Active { get { return _activeJson != null && _activeJson.val; } }
+        public const string HintText = "An xAI API token is required. Paste it here, or later in Voice > XAI API Token.";
+        public const string HintClose = "Close";
+        public const string HintOk = "OK";
+
+        /// <summary>
+        /// True while the note shows: config.json was read, the user has not closed it before, and no token is known from
+        /// the field, config.json (ai.xai.api_key), a key file path or - once the app reported - XAI_API_KEY.
+        /// </summary>
+        public bool FirstRunHintVisible
+        {
+            get
+            {
+                if (_hintDismissed || !_tokenReady || _xaiToken.Length > 0) return false;
+                if (_xaiKeyFileJson != null && _xaiKeyFileJson.val.Length > 0) return false;
+                return _keyInfo == null || !KeyConfigured("xai");
+            }
+        }
+
+        /// <summary>Adds the note (one line, one field, one button) at the top of a tab; nothing when it is not due.</summary>
+        public void BuildFirstRunHint(UiPage page)
+        {
+            _hintInput = null;
+            _hintButton = null;
+            _hintShown = FirstRunHintVisible;
+            if (!_hintShown) return;
+            _settingHintDisplay = true;
+            try { _hintTokenJson.val = _hintTyped.Length > 0 ? MaskToken(_hintTyped) : ""; }
+            finally { _settingHintDisplay = false; }
+            page.Header(HintText);
+            _hintInput = page.TextInputField(_hintTokenJson);
+            _hintButton = page.ButtonRef(_hintTyped.Length > 0 ? HintOk : HintClose, OnHintButton);
+        }
+
+        private void OnHintEdited(string v)
+        {
+            if (_settingHintDisplay) return;
+            string typed = (v ?? "").Trim();
+            if (IsMaskedToken(typed)) return;                // the mask itself is never taken as input
+            _hintTyped = typed;
+            if (_hintButton != null) _hintButton.buttonText.text = typed.Length > 0 ? HintOk : HintClose;
+        }
+
+        /// <summary>"OK" saves what was typed exactly like the token field in the tab Voice does; "Close" just closes. Both close for good.</summary>
+        private void OnHintButton()
+        {
+            string typed = _hintTyped;
+            _hintTyped = "";
+            _hintDismissed = true;
+            if (typed.Length > 0 && _xaiTokenJson != null) _xaiTokenJson.val = typed;   // runs OnTokenEdited: token, config.json, mask
+            MarkConfigDirty();                               // writes ui.first_run_hint_dismissed
+            _hintShown = false;
+            if (OnHintChanged != null) OnHintChanged();
+        }
+
+        /// <summary>Every frame: masks the note's field when it loses focus; rebuilds the tab when the note must appear or go.</summary>
+        private void TickHint()
+        {
+            bool focused = _hintInput != null && _hintInput.isFocused;
+            if (!focused && _hintTyped.Length > 0 && _hintShown && _hintTokenJson.val != MaskToken(_hintTyped))
+            {
+                _settingHintDisplay = true;
+                try { _hintTokenJson.val = MaskToken(_hintTyped); }
+                finally { _settingHintDisplay = false; }
+            }
+            if (!focused && FirstRunHintVisible != _hintShown && OnHintChanged != null)
+            {
+                _hintShown = FirstRunHintVisible;
+                OnHintChanged();
+            }
+        }
+
         public bool NetworkActive { get { return _networkJson != null && _networkJson.val; } }
         public bool IsRunning { get { return _transport != null; } }
 
@@ -136,6 +216,7 @@ namespace AIBody
             _plugin.RegisterBool(_activeJson);
 
             // Version 30: loopback socket to the companion app, files as the fallback. Default on; off = no network code at all.
+            _hintTokenJson = new JSONStorableString("First run token", "", OnHintEdited);
             _networkJson = new JSONStorableBool("Network Active", true, (bool v) => Restart());
             _plugin.RegisterBool(_networkJson);
             _filePollJson = new JSONStorableFloat("File poll interval (s)", 0.1f, (float v) => Restart(), 0.02f, 2f);
@@ -779,6 +860,8 @@ namespace AIBody
             }
             string expressions = DataRoot + "/expressions.json";
             string gestures = DataRoot + "/gestures.json";
+            JSONClass uiState = root != null ? root["ui"] as JSONClass : null;
+            if (uiState != null && Protocol.GetBool(uiState, "first_run_hint_dismissed", false)) _hintDismissed = true;
             JSONClass connection = root != null ? root["connection"] as JSONClass : null;
             int port = connection != null ? (int)Protocol.GetFloat(connection, "network_port", SocketLink.DefaultPort) : SocketLink.DefaultPort;
             _networkPort = (port > 0 && port < 65536) ? port : SocketLink.DefaultPort;
@@ -827,6 +910,9 @@ namespace AIBody
         public void WriteSettings(JSONClass root)
         {
             JSONClass connection = new JSONClass();
+            JSONClass ui = new JSONClass();
+            ui["first_run_hint_dismissed"].AsBool = _hintDismissed;
+            root["ui"] = ui;
             connection["active"].AsBool = Active;
             connection["network_active"].AsBool = NetworkActive;
             connection["network_port"].AsInt = _networkPort;
@@ -1185,6 +1271,7 @@ namespace AIBody
         public void Update(float dt)
         {
             TickTokenMask();
+            TickHint();
             bool connected = false;
             if (_transport != null)
             {

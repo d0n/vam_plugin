@@ -83,6 +83,15 @@ namespace AIBody
         /// <summary>Popup with a scrolling list (long device lists), as Collider Editor uses it.</summary>
         public void ScrollablePopup(JSONStorableStringChooser p) { if (p != null) _popups.Add(_plugin.CreateScrollablePopup(p, _right)); }
 
+        /// <summary>Like Button, but returns the control (its label can change later: buttonText.text).</summary>
+        public UIDynamicButton ButtonRef(string label, UnityEngine.Events.UnityAction onClick)
+        {
+            UIDynamicButton b = _plugin.CreateButton(label, _right);
+            _buttons.Add(b);
+            b.button.onClick.AddListener(onClick);
+            return b;
+        }
+
         public void Button(string label, UnityEngine.Events.UnityAction onClick)
         {
             UIDynamicButton b = _plugin.CreateButton(label, _right);

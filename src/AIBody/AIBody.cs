@@ -131,6 +131,7 @@ namespace AIBody
                 };
                 _body.PluginFolder = FindPluginFolder;
                 _body.UserSpeaking = () => _link != null && _link.UserSpeaking;
+                _link.OnHintChanged = () => ShowTab(_tab);
                 _link.OnPathsChanged = () =>
                 {
                     _body.ExpressionsPath = _link.ExpressionsPath;
@@ -211,6 +212,7 @@ namespace AIBody
             _tab = index;
             try
             {
+                if (_link != null) _link.BuildFirstRunHint(_page);   // version 30: one short note while no xAI token exists
                 switch (index)
                 {
                     case 0: // Voice

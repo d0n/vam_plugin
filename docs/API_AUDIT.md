@@ -319,8 +319,8 @@ from `Exception.ToString()`, not from reflection. The only additions outside the
   is a private string, text containing `****` is ignored. No `foreach` over `Dictionary.Keys`/`.Values`.
 - **Not used:** `InputField.contentType = Password` (or `asteriskChar`): it is standard Unity UI, but no
   audited VaM plugin uses it on a `CreateTextField` field, so it is not in the stubs and not used.
-  TODO(verify) in VaM: the mask appears a few seconds (4 s) after an edit and after a start; pasting a new key
-  over the mask is accepted.
+  Since version 30 the mask is applied when the field loses focus (see "Version 30"), no longer after 4 s.
+  TODO(verify) in VaM: pasting a new key over the mask is accepted.
 - The scene still saves the storable (registered), now holding the mask; an older scene restores a real token
   into it, which the plugin keeps if `config.json` has none (migration).
 
@@ -398,15 +398,46 @@ New in the plugin (`GazeController.cs`), all with evidence E12 / E28 (see the ta
 - No `foreach` over Dictionary `.Keys`/`.Values`, no LINQ, no file or network access added. A gaze exception only
   stops the gaze (`_gazeBroken`), not the body.
 
+## Version 30 (19.11.2026): Network Active, token mask by focus, first-run note
+
+Spec change by Leon (19.11.2026): the plugin may use one loopback socket to the companion app. The file channel stays
+the fallback.
+
+**Network: which transport, and the evidence.**
+
+| Evidence | What it shows |
+|---|---|
+| [VAMLaunchNetwork.cs](https://github.com/ZengineerVAM/VAMLaunch/blob/master/VAMLaunch/src/VAMLaunchNetwork.cs) (ZengineerVAM) | A VaM plugin with plain **UDP**: `UdpClient`, `IPEndPoint`, a background `Thread` (`IsBackground = true`) that blocks in `Receive`, a `Queue<byte[]>` filled under `lock` and drained from the main thread (`GetNextMessage`), `Send` wrapped in try/catch, `Stop` closes the client. Needs "Allow Plugins Network Access". |
+| [VaM_ML_Skeleton_Engine / AIVRLab.BoneReceiver](https://github.com/yuyaslabo/VaM_ML_Skeleton_Engine) (yuyaslabo) | A plugin that receives a Python engine's data over **UDP** (default port 9998), "Allow Plugins Network Access" required. |
+| [Neptune API](https://www.patreon.com/SPQR_aeternum/posts/neptune-api-v1-145203754) (SPQR) | A plugin that opens a listener on 127.0.0.1:7872 (HTTP-style calls from local tools); says a Windows firewall prompt appears once; needs the same VaM setting. |
+| [Voxta plugin docs](https://doc.voxta.ai/docs/integrations/vam/basics/install-plugin) | The Voxta plugin talks SignalR (WebSocket) to the Voxta server on 127.0.0.1:5384; lists "Allow Plugins Network Access" as required. |
+| [VaM patch notes 1.22](https://cdn.virtamate.com/Release/VaM_PatchNotes.html) and [MeshedVR security patch](https://www.patreon.com/meshedvr/posts/important-patch-121741619) | "Allow Plugins Network Access" (User Preferences, Security) is off by default; some existing plugins do not work until it is on; it is the riskiest preference. |
+
+**Decision: UDP on 127.0.0.1.** UDP with a receive thread and a locked queue has the most direct source evidence (VAMLaunch, BoneReceiver); no connection state to hang on, a send never waits for the other side, and all messages of this protocol are small (one datagram = one complete JSON message, at most 60000 bytes; bigger ones travel through the file channel). TCP and WebSocket have no source we could read (Voxta's SignalR client is a bundled library); HTTP listeners (Neptune) would mean `HttpListener`, which stays banned.
+
+APIs used, all inside `src/AIBody/SocketLink.cs` (the only file that may mention `System.Net`; `tools/sandbox_rules.py` enforces it):
+
+| API | Use | Evidence |
+|---|---|---|
+| `UdpClient(IPEndPoint)`, `Send(byte[], int, IPEndPoint)`, `Receive(ref IPEndPoint)`, `Close()` | the socket (plugin side bound to an ephemeral port on `IPAddress.Loopback`) | VAMLaunch (`UdpClient`, `Send`, `Receive`, `Close`) |
+| `IPEndPoint`, `IPAddress.Loopback`, `IPAddress.IsLoopback` | address handling; `IPAddress.Any`, `Parse`, `new IPAddress` stay banned, so no other address can be configured | `IPEndPoint` as in VAMLaunch; loopback constants are plain .NET |
+| `Thread` (`IsBackground = true`), `Monitor.Wait/Pulse`, `lock`, `Queue<T>` | one receive thread, one send thread, queues drained in `Update` | VAMLaunch (`Thread`, `IsBackground`, `lock`, `Queue`) |
+| `Encoding.UTF8` | datagram text | plain .NET |
+
+Rules kept: no `UnityWebRequest`, no `UnityEngine.Networking`, no TCP/HTTP/WebClient types, no `foreach` over `Dictionary.Keys/.Values`, one plugin and one `.cslist`; the threads never call Unity or VaM; `Tick()` only moves finished messages between the queues and the plugin. With the toggle off, `new SocketLink(...)` is never executed (test `test_off_means_no_network_code_runs`). TODO(verify) in VaM 1.22: what the plugin does when "Allow Plugins Network Access" is off (we expect a failing `new UdpClient` that is caught, or VaM's own refusal/prompt; both are outside our code, and the file channel remains the fallback), and whether a firewall prompt appears for loopback UDP.
+
+**Token mask by focus.** `InputField.isFocused` is standard Unity UI (the same `UnityEngine.UI.InputField` class as E14), read each frame while the field exists; added to `tools/stubs/UnityStubs.cs`. There is no audited end-edit event, so the plugin polls. No VaM plugin evidence for `isFocused` itself: TODO(verify) in VaM 1.22 that a VaM text field reports focus. The old 4-second timer is gone.
+
+**First-run note.** Only audited kinds: `UiPage.Header` (CreateTextField), `TextInput` (E14), `Button`. The button label is changed with `UIDynamicButton.buttonText.text` (vam-timeline `MocapScreen.cs` at commit d6f7177c: `_importRecordedUI.buttonText.text = ...`; `button.label` is the other, equally evidenced way). The field's storable is not registered with VaM, so it never reaches a scene.
+
 ## Version 29 (19.11.2026): local engines, Silero, voice barge-in
 
 - **No new VaM API.** Everything runs in the companion app. The plugin only gets one more entry in the existing **VAD engine** `JSONStorableStringChooser` ("Silero", mapped to `mic.vad_engine: "silero"`; the same code path as the other three entries).
 - **Plain evidence facts (19.11.2026):** `NamedAudioClip.clipToPlay` is used by Timeline (`CustomTrigger.cs` L86-92, commit 54e2942); `AudioSourceControl.clipLoudness` is used in Dollmaster (E1, `ExpressionController.cs` L84-141, commit e606e78). AIBody uses neither.
 
-## Version 28 (19.11.2026): several figures, Channel field
+## Version 28 (19.11.2026): several figures, Channel field (removed again in version 30)
 
-- **No new VaM API.** The Channel field is the same `UiPage.TextInput` over a `JSONStorableString` as the "XAI API Token" field and the other text fields (E9, E24). The debounce is plain `Update(dt)` arithmetic. The channel is still cleaned to letters, digits, `-` and `_` before it becomes a folder name below `Saves/PluginData/AIBody` (same `FileManagerSecure` paths as before).
-- No `foreach` over Dictionary `.Keys`/`.Values`, no LINQ, no file or network access added. Several figures are several instances of the same plugin on several atoms (each its own channel folder); no plugin-to-plugin call.
+- Version 28 added a Channel field and several figures in one app. **Removed in version 30** (Leon, 19.11.2026: one companion app controls exactly one character). Nothing from it remains in the code; the audit entry stays only as history: it used no VaM API beyond the existing `UiPage.TextInput` pattern (E9, E24).
 
 ## Version 27 (19.11.2026): emotions, personas, memory
 

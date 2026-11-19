@@ -94,7 +94,7 @@ namespace UnityEngine.Events
 
 namespace UnityEngine.UI
 {
-    public class Text : Component { public TextAnchor alignment; }   // E27
+    public class Text : Component { public TextAnchor alignment; public string text; }   // E27; text: vam-timeline MocapScreen.cs (commit d6f7177c) sets buttonText.text
     public class Button : Component
     {
         public class ButtonClickedEvent : UnityEngine.Events.UnityEvent { }

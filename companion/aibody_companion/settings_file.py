@@ -106,6 +106,8 @@ DEFAULTS: dict[str, dict[str, Any]] = {
         "blink_control": False,  # true = AIBody blinks (VaM's auto blink is switched off meanwhile)
     },
     "advanced": {"file_poll_interval_s": 0.1, "verbose_log": False},
+    # Plugin UI state (version 30): the first-run note about the xAI token was closed or answered once.
+    "ui": {"first_run_hint_dismissed": False},
     # Companion app; the plugin's tabs set only mode, proactive.enabled / idle_seconds,
     # realtime.send_while_speaking / voice, xai.voice and the key file paths (xai / elevenlabs
     # key_file), and keep the rest of this section.
@@ -253,7 +255,7 @@ CHOICES: dict[tuple[str, ...], tuple[str, ...]] = {
 }
 
 CATEGORIES = tuple(DEFAULTS)
-PLUGIN_CATEGORIES = ("connection", "engines", "mic", "body", "advanced")  # written by the plugin
+PLUGIN_CATEGORIES = ("connection", "engines", "mic", "body", "advanced", "ui")  # written by the plugin
 COMPANION_CATEGORIES = ("ai",)  # read only by this app, preserved by the plugin
 
 
