@@ -207,7 +207,7 @@ logged masked. There is no `keys.elevenlabs`.
 
 ### AI controls (`config.ai`)
 
-`mode` (`qa` | `auto` | `realtime` | `chain`), `proactive.enabled`, `proactive.idle_seconds` (0..3600; 0 = proactive speech off; the plugin slider is "Speech delay timer (s)", the key keeps its name),
+`mode` (`qa` | `auto` | `realtime` | `chain`), `proactive.enabled` (plugin toggle "Proactive talking"), `proactive.idle_seconds` (0..3600; 0 = proactive speech off; the plugin slider is "Speech delay timer (s)", the key keeps its name),
 `realtime.send_while_speaking`, `realtime.voice` / `xai.voice` (a changed realtime voice reconnects),
 `xai.key_file` / `elevenlabs.key_file` (paths; a value that looks like a key is refused with an error in
 `config_ack.errors` and the old path stays): applied live, echoed in `config_ack.applied.ai`; all other `ai`

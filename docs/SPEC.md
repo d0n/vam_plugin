@@ -28,7 +28,7 @@ Vereinbarter Stand, was gilt. Status (umgesetzt/offen): [`ANFORDERUNGEN.md`](ANF
 ## Gemeinsame Konfiguration
 - Eine globale Datei `<VaM>/Saves/PluginData/AIBody/config.json` (Kanal ist ein Wert darin), von Plugin und App gelesen; Schema `protocol/schema/config.schema.json`, Doku `docs/CONFIG.md`.
 - Werte im Plugin-Menü (mit der Szene gespeichert) gewinnen und werden zurückgeschrieben; Szene ohne AIBody-Werte übernimmt die Datei einmal.
-- Abschnitt `ai` gehört der Begleit-App; das Plugin setzt dort nur seine Menüwerte (Modus, Stimme, Proactive, Voice barge-in) und reicht die Key-Datei-Pfade aus der Datei durch (seit Version 15 kein Menüfeld; die Datei gewinnt bei jedem Start).
+- Abschnitt `ai` gehört der Begleit-App; das Plugin setzt dort nur seine Menüwerte (Modus, Stimme, Proactive talking, Voice barge-in) und reicht die Key-Datei-Pfade aus der Datei durch (seit Version 15 kein Menüfeld; die Datei gewinnt bei jedem Start).
 
 ## API-Keys
 - xAI braucht einen API-Key von console.x.ai; ein Grok-Abo / grok.com-Token funktioniert nicht. Statusanzeige und Hinweise sagen das.
@@ -42,7 +42,7 @@ Vereinbarter Stand, was gilt. Status (umgesetzt/offen): [`ANFORDERUNGEN.md`](ANF
 - Realtime optional (Schalter „Use realtime voice“ = `auto`): Grok Voice über `wss://api.x.ai/v1/realtime`, Kette als Fallback.
 - `chain`: genau die unter Voice > AI Character gewählten Engines.
 - Test-Engines `null` / `echo` / `tone` als Offline-Betrieb und Fallback ohne Key.
-- Proaktives Sprechen nach einstellbarer Stille (Regler „Speech delay timer (s)“ 0–3600, Standard 90; 0 = aus, wie der Schalter „Proactive“ aus; Infofeld „Proactive: off (speech delay timer 0 s)“); die KI bekommt Uhrzeit und Zeit seit dem letzten Austausch mit.
+- Proaktives Sprechen nach einstellbarer Stille (Regler „Speech delay timer (s)“ 0–3600, Standard 90; 0 = aus, wie der Schalter „Proactive talking“ aus; Infofeld „Proactive talking: off (speech delay timer 0 s)“); die KI bekommt Uhrzeit und Zeit seit dem letzten Austausch mit.
 
 ## Mikrofon
 - Aufnahme, VAD und Echo-Sperre nur in der Begleit-App; sie nimmt immer vom Standard-Eingabegerät des Systems auf (sounddevice-Standard). Es gibt keine Mikrofon-Auswahl im Plugin.
@@ -81,7 +81,7 @@ Vereinbarter Stand, was gilt. Status (umgesetzt/offen): [`ANFORDERUNGEN.md`](ANF
 - Tabs:
   - Voice:
     - Voice Mode: Question and Answer (Knopf, zweizeilig mittig „Question“ / „& Answer“; bis Version 20 „Simple Q&A mode“), Active, Use realtime voice, API Reconnect, XAI API Token (Textfeld) mit Hinweis „(beware: scenes save it)“ darunter, Test tone via companion, Play test tone, Stop speaking.
-    - Voice > AI Character: AI mode, Voice, Speech-to-text, Language model, Text-to-speech, Proactive, Speech delay timer.
+    - Voice > AI Character: AI mode, Voice, Speech-to-text, Language model, Text-to-speech, Proactive talking, Speech delay timer.
   - AI Character: Poses (Auswahl, Apply pose, Reload poses; per Sprache über die KI oder hier); Expression and gesture (Auswahl, Show expression, Reset expression, Reload expressions, Play gesture); Body (this Person only) (Body control, Lautstärke, Idle, Atmung, Breath morph mit Beschriftung).
   - Client Character: microphone and push-to-talk (Mic enabled, Mic mode, Push-to-talk active, Push-to-talk interrupts speech, Show level meter, Mikrofon-Regler), Voice barge-in (headphones).
   - Config (früher Config und Erweitert): Reload Config JSON, Companion inbox poll interval (s) (wie oft das Plugin den Eingang der Companion-App abfragt; gespeicherter Name „File poll interval (s)“), Verbose log.
@@ -99,6 +99,7 @@ Vereinbarter Stand, was gilt. Status (umgesetzt/offen): [`ANFORDERUNGEN.md`](ANF
 - Pro Runde eine Logzeile; letzter Wert und Mittel der letzten 10 im Statusfeld (*Live*, „Latency to first sound“).
 
 ## Änderungen
+- 19.11.2026 (nach Version 22, noch nicht released): Schalter „Proactive“ heißt „Proactive talking“ (Leon, Sprachnachricht; passt zum Regler „Speech delay timer (s)“). Geändert: Name des Plugin-Storables, Infofeld („Proactive talking: on, speech delay timer 90 s“ / „Proactive talking: off (speech delay timer 0 s)“ / „Proactive talking: off“), Konsolenzeilen der Begleit-App (Startzeile, Anstoß-Zeile, „the AI chose to stay silent“) und die Doku. Unverändert: config.json-Schlüssel `ai.proactive.enabled` und alle Protokollschlüssel. Szenen: ein unter dem alten Namen „Proactive“ gespeicherter Wert geht verloren, der Schalter steht dort auf dem Standard an (keine belegte API für eine Migration, siehe Eintrag zum Regler).
 - 19.11.2026 (nach Version 22, noch nicht released): Regler „Proactive idle (s)“ heißt „Speech delay timer (s)“ (Leon, Sprachnachricht): so ist klarer, was er tut – wie lange die KI nach Stille wartet, bevor sie von sich aus etwas sagen darf (0 = aus). Geändert: Name des Plugin-Storables, Infofeld („Proactive: on, speech delay timer 90 s“, „Proactive: off (speech delay timer 0 s)“), Konsolenzeilen der Begleit-App (Startzeile und Anstoß-Zeile) und die Doku. Unverändert: Schalter „Proactive“, config.json-Schlüssel `ai.proactive.idle_seconds` und alle Protokollschlüssel. Szenen: VaM stellt Storables über den Namen wieder her; ein in einer alten Szene gespeicherter Wert von „Proactive idle (s)“ geht verloren, der Regler steht dort auf dem Standard 90 (eine Migration über `RestoreFromJSON` wäre kein in `docs/API_AUDIT.md` belegter Aufruf). Der Wert in config.json bleibt davon unberührt.
 - 19.11.2026 (nach Version 22, noch nicht released): Regler „Proactive idle (s)“ geht von 0 bis 3600 (vorher 15 bis 3600; Standard bleibt 90), damit Leon proaktives Sprechen ganz abschalten kann. 0 (und alles unter 1 s) bedeutet: keine Anstöße, wie bei ausgeschaltetem Schalter „Proactive“, in Realtime und Chain; die Begleit-App löst nie in jedem Takt einen Anstoß aus. Infofeld: „Proactive: off (idle 0 s)“. Schalter „Proactive“ unverändert. `ai.proactive.idle_seconds` in config.json jetzt [0–3600].
 - 19.11.2026 (nach Version 22, noch nicht released): Mikrofon-Auswahl entfernt (Leon, per Sprachnachricht: unter Windows nimmt die Begleit-App ohnehin das Standardgerät, die Auswahl im Menü war nicht sinnvoll einstellbar und überflüssig). Plugin: Menü „Mic device“, Knopf „Refresh microphones“, Aktion „Refresh mic devices“, `MicDeviceList.cs`, Mikrofonliste im Infofeld und die Nachrichten `list_devices`/`devices` entfallen; rote Zeile „Companion app not running. Start it: …“ bleibt. Begleit-App: Einstellung `mic.device`, Befehl `devices`, Ereignis `list_devices`, Geräteparameter der Aufnahme entfallen (Aufnahme öffnet immer `device=None`); alte Schlüssel/Ereignisse werden ohne Fehler ignoriert. `--list-devices` und `tools/mic_test.py` bleiben als reine Diagnose (ohne Plugin-Nachricht). Außerdem schon in der Begleit-App (Commit 45b6993): erkannter STT-Text wird vor der Antwort immer als INFO-Zeile „Heard (STT …): …“ in die Konsole geschrieben. Siehe `docs/ANFORDERUNGEN.md`, „Nächste Version“.

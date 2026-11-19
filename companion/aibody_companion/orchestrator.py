@@ -332,7 +332,7 @@ class Companion:
     def proactive_info(self) -> dict[str, Any]:
         info: dict[str, Any] = {"enabled": self.proactive.enabled, "idle_seconds": self.proactive.idle_seconds}
         if self.proactive.enabled and not self.proactive.active:
-            pass  # speech delay timer 0 s: off; the plugin shows "Proactive: off (speech delay timer 0 s)"
+            pass  # speech delay timer 0 s: off; the plugin shows "Proactive talking: off (speech delay timer 0 s)"
         elif self.proactive.active and self.speech_only:
             info["status"] = "paused in Question and Answer mode"
         elif self.proactive.active and not self._can_nudge_engine():
@@ -415,7 +415,7 @@ class Companion:
         prompt = str(self.engine_set.ai["proactive"].get("prompt") or "")
         text = nudge_text(prompt, self.now(), self.since_last_exchange())
         self.proactive.fired()
-        log.info("Proactive: speech delay timer (%.0f s of silence) ran out - the AI may say something", self.proactive.idle_seconds)
+        log.info("Proactive talking: speech delay timer (%.0f s of silence) ran out - the AI may say something", self.proactive.idle_seconds)
         if self.active_mode == "realtime":
             self.realtime.nudge(text)
         elif self.background_turns:
@@ -867,7 +867,7 @@ class Companion:
                     continue
                 if nudge and not said:
                     if is_silent(sentence):
-                        log.info("Proactive: the AI chose to stay silent")
+                        log.info("Proactive talking: the AI chose to stay silent")
                         return
                     for d in held:
                         yield from self._directive_steps(d)

@@ -284,7 +284,7 @@ class RealtimeVoice:
             return
         transcript = self.assembler.transcript.strip()
         if self._nudge_response and self._nudge_response == self.response_id and is_silent(transcript):
-            log.info("Proactive: the AI chose to stay silent")
+            log.info("Proactive talking: the AI chose to stay silent")
         elif transcript:
             self.c.history.append({"role": "assistant", "content": transcript})
             self.c.on_exchange()

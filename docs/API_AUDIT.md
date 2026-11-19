@@ -145,7 +145,7 @@ from `Exception.ToString()`, not from reflection. The only additions outside the
 ## 0.7.1: AI mode / proactive controls, realtime voice in the companion
 
 - No new VaM API. The Engines tab gets one more `JSONStorableStringChooser` (AI mode), two
-  `JSONStorableBool` (Proactive, Voice barge-in) and one `JSONStorableFloat` (Speech delay timer, formerly Proactive idle),
+  `JSONStorableBool` (Proactive talking, formerly Proactive; Voice barge-in) and one `JSONStorableFloat` (Speech delay timer, formerly Proactive idle),
   registered and shown with `CreatePopup` / `CreateToggle` / `CreateSlider` like the existing
   settings (E11). The plugin merges these four keys into the kept `ai` section with the same
   SimpleJSON indexer / `as JSONClass` pattern as 0.7.0 (no enumeration of `JSONClass` needed).

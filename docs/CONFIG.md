@@ -93,14 +93,14 @@ of *Voice > AI Character*, as before.
 
 ## Proactive speech and time context
 
-- **Proactive:** after `ai.proactive.idle_seconds` without speech (user or AI), the companion
+- **Proactive talking** (toggle `ai.proactive.enabled`; until version 22 called "Proactive"): after `ai.proactive.idle_seconds` without speech (user or AI), the companion
   nudges the AI: realtime via `conversation.item.create` + `response.create`, chain via one
   language-model turn (needs `llm` = `xai`). The nudge carries the time context and
   `ai.proactive.prompt`; the default prompt allows the AI to stay silent by answering `[silent]`,
   which is then not played. After an unanswered nudge the wait doubles (up to 8x); any user speech
   resets it. Never while the body talks, the user speaks or push-to-talk is held.
   **`idle_seconds` 0 = proactive speech off** (same as `enabled: false`, in realtime and chain; any
-  value below 1 s counts as 0; range 0..3600, default 90). The plugin slider is called **Speech delay timer (s)** (until version 22: "Proactive idle (s)"); it shows `Proactive: off (speech delay timer 0 s)`.
+  value below 1 s counts as 0; range 0..3600, default 90). The plugin slider is called **Speech delay timer (s)** (until version 22: "Proactive idle (s)"); it shows `Proactive talking: off (speech delay timer 0 s)`.
 - **Time context:** the AI has no clock of its own. The companion adds the local date and time
   (with UTC offset) and the time since the last exchange to every user turn (chain, `xai` LLM:
   prefix of the user message, not stored in the history) and to every nudge; in realtime mode it
