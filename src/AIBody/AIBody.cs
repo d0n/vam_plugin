@@ -277,7 +277,7 @@ namespace AIBody
                     _configStatus = "No valid config.json at " + _link.SettingsPath + "; nothing changed.";
                     return;
                 }
-                _link.ApplySettings(file, false);   // version 28: the channel is per figure, not reloaded from the shared file
+                _link.ApplySettings(file);
                 _link.AdoptToken(file);
                 if (_body != null) _body.ApplySettings(file);
                 JSONClass advanced = file["advanced"] as JSONClass;

@@ -28,7 +28,7 @@ ENGINES_AVAILABLE: dict[str, list[str]] = {
 @dataclass
 class Config:
     vam_root: str = ""  # VaM install folder (the one containing VaM.exe)
-    channel: str = "default"  # must match the AIBody plugin's "Channel"
+    channel: str = "default"  # the one fixed folder name below Saves/PluginData/AIBody (cli.py forces it)
     poll_interval_s: float = 0.02
 
     sample_rate: int = 16000

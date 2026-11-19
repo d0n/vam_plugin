@@ -1,6 +1,6 @@
 from .capture import MicCapture, MicController, list_input_devices
 from .barge import BargeInRule
-from .echo_gate import EchoGate, LinkedGate
+from .echo_gate import EchoGate
 from .silero import silero_model_path
 from .input_processor import InputProcessor
 from .mic_settings import MicSettings, apply_mic_config
@@ -11,7 +11,6 @@ __all__ = [
     "EchoGate",
     "EnergyVad",
     "InputProcessor",
-    "LinkedGate",
     "MicCapture",
     "MicController",
     "MicSettings",

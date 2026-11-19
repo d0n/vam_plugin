@@ -143,6 +143,30 @@ def compile_target() -> bool:
     return result.returncode == 0
 
 
+GERMAN_WORDS = {"und", "oder", "nicht", "für", "wird", "ist", "eine", "einen", "einem", "mit", "der", "das", "den",
+                "dem", "wenn", "werden", "wurde", "kann", "müssen", "sind", "auch", "noch", "nur", "bitte", "dass",
+                "diese", "dieser", "nach", "über", "vom", "zum", "zur", "beim", "keine", "kein", "datei", "fehler",
+                "starten", "gestartet", "verbunden", "getrennt", "bereit", "läuft", "gefunden", "test-ton"}
+STRING_RE = re.compile(r'"((?:[^"\\]|\\.)*)"')
+
+
+def language_scan() -> list[str]:
+    """Everything the plugin shows or logs is English (Leon, 19.11.2026): string literals with umlauts or
+    common German words are reported."""
+    problems = []
+    for path in sorted(SRC.rglob("*.cs")):
+        for number, line in enumerate(path.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
+            if line.lstrip().startswith("//"):
+                continue
+            for m in STRING_RE.finditer(line):
+                text = m.group(1)
+                words = [w.lower() for w in re.findall(r"[A-Za-zÄÖÜäöüß-]+", text)]
+                if re.search(r"[äöüÄÖÜß]", text) or (len(words) >= 2 and any(w in GERMAN_WORDS for w in words)) \
+                        or "test-ton" in words:
+                    problems.append(f"{path.relative_to(ROOT)}:{number}: German text? {text[:80]!r}")
+    return problems
+
+
 def main() -> int:
     assemble()
     problems, count = sandbox_scan()
@@ -153,7 +177,11 @@ def main() -> int:
     single = single_plugin_check()
     for p in single:
         print("   ", p)
-    ok = not problems and not single
+    german = language_scan()
+    print(f"[english] {'ok' if not german else 'FAILED'}: {len(german)} string literals that look German")
+    for p in german:
+        print("   ", p)
+    ok = not problems and not single and not german
     ok &= compile_target()
     return 0 if ok else 1
 

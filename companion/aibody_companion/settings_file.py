@@ -1,10 +1,10 @@
 """config.json: the input parameters shared by the AIBody plugin and this app.
 
 Location: <vam_root>/Saves/PluginData/AIBody/config.json, ONE global file, in the per-plugin folder
-below Saves/PluginData that established plugins use for their settings. Key reference (German):
+below Saves/PluginData that established plugins use for their settings. Key reference:
 README.md section 4. Categories (kept from the first schema; they no longer match the tabs 1:1):
 
-  connection  channel (file only since version 15), active (tab Voice), paths {expressions, gestures,
+  connection  active (tab Voice), paths {expressions, gestures,
               audio} (file only)
   engines     stt, llm, tts (tab Voice > AI Character)
   mic         microphone + push-to-talk settings (tab Client Character; audio/mic_settings.py)
@@ -16,7 +16,7 @@ README.md section 4. Categories (kept from the first schema; they no longer matc
 plus one category this app owns (the plugin keeps it unchanged when it writes, except the keys
 it has controls for):
 
-  ai          mode, persona, persona_name, channels, memory {...}, emotion {...}, language, fallback {stt, llm, tts}, realtime {...}, proactive {...},
+  ai          mode, persona, persona_name, memory {...}, emotion {...}, language, fallback {stt, llm, tts}, realtime {...}, proactive {...},
               xai {...}, elevenlabs {...}
               plugin controls: mode (tab Voice), persona_name and memory.enabled (tab Voice), proactive.enabled /
               idle_seconds (tab Voice), realtime.send_while_speaking (tab Client Character),
@@ -24,9 +24,9 @@ it has controls for):
               elevenlabs.key_file (no menu field since version 15; the plugin keeps the path it read)
 
 The plugin UI wins: the plugin writes its values back after every change. This app reads the
-file on start (channel, initial mic and engine settings before the plugin connects) and creates
+file on start (initial mic and engine settings before the plugin connects) and creates
 it with the defaults if it does not exist yet (or adds missing "ai" keys); live changes
-still arrive as `config` events. Only `--channel` on the command line overrides the channel.
+still arrive as `config` events. The message folder is fixed (Saves/PluginData/AIBody/default).
 The plugin's sliders cover exactly RANGES / mic LIMITS (tests/test_plugin_ranges.py), so a value
 from the file is not clamped and written back changed.
 
@@ -43,7 +43,6 @@ from __future__ import annotations
 import json
 import logging
 import os
-import re
 from pathlib import Path
 from typing import Any
 
@@ -76,7 +75,6 @@ KEY_WARNING_TEXT = (
 
 DEFAULTS: dict[str, dict[str, Any]] = {
     "connection": {
-        "channel": "default",
         "active": True,
         "paths": {
             "expressions": "Saves/PluginData/AIBody/expressions.json",
@@ -119,9 +117,6 @@ DEFAULTS: dict[str, dict[str, Any]] = {
         # Persona folder below Saves/PluginData/AIBody/personas ("" = none: the persona text above). The plugin's
         # menu "Persona" sets it; a persona.json can replace persona text, language and voice (personas.py).
         "persona_name": "",
-        # Several figures in one app (version 28): channel names separated by commas, e.g. "anna,marc". Each figure is
-        # an AIBody plugin with that channel. "" = one figure on connection.channel. --channel a,b on the command line wins.
-        "channels": "",
         # Memory (opt-in, menu switch "Memory"): facts the user told the AI, kept in personas/<name>/memory.json and
         # given to the AI as notes. Updated after session_idle_minutes of silence (at least min_exchanges questions),
         # on a persona change and when the app stops.
@@ -261,9 +256,8 @@ def settings_path(vam_root: str | Path) -> Path:
     return Path(vam_root) / PLUGIN_DATA_SUBDIR / FILE_NAME
 
 
-def defaults(channel: str = "default") -> dict[str, Any]:
+def defaults() -> dict[str, Any]:
     data = json.loads(json.dumps(DEFAULTS))
-    data["connection"]["channel"] = channel
     return {"version": VERSION, "written_by": "AIBody companion app (defaults)", **data}
 
 
@@ -321,10 +315,16 @@ def _check_value(path: tuple[str, ...], default: Any, value: Any, errors: list[s
     return value
 
 
+# Keys of versions that no longer exist; an old config.json that still has them keeps working.
+LEGACY_KEYS = {("connection", "channel"), ("ai", "channels")}
+
+
 def _merge(path: tuple[str, ...], default: dict[str, Any], data: dict[str, Any], errors: list[str]) -> dict[str, Any]:
     result = json.loads(json.dumps(default))
     for key, value in data.items():
         sub = (*path, key)
+        if sub in LEGACY_KEYS:
+            continue  # left behind by version 28 (several characters): ignored without a warning
         if key not in default:
             errors.append(f"{'.'.join(path)}: unknown key {key!r}")
         elif sub == ("connection", "paths"):
@@ -389,14 +389,14 @@ def load(path: Path) -> tuple[dict[str, Any] | None, list[str]]:
     return validate(data)
 
 
-def write_defaults_if_missing(path: Path, channel: str) -> bool:
+def write_defaults_if_missing(path: Path) -> bool:
     """Creates the file with the defaults (atomically) if it does not exist. True if written."""
     path = Path(path)
     if path.exists():
         return False
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(".tmp")
-    tmp.write_text(json.dumps(defaults(channel), indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    tmp.write_text(json.dumps(defaults(), indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     os.replace(tmp, path)
     return True
 
@@ -437,12 +437,11 @@ def add_missing_companion_sections(path: Path) -> list[str]:
     return added
 
 
-def apply_to_config(cfg: Any, channel_from_cli: bool = False) -> list[str]:
-    """Creates config.json if missing, then copies its channel (unless --channel was given), mic
-    and engine settings into cfg. They override the app's own --config file: config.json holds
+def apply_to_config(cfg: Any) -> list[str]:
+    """Creates config.json if missing, then copies its mic and engine settings into cfg. They override the app's own --config file: config.json holds
     the plugin's last values. Returns problems."""
     path = settings_path(cfg.vam_root)
-    if write_defaults_if_missing(path, cfg.channel):
+    if write_defaults_if_missing(path):
         log.info("Created %s with default settings", path)
     else:
         added = add_missing_companion_sections(path)
@@ -451,12 +450,6 @@ def apply_to_config(cfg: Any, channel_from_cli: bool = False) -> list[str]:
     data, errors = load(path)
     if data is None:
         return errors
-    # Same rule as the plugin's channel field: letters, digits, '-' and '_' only.
-    channel = re.sub(r"[^A-Za-z0-9_-]", "_", data["connection"]["channel"])
-    if not channel_from_cli and channel:
-        cfg.channel = channel
-    elif channel != cfg.channel:
-        errors.append(f"connection.channel is {channel!r}, --channel {cfg.channel!r} wins")
     cfg.mic = dict(data["mic"])
     cfg.audio_folder = data["connection"]["paths"]["audio"].strip("/")
     for kind in ("stt", "llm", "tts"):

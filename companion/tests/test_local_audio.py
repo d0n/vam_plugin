@@ -260,15 +260,14 @@ class BargeInCompanionTests(BargeBase):
             app.handle_audio_frame(tone(0.3))
         self.assertNotIn("stop_speaking", self.transport.types())
 
-    def test_figures_stop_together(self):
+    def test_the_gate_opens_and_the_body_is_told_to_stop(self):
         app = self.make()
-        peer = self.make()
-        app.peers = [peer]
         self.speak(app)
         app.gate.on_event({"type": "speech_started", "utterance_id": "u1", "duration": 5})
+        self.assertFalse(app.gate.is_open)
         app.voice_barge_in([tone(0.2)] * 3)
-        self.assertTrue(app.gate.is_open and peer.gate.is_open)
-        self.assertIn("stop_speaking", [c["type"] for c in peer.transport.sent])
+        self.assertTrue(app.gate.is_open)
+        self.assertIn("stop_speaking", self.transport.types())
 
 
 class BargeInRealtimeTests(BargeBase):

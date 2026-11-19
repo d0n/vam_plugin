@@ -22,10 +22,6 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "channel": {
-          "type": "string",
-          "default": "default"
-        },
         "active": {
           "anyOf": [
             {
@@ -65,7 +61,7 @@
           }
         }
       },
-      "description": "Connection (link on/off in tab 'Voice'): channel (folder below Saves/PluginData/AIBody), data file paths (relative to the VaM folder, below Saves/ or Custom/)"
+      "description": "Connection (link on/off in tab 'Voice'): data file paths (relative to the VaM folder, below Saves/ or Custom/)"
     },
     "engines": {
       "type": "object",
@@ -497,10 +493,6 @@
           "description": "'auto' or a language code (de, en, ...): STT bias and TTS language"
         },
         "persona_name": {
-          "type": "string",
-          "default": ""
-        },
-        "channels": {
           "type": "string",
           "default": ""
         },

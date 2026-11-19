@@ -24,7 +24,7 @@ SCHEMA_PATH = ROOT / "protocol" / "schema" / "config.schema.json"
 EXAMPLE_PATH = ROOT / "examples" / "config.json"
 
 DESCRIPTIONS = {
-    ("connection",): "Connection (link on/off in tab 'Voice'): channel (folder below Saves/PluginData/AIBody), data file paths "
+    ("connection",): "Connection (link on/off in tab 'Voice'): data file paths "
                      "(relative to the VaM folder, below Saves/ or Custom/)",
     ("engines",): "Tab 'Voice', section 'Voice > AI Character': stt null|xai, llm echo|xai, tts tone|xai|elevenlabs. A cloud engine without API key "
                   "stays selected but the fallback (ai.fallback) runs",
@@ -114,7 +114,7 @@ def schema() -> dict:
 
 
 def example() -> dict:
-    data = defaults("default")
+    data = defaults()
     data["written_by"] = f"AIBody companion app {__version__} (example)"
     return data
 

@@ -154,7 +154,7 @@ class FakePlugin:
         self.xai_token = ""  # field "XAI API Token" (version 21): in the scene, sent in the config event only
         self.key_files = {"xai": "", "elevenlabs": ""}  # key file paths (from config.json; no menu field since 15)
         self.ui = {
-            "connection": {"channel": channel, "active": True,
+            "connection": {"active": True,
                            "paths": {"expressions": "Saves/PluginData/AIBody/expressions.json",
                                      "gestures": "Saves/PluginData/AIBody/gestures.json", "audio": ""}},
             "engines": {"stt": "null", "llm": "echo", "tts": "tone"},
@@ -297,7 +297,7 @@ class FakePlugin:
         self.send_config()
 
     def request_test_tone(self) -> None:
-        """AppLink.RequestTestTone (button "Test-Ton über Companion")."""
+        """AppLink.RequestTestTone (button "Test tone via companion")."""
         self.send("test_tone")
 
     def press_ptt(self, active: bool) -> None:

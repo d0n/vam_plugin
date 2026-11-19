@@ -328,17 +328,6 @@
       "type": "object",
       "description": "companion_heartbeat: memory state {enabled, facts (number of remembered facts), note}"
     },
-    "figures": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "description": "companion_heartbeat: the channels this app serves when it runs several figures (absent with one figure)"
-    },
-    "active_figure": {
-      "type": "string",
-      "description": "companion_heartbeat: the channel of the figure the user is talking to (only with several figures)"
-    },
     "target": {
       "enum": [
         "client",

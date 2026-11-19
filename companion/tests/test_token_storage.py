@@ -66,13 +66,13 @@ class ConfigJsonTests(unittest.TestCase):
     def test_the_app_never_writes_a_token_itself(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = settings_file.settings_path(tmp)
-            settings_file.write_defaults_if_missing(path, "default")
+            settings_file.write_defaults_if_missing(path)
             self.assertEqual(json.loads(path.read_text(encoding="utf-8"))["ai"]["xai"]["api_key"], "")
 
     def test_loading_config_json_registers_the_token_as_a_secret_and_never_logs_it(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = settings_file.settings_path(tmp)
-            settings_file.write_defaults_if_missing(path, "default")
+            settings_file.write_defaults_if_missing(path)
             data = json.loads(path.read_text(encoding="utf-8"))
             data["ai"]["xai"]["api_key"] = TOKEN
             path.write_text(json.dumps(data), encoding="utf-8")

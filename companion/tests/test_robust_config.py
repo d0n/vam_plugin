@@ -3,6 +3,7 @@ import os
 import tempfile
 import time
 import unittest
+import unittest.mock
 from pathlib import Path
 
 from aibody_companion import settings_file
@@ -113,20 +114,37 @@ class SharedConfigTests(unittest.TestCase):
         }))
         cfg = Config(vam_root=self.tmp.name)
         errors = settings_file.apply_to_config(cfg)
-        self.assertEqual(cfg.channel, "Anna_1", "sanitized like the plugin's channel field")
+        self.assertEqual(cfg.channel, "default", "one fixed folder: a channel left in config.json is ignored")
+        self.assertFalse(any("channel" in e for e in errors), errors)
         self.assertEqual(cfg.mic["mode"], "ptt")
         self.assertEqual(cfg.mic["gain"], 2.0)
         self.assertFalse(cfg.mic["ptt_interrupts"])
         self.assertEqual(cfg.llm, "echo", "unavailable engine is not taken over")
         self.assertTrue(any("gpt-9" in e for e in errors))
 
-    def test_cli_channel_wins(self):
+    def test_old_multi_character_keys_are_ignored_without_a_warning(self):
+        """Version 28 wrote connection.channel and knew ai.channels; both are gone (one character), a file that
+        still has them keeps working and says nothing."""
         self.path.parent.mkdir(parents=True)
-        self.path.write_text(json.dumps({"connection": {"channel": "other"}}))
-        cfg = Config(vam_root=self.tmp.name, channel="mine")
-        errors = settings_file.apply_to_config(cfg, channel_from_cli=True)
-        self.assertEqual(cfg.channel, "mine")
-        self.assertTrue(errors)
+        self.path.write_text(json.dumps({"connection": {"channel": "anna", "active": True},
+                                         "ai": {"channels": "anna,marc", "mode": "chain"}}))
+        data, errors = settings_file.load(self.path)
+        self.assertEqual(errors, [])
+        self.assertNotIn("channel", data["connection"])
+        self.assertNotIn("channels", data["ai"])
+        self.assertEqual(data["ai"]["mode"], "chain")
+
+    def test_cli_channel_option_is_accepted_but_ignored(self):
+        from aibody_companion import cli
+
+        with unittest.mock.patch.object(cli, "build_stack") as stack, \
+                unittest.mock.patch.object(cli, "run"), \
+                self.assertLogs("aibody_companion", level="WARNING") as logs:
+            stack.return_value.engine_set.key.return_value = "x"
+            cli.main(["--vam-root", self.tmp.name, "--channel", "anna,marc", "--no-mic", "--no-stdin"])
+        self.assertEqual(stack.call_args[0][0].channel, "default")
+        self.assertTrue(any("--channel anna,marc is ignored" in line for line in logs.output), logs.output)
+        self.assertFalse((Path(self.tmp.name) / "Saves/PluginData/AIBody/anna").exists())
 
     def test_validation_clamps_and_rejects(self):
         data, errors = settings_file.validate({

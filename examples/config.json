@@ -2,7 +2,6 @@
   "version": 1,
   "written_by": "AIBody companion app 29 (example)",
   "connection": {
-    "channel": "default",
     "active": true,
     "paths": {
       "expressions": "Saves/PluginData/AIBody/expressions.json",
@@ -52,7 +51,6 @@
     "persona": "You are a friendly, curious character living in a 3D scene. You talk with the user face to face. Answer briefly and naturally, in the language the user speaks.",
     "language": "auto",
     "persona_name": "",
-    "channels": "",
     "memory": {
       "enabled": false,
       "max_facts": 30,

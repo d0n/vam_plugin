@@ -604,7 +604,7 @@ namespace AIBody
             if (string.IsNullOrEmpty(folder)) return "Test tone: plugin folder not found";
             string path = folder + "/" + TestToneFile;
             string error = _speech.Enqueue(LocalPrefix + "test-" + DateTime.UtcNow.Ticks, path, true);
-            return error == null ? "Test-Ton: " + path : "Test-Ton: " + error;
+            return error == null ? "Test tone: " + path : "Test tone: " + error;
         }
 
         private static bool IsLocal(string id)

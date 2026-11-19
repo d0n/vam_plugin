@@ -202,8 +202,6 @@ class Companion:
         self._recent_speech: dict[str, tuple[str, Path, float]] = {}  # id -> (text, path, duration)
         self._utt_turn: dict[str, Turn] = {}  # utterance id -> its turn (trace of the plugin's answers)
         self._null_stt_warned = False
-        self.fleet: Any = None  # several figures in one app (multi.py); None = a single figure
-        self.peers: list[Companion] = []
         self._stt_error = ""
         self._last_exchange: float | None = None
         self._scene_events: deque[tuple[float, str]] = deque(maxlen=SCENE_EVENT_MAX_PENDING)  # (time, text) not yet answered
@@ -382,8 +380,6 @@ class Companion:
 
     def on_user_activity(self) -> None:
         self.proactive.user_activity()
-        if self.fleet:
-            self.fleet.activity(self, user=True)
 
     def on_exchange(self) -> None:
         self._last_exchange = self._clock()
@@ -584,8 +580,6 @@ class Companion:
     def _can_speak_now(self) -> bool:
         if not self.transport.connected or not self.gate.is_open:
             return False
-        if self.fleet and self.fleet.peers_busy(self):
-            return False  # figures do not talk over each other
         if self._busy.is_set() or not self._jobs.empty() or not self._results.empty():
             return False
         if self.input.ptt_active or self.input.segmenter.in_speech:
@@ -674,8 +668,6 @@ class Companion:
             self._trace_plugin_event(event)
             if type_ in ("speech_started", "speech_ended"):
                 self.proactive.ai_activity()
-                if self.fleet:
-                    self.fleet.activity(self, user=False)
             if type_ in ("ready", "heartbeat"):
                 if type_ == "ready":
                     log.info("AIBody plugin ready on %r: plugin=%s channel=%s", event.get("atom"),
@@ -739,14 +731,8 @@ class Companion:
             mode=self.mode_info(), proactive=self.proactive_info(), keys=self.engine_set.key_info(),
             audio_out=self.audio_info(), turn=self.turn_status, latency=self.latency.info(),
             personas=self.persona_names(), persona=self.persona_in_use, persona_note=self.persona_note,
-            memory=self.memory_info(), **self._figure_fields(),
+            memory=self.memory_info(),
         ))
-
-    def _figure_fields(self) -> dict[str, Any]:
-        """Several figures in one app: who is served and who the user talks to (shown in the plugin menu)."""
-        if not self.fleet:
-            return {}
-        return {"figures": self.fleet.channels, "active_figure": self.fleet.active.cfg.channel}
 
     def audio_info(self) -> dict[str, Any]:
         info: dict[str, Any] = {"folder": self.cfg.audio_rel_dir, "auto": self.cfg.audio_auto}
@@ -974,15 +960,14 @@ class Companion:
                  "voice activation mode; see docs/LOKALE_ENGINES.md", float(cfg["ratio"]), int(cfg["min_ms"]))
 
     def voice_barge_in(self, frames: list[bytes]) -> str | None:
-        """The loudness rule fired: the user talks over the body. The body (and every peer figure) stops, the
-        gates open, the frames of the user's stretch are processed as the start of the utterance."""
+        """The loudness rule fired: the user talks over the body. The body stops, the
+        gate opens, the frames of the user's stretch are processed as the start of the utterance."""
         log.info("Voice barge-in: the user talks over the body - stopping it")
-        for figure in [self, *self.peers]:
-            figure.cancel_turns()
-            figure.send(figure.body_command("stop_speaking"))
-            figure.gate.force_open()
-            if figure.realtime is not None and figure.active_mode == "realtime":
-                figure.realtime.barge_in(manual=True)
+        self.cancel_turns()
+        self.send(self.body_command("stop_speaking"))
+        self.gate.force_open()
+        if self.realtime is not None and self.active_mode == "realtime":
+            self.realtime.barge_in(manual=True)
         self.on_user_activity()
         if self.active_mode == "realtime":
             self.realtime.send_frames(frames)
@@ -1007,15 +992,6 @@ class Companion:
                 text = step[1]
             self._apply(step)
         return text
-
-    def take_over(self, text: str) -> None:
-        """Several figures: a sentence another figure heard, meant for this one. In realtime it goes into the
-        session as a user message; else it is answered like typed text."""
-        if self.active_mode == "realtime" and self.realtime is not None and self.realtime.ask(text):
-            self.on_user_activity()
-            self.history.append({"role": "user", "content": text})
-            return
-        self.handle_user_text(text)
 
     def handle_user_text(self, text: str) -> None:
         """Typed text (console): the same answer path as speech, without speech to text."""
@@ -1112,13 +1088,6 @@ class Companion:
                 if not text:
                     turn.step("end", result="nothing understood")
                     return
-                if self.fleet:
-                    target = self.fleet.route(self, text)
-                    if target is not self:  # the user named another figure: it answers
-                        turn.step("end", result=f"handed to {target.cfg.channel}")
-                        log.info("Heard for %s: handing the sentence over", target.cfg.channel)
-                        target.take_over(text)
-                        return
             else:
                 text = str(data)
                 if kind == "text":
@@ -1402,8 +1371,6 @@ class Companion:
             turn.step("speak sent", utterance=utterance_id, audio=rel, seconds=round(duration, 2),
                       queue="interrupt" if interrupt else "append")
         self.gate.on_speak_sent(utterance_id, duration, interrupt=interrupt)
-        if self.fleet:
-            self.fleet.note_speaker(self)
         self._emotion_for_speech(text)
         self.emotion.note_speech()
         self.send(self.body_command(
@@ -1447,7 +1414,7 @@ class Companion:
                 self.emotion.note_sent("neutral")
 
     def play_test_tone(self) -> str:
-        """Plugin button "Test-Ton über Companion": a chime WAV in the audio folder, sent as a normal
+        """Plugin button "Test tone via companion": a chime WAV in the audio folder, sent as a normal
         speak (interrupting), so the path companion -> audio file -> VaM head audio is tested alone."""
         utterance_id = protocol.new_id("utt-test")
         path = self.cfg.audio_abs_path(f"{utterance_id}.wav")
@@ -1456,7 +1423,7 @@ class Companion:
         turn = Turn("test_tone")
         turn.step("wav written", wav=self._rel(path), seconds=round(duration, 2))
         self._utt_turn[utterance_id] = turn
-        return self._queue_speech(utterance_id, "Test-Ton", path, duration, interrupt=True)
+        return self._queue_speech(utterance_id, "Test tone", path, duration, interrupt=True)
 
     def stop_speaking(self) -> None:
         self.send(self.body_command("stop_speaking"))

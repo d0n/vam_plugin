@@ -38,7 +38,7 @@ class SoundPathTests(unittest.TestCase):
         plugin.request_test_tone()
         self.sim.run(plugin, 0.5)
         speak = self.speaks(plugin)[-1]
-        self.assertEqual(speak["text"], "Test-Ton")
+        self.assertEqual(speak["text"], "Test tone")
         self.assertEqual(speak["queue"], "interrupt")
         self.assertTrue(speak["audio"].startswith("Custom/Sounds/AIBody/default/"), speak["audio"])
         with wave.open(str(Path(self.tmp.name) / speak["audio"]), "rb") as w:

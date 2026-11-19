@@ -87,10 +87,6 @@ class EchoGate:
 
     @property
     def is_open(self) -> bool:
-        return self.own_open
-
-    @property
-    def own_open(self) -> bool:
         now = self._clock()
         for uid, deadline in list(self._pending.items()):
             if now > deadline:
@@ -105,19 +101,3 @@ class EchoGate:
         self._closed_until = 0.0
         self._expected_end = 0.0
 
-
-class LinkedGate(EchoGate):
-    """The gate of one figure when several figures share one microphone and one room: the
-    microphone is also closed while a peer figure speaks (its voice must not be heard as the user)."""
-
-    def __init__(self, *args: Any, **kwargs: Any):
-        super().__init__(*args, **kwargs)
-        self.peers: list[EchoGate] = []
-
-    @property
-    def is_open(self) -> bool:
-        return self.own_open and all(p.own_open for p in self.peers)
-
-    @property
-    def is_speaking(self) -> bool:
-        return self._speaking or any(p._speaking for p in self.peers)

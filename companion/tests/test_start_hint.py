@@ -31,7 +31,7 @@ class KeyHintTests(unittest.TestCase):
     def test_written_default_and_existing_file_get_the_hint(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "config.json"
-            settings_file.write_defaults_if_missing(path, "default")
+            settings_file.write_defaults_if_missing(path)
             self.assertIn("key_hint", json.loads(path.read_text())["ai"]["xai"])
             old = json.loads(path.read_text())
             del old["ai"]["xai"]["key_hint"]
@@ -66,7 +66,8 @@ class WindowsPathExampleTests(unittest.TestCase):
 
     def test_plugin_hints_show_the_windows_style_path(self):
         self.assertIn('--vam-root \\"D:\\\\VaM\\""', source("MicConfig.cs"))
-        self.assertIn('--vam-root \\"D:\\\\VaM\\" --channel', source("AppLink.cs"))
+        self.assertIn('--vam-root \\"D:\\\\VaM\\"', source("AppLink.cs"))
+        self.assertNotIn("--channel", source("AppLink.cs"))
         self.assertNotIn('--vam-root \\"<VaM>\\"', source("MicConfig.cs") + source("AppLink.cs"))
 
     def test_example_config_is_valid_json_with_an_escaped_backslash(self):

@@ -1,6 +1,6 @@
 """Menu rules of the plugin (Leon, 17.11.2026, version 15), checked on the C# sources:
 four self-explanatory tabs, no text fields inside the tabs (help and status go to the ONE big
-info field on the left), no removed placeholders (Post tab, key file fields; the Channel field came back in version 28 on request,
+info field on the left), no removed placeholders (Post tab, Channel field, key file fields,
 Delay, the tab title headers)."""
 import re
 import unittest
@@ -71,7 +71,7 @@ class PluginMenuTests(unittest.TestCase):
         self.assertNotIn('"Erweitert"', all_src)
         for file, sig in BUILDERS:
             body = method_body(source(file), sig)
-            for field in ("_xaiKeyFileJson", "_elevenKeyFileJson"):
+            for field in ("_channelJson", "_xaiKeyFileJson", "_elevenKeyFileJson"):
                 self.assertNotIn(field, body, f"{file} {sig}")
         show = method_body(source("AIBody.cs"), "private void ShowTab(int index)")
         self.assertNotIn('_page.Header("<b>" + name', show, "tab title header (a field that only says the tab name)")
@@ -127,13 +127,34 @@ class Version17MenuTests(unittest.TestCase):
         self.assertLess(reload, body.index("<b>Body</b>"))
 
 
+class OneCharacterTests(unittest.TestCase):
+    """Leon, 19.11.2026: one companion app, one character, one fixed message folder."""
+
+    def test_the_plugin_has_no_channel_setting_and_one_fixed_folder(self):
+        link = source("AppLink.cs")
+        self.assertNotIn("_channelJson", link)
+        self.assertNotIn('"Channel"', link, "no storable: a Channel value left in an old scene is simply not read")
+        self.assertIn('public const string Channel = "default";', link)
+        self.assertIsNone(re.search(r"\bfigures?\b", link.lower()))
+
+    def test_nothing_in_the_plugin_or_the_app_knows_several_characters(self):
+        files = [p for p in (ROOT / "companion" / "aibody_companion").rglob("*.py")] + list((ROOT / "src" / "AIBody").glob("*.cs"))
+        for path in files:
+            text = path.read_text(encoding="utf-8").lower()
+            for word in ("fleet", "linkedgate", "parse_channels", "active_figure"):
+                self.assertNotIn(word, text, f"{path.name}: {word}")
+        self.assertFalse((ROOT / "companion" / "aibody_companion" / "multi.py").exists())
+
+
 class Version18MenuTests(unittest.TestCase):
     """Leon, 18.11.2026: plugin UI in English; old scenes and old companion texts keep working."""
 
     def test_problem_turns_red_for_old_and_new_companion_texts(self):
         body = method_body(source("AppLink.cs"), "public static bool IsProblemTurn(string turn)")
-        for prefix in ('"Nothing"', '"No "', '"Nichts"', '"Keine"', '"Fehler"', '"error"'):
+        for prefix in ('"Nothing"', '"No "', '"error"'):
             self.assertIn(prefix, body)
+        for german in ('"Nichts"', '"Keine"', '"Fehler"'):
+            self.assertNotIn(german, body)
 
     def test_menu_labels_are_english(self):
         body = method_body(source("Body.cs"), "public void BuildCharacterTab(UiPage page)")

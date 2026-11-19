@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import argparse
-import copy
 import logging
 import queue
 import sys
@@ -10,13 +9,13 @@ import threading
 import time
 
 from . import __version__, logsetup, settings_file
-from .audio import EchoGate, LinkedGate, MicController
+from .audio import EchoGate, MicController
 from .config import Config, load_config
-from .multi import Fleet, parse_channels
 from .orchestrator import Companion
 from .pipeline.engines import KEY_HINT, EngineSet
 from .transport import FileTransport, Transport
 
+FIXED_CHANNEL = "default"
 log = logging.getLogger("aibody_companion")
 
 
@@ -26,8 +25,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--vam-root", dest="vam_root", help='VaM install folder (required), e.g. "D:\\VaM"')
     p.add_argument(
         "--channel",
-        help="AIBody plugin channel (default: connection.channel from Saves/PluginData/AIBody/config.json). "
-             "Several figures in one app: a comma list, e.g. --channel anna,marc (or ai.channels in config.json)",
+        help="ignored (one character, one fixed folder); accepted so old start scripts keep working",
     )
     p.add_argument("--no-mic", action="store_true", help="never open the microphone (text input only)")
     p.add_argument("--no-stdin", action="store_true", help="do not read typed messages from stdin")
@@ -45,32 +43,13 @@ def build_transport(cfg: Config) -> Transport:
 def build_stack(cfg: Config, use_mic: bool = True) -> Companion:
     """Engines from config.json (engines + ai section); API keys from the environment or key files.
     Turns run on a worker thread so the link stays alive during slow network requests."""
-    mic = MicController(cfg.sample_rate, cfg.frame_ms) if use_mic else None
-    return build_member(cfg, mic, EchoGate())
-
-
-def build_fleet(cfg: Config, channels: list[str], use_mic: bool = True) -> Fleet:
-    """One app, several figures (version 28): a Companion per channel, one shared microphone."""
-    mic = MicController(cfg.sample_rate, cfg.frame_ms) if use_mic else None
-    fleet = Fleet(mic)
-    for channel in channels:
-        member_cfg = copy.deepcopy(cfg)  # own channel, own ai settings (persona, memory, mode, ...)
-        member_cfg.channel = channel
-        log.info("Figure on channel %r", channel)
-        fleet.add(build_member(member_cfg, fleet.new_tap() if mic else None, LinkedGate()))
-    fleet.link()
-    log.info("%d figures share one microphone. Say a figure's name (start or end of the sentence) to talk to it; "
-             "else the one that spoke last answers.", len(channels))
-    return fleet
-
-
-def build_member(cfg: Config, mic: object, gate: EchoGate) -> Companion:
     cfg.audio_dir.mkdir(parents=True, exist_ok=True)
+    mic = MicController(cfg.sample_rate, cfg.frame_ms) if use_mic else None
     engines = EngineSet(cfg.ai)
     for kind, states in engines.status().items():
         for name, state in states.items():
             log.info("Engine %s/%s: %s", kind, name, state)
-    companion = Companion(cfg, build_transport(cfg), gate=gate, mic=mic, engines=engines,
+    companion = Companion(cfg, build_transport(cfg), gate=EchoGate(), mic=mic, engines=engines,
                           background_turns=True)
     log.info("Mode: %s -> %s (%s)", companion.mode_requested, companion.active_mode, companion.mode_note)
     log.info("Audio folder: %s%s", cfg.audio_rel_dir,
@@ -101,7 +80,7 @@ def start_stdin_reader() -> queue.Queue[str | None]:
     return lines
 
 
-def run(companion: Companion | Fleet, read_stdin: bool, poll_interval: float) -> None:
+def run(companion: Companion, read_stdin: bool, poll_interval: float) -> None:
     lines = start_stdin_reader() if read_stdin else None
     if lines:
         print("Type a question and press Enter: it is answered like a spoken one (language model -> "
@@ -135,10 +114,11 @@ def main(argv: list[str] | None = None) -> int:
             print(f"{d['index']:3d}  {'*' if d['default'] else ' '} {d['name']}")
         return 0 if not error else 1
 
-    cli_channels = parse_channels(args.channel)
-    cfg = load_config(args.config, {
-        "vam_root": args.vam_root, "channel": cli_channels[0] if cli_channels else args.channel,
-    })
+    cfg = load_config(args.config, {"vam_root": args.vam_root})
+    cfg.channel = FIXED_CHANNEL  # one character, one fixed folder
+    if args.channel and args.channel != FIXED_CHANNEL:
+        log.warning("--channel %s is ignored: the app serves one character in the folder Saves/PluginData/AIBody/%s",
+                    args.channel, FIXED_CHANNEL)
     errors = cfg.validate()
     if errors:
         for e in errors:
@@ -146,37 +126,27 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     log_path = logsetup.setup(cfg.vam_root, debug=args.verbose)
     log.info("AIBody companion %s, log file: %s", __version__, log_path or "none (folder not writable)")
-    for problem in settings_file.apply_to_config(cfg, channel_from_cli=args.channel is not None):
+    for problem in settings_file.apply_to_config(cfg):
         log.warning("config.json: %s", problem)
     logsetup.set_verbose(cfg.verbose_log)
-    errors = cfg.validate()  # re-check after config.json (channel, engines)
+    errors = cfg.validate()  # re-check after config.json (engines)
     if errors:
         for e in errors:
             log.error(e)
         return 2
 
-    channels = cli_channels or parse_channels(cfg.ai.get("channels"))
-    if len(channels) > 1:
-        companion: Companion | Fleet = build_fleet(cfg, channels, use_mic=not args.no_mic)
-        members = companion.members
-    else:
-        if channels and channels[0] != cfg.channel:
-            cfg.channel = channels[0]  # ai.channels with one name
-        companion = build_stack(cfg, use_mic=not args.no_mic)
-        members = [companion]
+    companion = build_stack(cfg, use_mic=not args.no_mic)
     if not companion.engine_set.key("xai"):
         log.warning("No xAI API key yet, so only the test engines run (they repeat what you type and play a tone) - "
                     "no real conversation. %s To fix it: paste the key into the field 'XAI API Token' (tab Voice) in "
                     "VaM - it reaches this app as soon as the plugin connects - or set the XAI_API_KEY environment "
                     "variable, or a key file in config.json (ai.xai.key_file).", KEY_HINT["xai"])
-    for member in members:
-        member.transport.start()
+    companion.transport.start()
     try:
         run(companion, read_stdin=not args.no_stdin, poll_interval=cfg.poll_interval_s)
     except KeyboardInterrupt:
         pass
     finally:
         companion.shutdown()
-        for member in members:
-            member.transport.stop()
+        companion.transport.stop()
     return 0

@@ -30,7 +30,7 @@ def wav_duration(path: Path) -> float:
 
 
 def test_tone_pcm(seconds: float = 1.5, rate: int = 22050) -> bytes:
-    """A two-note chime (16-bit mono PCM) for the plugin's "Test-Ton über Companion" button;
+    """A two-note chime (16-bit mono PCM) for the plugin's "Test tone via companion" button;
     4 "syllables" per second so VaM's lip sync moves the jaw. Same sound as the bundled test WAV."""
     frames = bytearray()
     for i in range(int(seconds * rate)):

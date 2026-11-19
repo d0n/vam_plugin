@@ -249,12 +249,7 @@ class RealtimeVoice:
             text = str(event.get("transcript") or "").strip()
             if text:
                 log.info("Heard: %r", text)
-                target = self.c.fleet.route(self.c, text) if self.c.fleet else self.c
-                if target is not self.c:  # several figures: the user named another one
-                    self.barge_in(manual=True)  # this figure stops (it may have started to answer)
-                    target.take_over(text)
-                else:
-                    self.c.history.append({"role": "user", "content": text})
+                self.c.history.append({"role": "user", "content": text})
         elif type_ == "response.created":
             self._start_response(rid)
         elif type_ == "response.output_audio.delta":
@@ -399,13 +394,6 @@ class RealtimeVoice:
         if active or not self.c.gate.is_open:
             self.c.stop_speaking()
         self._reset_response()
-
-    def ask(self, text: str) -> bool:
-        """A sentence that was heard by another figure but is meant for this one (version 28)."""
-        return bool(self.client.send({"type": "conversation.item.create",
-                                      "item": {"type": "message", "role": "user",
-                                               "content": [{"type": "input_text", "text": text}]}})
-                    and self.client.send({"type": "response.create"}))
 
     def nudge(self, text: str) -> bool:
         """Proactive turn: an app note as user text, then response.create."""

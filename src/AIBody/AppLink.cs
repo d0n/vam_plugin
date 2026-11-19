@@ -25,7 +25,6 @@ namespace AIBody
         private readonly Diag _diag;
 
         private JSONStorableBool _activeJson;
-        private JSONStorableString _channelJson;
         private JSONStorableFloat _filePollJson;
         private JSONStorableStringChooser _sttJson;
         private JSONStorableStringChooser _llmJson;
@@ -65,9 +64,6 @@ namespace AIBody
         private string _personaInUse = "";                  // companion heartbeat "persona"
         private string _personaNote = "";                   // companion heartbeat "persona_note"
         private JSONClass _memoryInfo;                      // companion heartbeat "memory"
-        // Version 28: several figures in one app (companion heartbeat "figures" / "active_figure")
-        private string _figures = "";
-        private string _activeFigure = "";
 
         // API keys: only the PATH of a key file (the key itself would be saved readably in the scene
         // and in config.json). TODO(user decision): a direct key field was asked about; not built.
@@ -133,9 +129,6 @@ namespace AIBody
             _activeJson = new JSONStorableBool("Active", true, (bool v) => Restart());
             _plugin.RegisterBool(_activeJson);
 
-            // Channel = sub folder below Saves/PluginData/AIBody; must match the companion app's --channel.
-            _channelJson = new JSONStorableString("Channel", "default", OnChannelEdited);
-            _plugin.RegisterString(_channelJson);
             _filePollJson = new JSONStorableFloat("File poll interval (s)", 0.1f, (float v) => Restart(), 0.02f, 2f);
             _plugin.RegisterFloat(_filePollJson);
             // Engine choices are refreshed from the companion app's companion_heartbeat.
@@ -214,29 +207,6 @@ namespace AIBody
         }
 
         /// <summary>The field's text changed: a typed / pasted key becomes the token; the mask itself is ignored.</summary>
-        // Version 28: the Channel field in the tab Config. Typing fires this per keystroke: the link restarts once the
-        // typing paused (ChannelQuietSeconds), not on every character.
-        public const float ChannelQuietSeconds = 1.0f;
-        private bool _channelPending;
-        private float _channelQuiet;
-
-        private void OnChannelEdited(string v)
-        {
-            if (!Ready) return;
-            _channelPending = true;
-            _channelQuiet = 0f;
-        }
-
-        private void TickChannelEdit(float dt)
-        {
-            if (!_channelPending) return;
-            _channelQuiet += dt;
-            if (_channelQuiet < ChannelQuietSeconds) return;
-            _channelPending = false;
-            Restart();
-            MarkConfigDirty();   // the new channel is written to config.json (the app's start value)
-        }
-
         private void OnTokenEdited(string v)
         {
             if (_settingTokenDisplay) return;
@@ -546,12 +516,10 @@ namespace AIBody
             return text;
         }
 
-        /// <summary>Channel line for the tab "Config" (set in config.json connection.channel, not in the menu).</summary>
-        public const string ChannelHint = "The name of this figure's link to the companion app (letters, digits, - and _). With several figures in one scene give each its own channel; start ONE app for all of them: --channel anna,marc (or ai.channels in config.json).";
-
+        /// <summary>Folder line for the tab "Config": the one fixed folder the plugin and the companion app share.</summary>
         public string ChannelInfoText()
         {
-            return "Channel: " + Channel + " - the folder (" + ChannelDir + ") the plugin and the companion app use to exchange messages. Change it in the field Channel above; the app must serve the same channel (--channel " + Channel + ").";
+            return "Message folder: " + ChannelDir + " - the plugin and the companion app exchange messages there (one character, one fixed folder).";
         }
 
         /// <summary>
@@ -718,10 +686,6 @@ namespace AIBody
         public void BuildConfigTab(UiPage page, UnityEngine.Events.UnityAction reload)
         {
             page.Button("Reload Config JSON", reload);
-            page.Header("<b>Channel</b>");
-            if (!page.TextInput(_channelJson))
-                Log.Error("Field 'Channel' is read-only (InputField failed).");
-            page.Header(ChannelHint);
             page.Slider(_filePollJson, FilePollLabel);
         }
 
@@ -822,7 +786,6 @@ namespace AIBody
         public void WriteSettings(JSONClass root)
         {
             JSONClass connection = new JSONClass();
-            connection["channel"] = Channel;
             connection["active"].AsBool = Active;
             JSONClass paths = new JSONClass();
             paths["expressions"] = ExpressionsPath;
@@ -843,12 +806,11 @@ namespace AIBody
         }
 
         /// <summary>Seeds the UI from config.json (only for a scene without saved AIBody settings).</summary>
-        public void ApplySettings(JSONClass root, bool seedChannel = true)
+        public void ApplySettings(JSONClass root)
         {
             JSONClass connection = root["connection"] as JSONClass;
             if (connection != null)
             {
-                if (seedChannel && Protocol.Has(connection, "channel")) _channelJson.val = Protocol.GetString(connection, "channel", _channelJson.val);
                 if (Protocol.Has(connection, "active")) _activeJson.val = Protocol.GetBool(connection, "active", true);
             }
             JSONClass engines = root["engines"] as JSONClass;
@@ -961,21 +923,11 @@ namespace AIBody
 
         // ---------------------------------------------------------------- transport
 
-        public string Channel
-        {
-            get
-            {
-                string channel = _channelJson != null ? _channelJson.val : "default";
-                if (string.IsNullOrEmpty(channel)) return "default";
-                char[] chars = channel.ToCharArray();
-                for (int i = 0; i < chars.Length; i++)
-                {
-                    char c = chars[i];
-                    if (!(char.IsLetterOrDigit(c) || c == '-' || c == '_')) chars[i] = '_';
-                }
-                return new string(chars);
-            }
-        }
+        /// <summary>
+        /// The one fixed sub folder below Saves/PluginData/AIBody (one character, one companion app). A channel value
+        /// left behind by version 28 (scene or config.json) is ignored.
+        /// </summary>
+        public const string Channel = "default";
 
         public string ChannelDir { get { return DataRoot + "/" + Channel; } }
 
@@ -1132,12 +1084,6 @@ namespace AIBody
             SetPersonaChoices(msg["personas"] as JSONArray);
             _personaInUse = msg["persona"].Value;
             _personaNote = msg["persona_note"].Value;
-            JSONArray figures = msg["figures"] as JSONArray;
-            string figureList = "";
-            if (figures != null)
-                for (int i = 0; i < figures.Count; i++) figureList += (i > 0 ? ", " : "") + figures[i].Value;
-            _figures = figureList;
-            _activeFigure = msg["active_figure"].Value;
             JSONClass memoryInfo = msg["memory"] as JSONClass;
             if (memoryInfo != null) _memoryInfo = memoryInfo;
             JSONClass status = msg["engines_status"] as JSONClass;
@@ -1185,7 +1131,6 @@ namespace AIBody
         public void Update(float dt)
         {
             TickTokenMask(dt);
-            TickChannelEdit(dt);
             bool connected = false;
             if (_transport != null)
             {
@@ -1225,15 +1170,14 @@ namespace AIBody
         }
 
         /// <summary>
-        /// Turn status lines from the companion that describe a problem (shown red). English since
-        /// version 18; the German prefixes of older companion versions are still recognised.
+        /// Turn status lines from the companion that describe a problem (shown red).
         /// </summary>
         public static bool IsProblemTurn(string turn)
         {
             if (string.IsNullOrEmpty(turn)) return false;
-            string[] prefixes = { "Nothing", "No ", "Realtime", "Nichts", "Keine" };
+            string[] prefixes = { "Nothing", "No ", "Realtime" };
             for (int i = 0; i < prefixes.Length; i++) if (turn.StartsWith(prefixes[i])) return true;
-            return turn.Contains("error") || turn.Contains("Error") || turn.Contains("Fehler");
+            return turn.Contains("error") || turn.Contains("Error");
         }
 
         public string StatusText()
@@ -1246,10 +1190,6 @@ namespace AIBody
             {
                 // Version 17: modes and engines only once, in the engine status above (no second summary).
                 text += "Companion app: connected, " + _appVersion + " (last heartbeat " + _appAge.ToString("0.0") + " s ago)\n";
-                if (_figures.Length > 0)
-                    text += "Figures in this app: " + _figures + ". The user talks to: " + _activeFigure
-                        + (_activeFigure == Channel ? " (this figure)" : " (another figure)")
-                        + " - say a figure's name at the start or end of a sentence to switch.\n";
                 if (_audioOut != null)
                 {
                     text += "Audio folder: " + _audioOut["folder"].Value + "\n";
@@ -1264,7 +1204,7 @@ namespace AIBody
                 if (_latency != null) text += LatencyLine() + "\n";
             }
             else if (_lastSession != null) text += "Companion app: connection lost (no heartbeat). It reconnects by itself once the app runs again; if it should be running, look at its console window.\n";
-            else text += "Companion app: not running yet. Start it in a console, in the 'companion' folder: python -m aibody_companion --vam-root \"D:\\VaM\" --channel " + Channel + "\n";
+            else text += "Companion app: not running yet. Start it in a console, in the 'companion' folder: python -m aibody_companion --vam-root \"D:\\VaM\"\n";
             return text;
         }
     }

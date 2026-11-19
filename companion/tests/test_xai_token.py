@@ -309,7 +309,7 @@ class PluginSourceTests(unittest.TestCase):
         self.assertIn('"xai", "api_key")', merge)
         self.assertIn('"xai", "api_key_warning")', merge, "the write-back keeps the warning next to the token")
         self.assertNotIn("_xaiTokenJson", merge)
-        self.assertNotIn("_xaiTokenJson", method_body(link, "public void ApplySettings(JSONClass root, bool seedChannel = true)"))
+        self.assertNotIn("_xaiTokenJson", method_body(link, "public void ApplySettings(JSONClass root)"))
 
     def test_token_is_never_logged_by_the_plugin(self):
         link = source("AppLink.cs")
