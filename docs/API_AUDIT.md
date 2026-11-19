@@ -398,6 +398,11 @@ New in the plugin (`GazeController.cs`), all with evidence E12 / E28 (see the ta
 - No `foreach` over Dictionary `.Keys`/`.Values`, no LINQ, no file or network access added. A gaze exception only
   stops the gaze (`_gazeBroken`), not the body.
 
+## Version 28 (19.11.2026): several figures, Channel field
+
+- **No new VaM API.** The Channel field is the same `UiPage.TextInput` over a `JSONStorableString` as the "XAI API Token" field and the other text fields (E9, E24). The debounce is plain `Update(dt)` arithmetic. The channel is still cleaned to letters, digits, `-` and `_` before it becomes a folder name below `Saves/PluginData/AIBody` (same `FileManagerSecure` paths as before).
+- No `foreach` over Dictionary `.Keys`/`.Values`, no LINQ, no file or network access added. Several figures are several instances of the same plugin on several atoms (each its own channel folder); no plugin-to-plugin call.
+
 ## Version 27 (19.11.2026): emotions, personas, memory
 
 - **No new VaM API.** Plugin additions are the existing evidenced kinds only: `JSONStorableStringChooser` (like "Voice", refreshed with `choices = ...`: E9, E24, E25), `JSONStorableBool`, `UiPage.Popup` / `Toggle` / `Button`, the existing event path. The new expression preset `listening` uses morph names the other presets already use (`Brow Inner Up`, `Mouth Smile Simple`); the stubs got nothing new.

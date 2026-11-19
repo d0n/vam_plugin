@@ -6,9 +6,9 @@ German [README](../README.md).
 
 ## Load flow (the whole setup)
 
-1. Copy `d0n.AIBody.27.var` to `<VaM>/AddonPackages/` (remove older AIBody packages, see below).
+1. Copy `d0n.AIBody.28.var` to `<VaM>/AddonPackages/` (remove older AIBody packages, see below).
 2. In VaM select the AI character's Person atom > **Plugins** tab > **Add Plugin** > choose
-   `AddonPackages > d0n.AIBody.27:/Custom/Scripts/d0n/AIBody/AIBody.cslist`.
+   `AddonPackages > d0n.AIBody.28:/Custom/Scripts/d0n/AIBody/AIBody.cslist`.
 3. Start the companion app: `python -m aibody_companion --vam-root "D:\VaM"`.
 
 That's it. The plugin's status box shows "Companion app: running ..." once both sides see each
@@ -146,22 +146,22 @@ tools/                     assemble_plugins.py (plugin folder), build_var.py (pa
 
 ### Install the package
 
-Download `d0n.AIBody.27.var` from the [releases](https://github.com/d0n/vam_plugin/releases), or
-build it with `python tools/build_var.py` (writes `dist/d0n.AIBody.27.var`), and copy it to:
+Download `d0n.AIBody.28.var` from the [releases](https://github.com/d0n/vam_plugin/releases), or
+build it with `python tools/build_var.py` (writes `dist/d0n.AIBody.28.var`), and copy it to:
 
 ```
-<VaM>/AddonPackages/d0n.AIBody.27.var
+<VaM>/AddonPackages/d0n.AIBody.28.var
 ```
 
 Remove all older AIBody packages from `AddonPackages`: `d0n.AIBody.1.var`, `d0n.AIBody.2.var`,
-`d0n.AIBody.3.var` to `d0n.AIBody.26.var`, `d0n.AIBodySession.*.var`, `d0n.AIBodyPerson.*.var`,
+`d0n.AIBody.3.var` to `d0n.AIBody.27.var`, `d0n.AIBodySession.*.var`, `d0n.AIBodyPerson.*.var`,
 `d0n.AIBodyPerson2.*.var`. Scenes saved with an older package point at that package's path, so
-remove the old plugin entry from the character and add `d0n.AIBody.27` again, then save.
+remove the old plugin entry from the character and add `d0n.AIBody.28` again, then save.
 
 Contents:
 
 ```
-d0n.AIBody.27.var
+d0n.AIBody.28.var
 ├── meta.json
 └── Custom/Scripts/d0n/AIBody/
     ├── AIBody.cslist
@@ -581,6 +581,16 @@ default input (`sounddevice` default, `MicCapture` opens `device=None`), there i
 no `devices`/`list_devices` message since 19.11.2026. An old `mic.device` in config.json, a `config`
 event or a saved scene, and an old plugin's `list_devices` event are ignored quietly
 (`audio/mic_settings.py` `RETIRED`, `protocol.RETIRED_EVENTS`).
+
+### Several figures in one app (since version 28)
+
+- **Fleet** (`multi.py`, `cli.build_fleet`): `--channel a,b` or `ai.channels` builds one `Companion` per channel (own `Config` copy with that channel, own `EngineSet`/`ai` copy, own transport, history, persona, memory, link to its plugin) and one `Fleet` that looks like a Companion to the command line loop (`tick`, `handle_user_text`, `shutdown`, `mic`). One channel builds no Fleet: nothing changes.
+- **Microphone:** one real `MicController`; each member gets a `MicTap`. `Fleet.tick()` pulls the frames once and gives them only to the active member, so there is one voice detector and one transcription per sentence. `MicTap.apply` forwards to the real device (last plugin config wins).
+- **Who answers:** `Fleet.route(source, text)` -> `multi.find_address`: a name of a figure (persona `name`, persona folder, channel with `-`/`_` as spaces; at least 3 letters) in the first 5 or the last 3 words, earliest wins, else the active figure (last speaker or last addressed); members without a connected plugin are not chosen while another is. Chain: in `Companion._turn` after the transcript, `target.take_over(text)` and the turn ends. Realtime: in `RealtimeVoice.handle` on `conversation.item.input_audio_transcription.completed` the first figure `barge_in(manual=True)` and the target gets the text as a user message (`RealtimeVoice.ask`: `conversation.item.create` + `response.create`) or, without realtime, as typed text. `note_speaker` in `_queue_speech`: the figure that speaks becomes active.
+- **Room:** each member's gate is a `LinkedGate` (`audio/echo_gate.py`): `is_open` = own gate and all peers' own gates are open (`own_open`), so no figure hears another as the user. Proactive timers of the peers restart on user and AI activity of any member (`Fleet.activity`); `_can_speak_now` is false while a peer has a turn running, queued results or a closed gate (`Fleet.peers_busy`).
+- **Protocol:** heartbeat fields `figures` (channels) and `active_figure`, only with a Fleet (shown in the plugin's info field). No new events.
+- **Plugin:** the `Channel` storable gets a text field in the tab Config (`UiPage.TextInput`, same evidenced control as the token field). `OnChannelEdited` only marks the edit; `TickChannelEdit` (Update) restarts the link after `ChannelQuietSeconds` (1 s) without typing and marks the config dirty so the channel lands in config.json. "Reload Config JSON" passes `seedChannel=false`: the channel belongs to the figure, the file holds only the last writer's.
+- **Not built:** a "director" tool (figures address each other), per-figure microphones, switching channels in a running app, routing by gaze; see BACKLOG.
 
 ### Emotions, personas, memory (since version 27)
 

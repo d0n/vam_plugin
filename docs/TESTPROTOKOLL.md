@@ -13,9 +13,9 @@ nach durchgehen und das Ergebnis eintragen (✅ / ❌ / unklar). Dauer: etwa 20 
 **Vorbereitung**
 
 - VaM schließen. In `<VaM-Hauptordner>/AddonPackages/` alle alten AIBody-Pakete löschen:
-  `d0n.AIBody.1.var` bis `d0n.AIBody.26.var`, `d0n.AIBodySession.*`, `d0n.AIBodyPerson.*`,
+  `d0n.AIBody.1.var` bis `d0n.AIBody.27.var`, `d0n.AIBodySession.*`, `d0n.AIBodyPerson.*`,
   `d0n.AIBodyPerson2.*`. Lose Dateien unter `Custom/Scripts/d0n/AIBody/` ebenfalls entfernen.
-- `d0n.AIBody.27.var` nach `<VaM-Hauptordner>/AddonPackages/` kopieren.
+- `d0n.AIBody.28.var` nach `<VaM-Hauptordner>/AddonPackages/` kopieren.
 - Companion-App bereithalten (noch **nicht** starten):
   `python -m aibody_companion --vam-root "D:\VaM"` (Pfad zum eigenen VaM-Ordner anpassen).
   Für T9 den xAI-Key im Plugin eintragen (Tab **Voice** > Feld **XAI API Token**, ab Version 21) oder vor dem Start setzen: `set XAI_API_KEY=xai-...` (cmd) bzw. `$env:XAI_API_KEY="xai-..."` (PowerShell); das Feld gewinnt.
@@ -274,6 +274,20 @@ Needs VaM with the AI Character (AIBody) and the Client Character in the example
 6. Report: where the eyes look in each step (correct / mirrored / too high / too low), whether *Straight ahead* really is
    the way the face points, the VaM error log.
 
+## T17 – Several figures, Channel field (version 28)
+
+Needs VaM with TWO Person atoms (call them Anna and Marc), each with the AIBody plugin (AIBody 28), the companion app from this version, an xAI key, AI mode chain or auto (realtime for step 6). Persona examples: `examples/personas/Anna` and `examples/personas/Marc` copied to `Saves/PluginData/AIBody/personas/`.
+
+1. **Channel field:** on each Person: tab **Config** > **Channel**: type `anna` / `marc`. About one second after you stop typing the info field shows the new channel and folder (no restart on every letter). Save the scene, reload it: the channels are still there. **Reload Config JSON** must NOT change them.
+2. Start ONE app: `python -m aibody_companion --vam-root "D:\VaM" --channel anna,marc`. The console lists two figures; both plugins say *Companion app: connected* and *Figures in this app: anna, marc. The user talks to: anna (this figure)* (on Anna) / *(another figure)* (on Marc).
+3. Choose the persona *Anna* on Anna and *Marc* on Marc (menu **Persona**; different voices).
+4. **Name routing, typed:** in the console type `Marc, wie geht es dir?` – only Marc answers, the info line switches to *marc*. Then `und was machst du heute` – Marc again. Then `Anna, hallo` – Anna.
+5. **Name routing, spoken (chain):** same with the microphone: "Anna, was siehst du?" / "Wie geht es dir, Marc?" / a sentence without a name. Report: how often is the name misheard (names that STT spells differently), does the wrong figure ever start to answer?
+6. **Realtime:** AI mode realtime on both: address the figure that did NOT answer last. Expected: the first figure may say a word, stops, the named one answers. Report how long the wrong start is and whether the first figure's later answers mention the lost sentence.
+7. **Echo:** with speakers (no headphones): while Anna talks, the other figure and the app must not treat her voice as a new question. Report any answer-to-answer loop.
+8. **Proactive:** *Speech delay timer* 20 s on both, stay silent: the figures speak up one after the other, never at the same time. After Anna spoke on her own, answering without a name goes to Anna.
+9. Report: the VaM error log lines with `AIBody:` and `companion.log`.
+
 ## T16 – Emotions, personas, memory (version 27)
 
 Needs VaM with the AI Character (AIBody 27) and the companion app from this version with an xAI key; AI mode not Question and Answer (chain or auto) for steps 1-3.
@@ -283,7 +297,7 @@ Needs VaM with the AI Character (AIBody 27) and the companion app from this vers
 3. **Listening face:** while you talk, a very small brow raise appears (preset `listening`); when the AI starts to answer it is replaced. Report whether it is visible at all or too much (preset values in `ExpressionController.cs`; you can override `listening` in `expressions.json`).
 4. **Persona:** copy `examples/personas/Anna` to `Saves/PluginData/AIBody/personas/Anna` (so `…/personas/Anna/persona.json`). Tab Voice > **Persona**: after a few seconds *Anna* is in the list; pick it: the voice changes to *ara*, the AI calls itself Anna, the console says `Persona: Anna`. *(none)* = back to `ai.persona`. Info field (left, tab Voice): persona and memory lines. Pick a name that does not exist (edit `ai.persona_name` in `config.json`): the info field says *not in use … not found*.
 5. **Memory:** switch **Memory** on, say "Ich heiße Leon und mag Katzen" and one more sentence, then be silent for 10 minutes (or lower `ai.memory.session_idle_minutes`, or stop the app with Ctrl+C: it summarizes first). `personas/default/memory.json` (or `personas/Anna/memory.json`) holds the notes; restart the app, ask "Wie heiße ich?". **Forget memory** deletes the file and the AI no longer knows. Report: did the summary request work (console lines `Memory: …`), are the notes correct, any invented facts?
-6. Two personas on two figures (two plugins, two channels, two apps): each plugin has its own Persona choice; see BACKLOG for the single-app version.
+6. Two personas on two figures: each plugin has its own Persona choice; one app for both figures since version 28 (T17).
 7. Report the VaM error log lines with `AIBody:` and `companion.log`.
 
 ## T15 – Natural gaze, blinking, scene hooks (version 26)

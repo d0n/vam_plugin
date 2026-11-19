@@ -499,6 +499,10 @@
           "type": "string",
           "default": ""
         },
+        "channels": {
+          "type": "string",
+          "default": ""
+        },
         "memory": {
           "type": "object",
           "additionalProperties": false,

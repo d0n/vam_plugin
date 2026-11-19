@@ -1,6 +1,6 @@
 # AIBody
 
-Virt-A-Mate-Plugin (VaM 1.22) mit Python-Begleit-App, das einer KI einen Körper in einer VaM-Szene gibt. Stand: Version 27, Paket `d0n.AIBody.27.var`, Release `v27`. Version 14 lädt in VaM 1.22 ohne Fehler (Init fertig, 200 Posen); die Funktionen sind in VaM noch nicht vollständig geprüft.
+Virt-A-Mate-Plugin (VaM 1.22) mit Python-Begleit-App, das einer KI einen Körper in einer VaM-Szene gibt. Stand: Version 28, Paket `d0n.AIBody.28.var`, Release `v28`. Version 14 lädt in VaM 1.22 ohne Fehler (Init fertig, 200 Posen); die Funktionen sind in VaM noch nicht vollständig geprüft.
 
 Versionsschema seit Version 12: Version = Paketnummer der `.var` (Plugin-Anzeige, Begleit-App, Git-Tag `v<N>`). Version 12 folgt auf 0.7.4 (= Paket 11); ältere Tags bleiben unverändert.
 
@@ -24,13 +24,13 @@ python -m aibody_companion --vam-root "D:\VaM"
 
 ## 1. Wozu und wie benutzt
 
-- Der Nutzer spricht mit einer Figur in VaM. Die Figur antwortet mit Stimme und Lippensync und kann Ausdrücke, Gesten und Posen zeigen; dazu Atmung und Kopf-Leerlauf. Seit Version 27: Ausdrücke auch ohne Zutun der KI (aus den Worten, Zurückblenden, Zuhör-Gesicht), **Personas** (Charakter, Sprache, Stimme je Ordner) und optionales **Gedächtnis** über den Nutzer, siehe [docs/PERSONAS.md](docs/PERSONAS.md).
+- Der Nutzer spricht mit einer Figur in VaM. Die Figur antwortet mit Stimme und Lippensync und kann Ausdrücke, Gesten und Posen zeigen; dazu Atmung und Kopf-Leerlauf. Seit Version 27: Ausdrücke auch ohne Zutun der KI (aus den Worten, Zurückblenden, Zuhör-Gesicht), **Personas** (Charakter, Sprache, Stimme je Ordner) und optionales **Gedächtnis** über den Nutzer, siehe [docs/PERSONAS.md](docs/PERSONAS.md). Seit Version 28: **mehrere Figuren in einer App** (`--channel anna,marc`, Feld **Channel** im Tab Config, Anrede mit dem Namen), siehe [docs/FIGUREN.md](docs/FIGUREN.md).
 - Zwei Teile, beide nötig:
   - Plugin `AIBody` (C#, ohne Netzwerkcode): wird einmal im Plugins-Tab der KI-Figur (Person-Atom) geladen; spielt Sprache ab, steuert den Körper, zeigt Status und Einstellungen.
   - Begleit-App `aibody_companion` (Python, läuft neben VaM auf demselben PC): Mikrofon, Spracherkennung, Sprachmodell, Sprachausgabe, Verbindung zu xAI (optional ElevenLabs).
 - Verbindung: Dateien unter `<VaM>/Saves/PluginData/AIBody/<Kanal>/`; Sprache als WAV unter `<VaM>/Custom/Sounds/AIBody/<Kanal>/`.
 - Ablauf: Plugin auf die KI-Figur laden → Begleit-App von Hand starten (`python -m aibody_companion --vam-root "D:\VaM"`, Abschnitt „Starten“, mit xAI-Key) → sprechen (oder in der Konsole tippen) → die Figur antwortet.
-- Kurzinstallation: `d0n.AIBody.27.var` nach `<VaM>/AddonPackages/`, ältere `d0n.AIBody.*`, `d0n.AIBodySession.*`, `d0n.AIBodyPerson.*`, `d0n.AIBodyPerson2.*` löschen; Person auswählen > Tab Plugins > Add Plugin > `AddonPackages > d0n.AIBody.27:/Custom/Scripts/d0n/AIBody/AIBody.cslist`; Begleit-App: siehe Abschnitt „Starten“ (`cd companion`, `pip install sounddevice`, dann starten). Details und Schritt-für-Schritt: Release-Notes.
+- Kurzinstallation: `d0n.AIBody.28.var` nach `<VaM>/AddonPackages/`, ältere `d0n.AIBody.*`, `d0n.AIBodySession.*`, `d0n.AIBodyPerson.*`, `d0n.AIBodyPerson2.*` löschen; Person auswählen > Tab Plugins > Add Plugin > `AddonPackages > d0n.AIBody.28:/Custom/Scripts/d0n/AIBody/AIBody.cslist`; Begleit-App: siehe Abschnitt „Starten“ (`cd companion`, `pip install sounddevice`, dann starten). Details und Schritt-für-Schritt: Release-Notes.
 
 ## 2. Wofür ausgelegt / Spezifikation
 
@@ -56,7 +56,7 @@ python -m aibody_companion --vam-root "D:\VaM"
 - Nicht vorgesehen und nicht getestet:
   - AIBody ohne Nutzerseite (ohne laufende Begleit-App gibt es weder Zuhören noch Antworten; das Plugin bleibt stabil und zeigt „DISCONNECTED“).
   - AIBody auf einem Nicht-Person-Atom (das Plugin-Fenster erklärt dann nur, wohin es gehört).
-  - AIBody auf einer zweiten Person bzw. zwei Instanzen auf demselben Kanal (beide würden dieselben Dateien lesen).
+  - AIBody auf einer zweiten Person **mit demselben Kanal** (beide würden dieselben Dateien lesen). Mit eigenem Kanal je Figur geht es seit Version 28, siehe [docs/FIGUREN.md](docs/FIGUREN.md).
   - Die Szene mit nur einer Person: AIBody selbst läuft dann, aber die Szene ist für zwei Personen gebaut (Hintergrund-Plugin auf dem Client-Atom).
   - Steuerung über das Client-Atom (Client-Logik auf eigenem Atom) und eine zweite KI-Figur: zurückgestellt, siehe [BACKLOG](docs/BACKLOG.md).
 
@@ -85,7 +85,8 @@ Spalte „Wo“: Tab im Plugin-Menü; „nur Datei“ = kein Bedienelement. Bere
 |---|---|---|---|---|---|
 | `version` | int | 1 | 1 | Schema-Version; andere Werte: Warnung, Kompatibles wird gelesen | nur Datei |
 | `written_by` | string | – | frei | wer die Datei zuletzt schrieb (nur Info) | wird geschrieben |
-| `connection.channel` | string | `default` | Buchstaben, Ziffern, `-`, `_` (anderes wird zu `_`) | Unterordner `Saves/PluginData/AIBody/<Kanal>/` für die Nachrichtendateien und `Custom/Sounds/AIBody/<Kanal>/` für Audio; Plugin und App müssen gleich sein; `--channel` gewinnt in der App; Änderung startet die Verbindung neu | nur Datei (seit Version 15 kein Menüfeld; Anzeige im Infofeld, Tab Config) |
+| `connection.channel` | string | `default` | Buchstaben, Ziffern, `-`, `_` (anderes wird zu `_`) | Unterordner `Saves/PluginData/AIBody/<Kanal>/` für die Nachrichtendateien und `Custom/Sounds/AIBody/<Kanal>/` für Audio; Plugin und App müssen gleich sein; `--channel` gewinnt in der App; Änderung startet die Verbindung neu | Feld **Channel** im Tab Config (seit Version 28; Version 15 bis 27 nur Datei); gehört zur Figur, „Reload Config JSON“ liest es nicht neu |
+| `ai.channels` | string | `""` | Kanalnamen, mit Komma getrennt, höchstens 8 | Version 28: eine App bedient mehrere Figuren, z. B. `anna,marc` (gleich wie `--channel anna,marc`, die Kommandozeile gewinnt); leer = ein Kanal aus `connection.channel`; siehe [docs/FIGUREN.md](docs/FIGUREN.md) | nur Datei |
 | `connection.active` | bool | true | | Verbindung zur Begleit-App an/aus | Voice > Voice Mode: **Active** |
 | `connection.paths.expressions` | string | `Saves/PluginData/AIBody/expressions.json` | relativ, unter `Saves/` oder `Custom/`, ohne `..` und `:` | Datei mit Ausdrucks-Presets (4.6) | nur Datei |
 | `connection.paths.gestures` | string | `Saves/PluginData/AIBody/gestures.json` | wie oben | Datei mit Gesten/Posen (4.6) | nur Datei |

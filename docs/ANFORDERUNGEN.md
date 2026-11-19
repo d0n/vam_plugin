@@ -112,6 +112,9 @@ Stand: 19.11.2026, Version 23. Übersicht, was umgesetzt ist und was offen ist; 
 ### Version 27 (19.11.2026)
 - **Version 27 (19.11.2026) (Katalog 4, 6: Emotionen, Personas, Gedächtnis):** Ausdruck aus den gesprochenen Worten, wenn die KI keinen wählt (`ai.emotion.fallback`), Zurückblenden auf neutral (`fade`), kleines Zuhör-Gesicht (`listening`); Personas als Ordner mit `persona.json` (Menü **Persona**, `ai.persona_name`; Prompt, Name, Sprache, Stimme), optionales Gedächtnis über den Nutzer (Schalter **Memory**, Knopf **Forget memory**, `memory.json` je Persona, lokal, xAI-Zusammenfassung). Beschreibung: `docs/PERSONAS.md`. TODO(verify) in VaM: `docs/TESTPROTOKOLL.md` T16.
 
+### Version 28 (19.11.2026)
+- **Version 28 (19.11.2026) (Katalog 6: mehrere Figuren, Kanal im Menü):** Feld **Channel** im Tab Config (Neustart der Verbindung nach einer Sekunde ohne Tippen); eine App bedient mehrere Kanäle (`--channel anna,marc` oder `ai.channels`), je Kanal ein eigenes Gespräch mit eigener Persona und eigenem Gedächtnis, ein gemeinsames Mikrofon, Anrede mit dem Namen am Satzanfang oder -ende (sonst die zuletzt sprechende Figur), Echo-Sperre über alle Figuren, Heartbeat-Felder `figures` und `active_figure`. Beschreibung: `docs/FIGUREN.md`. Nicht umgesetzt: „Regie“-Werkzeug (Figuren sprechen miteinander), siehe Backlog. TODO(verify) in VaM: `docs/TESTPROTOKOLL.md` T17.
+
 ## 2. Noch offen / zu tun
 
 ### Nächste Version

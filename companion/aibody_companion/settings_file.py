@@ -16,7 +16,7 @@ README.md section 4. Categories (kept from the first schema; they no longer matc
 plus one category this app owns (the plugin keeps it unchanged when it writes, except the keys
 it has controls for):
 
-  ai          mode, persona, persona_name, memory {...}, emotion {...}, language, fallback {stt, llm, tts}, realtime {...}, proactive {...},
+  ai          mode, persona, persona_name, channels, memory {...}, emotion {...}, language, fallback {stt, llm, tts}, realtime {...}, proactive {...},
               xai {...}, elevenlabs {...}
               plugin controls: mode (tab Voice), persona_name and memory.enabled (tab Voice), proactive.enabled /
               idle_seconds (tab Voice), realtime.send_while_speaking (tab Client Character),
@@ -119,6 +119,9 @@ DEFAULTS: dict[str, dict[str, Any]] = {
         # Persona folder below Saves/PluginData/AIBody/personas ("" = none: the persona text above). The plugin's
         # menu "Persona" sets it; a persona.json can replace persona text, language and voice (personas.py).
         "persona_name": "",
+        # Several figures in one app (version 28): channel names separated by commas, e.g. "anna,marc". Each figure is
+        # an AIBody plugin with that channel. "" = one figure on connection.channel. --channel a,b on the command line wins.
+        "channels": "",
         # Memory (opt-in, menu switch "Memory"): facts the user told the AI, kept in personas/<name>/memory.json and
         # given to the AI as notes. Updated after session_idle_minutes of silence (at least min_exchanges questions),
         # on a persona change and when the app stops.

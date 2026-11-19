@@ -65,6 +65,9 @@ namespace AIBody
         private string _personaInUse = "";                  // companion heartbeat "persona"
         private string _personaNote = "";                   // companion heartbeat "persona_note"
         private JSONClass _memoryInfo;                      // companion heartbeat "memory"
+        // Version 28: several figures in one app (companion heartbeat "figures" / "active_figure")
+        private string _figures = "";
+        private string _activeFigure = "";
 
         // API keys: only the PATH of a key file (the key itself would be saved readably in the scene
         // and in config.json). TODO(user decision): a direct key field was asked about; not built.
@@ -131,7 +134,7 @@ namespace AIBody
             _plugin.RegisterBool(_activeJson);
 
             // Channel = sub folder below Saves/PluginData/AIBody; must match the companion app's --channel.
-            _channelJson = new JSONStorableString("Channel", "default", (string v) => Restart());
+            _channelJson = new JSONStorableString("Channel", "default", OnChannelEdited);
             _plugin.RegisterString(_channelJson);
             _filePollJson = new JSONStorableFloat("File poll interval (s)", 0.1f, (float v) => Restart(), 0.02f, 2f);
             _plugin.RegisterFloat(_filePollJson);
@@ -211,6 +214,29 @@ namespace AIBody
         }
 
         /// <summary>The field's text changed: a typed / pasted key becomes the token; the mask itself is ignored.</summary>
+        // Version 28: the Channel field in the tab Config. Typing fires this per keystroke: the link restarts once the
+        // typing paused (ChannelQuietSeconds), not on every character.
+        public const float ChannelQuietSeconds = 1.0f;
+        private bool _channelPending;
+        private float _channelQuiet;
+
+        private void OnChannelEdited(string v)
+        {
+            if (!Ready) return;
+            _channelPending = true;
+            _channelQuiet = 0f;
+        }
+
+        private void TickChannelEdit(float dt)
+        {
+            if (!_channelPending) return;
+            _channelQuiet += dt;
+            if (_channelQuiet < ChannelQuietSeconds) return;
+            _channelPending = false;
+            Restart();
+            MarkConfigDirty();   // the new channel is written to config.json (the app's start value)
+        }
+
         private void OnTokenEdited(string v)
         {
             if (_settingTokenDisplay) return;
@@ -521,9 +547,11 @@ namespace AIBody
         }
 
         /// <summary>Channel line for the tab "Config" (set in config.json connection.channel, not in the menu).</summary>
+        public const string ChannelHint = "The name of this figure's link to the companion app (letters, digits, - and _). With several figures in one scene give each its own channel; start ONE app for all of them: --channel anna,marc (or ai.channels in config.json).";
+
         public string ChannelInfoText()
         {
-            return "Channel: " + Channel + " - the folder (" + ChannelDir + ") the plugin and the companion app use to exchange messages. To change it, set connection.channel in config.json or start the app with --channel.";
+            return "Channel: " + Channel + " - the folder (" + ChannelDir + ") the plugin and the companion app use to exchange messages. Change it in the field Channel above; the app must serve the same channel (--channel " + Channel + ").";
         }
 
         /// <summary>
@@ -690,6 +718,10 @@ namespace AIBody
         public void BuildConfigTab(UiPage page, UnityEngine.Events.UnityAction reload)
         {
             page.Button("Reload Config JSON", reload);
+            page.Header("<b>Channel</b>");
+            if (!page.TextInput(_channelJson))
+                Log.Error("Field 'Channel' is read-only (InputField failed).");
+            page.Header(ChannelHint);
             page.Slider(_filePollJson, FilePollLabel);
         }
 
@@ -811,12 +843,12 @@ namespace AIBody
         }
 
         /// <summary>Seeds the UI from config.json (only for a scene without saved AIBody settings).</summary>
-        public void ApplySettings(JSONClass root)
+        public void ApplySettings(JSONClass root, bool seedChannel = true)
         {
             JSONClass connection = root["connection"] as JSONClass;
             if (connection != null)
             {
-                if (Protocol.Has(connection, "channel")) _channelJson.val = Protocol.GetString(connection, "channel", _channelJson.val);
+                if (seedChannel && Protocol.Has(connection, "channel")) _channelJson.val = Protocol.GetString(connection, "channel", _channelJson.val);
                 if (Protocol.Has(connection, "active")) _activeJson.val = Protocol.GetBool(connection, "active", true);
             }
             JSONClass engines = root["engines"] as JSONClass;
@@ -1100,6 +1132,12 @@ namespace AIBody
             SetPersonaChoices(msg["personas"] as JSONArray);
             _personaInUse = msg["persona"].Value;
             _personaNote = msg["persona_note"].Value;
+            JSONArray figures = msg["figures"] as JSONArray;
+            string figureList = "";
+            if (figures != null)
+                for (int i = 0; i < figures.Count; i++) figureList += (i > 0 ? ", " : "") + figures[i].Value;
+            _figures = figureList;
+            _activeFigure = msg["active_figure"].Value;
             JSONClass memoryInfo = msg["memory"] as JSONClass;
             if (memoryInfo != null) _memoryInfo = memoryInfo;
             JSONClass status = msg["engines_status"] as JSONClass;
@@ -1147,6 +1185,7 @@ namespace AIBody
         public void Update(float dt)
         {
             TickTokenMask(dt);
+            TickChannelEdit(dt);
             bool connected = false;
             if (_transport != null)
             {
@@ -1207,6 +1246,10 @@ namespace AIBody
             {
                 // Version 17: modes and engines only once, in the engine status above (no second summary).
                 text += "Companion app: connected, " + _appVersion + " (last heartbeat " + _appAge.ToString("0.0") + " s ago)\n";
+                if (_figures.Length > 0)
+                    text += "Figures in this app: " + _figures + ". The user talks to: " + _activeFigure
+                        + (_activeFigure == Channel ? " (this figure)" : " (another figure)")
+                        + " - say a figure's name at the start or end of a sentence to switch.\n";
                 if (_audioOut != null)
                 {
                     text += "Audio folder: " + _audioOut["folder"].Value + "\n";

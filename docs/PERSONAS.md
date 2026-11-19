@@ -65,6 +65,6 @@ Kosten: eine zusätzliche Anfrage pro Gespräch (und beim Wechsel/Beenden), klei
 
 Die Regeln sind bewusst einfach und grob (keine Stimmungsanalyse); wer bessere Ausdrücke will, gibt der KI Ausdrücke in `expressions.json` und lässt sie `express` selbst nutzen. Eigene Wörter lassen sich derzeit nicht eintragen (Backlog).
 
-## Ausblick: mehrere Figuren
+## Mehrere Figuren
 
-Jede Figur hat ein eigenes Plugin mit eigenem Kanal, damit auch eigene Persona und eigenes Gedächtnis (Persona und Memory sind Menüwerte je Plugin). Siehe BACKLOG.md zur Reihenfolge.
+Jede Figur hat ein eigenes Plugin mit eigenem Kanal, damit auch eigene Persona und eigenes Gedächtnis (Persona und Memory sind Menüwerte je Plugin). Eine App bedient seit Version 28 mehrere Kanäle: [FIGUREN.md](FIGUREN.md). Der `name` der Persona ist dort der Name, mit dem man die Figur anspricht.

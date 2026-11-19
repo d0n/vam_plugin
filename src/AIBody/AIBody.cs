@@ -40,7 +40,7 @@ namespace AIBody
 {
     public class AIBodyPlugin : MVRScript
     {
-        public const string PluginVersion = "27";   // = package number d0n.AIBody.27.var (scheme since version 12)
+        public const string PluginVersion = "28";   // = package number d0n.AIBody.28.var (scheme since version 12)
 
         private AppLink _link;
         private Body _body;
@@ -277,7 +277,7 @@ namespace AIBody
                     _configStatus = "No valid config.json at " + _link.SettingsPath + "; nothing changed.";
                     return;
                 }
-                _link.ApplySettings(file);
+                _link.ApplySettings(file, false);   // version 28: the channel is per figure, not reloaded from the shared file
                 _link.AdoptToken(file);
                 if (_body != null) _body.ApplySettings(file);
                 JSONClass advanced = file["advanced"] as JSONClass;

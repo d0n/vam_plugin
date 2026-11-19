@@ -1,6 +1,6 @@
 """Menu rules of the plugin (Leon, 17.11.2026, version 15), checked on the C# sources:
 four self-explanatory tabs, no text fields inside the tabs (help and status go to the ONE big
-info field on the left), no removed placeholders (Post tab, Channel field, key file fields,
+info field on the left), no removed placeholders (Post tab, key file fields; the Channel field came back in version 28 on request,
 Delay, the tab title headers)."""
 import re
 import unittest
@@ -71,7 +71,7 @@ class PluginMenuTests(unittest.TestCase):
         self.assertNotIn('"Erweitert"', all_src)
         for file, sig in BUILDERS:
             body = method_body(source(file), sig)
-            for field in ("_channelJson", "_xaiKeyFileJson", "_elevenKeyFileJson"):
+            for field in ("_xaiKeyFileJson", "_elevenKeyFileJson"):
                 self.assertNotIn(field, body, f"{file} {sig}")
         show = method_body(source("AIBody.cs"), "private void ShowTab(int index)")
         self.assertNotIn('_page.Header("<b>" + name', show, "tab title header (a field that only says the tab name)")
