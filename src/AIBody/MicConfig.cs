@@ -101,13 +101,16 @@ namespace AIBody
             // VaM's plugin UI has no tooltip / hover API with public evidence, so the explanation
             // stands in the big info field on the left while the tab Client Character is open.
             _pttHelp = new JSONStorableString("Push-to-talk help",
-                "Push-to-talk active: while this is checked the companion app listens to your microphone, like holding the "
-                + "talk button of a walkie-talkie. It only works when Mic mode is 'Push-to-talk'. "
-                + "The microphone is always the system default input (change it in your system sound settings). "
-                + "VAD engine: how speech is told from noise. 'Auto' uses Silero if its model file is installed (docs/TECHNICAL.md), else WebRTC if the companion app has it (python -m pip install webrtcvad-wheels), "
-                + "otherwise the built-in detector. VAD strictness 0-3: higher ignores more background noise. "
-                + "VAD threshold is the quietest level that can count as speech. While the character talks (and a moment after) the microphone is muted on purpose, so the AI never hears itself. "
-                + "You can also use the actions 'Push-to-talk start / stop / toggle' from triggers or keys.");
+                "While <b>Push-to-talk active</b> is checked the companion app listens to your microphone, like holding the talk button of a "
+                + "walkie-talkie, but only when <b>Mic mode</b> is 'Push-to-talk'; you can also use the actions Push-to-talk start, stop and toggle "
+                + "from triggers or keys, and <b>Push-to-talk interrupts speech</b> stops the character when you start talking. "
+                + "The microphone is always the system default input (change it in your system sound settings), <b>Input gain</b> amplifies it and "
+                + "<b>Show level meter</b> shows its level here. <b>VAD engine</b> decides how speech is told from noise: 'Auto' uses Silero if its model "
+                + "file is installed (docs/TECHNICAL.md), else WebRTC if the companion app has it (python -m pip install webrtcvad-wheels), otherwise "
+                + "the built-in detector. A higher <b>VAD strictness</b> (0-3) ignores more background noise, <b>VAD threshold</b> is the quietest level "
+                + "that can count as speech, <b>Silence timeout (ms)</b> ends an utterance and <b>Min utterance (ms)</b> and <b>Max utterance (ms)</b> "
+                + "limit its length. While the character talks, and for <b>Echo gate tail (s)</b> afterwards, the microphone is muted on purpose so the "
+                + "AI never hears itself, unless <b>Voice barge-in (headphones)</b> lets you interrupt it.");
 
             _plugin.RegisterAction(new JSONStorableAction("Push-to-talk start", () => _pttActive.val = true));
             _plugin.RegisterAction(new JSONStorableAction("Push-to-talk stop", () => _pttActive.val = false));
@@ -118,21 +121,26 @@ namespace AIBody
         private JSONStorableFloat Reg(JSONStorableFloat p) { _plugin.RegisterFloat(p); return p; }
 
         /// <summary>Microphone and push-to-talk controls of the tab Client Character.</summary>
-        public void BuildTab(UiPage page)
+        public void BuildTab(UiPage page, JSONStorableBool bargeIn)
         {
+            page.Header("<b>Microphone</b>");
             page.Toggle(Enabled);
             page.Popup(Mode);
+            page.Slider(Gain);
+            page.Toggle(LevelMeter);
+            page.Header("<b>Push-to-talk</b>");
             page.Toggle(_pttActive);
             page.Toggle(PttInterrupts);
-            page.Toggle(LevelMeter);
+            page.Header("<b>Voice detection</b>");
             page.Popup(VadEngine);
             page.Slider(Threshold);
             page.Slider(VadStrictness);
-            page.Slider(Gain);
             page.Slider(SilenceMs);
             page.Slider(MinUtteranceMs);
             page.Slider(MaxUtteranceMs);
+            page.Header("<b>Echo and barge-in</b>");
             page.Slider(EchoTail);
+            page.Toggle(bargeIn);
         }
 
         /// <summary>Push-to-talk help and microphone status for the big info field (tab Client Character).</summary>

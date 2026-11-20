@@ -31,13 +31,14 @@ def method_body(text: str, signature: str) -> str:
 
 BUILDERS = [
     ("AIBody.cs", "private void ShowTab(int index)"),
-    ("AppLink.cs", "public void BuildVoiceModeTab(UiPage page)"),
-    ("AppLink.cs", "public void BuildAiVoiceSection(UiPage page)"),
+    ("AppLink.cs", "public void BuildConnectionSection(UiPage page)"),
+    ("AppLink.cs", "public void BuildAiSection(UiPage page)"),
+    ("AppLink.cs", "public void BuildVoiceSection(UiPage page)"),
     ("AppLink.cs", "public void BuildClientCharacterTab(UiPage page)"),
     ("AppLink.cs", "public void BuildConfigTab(UiPage page"),
-    ("Body.cs", "public void BuildVoiceModeTab(UiPage page)"),
+    ("Body.cs", "public void BuildSoundSection(UiPage page)"),
     ("Body.cs", "public void BuildCharacterTab(UiPage page)"),
-    ("MicConfig.cs", "public void BuildTab(UiPage page)"),
+    ("MicConfig.cs", "public void BuildTab(UiPage page, JSONStorableBool bargeIn)"),
 ]
 
 
@@ -124,7 +125,7 @@ class Version17MenuTests(unittest.TestCase):
         body = method_body(source("Body.cs"), "public void BuildCharacterTab(UiPage page)")
         reload = body.index("ReloadExpressions")
         self.assertLess(body.index("<b>Expression and gesture</b>"), reload)
-        self.assertLess(reload, body.index("<b>Body</b>"))
+        self.assertLess(reload, body.index("<b>Poses</b>"))
 
 
 class OneCharacterTests(unittest.TestCase):
@@ -177,8 +178,8 @@ class Version19MenuTests(unittest.TestCase):
 
     def test_config_info_names_the_inbox_and_says_config_json_is_not_reloaded(self):
         hint = method_body(source("AppLink.cs"), "public string FilePollInfoText()")
-        for part in ("Companion inbox poll interval", '"/inbox/', "speech, poses, expressions",
-                     "Does not reload config.json", "Reload Config JSON"):
+        for part in ("FilePollLabel", '"/inbox/', "speech, poses and expressions",
+                     "does not reload config.json", "<b>Reload Config JSON</b>"):
             self.assertIn(part, hint)
         self.assertIn("FilePollInfoText()", method_body(source("AIBody.cs"), "private string TabInfo()"))
 
@@ -206,8 +207,8 @@ class SpeechDelayTimerTextTests(unittest.TestCase):
 
     def test_voice_tab_help_explains_the_timer(self):
         link = source("AppLink.cs")
-        self.assertIn("Speech delay timer (s): how long it must be quiet before the AI may say something on its own", link)
-        self.assertIn("It is not how long the AI takes to answer.", link)
+        self.assertIn("<b>Speech delay timer (s)</b> is how long it", link)
+        self.assertIn("must be quiet first (0 = never), not how long the AI takes to answer.", link)
 
     def test_startup_and_nudge_log_lines(self):
         import tempfile
@@ -255,9 +256,9 @@ class PlainEnglishTextTests(unittest.TestCase):
 
     def test_plugin_help_texts_are_plain(self):
         link, plugin, mic = source("AppLink.cs"), source("AIBody.cs"), source("MicConfig.cs")
-        self.assertIn("so the character only talks", plugin)
-        self.assertIn("Proactive talking: when on, the AI may start talking by itself after a quiet moment.", link)
-        self.assertIn("paste your xAI API key (from console.x.ai) into the field", link)
+        self.assertIn("the character only speaks Grok's answer", plugin)
+        self.assertIn("With <b>Proactive talking</b> on, the AI may start talking by itself after a quiet moment", link)
+        self.assertIn("paste your xAI API key (from console.x.ai) into <b>", link)
         self.assertIn("The microphone is always the system default input", mic)
         for gone in ("speech recognition -> Grok -> voice", "Mic device", "Refresh microphones"):
             self.assertNotIn(gone, link + plugin + mic)
@@ -298,7 +299,7 @@ class NoMicSelectionTests(unittest.TestCase):
             self.assertNotIn(gone, plugin, gone)
 
     def test_mic_tab_keeps_the_other_controls(self):
-        build = method_body(source("MicConfig.cs"), "public void BuildTab(UiPage page)")
+        build = method_body(source("MicConfig.cs"), "public void BuildTab(UiPage page, JSONStorableBool bargeIn)")
         for part in ("page.Toggle(Enabled);", "page.Popup(Mode);", "page.Toggle(_pttActive);", "page.Toggle(LevelMeter);",
                      "page.Slider(Threshold);", "page.Slider(Gain);", "page.Slider(EchoTail);"):
             self.assertIn(part, build)
@@ -330,14 +331,14 @@ class Version31LayoutTests(unittest.TestCase):
 
     def test_config_tab_holds_only_what_is_not_character_bound(self):
         config = method_body(source("AppLink.cs"), "public void BuildConfigTab(UiPage page")
-        self.assertEqual(re.findall(r'page\.(\w+)\(', config), ["Button", "Toggle", "Slider"])
+        self.assertEqual(re.findall(r'page\.(\w+)\(', config), ["Header", "Button", "Header", "Toggle", "Slider"])
         self.assertIn('"Reload Config JSON"', config)
         for word in ("pose", "Pose", "xpression", "esture", "Body", "Gaze"):
             self.assertNotIn(word, config)
 
     def test_poses_expression_gesture_and_body_are_in_the_ai_character_tab(self):
         tab = method_body(source("Body.cs"), "public void BuildCharacterTab(UiPage page)")
-        for needed in ("Apply pose", "Reload poses", "Show expression", "Play gesture", "_gazeControlJson", "_bodyControlJson"):
+        for needed in ("Apply pose", "Reload poses", "Show expression", "Play gesture", "_bodyControlJson"):
             self.assertIn(needed, tab)
 
     def test_no_info_text_fields_in_the_right_hand_tabs(self):

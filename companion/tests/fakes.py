@@ -139,8 +139,6 @@ class FakePlugin:
         self.poses: list[str] = []      # Body.AddStatus "poses" (gestures.json poses + preset files)
         self.pose_commands: list[dict] = pose_commands.starter_entries()  # Body.AddStatus "pose_commands" (config.json poses.commands)
         self.body_control = True        # Body.AddStatus "body_control"
-        self.gaze_control = False       # Body.AddStatus "gaze_control": the AI may direct the eyes (tool look_at)
-        self.gaze_atoms: list[str] = []  # Body.AddStatus "gaze_atoms"
         # Body.SelfTestJson (in-game checks, sent as "selftest" in ready / heartbeat)
         self.selftest: dict[str, Any] = {"pose_storage": "ok", "pose_files": 0, "poses": 0,
                                          "breath_morph": "Breath1", "breath_morph_found": True,
@@ -165,8 +163,8 @@ class FakePlugin:
                     "end_silence_ms": 700,
                     "min_utterance_ms": 300, "max_utterance_ms": 20000, "echo_tail_s": 0.4, "gain": 1.0,
                     "ptt_interrupts": True, "level_meter": True},
-            "body": {"speech_volume": 1.0, "body_control": True, "gaze_control": True, "gaze_default": "default",
-                     "gaze_follows_speaker": False, "idle_motion": True, "idle_intensity": 0.5,
+            "body": {"speech_volume": 1.0, "body_control": True,
+                     "idle_motion": True, "idle_intensity": 0.5,
                      "breathing": True,
                      "breaths_per_minute": 14.0, "breath_depth": 0.35, "breath_morph": "Breath1"},
             "advanced": {"file_poll_interval_s": 0.1, "verbose_log": False},
@@ -235,8 +233,7 @@ class FakePlugin:
                 "gestures": ["nod", "shake", "tilt", *self.poses], "poses": list(self.poses),
                 "pose_commands": [{**e, "available": pose_commands.PoseVocabulary.resolve(e, self.poses) is not None}
                                   for e in self.pose_commands],
-                "body_control": self.body_control, "gaze_control": self.gaze_control,
-                "gaze_atoms": list(self.gaze_atoms), "selftest": dict(self.selftest),
+                "body_control": self.body_control, "selftest": dict(self.selftest),
                 "channel": self.channel, "plugin_version": PLUGIN_VERSION}
 
     def send_config(self) -> None:

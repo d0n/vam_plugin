@@ -402,61 +402,6 @@
           "type": "string",
           "default": "Breath1"
         },
-        "gaze_control": {
-          "anyOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "enum": [
-                "true",
-                "false",
-                "True",
-                "False"
-              ]
-            }
-          ],
-          "default": true
-        },
-        "gaze_default": {
-          "type": "string",
-          "default": "default"
-        },
-        "gaze_follows_speaker": {
-          "anyOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "enum": [
-                "true",
-                "false",
-                "True",
-                "False"
-              ]
-            }
-          ],
-          "default": false
-        },
-        "blink_control": {
-          "anyOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "enum": [
-                "true",
-                "false",
-                "True",
-                "False"
-              ]
-            }
-          ],
-          "default": false
-        },
         "idle_poses": {
           "anyOf": [
             {
@@ -1268,7 +1213,7 @@
             },
             "key_hint": {
               "type": "string",
-              "default": "An xAI API key from console.x.ai is required (a Grok subscription does not work). Provide it in one of four ways: (1) in VaM, plugin tab Voice > Voice Mode, field 'XAI API Token' (below API Reconnect); the plugin saves it here as ai.xai.api_key; (2) write it into ai.xai.api_key yourself; (3) the environment variable XAI_API_KEY; (4) ai.xai.key_file = path of a text file that holds the key. If several are set, the plugin field (while VaM runs) wins, then ai.xai.api_key, then XAI_API_KEY, then key_file.",
+              "default": "An xAI API key from console.x.ai is required (a Grok subscription does not work). Provide it in one of four ways: (1) in VaM, plugin tab Voice > Companion connection, field 'XAI API Token' (below API Reconnect); the plugin saves it here as ai.xai.api_key; (2) write it into ai.xai.api_key yourself; (3) the environment variable XAI_API_KEY; (4) ai.xai.key_file = path of a text file that holds the key. If several are set, the plugin field (while VaM runs) wins, then ai.xai.api_key, then XAI_API_KEY, then key_file.",
               "description": "Note for the reader (JSON has no comments): an xAI API key is required; the plugin field 'XAI API Token', XAI_API_KEY or key_file. Not used by the app; any text is accepted"
             },
             "api_key": {
@@ -1278,7 +1223,7 @@
             },
             "api_key_warning": {
               "type": "string",
-              "default": "SECURITY NOTICE: Your xAI token is stored as plain text in config.json (ai.xai.api_key). Anyone who can read that file can read your token, so do not share or publish it. Since version 31 no scene holds the token any more, but a scene saved with AIBody version 21 to 23 still contains the full token: do not publish such a scene.",
+              "default": "SECURITY NOTICE: the XAI API Token is stored as plain text in config.json (ai.xai.api_key), so anyone who can read that file can read your token and you should not share or publish it; since version 31 no scene holds the token any more, but a scene saved with AIBody version 21 to 23 still contains the full token, so do not publish such a scene.",
               "description": "Note for the reader (JSON has no comments): security notice for api_key. Not used by the app; the plugin keeps it"
             },
             "key_file": {

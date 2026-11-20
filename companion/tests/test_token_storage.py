@@ -37,9 +37,14 @@ class ConfigJsonTests(unittest.TestCase):
 
     def test_warning_text_is_the_same_in_the_plugin_and_in_config_json(self):
         link = source("AppLink.cs")
-        m = re.search(r"public const string XaiTokenWarning = (.*?);", link, re.S)
+        m = re.search(r'public const string XaiTokenWarning = (.*?");\s*\n', link, re.S)
         literal = "".join(re.findall(r'"((?:[^"\\]|\\.)*)"', m.group(1)))
-        self.assertEqual(literal, settings_file.KEY_WARNING_TEXT)
+        # the left info field shows the label in bold (Leon's style rule, 20.11.2026); config.json holds plain text
+        self.assertEqual(re.sub(r"</?b>", "", literal), settings_file.KEY_WARNING_TEXT)
+        m = re.search(r'public const string XaiTokenWarningPlain = (.*?");\s*\n', link, re.S)
+        plain = "".join(re.findall(r'"((?:[^"\\]|\\.)*)"', m.group(1)))
+        self.assertEqual(plain, settings_file.KEY_WARNING_TEXT)
+        self.assertIn('xai["api_key_warning"] = XaiTokenWarningPlain;', link)
 
     def test_validate_accepts_both_keys_and_load_keeps_them(self):
         data, errors = settings_file.validate({"ai": {"xai": {"api_key": TOKEN, "api_key_warning": "mine"}}})
@@ -175,7 +180,7 @@ class PluginSourceTests(unittest.TestCase):
         info = method_body(self.link, "public string VoiceInfoText()")
         self.assertIn("XaiTokenWarning", info)
         self.assertTrue(info.index("XaiTokenWarning") < info.index("_modeHelpJson"))
-        voice = method_body(self.link, "public void BuildVoiceModeTab(UiPage page)")
+        voice = method_body(self.link, "public void BuildConnectionSection(UiPage page)")
         self.assertNotIn("XaiTokenWarning", voice)
         self.assertTrue(settings_file.KEY_WARNING_TEXT.startswith("SECURITY NOTICE: "))
         self.assertIn("publish", settings_file.KEY_WARNING_TEXT)

@@ -8,7 +8,7 @@ README.md section 4. Categories (kept from the first schema; they no longer matc
               audio} (file only)
   engines     stt, llm, tts (tab Voice > AI Character)
   mic         microphone + push-to-talk settings (tab Client Character; audio/mic_settings.py)
-  body        speech_volume, body_control, gaze_control, gaze_default, gaze_follows_speaker, idle_motion, idle_intensity, breathing,
+  body        speech_volume, body_control, idle_motion, idle_intensity, breathing,
               breaths_per_minute, breath_depth, breath_morph, idle_poses, idle_pose_min_s, idle_pose_max_s, idle_pose_default
               (tab AI Character)
   advanced    file_poll_interval_s (slider "Companion inbox poll interval (s)": how often the
@@ -72,16 +72,15 @@ VERSION = 1
 # Written into config.json as ai.xai.key_hint (JSON has no comments). Any text is accepted.
 KEY_HINT_TEXT = (
     "An xAI API key from console.x.ai is required (a Grok subscription does not work). Provide it in one of "
-    "four ways: (1) in VaM, plugin tab Voice > Voice Mode, field 'XAI API Token' (below API Reconnect); the plugin "
+    "four ways: (1) in VaM, plugin tab Voice > Companion connection, field 'XAI API Token' (below API Reconnect); the plugin "
     "saves it here as ai.xai.api_key; (2) write it into ai.xai.api_key yourself; (3) the environment variable "
     "XAI_API_KEY; (4) ai.xai.key_file = path of a text file that holds the key. If several are set, the plugin "
     "field (while VaM runs) wins, then ai.xai.api_key, then XAI_API_KEY, then key_file.")
-# Same text as AppLink.XaiTokenWarning in the plugin (tests/test_token_storage.py compares them).
+# Same text as AppLink.XaiTokenWarning in the plugin, without its <b> markup (tests/test_token_storage.py compares them).
 KEY_WARNING_TEXT = (
-    "SECURITY NOTICE: Your xAI token is stored as plain text in config.json (ai.xai.api_key). "
-    "Anyone who can read that file can read your token, so do not share or publish it. "
-    "Since version 31 no scene holds the token any more, but a scene saved with AIBody version 21 to 23 still contains the full token: "
-    "do not publish such a scene.")
+    "SECURITY NOTICE: the XAI API Token is stored as plain text in config.json (ai.xai.api_key), "
+    "so anyone who can read that file can read your token and you should not share or publish it; since version 31 no scene holds the token any more, "
+    "but a scene saved with AIBody version 21 to 23 still contains the full token, so do not publish such a scene.")
 
 DEFAULTS: dict[str, dict[str, Any]] = {
     "connection": {
@@ -109,11 +108,6 @@ DEFAULTS: dict[str, dict[str, Any]] = {
         "breaths_per_minute": 14.0,
         "breath_depth": 0.35,
         "breath_morph": "Breath1",
-        # Gaze (tab AI Character > Gaze; the plugin keeps these, the app only reads gaze_control from the heartbeat)
-        "gaze_control": True,  # false = AIBody never moves the eyes (no look_at tool for the AI)
-        "gaze_default": "default",  # default | natural | client | camera | forward | atom:<name>; default = leave the eyes alone
-        "gaze_follows_speaker": False,  # look at the client while someone talks
-        "blink_control": False,  # true = AIBody blinks (VaM's auto blink is switched off meanwhile)
         # Idle poses (version 35): after idle_pose_min_s..idle_pose_max_s seconds without speech or a pose command the
         # character takes an available pose of the pose commands by itself and next time goes back to idle_pose_default.
         "idle_poses": True,
@@ -370,7 +364,10 @@ def _check_value(path: tuple[str, ...], default: Any, value: Any, errors: list[s
 
 # Keys of versions that no longer exist; an old config.json that still has them keeps working.
 LEGACY_KEYS = {("connection", "channel"), ("ai", "channels"),
-               ("setup", "green_background"), ("setup", "example_scene")}  # version 35 answers (replaced in 36)
+               ("setup", "green_background"), ("setup", "example_scene"),  # version 35 answers (replaced in 36)
+               # removed after version 36 (Leon, 20.11.2026): the eyes (gaze, blinking) belong to VaM
+               ("body", "gaze_follows_speaker"), ("body", "gaze_control"), ("body", "gaze_default"),
+               ("body", "blink_control")}
 
 
 def _merge(path: tuple[str, ...], default: dict[str, Any], data: dict[str, Any], errors: list[str]) -> dict[str, Any]:

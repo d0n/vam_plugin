@@ -38,7 +38,7 @@ to win.
 
 One object per settings category. Since the menu restructure the categories no longer match
 the tabs one to one (kept for compatibility with existing files): `connection` = file only
-(network switch and port, paths; + *Voice > Voice Mode* **Active**), `engines` = tab *Voice > AI Character*, `mic` = tab *Client Character*, `body` = tab
+(network switch and port, paths; + *Voice > Companion connection* **Active**), `engines` = tab *Voice* (sections *AI* and *Voice and sound*), `mic` = tab *Client Character*, `body` = tab
 *AI Character*, `advanced` = tab *Config*, `ai` = companion settings plus the tab controls named
 below. Machine-readable:
 [protocol/schema/config.schema.json](../protocol/schema/config.schema.json), example:
@@ -99,7 +99,7 @@ always interrupts. The mic stays closed while a clip is queued or playing and fo
 realtime mode it also stays muted from the start of an answer until the answer is done (at most 90 s).
 
 **Chain** (`ai.mode` `chain`, or `auto` without xAI key / with ElevenLabs TTS): exactly the engines
-of *Voice > AI Character*, as before.
+of *Voice > AI*, as before.
 
 ## Proactive speech and time context
 
@@ -132,7 +132,7 @@ of *Voice > AI Character*, as before.
 API key is required and the three ways to give it. The app ignores it; any text is accepted.
 
 **Plugging in the xAI key (version 21, stored in config.json since version 24):** paste it into
-the field **XAI API Token** (tab *Voice*, section *Voice Mode*, below **API Reconnect**). Plain text, no
+the field **XAI API Token** (tab *Voice*, section *Companion connection*, below **API Reconnect**). Plain text, no
 format check. The plugin saves it in `config.json` as `ai.xai.api_key` (PLAIN TEXT, at Leon's explicit
 request; `ai.xai.api_key_warning` next to it carries the security notice), fills the field from it on
 every start, and then shows it masked once the field is not focused (first and last 4 characters visible, stars between: `xai-****abcd`; the mask never replaces the stored token). The
@@ -154,7 +154,7 @@ version 21 to 23 still contains the full token (plain text): do not publish such
    `C:\Users\<you>\keys\elevenlabs.txt`, and enter its path in `config.json`:
    `"ai": { "elevenlabs": { "key_file": "C:/Users/<you>/keys/elevenlabs.txt" } }`
    (a relative path counts from your home folder, e.g. `keys/elevenlabs.txt`).
-3. Select **Text-to-speech: elevenlabs** in the plugin's tab *Voice > AI Character*. The engine status in the info field
+3. Select **Text-to-speech: elevenlabs** in the plugin's tab *Voice > Voice and sound*. The engine status in the info field
    changes from "not configured" to "ready (…)" - a key file within 10 s, an environment
    variable after restarting the app.
 
@@ -195,17 +195,14 @@ for `Engine ... ready`, the spoken sentences and any `failed (...)` warnings.
   first request of a conversation only.
   <https://docs.x.ai/developers/rest-api-reference/inference/responses>
 
-## Gaze (tab AI Character > Gaze, since version 25)
+## Gaze and blinking (removed after version 36)
 
-`body.gaze_control` (default true), `body.gaze_default` (`default` | `client` | `camera` | `forward` | `atom:<name>`),
-`body.gaze_follows_speaker` (default false). The AI directs its eyes with the tool `look_at` (client, camera, forward,
-away, off, or an atom name); without an order the eyes follow *Default gaze*. `default` leaves the eyes to VaM.
-With the Glance plugin on the same Person AIBody does not touch the eyes. See TECHNICAL.md, section Gaze.
+Leon, 20.11.2026: the eyes belong entirely to VaM. The plugin has no gaze or blink control any more, and the keys
+`body.gaze_control`, `body.gaze_default`, `body.gaze_follows_speaker` and `body.blink_control` are gone (versions 25 to 36
+had them). An old file that still holds them loads without a warning and the plugin drops them on its next write.
 
-## Natural gaze, blinking, scene events (version 26)
+## Scene events and more (version 26 and later)
 
-- `body.gaze_default` accepts `natural` (menu: **Natural (looks around)**) besides `default`, `client`, `camera`, `forward`, `atom:<name>`.
-- `body.blink_control` (default false): true = AIBody blinks by itself and switches VaM's automatic blinking off meanwhile; menu: **Blink control** (tab AI Character, section Gaze and blinking). With Life's Eyes plugin or Glance on the Person AIBody leaves the eyelids alone.
 - `ai.ollama.*` (version 29, file only): the local language model Ollama, `engines.llm: "ollama"`. `base_url` (`http://127.0.0.1:11434`), `model` (`llama3.2`), `max_output_tokens`, `temperature`, `keep_alive`, `max_messages`, `timeout_s`. See [LOCAL_ENGINES.md](LOCAL_ENGINES.md).
 - `ai.barge_in.{enabled,ratio,min_ms,floor}` (version 29, file only, off by default): talk over the body without headphones by a loudness rule. `mic.vad_engine: "silero"` needs onnxruntime and the model file `Saves/PluginData/AIBody/models/silero_vad.onnx` (or `AIBODY_SILERO_MODEL`). Same document.
 - `connection.network_active` (default `true`, version 30): the plugin toggle **Network Active** (tab *Config*), mirrored here. On = the loopback link described in TECHNICAL.md ("Network Active") is used, with the file channel as automatic fallback; off = files only and no network code runs in the plugin.

@@ -23,7 +23,7 @@ sync. Speech only, no expressions or gestures, no proactive remarks. A few secon
 
 1. Install the package and add the plugin to the Person (steps 1 and 2 above).
 2. Start the companion app: `python -m aibody_companion --vam-root "D:\VaM"`.
-3. Plugin tab *Voice* > section *Voice Mode*: paste your xAI API key from console.x.ai into the
+3. Plugin tab *Voice* > section *Companion connection*: paste your xAI API key from console.x.ai into the
    field **XAI API Token** (plain text; version 21). It reaches the running app within a second.
    Alternatively start the app with the key in the environment (`set XAI_API_KEY=xai-...`, Windows
    `cmd`; PowerShell: `$env:XAI_API_KEY="xai-..."`); the field wins when both are set.
@@ -271,7 +271,7 @@ old events are kept), and the link comes back by itself as soon as the app runs 
 restarted while the body was speaking, the old speech is cancelled.
 
 Actions for triggers: *Reconnect*, *Stop speaking*, *Reset expression*, *Reload config files*,
-*Push-to-talk start / stop / toggle*. Gaze is not part of AIBody yet; use
+*Push-to-talk start / stop / toggle*. Gaze is not part of AIBody (the eyes belong to VaM); use
 [Glance](https://hub.virtamate.com/resources/glance-realistic-head-driven-eye-motion.5461/) on the
 same atom.
 
@@ -319,7 +319,7 @@ Switch on **Verbose log** in the plugin tab *Config* (or `"advanced": {"verbose_
 
 | `ai.mode` | what runs |
 |-----------|-----------|
-Plugin: tab *Voice* > **AI mode**, or *Voice* > section *Voice Mode* > **Use realtime voice**
+Plugin: tab *Voice* > **AI mode**, or *Voice* > section *AI* > **Use realtime voice**
 (on = `auto`, off = `qa`).
 
 | `qa` (default) | simple Q&A: the chain below with `xai` instead of the offline test engines when an xAI key exists, speech only (no expressions / gestures), no proactive remarks |
@@ -358,24 +358,13 @@ Realtime: `function_call` -> commands to the plugin -> `function_call_output`; c
 with `tools`, the outputs go back with `previous_response_id` (at most 3 tool-only rounds per turn).
 Every call gets a result (`{"ok": true}` or `{"ok": false, "error": ...}`) so the model never waits.
 Not offered in `qa` (speech only) or with Body control off; a stray call is answered `ok: false`.
-Body control off (version 35, SPEC "Body control"): the plugin ignores `expression`, `set_morphs`, `reset_morphs`, `gesture`, `pose`, `trigger`, `look_at`, `idle` and `breathing` and runs no idle poses; speech and the user's own menu buttons still work.
+Body control off (version 35, SPEC "Body control"): the plugin ignores `expression`, `set_morphs`, `reset_morphs`, `gesture`, `pose`, `trigger`, `idle` and `breathing` and runs no idle poses; speech and the user's own menu buttons still work.
 Idle poses and own idle motion (version 35): `IdlePoses.cs` (`IdlePoseScheduler`, pure C#, tested with `companion/tests/csharp_idle_harness`) picks the next pose; `IdleController` adds head sway, chest weight shift and breath rise as additive rotation offsets on `headControl` / `chestControl` (re-based after each pose load); no third-party plugin or code.
-`look_at` (`target`: client, camera, forward, away, off or an atom name from the plugin's `gaze_atoms`; optional
-`seconds`) is added while the plugin reports `gaze_control` (see "Gaze" below).
+### Gaze and blinking (versions 25 to 36, removed)
 
-### Gaze (since version 25)
-
-`GazeController.cs` uses VaM's own eye system, like Embody and Glance: the Person's `Eyes` storable is set to look
-mode *Target* and the `eyeTargetControl` is moved every frame to the point to look at; VaM's eyes do the rest. Targets:
-the Client Character's head (atom `Client Character`, else the first other Person; without one: the camera), the camera
-(the player's view), straight ahead, away (a short glance to the side, alternating sides), or any atom by name.
-Order of control: the AI's last `look_at` (until its `seconds` run out or `off`) > *Gaze follows speaker* (client while
-someone talks) > *Default gaze* (menu; "VaM default" = AIBody does not touch the eyes). Choosing a Default gaze in the
-menu ends an AI order. When AIBody lets go, the look mode and the eye target position are restored.
-Coexistence: with the Glance plugin on the Person AIBody stays out (menu info says so, no `look_at` tool); if anything
-else changes the Eyes look mode while AIBody steers, AIBody stops (and the AI gets no tool) until the user picks a
-Default gaze again. Life and other plugins are not detected by name, only by that look-mode check (TODO(verify)).
-Needs the level meter (tab Client Character) for *Gaze follows speaker* to notice the user's voice.
+Leon, 20.11.2026: the eyes belong entirely to VaM. `GazeController.cs` and `BlinkController.cs`, the AI tool `look_at`,
+the status fields `gaze_control` / `gaze_atoms` and the scene actions for gaze and blinking are gone. A `look_at` from an
+older companion app is accepted and ignored. VaM's own eye movement and blinking are not touched.
 
 ### Latency
 
@@ -403,7 +392,7 @@ One answer = speech to text -> language model -> text to speech, chosen in the p
   existing `expression` / `gesture` commands.
 - Every TTS engine writes 16-bit PCM WAV into the channel's `audio/` folder (VaM's audio loader
   plays WAV; WAV also gives the exact duration for the echo gate).
-- **Keys:** xAI precedence (since version 24): 1. the plugin field **XAI API Token** (tab Voice > Voice Mode;
+- **Keys:** xAI precedence (since version 24): 1. the plugin field **XAI API Token** (tab Voice > Companion connection;
   plain text, no format check; sent to the app in the `config` event as `keys.xai`, an empty field = no
   token and the next source applies), 2. `ai.xai.api_key` in `config.json` (PLAIN TEXT; the plugin writes
   the field there with FileManagerSecure, keeping all other keys, and reads it on start to fill the field;
@@ -671,9 +660,7 @@ event or a saved scene, and an old plugin's `list_devices` event are ignored qui
 - **Personas** (`personas.py`, `EngineSet.persona`): folders with `persona.json` under `Saves/PluginData/AIBody/personas/`; `EngineSet.persona_text()` (prompt or `ai.persona`, name line, memory notes), `language()`, `xai_settings()`, `realtime_settings()` and `elevenlabs_settings()` apply the persona's overrides when the engines are built. The plugin menu **Persona** is a `JSONStorableStringChooser` filled from the heartbeat (`personas`, `persona`, `persona_note`) and sent as `ai.persona_name`; a change = `Companion.switch_persona()` (memory of the old persona saved, history cleared, llm and tts rebuilt, realtime session reopened).
 - **Memory** (`personas.py`, `Companion.finish_memory_session`): after `session_idle_minutes` of silence, on a persona change and on shutdown a worker thread sends the old facts plus the conversation (`XaiLlm.complete`: `/responses`, `stream: false`, `store: false`) and writes the sanitized answer to `personas/<name>/memory.json`. An empty or unusable answer never overwrites the notes. Plugin side: switch **Memory**, button **Forget memory** (event `memory_forget`). No new VaM API anywhere in version 27 (see API_AUDIT.md).
 
-### Natural gaze, blinking, scene hooks (since version 26)
+### Scene hooks (since version 26)
 
-- **Natural gaze:** default gaze *Natural (looks around)*. `GazeController` keeps the eyes on the client (else the camera) with small random moves (every 0.7-2.4 s, about 3 degrees), looks away for 0.7-1.6 s every 4-9 s while the AI speaks (9-18 s otherwise) and looks up and aside for 1.2-2.4 s when the user has just stopped talking and the AI has not started ("thinking"; needs the level meter). It replaces *Gaze follows speaker*. An AI `look_at` still wins; `off` returns to natural.
-- **Blinking:** `BlinkController`, menu *Blink control*, off by default. On: VaM's `EyelidControl` `blinkEnabled` is switched off, the morph "Eyes Closed" is driven (blink 0.23 s, every 3-7 s, 2.5-5.5 s while speaking, 15 % double blinks, extra blink when speech starts and at glances). Everything is put back on release. Stays out with Glance or Life's Eyes on the Person; if someone switches `blinkEnabled` on again it stops until the menu switch is toggled.
-- **Life:** Life's Gaze (storable id contains `MacGruber` and ends in `Gaze`) pauses the gaze, Life's Eyes pauses the blinking, like Glance. Life's Breathing runs next to AIBody's breath morph (switch ours off in the menu if both move the chest).
-- **Scene hooks (for triggers, Timeline, LogicBricks, other plugins):** bool values `AI speaking`, `User speaking`; string `Scene event` (a trigger sets it, AIBody sends the text to the app as `scene_event` and clears it, the AI may react, see PROTOCOL.md); actions `Look at client`, `Look at camera`, `Look straight ahead`, `Look away`, `Gaze back to default`, `Blink now`, `Expression: <name>`, `Gesture: <name>` (one per expression / gesture that exists when the plugin starts, at most 30 each). None of them is saved with the scene. Outgoing VaM triggers ("when speech starts") are not built (BACKLOG, Machbarkeit).
+- Natural gaze, blinking and the Life gaze / eyes detection (versions 26 to 36) were removed on 20.11.2026; see "Gaze and blinking" above. Life's Breathing runs next to AIBody's breath morph (switch ours off in the menu if both move the chest).
+- **Scene hooks (for triggers, Timeline, LogicBricks, other plugins):** bool values `AI speaking`, `User speaking`; string `Scene event` (a trigger sets it, AIBody sends the text to the app as `scene_event` and clears it, the AI may react, see PROTOCOL.md); actions `Expression: <name>`, `Gesture: <name>` (one per expression / gesture that exists when the plugin starts, at most 30 each). None of them is saved with the scene. Outgoing VaM triggers ("when speech starts") are not built (BACKLOG, Machbarkeit).

@@ -83,7 +83,7 @@ namespace AIBody
         // Since version 15 the path fields are not in the menu (they showed as empty, unlabeled
         // boxes); the paths come from config.json ai.xai.key_file / ai.elevenlabs.key_file and are
         // still saved with the scene and sent to the companion (docs/BACKLOG.md).
-        // "XAI API Token": a plain free-text field (Voice tab, Voice Mode), no format check.
+        // "XAI API Token": a plain free-text field (tab Voice, section Companion connection), no format check.
         // Version 21: saved with the scene only. Version 24: the real token lives in _xaiToken and is
         // saved in config.json (ai.xai.api_key, plain text, at Leon's explicit request); the storable
         // _xaiTokenJson is only what the field SHOWS: the masked token ("xai-****...****abcd") once it is saved,
@@ -112,7 +112,7 @@ namespace AIBody
         /// <summary>Adds the body's state to ready / heartbeat / pong.</summary>
         public Action<JSONClass> DecorateStatus;
 
-        /// <summary>True while the user is talking (companion level reports; used for "Gaze follows speaker").</summary>
+        /// <summary>True while the user is talking (companion level reports; used by the "User speaking" scene hook and the idle poses).</summary>
         public bool UserSpeaking { get { return _mic != null && _mic.UserSpeaking; } }
 
         public AppLink(MVRScript plugin, string pluginVersion, Diag diag)
@@ -123,7 +123,9 @@ namespace AIBody
         }
 
         public bool Active { get { return _activeJson != null && _activeJson.val; } }
-        public const string HintText = "An xAI API token is required. Paste it here, or later in Voice > XAI API Token.";
+        /// <summary>Category header of the first-run note on the right (20.11.2026: only headers and controls on the right;
+        /// what to paste where is explained in the left field of the tab Voice).</summary>
+        public const string HintText = "<b>First start: XAI API Token</b>";
         public const string HintClose = "Close";
         public const string HintOk = "OK";
 
@@ -269,19 +271,23 @@ namespace AIBody
         }
 
         public const string XaiTokenLabel = "XAI API Token";
-        public const string XaiTokenHint = "Paste your xAI API key here. Once it is saved, the field shows it masked when you leave it (like xai-****...****abcd). "
-            + "To change it, select everything in the field and paste the new key. To remove it, empty the field.";
+        /// <summary>Running prose for the left field of the tab Voice (moved there from below the token field on 20.11.2026).</summary>
+        public const string XaiTokenHint = "Paste your xAI API key into <b>XAI API Token</b>; once it is saved, the field shows it masked when you leave it "
+            + "(like xai-****...****abcd), to change it you select everything in the field and paste the new key, and to remove it you empty the field.";
         /// <summary>
-        /// Security notice at the top of the big info field on the left (tab Voice); the same text is in config.json
-        /// (ai.xai.api_key_warning, next to ai.xai.api_key). Not shown under the token field.
+        /// Security notice at the top of the big info field on the left (tab Voice); the same text (without the bold markup)
+        /// is in config.json (ai.xai.api_key_warning, next to ai.xai.api_key). Not shown under the token field.
         /// </summary>
-        public const string XaiTokenWarning = "SECURITY NOTICE: Your xAI token is stored as plain text in config.json (ai.xai.api_key). "
-            + "Anyone who can read that file can read your token, so do not share or publish it. "
-            + "Since version 31 no scene holds the token any more, but a scene saved with AIBody version 21 to 23 still contains the full token: "
-            + "do not publish such a scene.";
+        public const string XaiTokenWarning = "SECURITY NOTICE: the <b>XAI API Token</b> is stored as plain text in config.json (ai.xai.api_key), "
+            + "so anyone who can read that file can read your token and you should not share or publish it; since version 31 no scene holds the token any more, "
+            + "but a scene saved with AIBody version 21 to 23 still contains the full token, so do not publish such a scene.";
+        /// <summary>The same notice for config.json (plain text: the file is read in an editor, not as Unity rich text).</summary>
+        public const string XaiTokenWarningPlain = "SECURITY NOTICE: the XAI API Token is stored as plain text in config.json (ai.xai.api_key), "
+            + "so anyone who can read that file can read your token and you should not share or publish it; since version 31 no scene holds the token any more, "
+            + "but a scene saved with AIBody version 21 to 23 still contains the full token, so do not publish such a scene.";
         /// <summary>One short hint in the big info field on the left (version 30): the toggle depends on VaM's own setting.</summary>
-        public const string NetworkNotice = "NETWORK: The option 'Network Active' needs VaM's global setting 'Allow Plugins Network Access' "
-            + "(VaM preferences, Security). Without it the plugin uses the file exchange.";
+        public const string NetworkNotice = "NETWORK: <b>Network Active</b> (tab Config) needs VaM's global setting Allow Plugins Network Access "
+            + "(VaM preferences, Security), and without it the plugin uses the file exchange.";
 
         /// <summary>The real token (as typed or read from config.json, without surrounding blanks / line breaks; nothing else is checked).</summary>
         private string XaiToken { get { return _xaiToken; } }
@@ -461,7 +467,7 @@ namespace AIBody
             if (forFile && _tokenReady)
             {
                 xai["api_key"] = _xaiToken;
-                xai["api_key_warning"] = XaiTokenWarning;
+                xai["api_key_warning"] = XaiTokenWarningPlain;
             }
             ai["xai"] = xai;
             if (_elevenKeyFileJson.val.Length > 0)
@@ -541,20 +547,15 @@ namespace AIBody
             return text + "\n  " + string.Join(" · ", items.ToArray());
         }
 
-        /// <summary>Tab "Voice", section "Voice Mode": link on/off, realtime, API Reconnect, sound test.</summary>
-        public void BuildVoiceModeTab(UiPage page)
+        /// <summary>Tab "Voice", section "Companion connection": link on/off, API Reconnect, the token field (label above it).</summary>
+        public void BuildConnectionSection(UiPage page)
         {
             page.Toggle(_activeJson);
-            SyncRealtimeToggle();
-            page.Toggle(_realtimeJson);
             page.Button("API Reconnect", ApiReconnect);
-            // Version 21: plain free-text field (no format check) with the hint directly below.
-            page.Header("<b>" + XaiTokenLabel + "</b>");
+            page.Header(XaiTokenLabel);   // the label of the field below (an input field shows only its value)
             _tokenInput = page.TextInputField(_xaiTokenJson);   // a new InputField on every tab switch
             if (_tokenInput == null)
                 Log.Error("Field '" + XaiTokenLabel + "' is read-only (InputField failed).");
-            page.Header(XaiTokenHint);
-            page.Button("Test tone via companion", RequestTestTone);
         }
 
         /// <summary>
@@ -639,18 +640,26 @@ namespace AIBody
         /// (AI mode, voice, engines, proactive). No text fields: help and status go to the big info
         /// field on the left (VoiceInfoText).
         /// </summary>
-        public void BuildAiVoiceSection(UiPage page)
+        public void BuildAiSection(UiPage page)
         {
+            SyncRealtimeToggle();
+            page.Toggle(_realtimeJson);
             page.Popup(_aiModeJson);
-            page.Popup(_voiceJson);
-            page.Popup(_personaJson);
-            page.Popup(_sttJson);
             page.Popup(_llmJson);
-            page.Popup(_ttsJson);
-            page.Toggle(_proactiveJson);
-            page.Slider(_proactiveIdleJson);
+            page.Popup(_personaJson);
             page.Toggle(_memoryJson);
             page.Button("Forget memory", ForgetMemory);
+            page.Toggle(_proactiveJson);
+            page.Slider(_proactiveIdleJson);
+        }
+
+        /// <summary>Tab "Voice", section "Voice and sound": the voice, speech-to-text, text-to-speech, the companion sound test.</summary>
+        public void BuildVoiceSection(UiPage page)
+        {
+            page.Popup(_voiceJson);
+            page.Popup(_sttJson);
+            page.Popup(_ttsJson);
+            page.Button("Test tone via companion", RequestTestTone);
         }
 
         /// <summary>Button "Forget memory": the companion app deletes the notes about the user and starts a fresh conversation.</summary>
@@ -662,16 +671,17 @@ namespace AIBody
         /// <summary>Persona and memory lines for the Voice tab's info field.</summary>
         private string PersonaInfoText()
         {
-            string text = "<b>Persona and memory</b>\n";
-            text += "Persona menu: " + (_personaListSeen ? _personaNames.Count + " persona(s) from the companion app" + (_personaNames.Count == 0 ? " (only '(none)': no folder with a persona.json in Saves/PluginData/AIBody/personas yet)" : "") : "'(none)' until the companion app reports its personas") + ".\n";
-            if (PersonaName.Length == 0) text += "Persona: none (the text ai.persona from config.json). Personas are folders in Saves/PluginData/AIBody/personas/<name>/ with a persona.json (docs/PERSONAS.md); pick one in the Persona menu.\n";
-            else if (_appAlive && _personaInUse != PersonaName) text += "Persona: '" + PersonaName + "' is not in use: " + (_personaNote.Length > 0 ? _personaNote : "the companion app has not confirmed it yet") + "\n";
-            else text += "Persona: " + PersonaName + " (its prompt, language and voice replace ai.persona, config.json language and the Voice menu).\n";
-            if (!_memoryJson.val) text += "Memory: off. On = the AI keeps short notes about what you tell it (personas/<name>/memory.json, local; the summary request goes to xAI) and uses them next time.\n";
+            string text = "The <b>Persona</b> menu " + (_personaListSeen
+                ? "lists " + _personaNames.Count + " persona(s) from the companion app" + (_personaNames.Count == 0 ? " (only '(none)', because no folder in Saves/PluginData/AIBody/personas has a persona.json yet)" : "")
+                : "shows '(none)' until the companion app reports its personas") + ". ";
+            if (PersonaName.Length == 0) text += "No persona is chosen, so the text ai.persona from config.json is used; personas are folders in Saves/PluginData/AIBody/personas/<name>/ with a persona.json (docs/PERSONAS.md) that you pick in <b>Persona</b>.\n";
+            else if (_appAlive && _personaInUse != PersonaName) text += "The persona '" + PersonaName + "' is not in use: " + (_personaNote.Length > 0 ? _personaNote : "the companion app has not confirmed it yet") + "\n";
+            else text += "The persona " + PersonaName + " is in use, and its prompt, language and voice replace ai.persona, the config.json language and <b>Voice</b>.\n";
+            if (!_memoryJson.val) text += "<b>Memory</b> is off; switched on, the AI keeps short notes about what you tell it (personas/<name>/memory.json, local; the summary request goes to xAI) and uses them next time.\n";
             else
             {
                 string facts = _memoryInfo != null && Protocol.Has(_memoryInfo, "facts") ? _memoryInfo["facts"].Value : "?";
-                text += "Memory: on, " + facts + " notes about you. Updated after the conversation (10 minutes of silence, a persona change or when the app stops); 'Forget memory' deletes them.\n";
+                text += "<b>Memory</b> is on with " + facts + " notes about you; they are updated after the conversation (10 minutes of silence, a persona change or when the app stops), and <b>Forget memory</b> deletes them.\n";
                 if (_memoryInfo != null && Protocol.Has(_memoryInfo, "note")) text += "Memory problem: " + _memoryInfo["note"].Value + "\n";
             }
             return text;
@@ -682,7 +692,7 @@ namespace AIBody
         {
             UpdateKeyStatus();
             UpdateEngineInfo();
-            string text = XaiTokenWarning + "\n\n" + NetworkNotice + "\n\n" + _modeHelpJson.val + "\n" + _keyStatusJson.val + "\n" + PersonaInfoText();
+            string text = XaiTokenWarning + "\n\n" + NetworkNotice + "\n\n" + _modeHelpJson.val + "\n\n" + XaiTokenHint + "\n" + _keyStatusJson.val + "\n" + PersonaInfoText();
             if (_engineStatus != null) text += _engineInfoJson.val;   // before the first heartbeat the connection section says "not seen yet"
             return text;
         }
@@ -690,13 +700,13 @@ namespace AIBody
         /// <summary>Folder line for the tab "Config": the one fixed folder the plugin and the companion app share.</summary>
         public string NetworkInfoText()
         {
-            return "Network Active: the plugin talks to the companion app over a local socket (127.0.0.1 port " + _networkPort
-                + ", set connection.network_port in config.json). " + NetworkStatus + ". When off or unavailable, the file exchange is used.";
+            return "<b>Network Active</b> lets the plugin talk to the companion app over a local socket (127.0.0.1 port " + _networkPort
+                + ", set connection.network_port in config.json); " + NetworkStatus + ", and when it is off or unavailable the file exchange is used.";
         }
 
         public string ChannelInfoText()
         {
-            return "Message folder: " + ChannelDir + " - the plugin and the companion app exchange messages there (one character, one fixed folder).";
+            return "The plugin and the companion app exchange messages in the folder " + ChannelDir + " (one character, one fixed folder).";
         }
 
         /// <summary>
@@ -708,24 +718,23 @@ namespace AIBody
         /// <summary>Config tab hint: what the poll interval polls (the companion app's messages, not config.json).</summary>
         public string FilePollInfoText()
         {
-            return "Companion inbox poll interval: how often the plugin checks the companion app's inbox folder ("
-                + ChannelDir + "/inbox/) for messages (speech, poses, expressions). Does not reload config.json; "
-                + "use Reload Config JSON for that.";
+            return "<b>" + FilePollLabel + "</b> sets how often the plugin checks the companion app's inbox folder ("
+                + ChannelDir + "/inbox/) for messages such as speech, poses and expressions; it does not reload config.json, "
+                + "which is what <b>Reload Config JSON</b> does.";
         }
 
         public const string ModeQa = "qa";
 
         private readonly JSONStorableString _modeHelpJson = new JSONStorableString("AI mode help",
-            "AI mode: 'qa' = your speech is turned into text, Grok answers and the character speaks (talking only). "
-            + "'auto' / 'realtime' = you talk to Grok Voice directly; if that does not work it falls back to 'chain'. "
-            + "'chain' = the engines picked under Voice > AI Character.\n"
-            + "Proactive talking: when on, the AI may start talking by itself after a quiet moment.\n"
-            + "Speech delay timer (s): how long it must be quiet before the AI may say something on its own "
-            + "(0 = never). It is not how long the AI takes to answer.");
+            "With <b>AI mode</b> 'qa' your speech is turned into text, Grok answers and the character speaks (talking only); "
+            + "'auto' and 'realtime' let you talk to Grok Voice directly and fall back to 'chain' if that does not work, and 'chain' uses the engines "
+            + "picked in <b>Language model</b>, <b>Speech-to-text</b> and <b>Text-to-speech</b>. <b>Use realtime voice</b> switches between 'auto' and 'qa'. "
+            + "With <b>Proactive talking</b> on, the AI may start talking by itself after a quiet moment, and <b>Speech delay timer (s)</b> is how long it "
+            + "must be quiet first (0 = never), not how long the AI takes to answer.");
 
         /// <summary>Button "Question and Answer": AI mode qa (body control is switched off by the plugin).</summary>
         /// <summary>
-        /// Voice Mode > "Use realtime voice": on = AI mode auto (Grok Voice, falls back to
+        /// Voice > AI > "Use realtime voice": on = AI mode auto (Grok Voice, falls back to
         /// the chain), off = qa (the default). Shows on while AI mode is auto or realtime.
         /// </summary>
         private void SetRealtime(bool on)
@@ -763,11 +772,11 @@ namespace AIBody
             }
             // Version 21: the token field is the main way; the environment variable and key file are optional.
             if (_keyInfo == null || !KeyConfigured("xai"))
-                text += "No xAI key yet: paste your xAI API key (from console.x.ai) into the field '" + XaiTokenLabel + "' (tab Voice). "
-                    + "It is saved in config.json (ai.xai.api_key), so you only do this once. "
-                    + "Alternatives: the XAI_API_KEY environment variable, or a key file set in config.json (ai.xai.key_file).\n";
+                text += "No xAI key yet: paste your xAI API key (from console.x.ai) into <b>" + XaiTokenLabel + "</b> (tab Voice); "
+                    + "it is saved in config.json (ai.xai.api_key), so you only do this once, and the XAI_API_KEY environment variable "
+                    + "or a key file set in config.json (ai.xai.key_file) work as well.\n";
             if (_keyInfo != null && !KeyConfigured("elevenlabs"))
-                text += "ElevenLabs (optional, only for ElevenLabs voices): set the ELEVENLABS_API_KEY environment variable or a key file in config.json (ai.elevenlabs.key_file). There is no field for it here.";
+                text += "ElevenLabs is optional and only needed for ElevenLabs voices: set the ELEVENLABS_API_KEY environment variable or a key file in config.json (ai.elevenlabs.key_file), since there is no field for it here.";
             _keyStatusJson.val = text;
         }
 
@@ -848,9 +857,8 @@ namespace AIBody
         /// <summary>Tab "Client Character": the user's microphone, voice activation and push-to-talk, voice barge-in.</summary>
         public void BuildClientCharacterTab(UiPage page)
         {
-            page.Header("<b>Client Character: microphone, voice activation and push-to-talk</b>");
-            if (_mic != null) _mic.BuildTab(page);
-            page.Toggle(_bargeInJson);
+            if (_mic != null) _mic.BuildTab(page, _bargeInJson);
+            else page.Toggle(_bargeInJson);
         }
 
         /// <summary>Info for the tab "Client Character": push-to-talk help, microphone status.</summary>
@@ -862,7 +870,9 @@ namespace AIBody
         /// <summary>Tab "Config" (former Config + Advanced): the shared config.json and the file link.</summary>
         public void BuildConfigTab(UiPage page, UnityEngine.Events.UnityAction reload)
         {
+            page.Header("<b>Config file</b>");
             page.Button("Reload Config JSON", reload);
+            page.Header("<b>Connection</b>");
             page.Toggle(_networkJson);
             page.Slider(_filePollJson, FilePollLabel);
         }

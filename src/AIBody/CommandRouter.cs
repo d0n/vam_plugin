@@ -21,7 +21,6 @@ namespace AIBody
         private readonly PoseController _poses;
         private readonly IdleController _idle;
         private readonly BreathingController _breathing;
-        private readonly GazeController _gaze;
 
         private readonly Func<bool> _bodyControl;
 
@@ -29,7 +28,7 @@ namespace AIBody
         public bool AckAll = false;
 
         public CommandRouter(Action<JSONClass> send, SpeechPlayer speech, ExpressionController expressions,
-            PoseController poses, IdleController idle, BreathingController breathing, GazeController gaze, Func<bool> bodyControl)
+            PoseController poses, IdleController idle, BreathingController breathing, Func<bool> bodyControl)
         {
             _bodyControl = bodyControl;
             _send = send;
@@ -38,7 +37,6 @@ namespace AIBody
             _poses = poses;
             _idle = idle;
             _breathing = breathing;
-            _gaze = gaze;
         }
 
         public void HandlePayload(string payload)
@@ -95,7 +93,7 @@ namespace AIBody
         {
             return type == Protocol.CmdExpression || type == Protocol.CmdSetMorphs || type == Protocol.CmdResetMorphs
                 || type == Protocol.CmdGesture || type == Protocol.CmdPose || type == Protocol.CmdTrigger
-                || type == Protocol.CmdLookAt || type == Protocol.CmdIdle || type == Protocol.CmdBreathing;
+                || type == Protocol.CmdIdle || type == Protocol.CmdBreathing;
         }
 
         // Returns null on success, else an error message.
@@ -111,10 +109,6 @@ namespace AIBody
                 if (type == Protocol.CmdGesture || type == Protocol.CmdPose || type == Protocol.CmdTrigger)
                 {
                     if (_poses == null) return "Poses are not available: the pose part of the plugin did not start (see the Self-test in tab Config)";
-                }
-                else if (type == Protocol.CmdLookAt)
-                {
-                    if (_gaze == null) return "Gaze control is not available: the gaze part of the plugin did not start (see the Self-test in tab Config)";
                 }
                 else if (type == Protocol.CmdIdle || type == Protocol.CmdBreathing) { }   // checked in their case below
                 else if (_expressions == null) return "Expressions are not available: the plugin found no morphs on this character yet (see the Self-test in tab Config)";
@@ -186,8 +180,9 @@ namespace AIBody
                     return _poses.Trigger(msg);
 
                 case Protocol.CmdLookAt:
-                    return _gaze.LookAt(Protocol.GetString(msg, "target", ""), Protocol.GetString(msg, "atom", ""),
-                        Protocol.GetFloat(msg, "seconds", 0f));
+                    // Removed after version 36 (Leon): the eyes belong to VaM. An older companion may still send it.
+                    Log.Debug("look_at ignored: AIBody does not move the eyes");
+                    return null;
 
                 case Protocol.CmdIdle:
                     if (_idle == null) return "Head motion not available";

@@ -31,7 +31,6 @@ http://127.0.0.1:PORT/#token=... fills it in (a fragment is never sent to the se
 <section><h2>Expression</h2><div class="row chips" id="expressions"></div></section>
 <section><h2>Gesture</h2><div class="row chips" id="gestures"></div></section>
 <section><h2>Pose commands</h2><div class="row chips" id="poses"></div></section>
-<section><h2>Eyes</h2><div class="row chips" id="look"></div></section>
 <section><h2>Push-to-talk</h2><div class="row"><button data-ptt="start">Start</button>
 <button data-ptt="stop">Stop</button></div></section>
 <script>
@@ -88,9 +87,6 @@ async function refresh() {
     chips("expressions", s.expressions || [], n => act("expression", {name: n}));
     chips("gestures", s.gestures || [], n => act("gesture", {name: n}));
     chips("poses", s.poses || [], n => act("pose", {name: n}));
-    const targets = ["client", "camera", "forward", "away", "off"];
-    chips("look", targets.concat((s.gaze_atoms || []).map(a => "atom:" + a)), n =>
-      n.startsWith("atom:") ? act("look", {target: "atom", atom: n.slice(5)}) : act("look", {target: n}));
   } catch (e) { $("state").textContent = "not connected: " + e.message; }
 }
 $("save").onclick = () => { token = $("token").value.trim(); sessionStorage.setItem("aibody_token", token); refresh(); };

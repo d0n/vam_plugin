@@ -23,7 +23,6 @@
         "trigger",
         "idle",
         "breathing",
-        "look_at",
         "config_ack",
         "mic_state",
         "mic_level",
@@ -328,27 +327,6 @@
       "type": "object",
       "description": "companion_heartbeat: memory state {enabled, facts (number of remembered facts), note}"
     },
-    "target": {
-      "enum": [
-        "client",
-        "camera",
-        "forward",
-        "away",
-        "off",
-        "atom"
-      ],
-      "description": "look_at: where the eyes look: client = the Client Character (its head; the camera if there is none), camera = the player's view (VR headset / screen), forward = straight ahead, away = a short glance to the side, off = stop directing the gaze (back to the menu's Default gaze), atom = the atom named in 'atom'"
-    },
-    "atom": {
-      "type": "string",
-      "description": "look_at with target 'atom': the atom's name (uid) in the scene"
-    },
-    "seconds": {
-      "type": "number",
-      "minimum": 0,
-      "maximum": 60,
-      "description": "look_at: how long to keep looking there, then back to the default gaze (0 / missing = until changed; 'away' defaults to 3 s)"
-    },
     "json": {
       "type": "string",
       "maxLength": 400,
@@ -498,32 +476,6 @@
         "required": [
           "session"
         ]
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "type": {
-            "const": "look_at"
-          }
-        }
-      },
-      "then": {
-        "required": [
-          "target"
-        ],
-        "if": {
-          "properties": {
-            "target": {
-              "const": "atom"
-            }
-          }
-        },
-        "then": {
-          "required": [
-            "atom"
-          ]
-        }
       }
     }
   ]

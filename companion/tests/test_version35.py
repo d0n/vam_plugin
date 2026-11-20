@@ -176,7 +176,7 @@ class PersonaMenuTests(unittest.TestCase):
         self.assertIn("_personaJson.popupOpenCallback = RefreshPersonaChoices;", link)
         refresh = method_body(link, "private void RefreshPersonaChoices()")
         self.assertIn("new List<string> { PersonaNone }", refresh)
-        self.assertIn("page.Popup(_personaJson);", method_body(link, "public void BuildAiVoiceSection(UiPage page)"))
+        self.assertIn("page.Popup(_personaJson);", method_body(link, "public void BuildAiSection(UiPage page)"))
         self.assertIn("RefreshPersonaChoices();", method_body(link, "private void SetPersonaChoices(JSONArray names)"))
 
 
@@ -221,7 +221,7 @@ class TestToneTests(unittest.TestCase):
 class BodyControlTests(unittest.TestCase):
     def test_body_control_gates_every_body_command_and_the_idle_poses(self):
         router = method_body(source("CommandRouter.cs"), "private static bool IsBodyCommand(string type)")
-        for cmd in ("CmdExpression", "CmdSetMorphs", "CmdResetMorphs", "CmdGesture", "CmdPose", "CmdTrigger", "CmdLookAt",
+        for cmd in ("CmdExpression", "CmdSetMorphs", "CmdResetMorphs", "CmdGesture", "CmdPose", "CmdTrigger",
                     "CmdIdle", "CmdBreathing"):
             self.assertIn(cmd, router)
         body = source("Body.cs")

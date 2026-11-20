@@ -22,12 +22,13 @@
 // events and startup log in the tab Config), always visible. Right column = a row of tab buttons and below it ONLY
 // the controls of the active tab (no text fields; help and status go to the big field). Switching
 // tabs removes the old controls with the standard Remove* methods (UiPage, evidence E17/E18).
-// Tabs (version 15): Voice (Voice Mode: link, Question and Answer, realtime, API Reconnect, sound
-// test; Voice > AI Character: AI mode, voice, engines, proactive) | AI Character (poses, expression
-// and gesture, body of this Person) | Client Character (microphone, voice activation, push-to-talk, voice barge-in)
-// | Config (Reload Config JSON, Companion inbox poll interval = storable "File poll interval (s)",
-// how often the companion inbox is read; verbose log; version 36: Set background color + colour picker,
-// saved with the scene, see Background.cs).
+// Tabs (ordered by topic, 20.11.2026): Voice (Companion connection: link, API Reconnect, token; AI: Question
+// and Answer, realtime, AI mode, language model, persona, memory, proactive; Voice and sound: voice, STT, TTS, sound
+// tests, speech volume) | AI Character (Body control, Idle poses, idle motion and breathing, expression and gesture,
+// poses) | Client Character (microphone, push-to-talk, voice detection, echo and barge-in) | Config (Reload Config
+// JSON; Network Active + Companion inbox poll interval = storable "File poll interval (s)"; verbose log; version 36:
+// Set background color + colour picker, saved with the scene, see Background.cs). Right column: category headers and
+// controls only; every explanation and status is in the left info field (prose, control names in bold).
 //
 // config.json (Saves/PluginData/AIBody/config.json, one global file) is shared with the companion
 // app, one object per tab category (docs/CONFIG.md). The plugin UI (saved with the scene) wins
@@ -299,13 +300,12 @@ namespace AIBody
         private string BackgroundInfo()
         {
             string state = _background != null ? _background.Status : "not available";
-            return "<b>Background</b>\n"
-                + "Set background color: " + state + ". On = the camera shows one plain color instead of the room's sky "
-                + "(saved with the scene; off restores the old background). A 'yes' in the companion's setup switches it on "
-                + "once with the color chosen there.\n"
-                + "Choose what to use: Scene = VaM > Open Scene > d0n.AIBody." + PluginVersion
-                + " > AIBody_Example (AI Character anchored at a fixed spot, green background on); "
-                + "Plugin = this plugin on your own Person atom in your own scene.\n";
+            return "<b>Set background color</b> is " + state + ": switched on, the camera shows the one plain color of <b>"
+                + BackgroundColorName + "</b> instead of the room's sky, it is saved with the scene and switching it off restores the old "
+                + "background, and a 'yes' in the companion's setup switches it on once with the color chosen there. "
+                + "For a ready scene open VaM > Open Scene > d0n.AIBody." + PluginVersion
+                + " > AIBody_Example (the AI Character anchored at a fixed spot, green background on); otherwise this plugin runs "
+                + "on your own Person atom in your own scene.\n";
         }
 
         // ---------------------------------------------------------------- tabs
@@ -322,13 +322,15 @@ namespace AIBody
                 if (_link != null) _link.BuildFirstRunHint(_page);   // version 30: one short note while no xAI token exists
                 switch (index)
                 {
-                    case 0: // Voice
-                        _page.Header("<b>Voice Mode</b> (connection, mode, sound test)");
+                    case 0: // Voice (Leon, 20.11.2026: ordered by topic; only category headers and controls on the right)
+                        _page.Header("<b>Companion connection</b>");
+                        if (_link != null) _link.BuildConnectionSection(_page);
+                        _page.Header("<b>AI</b>");
                         _page.Button(QaButtonLabel, 90f, EnableSimpleQa);
-                        if (_link != null) _link.BuildVoiceModeTab(_page);
-                        if (_body != null) _body.BuildVoiceModeTab(_page);
-                        _page.Header("<b>Voice > AI Character</b> (the character's voice and speech AI)");
-                        if (_link != null) _link.BuildAiVoiceSection(_page);
+                        if (_link != null) _link.BuildAiSection(_page);
+                        _page.Header("<b>Voice and sound</b>");
+                        if (_link != null) _link.BuildVoiceSection(_page);
+                        if (_body != null) _body.BuildSoundSection(_page);
                         break;
                     case 1: // AI Character
                         if (_body != null) _body.BuildCharacterTab(_page);
@@ -337,8 +339,8 @@ namespace AIBody
                         if (_link != null) _link.BuildClientCharacterTab(_page);
                         break;
                     default: // Config (former Config + Advanced)
-                        _page.Header("<b>Config</b> (config.json, connection, logging)");
                         if (_link != null) _link.BuildConfigTab(_page, ReloadConfigJson);
+                        _page.Header("<b>Logging</b>");
                         _page.Toggle(_verboseJson);
                         _page.Header("<b>Background</b>");
                         BuildBackgroundSection();
@@ -361,9 +363,9 @@ namespace AIBody
         /// Button "Reload Config JSON": applies config.json to the UI (paths, connection, engines, mic,
         /// body, ai keys of the tabs) and pushes the result to the companion app.
         /// </summary>
-        private string _simpleQa = "Question and Answer: you ask a question (speak it, or type it into the companion app's console) and the "
-            + "character speaks Grok's answer. This sets AI mode to 'qa' and turns Body control off (tab AI Character), "
-            + "so the character only talks. It needs an xAI API key.";
+        private string _simpleQa = "<b>Question & Answer</b> sets <b>AI mode</b> to 'qa' and switches <b>Body control</b> off (tab AI Character), "
+            + "so you ask a question by speaking it or typing it into the companion app's console and the character only speaks Grok's answer; "
+            + "it needs an xAI API key.";
 
         /// <summary>
         /// Button "Question and Answer" (until version 20 "Simple Q&amp;A mode"): AI mode qa (STT -> Grok -> TTS, speech only) and body
@@ -373,8 +375,8 @@ namespace AIBody
         {
             if (_link != null) _link.SetSimpleQa();
             if (_body != null) _body.SetBodyControl(false);
-            _simpleQa = "Question and Answer is on (" + DateTime.Now.ToString("HH:mm:ss") + "): AI mode is 'qa' and Body control is off. "
-                + "Press 'Play test tone' to check that you can hear the character, then ask a question.";
+            _simpleQa = "Question and Answer is on since " + DateTime.Now.ToString("HH:mm:ss") + ": <b>AI mode</b> is 'qa' and <b>Body control</b> is off, "
+                + "so press <b>Play test tone</b> to check that you can hear the character and then ask a question.";
         }
 
         private void ReloadConfigJson()

@@ -269,7 +269,7 @@ Needs VaM with the AI Character (AIBody) and the Client Character in the example
 2. Info field (left): *Gaze now: looking at … (default gaze)* and the help text. Turn **Gaze control** off: *Gaze now: off*.
 3. Ask the AI (not Question and Answer mode) to look at you, at the client, away; the AI uses `look_at` (console line / log
    `look_at`). *Away* looks to the side for about 3 s and returns to the default.
-4. **Gaze follows speaker** on, Default gaze = *VaM default*: while the AI or you talk, the eyes go to the client; silent: back.
+4. (Removed after version 36: *Gaze follows speaker* is gone, see T43.) Default gaze = *VaM default*: while the AI or you talk, the eyes stay with VaM.
 5. Coexistence: add the Glance plugin to the AI Character: the info field says *paused: Glance is on this Person*, the AI
    gets no `look_at` tool. Remove it again (or switch the Eyes look mode by hand in VaM while AIBody steers): AIBody stops
    and says so; picking a Default gaze takes the eyes again.
@@ -517,3 +517,11 @@ Report: the console output of each run and the tab Config after each step.
 1. Ask three short questions in a row. Each answer starts without a noticeable gap after the companion log line "Say"; no answer is cut at the start, none plays twice.
 2. Report the "Latency to first sound" line of the status field before (version 35) and now, if you still have it.
 
+## T43 – Eyes belong to VaM, Body control ON, menus by topic (after version 36)
+
+1. Tab AI Character: no gaze or blink entry anywhere (no "Gaze and Blinking" block, no Gaze control, Default gaze, Blink control), and the left info field does not mention gaze or blinking. Scene trigger actions of AIBody: no Look at ... / Gaze back to default / Blink now. Asking the AI to look at you does nothing special; VaM's own eye movement and blinking are unchanged.
+2. Expressions (Show expression, Reset expression, Reload expressions) and gestures (nod, shake, tilt via Play gesture) work as before.
+3. An old `config.json` with `body.gaze_control`, `body.gaze_default`, `body.gaze_follows_speaker` or `body.blink_control` loads without a warning; after a few seconds the plugin rewrites the file without these keys.
+4. Fresh scene, add the plugin, and with a `config.json` without `body.body_control`: **Body control** is on. Only Question and Answer switches it off.
+5. Right column of every tab: only bold category headers, controls and the labels above the two input fields, no help or status text (the one caption "for pass-through transparency" under the color picker stays). Order as in `docs/SPEC.md` > Menu (e.g. AI Character: Body control, Idle poses, Idle motion and breathing with Breath morph (from the Morphs tab) right under Breath depth, Expression and gesture, Poses; Speech volume is in Voice > Voice and sound).
+6. Left info field of every tab: the explanations read as running prose and every control name is **bold** (e.g. "**Breaths per minute** controls how fast the chest breathes"); the status lines (companion connection, test tone result, idle pose status, breath morph found / NOT found, errors in red) are there and short.

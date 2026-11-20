@@ -47,17 +47,13 @@ class ParseActionTests(unittest.TestCase):
         self.assertEqual(parse_action("expression", {"name": "happy"}),
                          {"name": "happy", "intensity": 1.0, "blend": 0.4})
         self.assertEqual(parse_action("expression", {"name": "happy", "hold": 3})["hold"], 3.0)
-        self.assertEqual(parse_action("look", {"target": "Client"}), {"target": "client", "seconds": 0.0})
-        self.assertEqual(parse_action("look", {"target": "atom:Lamp", "seconds": 5}),
-                         {"target": "atom", "seconds": 5.0, "atom": "Lamp"})
         self.assertEqual(parse_action("ptt", {"action": "TOGGLE"}), {"action": "toggle"})
         self.assertEqual(parse_action("stop", None), {})
 
     def test_invalid_actions_are_refused(self):
         bad = [("unknown", {}), ("say", {}), ("say", {"text": "  "}), ("say", {"text": 5}), ("say", {"text": "x" * 1001}),
                ("say", {"text": "x", "interrupt": "maybe"}), ("say", []), ("expression", {"name": "a", "intensity": 2}),
-               ("expression", {"name": "a", "blend": "fast"}), ("look", {"target": "moon"}),
-               ("look", {"target": "atom"}), ("look", {"target": "client", "seconds": 999}),
+               ("expression", {"name": "a", "blend": "fast"}), ("look", {"target": "client"}),
                ("ptt", {"action": "hold"}), ("gesture", {"name": ""})]
         for name, params in bad:
             with self.assertRaises(RemoteError, msg=f"{name} {params}"):
@@ -180,7 +176,6 @@ class OscTests(unittest.TestCase):
             (osc_message("/aibody/ask", "Why?"), ("ask", {"text": "Why?"})),
             (osc_message("/aibody/expression", "happy", 0.5), ("expression", {"name": "happy", "intensity": 0.5, "blend": 0.4})),
             (osc_message("/aibody/gesture", "wave"), ("gesture", {"name": "wave"})),
-            (osc_message("/aibody/look", "atom:Lamp", 4), ("look", {"target": "atom", "atom": "Lamp", "seconds": 4.0})),
             (osc_message("/aibody/ptt", 1), ("ptt", {"action": "start"})),
             (osc_message("/aibody/ptt", "toggle"), ("ptt", {"action": "toggle"})),
             (osc_message("/aibody/stop"), ("stop", {})),
@@ -313,11 +308,12 @@ class MainLoopTests(unittest.TestCase):
         self.assertEqual(self.sent("pose"), [])
         self.assertFalse(self.remote.status()["last_action"]["ok"])
 
-    def test_body_control_off_and_gaze_off_are_respected(self):
+    def test_body_control_off_is_respected_and_there_is_no_look_action(self):
         self.plugin.body_control = False
         self.sim.run(self.plugin, 3)
         self.remote.submit("expression", {"name": "happy"})
-        self.remote.submit("look", {"target": "client"})
+        with self.assertRaises(RemoteError):
+            self.remote.submit("look", {"target": "client"})
         self.sim.run(self.plugin, 1)
         self.assertEqual([e for e in self.sent("expression") if e.get("intensity") == 1.0 and e["name"] == "happy"], [])
         self.assertEqual(self.sent("look_at"), [])

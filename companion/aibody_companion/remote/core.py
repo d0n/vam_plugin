@@ -7,7 +7,6 @@ import threading
 from typing import TYPE_CHECKING, Any
 
 from .. import __version__
-from ..protocol import LOOK_MAX_SECONDS, LOOK_TARGETS
 from ..vamjson import as_bool, as_number
 
 if TYPE_CHECKING:
@@ -28,7 +27,6 @@ ACTIONS: dict[str, str] = {
     "expression": "show an expression; params: name, intensity (1.0), blend (0.4 s), hold (seconds, optional)",
     "gesture": "play a gesture from gestures.json; params: name",
     "pose": "run a pose command (the same exact-match gate as typed input); params: name = the command text, e.g. 'Sit Down'",
-    "look": "direct the eyes; params: target (client|camera|forward|away|off|atom), atom (name), seconds (0 = until changed)",
     "stop": "stop speaking and drop the answer being prepared; no params",
     "event": "tell the AI about a scene event (like the plugin's 'Scene event'); params: text",
     "ptt": "push-to-talk; params: action (start|stop|toggle)",
@@ -85,20 +83,6 @@ def parse_action(name: str, params: Any) -> dict[str, Any]:
         hold = _number(params, "hold", None, 0.0, 600.0)
         if hold is not None:
             out["hold"] = hold
-        return out
-    if name == "look":
-        target = str(params.get("target") or "").strip()
-        atom = str(params.get("atom") or "").strip()
-        if target.lower().startswith("atom:"):  # OSC shorthand "atom:Name"
-            target, atom = "atom", target[5:].strip()
-        target = target.lower()
-        if target not in LOOK_TARGETS:
-            raise RemoteError(f"'target' must be one of {', '.join(LOOK_TARGETS)}")
-        if target == "atom" and not atom:
-            raise RemoteError("target 'atom' needs the atom's name in 'atom'")
-        out = {"target": target, "seconds": _number(params, "seconds", 0.0, 0.0, LOOK_MAX_SECONDS)}
-        if target == "atom":
-            out["atom"] = atom
         return out
     if name == "ptt":
         action = str(params.get("action") or "").strip().lower()
@@ -237,8 +221,6 @@ class RemoteControl:
                 "gestures": list(lists.gestures),
                 "poses": [e["command"] for e in vocabulary.available(pose_names)],  # pose commands that can run
                 "poses_unavailable": [e["command"] for e in vocabulary.unavailable(pose_names)],
-                "gaze": bool(lists.gaze),
-                "gaze_atoms": list(lists.gaze_atoms),
                 "last_action": dict(self._last_action),
                 "actions": dict(ACTIONS),
             }
@@ -279,13 +261,8 @@ class RemoteControl:
                 app.emotion.note_ai_expression()  # a chosen face: the words-to-face fallback stays out of this answer
                 app.send(app.body_command("expression", name=p["name"], intensity=p["intensity"], blend=p["blend"],
                                           hold=p.get("hold")))
-        else:  # gesture / pose / look: the same resolution (and the same switches) as the AI's body tools
-            tool = {"gesture": "express", "look": "look_at"}[name]
-            if name == "gesture":
-                args: dict[str, Any] = {"gesture": p["name"]}
-            else:
-                args = {"target": p.get("atom") if p["target"] == "atom" else p["target"], "seconds": p["seconds"]}
-            commands, result = app.tool_commands(tool, args)
+        else:  # gesture: the same resolution (and the same switches) as the AI's body tools
+            commands, result = app.tool_commands("express", {"gesture": p["name"]})
             if not commands:
                 ok, note = False, str(result.get("error") or "not possible")
             for command in commands:

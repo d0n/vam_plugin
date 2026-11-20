@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[2]
 class KeyHintTests(unittest.TestCase):
     def test_default_file_has_the_hint_with_the_three_ways(self):
         hint = settings_file.defaults()["ai"]["xai"]["key_hint"]
-        for part in ("API key", "XAI API Token", "Voice > Voice Mode", "API Reconnect", "XAI_API_KEY", "ai.xai.key_file"):
+        for part in ("API key", "XAI API Token", "Voice > Companion connection", "API Reconnect", "XAI_API_KEY", "ai.xai.key_file"):
             self.assertIn(part, hint)
         self.assertEqual(hint, settings_file.KEY_HINT_TEXT)
 

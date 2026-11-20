@@ -5,7 +5,6 @@ Messages (OSC 1.0 types i f s T F, also h d; bundles are unpacked) to /aibody/<a
   /aibody/say "text" [interrupt 0|1]            /aibody/ask "text"              /aibody/event "text"
   /aibody/expression "name" [intensity] [blend] [hold]
   /aibody/gesture "name"                        /aibody/pose "name"
-  /aibody/look "client|camera|forward|away|off|atom:<Name>" [seconds]
   /aibody/stop                                  /aibody/ptt "start|stop|toggle"  (or 1 = start, 0 = stop)
 
 There is no token (OSC senders rarely support one): the socket accepts only datagrams from this computer, nothing else
@@ -115,10 +114,6 @@ def to_action(address: str, args: list[Any]) -> tuple[str, dict[str, Any]]:
         for i, key in ((1, "intensity"), (2, "blend"), (3, "hold")):
             if len(args) > i:
                 p[key] = args[i]
-    elif action == "look":
-        p = {"target": _arg(args, 0)}
-        if len(args) > 1:
-            p["seconds"] = args[1]
     elif action == "ptt":
         first = args[0] if args else "toggle"
         p = {"action": {1: "start", 0: "stop", True: "start", False: "stop"}.get(first, first) if not isinstance(first, str) else first}

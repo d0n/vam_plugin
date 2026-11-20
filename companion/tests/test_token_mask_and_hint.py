@@ -52,7 +52,7 @@ class MaskTests(unittest.TestCase):
         self.assertIn("TickTokenMask();", method_body(self.link, "public void Update(float dt)"))
 
     def test_the_input_field_is_kept_and_renewed_on_every_tab_build(self):
-        build = method_body(self.link, "public void BuildVoiceModeTab(UiPage page)")
+        build = method_body(self.link, "public void BuildConnectionSection(UiPage page)")
         self.assertIn("_tokenInput = page.TextInputField(_xaiTokenJson);", build)
         ui = source("UiHelper.cs")
         self.assertIn("public static InputField MakeEditable(", ui)
@@ -92,7 +92,7 @@ class FirstRunHintTests(unittest.TestCase):
         self.link = source("AppLink.cs")
 
     def test_text_and_labels(self):
-        self.assertIn('HintText = "An xAI API token is required. Paste it here, or later in Voice > XAI API Token."', self.link)
+        self.assertIn('HintText = "<b>First start: XAI API Token</b>"', self.link)
         self.assertIn('HintClose = "Close"', self.link)
         self.assertIn('HintOk = "OK"', self.link)
 

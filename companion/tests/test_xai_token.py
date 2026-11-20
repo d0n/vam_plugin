@@ -275,12 +275,12 @@ class RealtimeTokenTests(RealtimeSim):
 
 class PluginSourceTests(unittest.TestCase):
     def test_token_field_sits_below_api_reconnect_without_warning_label_under_it(self):
-        body = method_body(source("AppLink.cs"), "public void BuildVoiceModeTab(UiPage page)")
-        order = [body.index(s) for s in ('page.Button("API Reconnect"', "XaiTokenLabel", "page.TextInputField(_xaiTokenJson)",
-                                          "page.Header(XaiTokenHint)", 'page.Button("Test tone via companion"')]
+        body = method_body(source("AppLink.cs"), "public void BuildConnectionSection(UiPage page)")
+        order = [body.index(s) for s in ('page.Button("API Reconnect"', "page.Header(XaiTokenLabel)", "page.TextInputField(_xaiTokenJson)")]
         self.assertEqual(order, sorted(order))
-        between = body[order[2] + len("page.TextInputField(_xaiTokenJson)"):order[3]]
-        self.assertEqual(between.count("page."), 0, "nothing between the field and its hint")
+        # 20.11.2026 (Leon): the hint left the right column; it is running prose in the left field of the tab Voice
+        self.assertNotIn("XaiTokenHint", body)
+        self.assertIn("XaiTokenHint", method_body(source("AppLink.cs"), "public string VoiceInfoText()"))
         self.assertNotIn("XaiTokenWarning", body, "the security notice is in the big info field, not under the token field")
         link = source("AppLink.cs")
         self.assertIn('XaiTokenLabel = "XAI API Token"', link)
@@ -303,7 +303,7 @@ class PluginSourceTests(unittest.TestCase):
         ai = method_body(link, "private JSONClass BuildAiJson(bool forFile)")
         self.assertIn('if (forFile && _tokenReady)', ai, "never in the config event, never before config.json was read")
         self.assertIn('xai["api_key"] = _xaiToken;', ai)
-        self.assertIn('xai["api_key_warning"] = XaiTokenWarning;', ai)
+        self.assertIn('xai["api_key_warning"] = XaiTokenWarningPlain;', ai)
         self.assertIn("BuildAiJson(false)", method_body(link, "private void AddEngines(JSONClass configEvent)"))
         merge = method_body(link, "public static void MergeAi(JSONClass target, JSONClass ui)")
         self.assertIn('"xai", "api_key")', merge)
@@ -325,8 +325,9 @@ class PluginSourceTests(unittest.TestCase):
     def test_no_elevenlabs_field(self):
         link = source("AppLink.cs")
         self.assertNotRegex(link, r"ElevenLabs API Token|_elevenTokenJson")
-        for file, sig in (("AppLink.cs", "public void BuildVoiceModeTab(UiPage page)"),
-                          ("AppLink.cs", "public void BuildAiVoiceSection(UiPage page)")):
+        for file, sig in (("AppLink.cs", "public void BuildConnectionSection(UiPage page)"),
+                          ("AppLink.cs", "public void BuildAiSection(UiPage page)"),
+                          ("AppLink.cs", "public void BuildVoiceSection(UiPage page)")):
             self.assertNotIn("Eleven", method_body(source(file), sig))
 
     def test_question_and_answer_button_is_centered_on_two_lines(self):

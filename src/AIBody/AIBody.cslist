@@ -16,8 +16,6 @@ IdleController.cs
 PoseVocabulary.cs
 IdlePoses.cs
 PoseController.cs
-GazeController.cs
-BlinkController.cs
 CommandRouter.cs
 Background.cs
 Body.cs

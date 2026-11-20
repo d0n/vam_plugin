@@ -372,7 +372,7 @@ class PluginVadMenuTests(unittest.TestCase):
 
     def test_controls_and_json_mapping(self):
         mic = source("MicConfig.cs")
-        build = method_body(mic, "public void BuildTab(UiPage page)")
+        build = method_body(mic, "public void BuildTab(UiPage page, JSONStorableBool bargeIn)")
         for control in ("page.Popup(VadEngine)", "page.Slider(VadStrictness)"):
             self.assertIn(control, build)
         self.assertIn('new JSONStorableFloat("VAD strictness", 2f,', mic)
@@ -385,7 +385,7 @@ class PluginVadMenuTests(unittest.TestCase):
 
     def test_help_and_status_texts_are_plain(self):
         mic = source("MicConfig.cs")
-        for text in ("python -m pip install webrtcvad-wheels", "the microphone is muted on purpose, so the AI never hears itself",
+        for text in ("python -m pip install webrtcvad-wheels", "the microphone is muted on purpose so the ",
                      "Voice detection: ", '"vad_note"'):
             self.assertIn(text, mic)
 

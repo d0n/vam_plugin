@@ -416,7 +416,7 @@ class PluginSourceTests(unittest.TestCase):
 
     def test_info_text_explains_persona_and_memory(self):
         info = method_body(self.link, "private string PersonaInfoText()")
-        for text in ("docs/PERSONAS.md", "Memory: off", "Forget memory", "is not in use"):
+        for text in ("docs/PERSONAS.md", "<b>Memory</b> is off", "Forget memory", "is not in use"):
             self.assertIn(text, info)
         self.assertIn("PersonaInfoText()", method_body(self.link, "public string VoiceInfoText()"))
 

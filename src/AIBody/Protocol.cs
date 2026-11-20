@@ -23,7 +23,7 @@ namespace AIBody
         public const string CmdTrigger = "trigger";
         public const string CmdIdle = "idle";
         public const string CmdBreathing = "breathing";
-        public const string CmdLookAt = "look_at";
+        public const string CmdLookAt = "look_at";   // removed after version 36: accepted and ignored (older companion apps)
         public const string CmdConfigAck = "config_ack";
         public const string CmdMicState = "mic_state";
         public const string CmdMicLevel = "mic_level";

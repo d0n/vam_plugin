@@ -312,7 +312,7 @@ class LatencyCodeTests(unittest.TestCase):
 
     def test_plugin_status_text_only_while_the_ui_is_visible(self):
         self.assertIn("if (_link != null) _link.UiVisible = visible;", self.ai_source())
-        self.assertIn("if (Describe)", source("GazeController.cs"))
+        self.assertIn("Describe", source("IdlePoses.cs"))
         self.assertIn("StatusInterval", source("MicConfig.cs"))
 
     def ai_source(self):
@@ -414,12 +414,206 @@ class PooledHttpTests(unittest.TestCase):
         self.assertIs(http_module._default_opener, http_module.pooled_opener)
 
 
+class EyesBelongToVaMTests(unittest.TestCase):
+    """Leon (calls 20.11.2026 22:34-22:36): no gaze and no blink control in AIBody any more. Removed: Gaze follows
+    speaker, Gaze control, Default gaze (incl. Natural), the AI's look_at tool / command, the remote 'look' action,
+    the scene actions Look at client / camera / straight ahead / away / Gaze back to default, Blink control and
+    'Blink now'. VaM's own gaze and blinking are untouched. Expressions and gestures stay."""
+
+    GONE_UI = ("Gaze follows speaker", "Gaze control", "Default gaze", "Natural (looks around)", "Blink control",
+               "Blink now", "Look at client", "Look at camera", "Look straight ahead", "Look away",
+               "Gaze back to default", "Gaze and blinking", "Gaze now", "Blinking now")
+
+    def test_no_gaze_or_blink_code_or_ui_in_the_plugin(self):
+        self.assertFalse((SRC / "GazeController.cs").exists())
+        self.assertFalse((SRC / "BlinkController.cs").exists())
+        cslist = (SRC / "AIBody.cslist").read_text().split()
+        self.assertNotIn("GazeController.cs", cslist)
+        self.assertNotIn("BlinkController.cs", cslist)
+        for path in SRC.glob("*.cs"):
+            text = path.read_text(encoding="utf-8")
+            for word in self.GONE_UI:
+                self.assertNotIn(word, text, f"{word!r} in {path.name}")
+            for code in ("GazeController", "BlinkController", "_gaze", "_blink", "gaze_control", "gaze_default",
+                         "gaze_atoms", "blink_control", "EyelidControl", "eyeTargetControl"):
+                self.assertNotIn(code, text, f"{code!r} in {path.name}")
+        tab = method_body(source("Body.cs"), "public void BuildCharacterTab(UiPage page)")
+        self.assertNotRegex(tab.lower(), r"gaze|blink|eyes")
+
+    def test_old_look_at_from_an_older_app_is_ignored_not_an_error(self):
+        router = source("CommandRouter.cs")
+        case = router[router.index("case Protocol.CmdLookAt:"):]
+        self.assertIn("return null;", case[:case.index("case Protocol.CmdIdle:")])
+        self.assertIn("CmdLookAt", source("Protocol.cs"))
+
+    def test_the_companion_never_offers_or_sends_look_at(self):
+        from aibody_companion import body_tools, protocol
+        from aibody_companion.remote import RemoteError, parse_action
+        self.assertNotIn("look_at", protocol.COMMANDS)
+        self.assertNotIn("look_at", protocol.BODY_COMMANDS)
+        lists = body_tools.BodyLists.from_body_info({"gaze_control": "true", "gaze_atoms": ["Lamp"]}, ["neutral"], ["nod"])
+        self.assertEqual([t["name"] for t in body_tools.tools(lists)], ["express"])
+        self.assertNotIn("look_at", body_tools.rules(lists))
+        self.assertFalse(body_tools.resolve("look_at", {"target": "client"}, lists, True)[1]["ok"])
+        with self.assertRaises(RemoteError):
+            parse_action("look", {"target": "client"})
+        schema = json.loads((ROOT / "protocol" / "schema" / "command.schema.json").read_text())
+        self.assertNotIn("look_at", schema["properties"]["type"]["enum"])
+
+    def test_config_keys_gone_and_old_files_still_load(self):
+        for key in ("gaze_follows_speaker", "gaze_control", "gaze_default", "blink_control"):
+            self.assertNotIn(key, settings_file.DEFAULTS["body"])
+            self.assertNotIn(key, (ROOT / "protocol" / "schema" / "config.schema.json").read_text())
+            self.assertNotIn(key, (ROOT / "examples" / "config.json").read_text())
+        old = {"body": {"gaze_follows_speaker": True, "gaze_control": "false", "gaze_default": "natural",
+                        "blink_control": True, "body_control": True}}
+        data, errors = settings_file.validate(old)
+        self.assertEqual(errors, [])
+        self.assertNotIn("gaze_control", data["body"])
+
+    def test_expressions_and_gestures_stay(self):
+        body = source("Body.cs")
+        for needle in ("Show expression", "Reset expression", "Reload expressions", "Play gesture", '"Expression: "',
+                       '"Gesture: "'):
+            self.assertIn(needle, body)
+        # the built-in head gestures (examples/gestures.json maps names such as agree/disagree onto them)
+        self.assertIn('new[] { "nod", "shake", "tilt" }', body)
+        idle = source("IdleController.cs")
+        for g in ("nod", "shake", "tilt"):
+            self.assertIn(f'"{g}"', idle)
+
+
+class BodyControlDefaultTests(unittest.TestCase):
+    """Leon: Body control is ON for a fresh install, a fresh scene and a missing key; only the Question and Answer
+    button switches it off (on purpose, unchanged)."""
+
+    def test_every_default_is_on(self):
+        body = source("Body.cs")
+        self.assertIn('new JSONStorableBool("Body control", true,', body)
+        self.assertIn('Protocol.GetBool(body, "body_control", _bodyControlJson.val)', body, "missing key keeps ON")
+        self.assertTrue(settings_file.DEFAULTS["body"]["body_control"])
+        self.assertTrue(json.loads((ROOT / "examples" / "config.json").read_text())["body"]["body_control"])
+        schema = json.loads((ROOT / "protocol" / "schema" / "config.schema.json").read_text())
+        self.assertIs(schema["properties"]["body"]["properties"]["body_control"]["default"], True)
+        data, _ = settings_file.validate({"body": {}})
+        self.assertTrue(data["body"]["body_control"])
+
+    def test_only_the_question_and_answer_button_switches_it_off(self):
+        hits = [p.name for p in SRC.glob("*.cs") if "SetBodyControl(false)" in p.read_text()]
+        self.assertEqual(hits, ["AIBody.cs"])
+        self.assertIn("SetBodyControl(false)", method_body(source("AIBody.cs"), "private void EnableSimpleQa("))
+        for p in SRC.glob("*.cs"):
+            self.assertNotIn("_bodyControlJson.val = false", p.read_text())
+
+    def test_scene_preset_and_setup_do_not_store_it_off(self):
+        for st in [st for a in first_start.scene_data(True)["atoms"] for st in a["storables"]]:
+            self.assertNotIn("Body control", st)
+        self.assertNotIn("Body control", (ROOT / "tools" / "build_var.py").read_text())
+        self.assertNotIn("body_control", (ROOT / "companion" / "aibody_companion" / "setup.py").read_text())
+
+
 class VersionTests(unittest.TestCase):
     def test_version_36_everywhere(self):
         self.assertEqual(__version__, "36")
         self.assertIn('PluginVersion = "36"', source("AIBody.cs"))
         self.assertEqual(json.loads((ROOT / "packaging" / "AIBody.json").read_text())["version"], 36)
         self.assertTrue(re.search(r"d0n\.AIBody\.36:", first_start.TEMPLATE.read_text()))
+
+
+class MenuLayoutTests(unittest.TestCase):
+    """Leon, 20.11.2026: menus ordered by topic; right column = category headers and controls only;
+    left info field = running prose with every control name in bold (rich text evidenced, API_AUDIT E35)."""
+
+    RIGHT = [
+        ("AppLink.cs", "public void BuildConnectionSection(UiPage page)"),
+        ("AppLink.cs", "public void BuildAiSection(UiPage page)"),
+        ("AppLink.cs", "public void BuildVoiceSection(UiPage page)"),
+        ("AppLink.cs", "public void BuildClientCharacterTab(UiPage page)"),
+        ("AppLink.cs", "public void BuildConfigTab(UiPage page"),
+        ("Body.cs", "public void BuildSoundSection(UiPage page)"),
+        ("Body.cs", "public void BuildCharacterTab(UiPage page)"),
+        ("MicConfig.cs", "public void BuildTab(UiPage page, JSONStorableBool bargeIn)"),
+    ]
+
+    def order(self, body, parts):
+        idx = [body.index(p) for p in parts]
+        self.assertEqual(idx, sorted(idx), parts)
+
+    def test_right_column_has_only_headers_and_controls(self):
+        allowed_labels = {"XaiTokenLabel", "BreathMorphLabel", "NewPoseCommandLabel"}
+        for file, sig in self.RIGHT:
+            body = method_body(source(file), sig)
+            self.assertNotRegex(body, r"\bpage\.(Text|Note)\(", f"{file} {sig}")
+            for m in re.finditer(r"page\.Header\(([^;]*)\);", body):
+                arg = m.group(1)
+                ok = arg in allowed_labels or re.fullmatch(r'"<b>[^<"]{1,40}</b>"', arg)
+                self.assertTrue(ok, f"{file}: header {arg} is not a short category header or field label")
+        show = method_body(source("AIBody.cs"), "private void ShowTab(int index)")
+        for m in re.finditer(r"_page\.Header\(([^;]*)\);", show):
+            self.assertRegex(m.group(1), r'^"<b>[^<"]{1,40}</b>"$')
+        # the one caption Leon asked for in version 36 stays under the color picker
+        self.assertEqual(re.findall(r"_page\.Note\((\w+)\)", source("AIBody.cs")), ["BackgroundHint"])
+        self.assertIn('HintText = "<b>First start: XAI API Token</b>"', source("AppLink.cs"))
+
+    def test_tabs_are_ordered_by_topic(self):
+        show = method_body(source("AIBody.cs"), "private void ShowTab(int index)")
+        self.order(show, ['"<b>Companion connection</b>"', "BuildConnectionSection", '"<b>AI</b>"', "QaButtonLabel",
+                          "BuildAiSection", '"<b>Voice and sound</b>"', "BuildVoiceSection", "BuildSoundSection",
+                          "BuildConfigTab", '"<b>Logging</b>"', "_verboseJson", '"<b>Background</b>"', "BuildBackgroundSection"])
+        char = method_body(source("Body.cs"), "public void BuildCharacterTab(UiPage page)")
+        self.order(char, ['"<b>Body control</b>"', "_bodyControlJson", '"<b>Idle poses</b>"', "_idlePosesJson", "_idlePoseMaxJson",
+                          '"<b>Idle motion and breathing</b>"', "_idleJson", "_breathingJson", "_breathRateJson", "_breathDepthJson",
+                          "page.Header(BreathMorphLabel)", "_breathMorphJson", '"<b>Expression and gesture</b>"', '"<b>Poses</b>"'])
+        self.assertNotIn("_volumeJson", char)
+        self.assertIn("page.Slider(_volumeJson);", method_body(source("Body.cs"), "public void BuildSoundSection(UiPage page)"))
+        self.assertIn('BreathMorphLabel = "Breath morph (from the Morphs tab)"', source("Body.cs"))
+        self.assertIn('new JSONStorableString("Breath morph", "Breath1"', source("Body.cs"))
+        mic = method_body(source("MicConfig.cs"), "public void BuildTab(UiPage page, JSONStorableBool bargeIn)")
+        self.order(mic, ['"<b>Microphone</b>"', "Toggle(Enabled)", "Popup(Mode)", "Slider(Gain)", '"<b>Push-to-talk</b>"', "_pttActive",
+                         '"<b>Voice detection</b>"', "Popup(VadEngine)", "Slider(MaxUtteranceMs)", '"<b>Echo and barge-in</b>"',
+                         "Slider(EchoTail)", "Toggle(bargeIn)"])
+        ai = method_body(source("AppLink.cs"), "public void BuildAiSection(UiPage page)")
+        self.order(ai, ["_realtimeJson", "_aiModeJson", "_llmJson", "_personaJson", "_memoryJson", "Forget memory", "_proactiveJson"])
+        voice = method_body(source("AppLink.cs"), "public void BuildVoiceSection(UiPage page)")
+        self.order(voice, ["_voiceJson", "_sttJson", "_ttsJson", "Test tone via companion"])
+
+    def test_left_texts_are_prose_with_bold_labels(self):
+        link, body, mic, ai = source("AppLink.cs"), source("Body.cs"), source("MicConfig.cs"), source("AIBody.cs")
+        self.assertIn("<b>Breaths per minute</b> controls how fast", body)
+        for label in ("Body control", "Apply pose", "Idle head motion", "Breathing", "Idle default pose", "Add Pose"):
+            self.assertIn(f"<b>{label}</b>", body)
+        for label in ("AI mode", "Use realtime voice", "Proactive talking", "Speech delay timer (s)", "Persona", "Memory",
+                      "Forget memory", "Network Active", "Reload Config JSON", "XAI API Token"):
+            self.assertIn(f"<b>{label}</b>", link)
+        self.assertIn('<b>" + XaiTokenLabel + "</b>', link)
+        for label in ("Push-to-talk active", "Mic mode", "VAD engine", "VAD strictness", "VAD threshold", "Echo gate tail (s)"):
+            self.assertIn(f"<b>{label}</b>", mic)
+        for label in ("Question & Answer", "AI mode", "Body control", "Play test tone", "Set background color"):
+            self.assertIn(f"<b>{label}</b>", ai)
+        # no "Label: explanation" boxes left in the explanations
+        for old in ("Memory: off", "Persona: none", "Proactive talking: when on", "VAD strictness 0-3:",
+                    "Body control off = ", "Breath morph: a name"):
+            self.assertNotIn(old, link + body + mic + ai)
+        # bold is evidenced for the info text field
+        audit = (ROOT / "docs" / "API_AUDIT.md").read_text(encoding="utf-8")
+        self.assertIn("| E35 |", audit)
+        self.assertIn("ManageAnimationsScreen.cs", audit)
+        spec = (ROOT / "docs" / "SPEC.md").read_text(encoding="utf-8")
+        self.assertIn("**Left info field (Leon, 20.11.2026, standing rule):**", spec)
+        self.assertIn("**Right column (Leon, 20.11.2026, standing rule):**", spec)
+
+    def test_every_bold_label_names_a_real_control(self):
+        cs = "".join(source(f) for f in ("AIBody.cs", "AppLink.cs", "Body.cs", "MicConfig.cs"))
+        labels = set(re.findall(r"<b>([^<\"]+)</b>", cs))
+        known = set(re.findall(r'new JSONStorable\w+\("([^"]+)"', cs)) | set(re.findall(r'Button\("([^"]+)"', cs))
+        known |= {"Question & Answer", "Breath morph (from the Morphs tab)", "Companion inbox poll interval (s)", "XAI API Token",
+                  "Background color", "Set background color", "Pose command", "Pose", "Language model", "Speech-to-text", "Text-to-speech", "Voice"}
+        headers = {"Companion connection", "AI", "Voice and sound", "Logging", "Background", "Body control", "Idle poses",
+                   "Idle motion and breathing", "Expression and gesture", "Poses", "Microphone", "Push-to-talk",
+                   "Voice detection", "Echo and barge-in", "Config file", "Connection", "First start: XAI API Token",
+                   "Self-test", "Recent events", "Startup log", "Engine status", "Info: "}
+        unknown = sorted(x for x in labels if x not in known and x not in headers and not x.startswith(("AIBody", "Info")))
+        self.assertEqual(unknown, [], "bold text that is neither a control label nor a section title")
 
 
 if __name__ == "__main__":
