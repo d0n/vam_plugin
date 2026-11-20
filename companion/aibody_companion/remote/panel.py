@@ -30,7 +30,7 @@ http://127.0.0.1:PORT/#token=... fills it in (a fragment is never sent to the se
 <label><input type="checkbox" id="interrupt"> interrupt</label></div></section>
 <section><h2>Expression</h2><div class="row chips" id="expressions"></div></section>
 <section><h2>Gesture</h2><div class="row chips" id="gestures"></div></section>
-<section><h2>Pose</h2><div class="row chips" id="poses"></div></section>
+<section><h2>Pose commands</h2><div class="row chips" id="poses"></div></section>
 <section><h2>Eyes</h2><div class="row chips" id="look"></div></section>
 <section><h2>Push-to-talk</h2><div class="row"><button data-ptt="start">Start</button>
 <button data-ptt="stop">Stop</button></div></section>

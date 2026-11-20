@@ -1,4 +1,4 @@
-# AIBody – test protocol for the first test in VaM 1.22 (from v0.6.3, now version 30; T9 from v0.7.2, T10 from v0.7.3, menu layout from version 15, T19–T21 from version 30)
+# AIBody – test protocol for the first test in VaM 1.22 (from v0.6.3, now version 32; T9 from v0.7.2, T10 from v0.7.3, menu layout from version 15, T19–T21 from version 30, T22–T23 from version 31, T24–T29 from version 32)
 
 Goal: the open "must do now" points that can only be checked in VaM. Please go through every point
 in order and enter the result (✅ / ❌ / unclear). Duration: about 20 minutes.
@@ -15,7 +15,7 @@ in order and enter the result (✅ / ❌ / unclear). Duration: about 20 minutes.
 - Close VaM. In `<VaM main folder>/AddonPackages/` delete all old AIBody packages:
   `d0n.AIBody.1.var` to `d0n.AIBody.29.var`, `d0n.AIBodySession.*`, `d0n.AIBodyPerson.*`,
   `d0n.AIBodyPerson2.*`. Also remove loose files under `Custom/Scripts/d0n/AIBody/`.
-- Copy `d0n.AIBody.31.var` to `<VaM main folder>/AddonPackages/`.
+- Copy `d0n.AIBody.32.var` to `<VaM main folder>/AddonPackages/`.
 - Have the companion app ready (do **not** start it yet):
   `python -m aibody_companion --vam-root "D:\VaM"` (adjust the path to your own VaM folder).
   For T9 enter the xAI key in the plugin (tab **Voice** > field **XAI API Token**, from version 21) or set it before starting: `set XAI_API_KEY=xai-...` (cmd) or `$env:XAI_API_KEY="xai-..."` (PowerShell); the field wins.
@@ -26,12 +26,12 @@ in order and enter the result (✅ / ❌ / unclear). Duration: about 20 minutes.
 
 1. Start VaM, open a scene with a female standard figure (or a new scene + Person).
 2. Select the figure (Person atom) > tab **Plugins** > **Add Plugin** >
-   `AddonPackages > d0n.AIBody.31:/Custom/Scripts/d0n/AIBody/AIBody.cslist`.
+   `AddonPackages > d0n.AIBody.32:/Custom/Scripts/d0n/AIBody/AIBody.cslist`.
    **Not** under *Session Plugins* or *Scene Plugins*.
 3. If VaM asks whether to allow plugins from the package: allow it and note that it asked.
 4. Open **Open Custom UI** (plugin window).
 
-Report: Does only `d0n.AIBody.31` still show up in the package list? Did VaM ask for permission?
+Report: Does only `d0n.AIBody.32` still show up in the package list? Did VaM ask for permission?
 Screenshot of the window; red "AIBody:" lines. Expected: *Self-test* "Person atom: yes",
 the Startup log ends with "Init complete, no errors."
 
@@ -77,10 +77,11 @@ cleanly (old elements gone, no duplicates)? Is there a *WARNING "is read-only"* 
    head shake), `What are you doing?` (thoughtful + head tilt). The test engine sends expression
    and gesture along automatically. Watch the face and head.
 3. **Pose memory:** quit the companion app. Save an own pose of the figure (figure > tab
-   *Pose* > save preset, e.g. as `Custom/Atom/Person/Pose/test.json`). Then create a
-   text file `<VaM>/Saves/PluginData/AIBody/default/inbox/pose_test.json` with the content
-   `{ "v": 3, "type": "pose", "id": "p-1", "path": "Custom/Atom/Person/Pose/test.json" }`
-   (adjust the path to your own pose). Put the figure in a somewhat different position first.
+   *Pose* > save preset under the name `Sit Down`, i.e. the file `Custom/Atom/Person/Pose/Preset_Sit Down.vap`).
+   Then create a text file `<VaM>/Saves/PluginData/AIBody/default/inbox/pose_test.json` with the content
+   `{ "v": 3, "type": "pose", "id": "p-1", "command": "Sit Down", "json": "{\"pose\":\"Sit Down\"}" }`
+   (since version 32 a pose command carries only this JSON; `path` and `name` are refused). Put the figure in a
+   somewhat different position first. The full pose command test is T24-T29.
 
 Report (since version 13): the lines in the *Self-test* "Pose storage (PosePresets)", "Poses",
 "Breath morph", "Expression morphs: x of y found – missing: …" and possibly "Timeline"; the same values
@@ -194,7 +195,8 @@ but please have a quick look anyway) and a screenshot of the status field with *
    Status field: result of the action. **Reload poses** after putting a new pose file there.
 3. Choose an expression > **Show expression**; choose a gesture > **Play gesture**.
 4. Tab **Voice** > **Use realtime voice** on, tab **AI Character** > **Body control** on.
-   Say: "Smile for me" or "Strike another pose". Console: `realtime tool call` or
+   Say: "Smile for me" (poses are no AI tool any more since version 32: "Strike another pose" must NOT move the
+   body, see T24-T29). Console: `realtime tool call` or
    `llm tool call` (with Verbose log), the figure reacts. With **Question and Answer** it does not react
    (speech only, as intended).
 5. After every answer in the status field (*Live*): `Latency to first sound: X s (avg Y s, n turns)` and
@@ -310,7 +312,7 @@ Needs VaM with the AI Character (AIBody) and the companion app (AI mode not Ques
 
 ## T19 – Network Active (version 30)
 
-Needs VaM with the AI Character (AIBody 31) and the companion app from this version. The companion listens on `127.0.0.1:38437` (`connection.network_port`). VaM's *User Preferences > Security > Allow Plugins Network Access* has to be on for steps 1-4 and off for step 5.
+Needs VaM with the AI Character (AIBody 32) and the companion app from this version. The companion listens on `127.0.0.1:38437` (`connection.network_port`). VaM's *User Preferences > Security > Allow Plugins Network Access* has to be on for steps 1-4 and off for step 5.
 
 1. **Default:** add the plugin, start the companion app. Tab **Config**: **Network Active** is on. The info field shows `Network: connected` within a few seconds (it may say `connecting ...` first). The console of the app says that the plugin linked up over the network. Type a sentence into the app console: the answer is spoken as usual. Report the `Network:` line and whether the delay is the same as or shorter than before.
 2. **Off:** switch **Network Active** off: the info field says `Network: off`, the companion console reports that the link dropped, everything keeps working through the files (type a sentence: it is spoken). Switch it on again: `connected` returns without restarting anything.
@@ -322,7 +324,7 @@ Needs VaM with the AI Character (AIBody 31) and the companion app from this vers
 
 ## T20 – Token masking by focus (version 30)
 
-Needs VaM with the AI Character (AIBody 31). Use a harmless fake token such as `xai-0123456789abcdefghij` for steps 1-3.
+Needs VaM with the AI Character (AIBody 32). Use a harmless fake token such as `xai-0123456789abcdefghij` for steps 1-3.
 
 1. Tab **Voice** > field **XAI API Token**: click into it and paste the fake token. While the field has focus you see the whole text (no mask, no timer).
 2. Click outside the field (another control or another tab and back): the field shows the first 4 and the last 4 characters with stars between them (`xai-****ghij`). Click into the field again: the real text is shown again while it has focus.
@@ -332,7 +334,7 @@ Needs VaM with the AI Character (AIBody 31). Use a harmless fake token such as `
 
 ## T21 – First-run note (version 30)
 
-Needs VaM with the AI Character (AIBody 31). Start without a token: no `ai.xai.api_key` in `config.json` (or move the file away), no `XAI_API_KEY`, and `ui.first_run_hint_dismissed` not set.
+Needs VaM with the AI Character (AIBody 32). Start without a token: no `ai.xai.api_key` in `config.json` (or move the file away), no `XAI_API_KEY`, and `ui.first_run_hint_dismissed` not set.
 
 1. Add the plugin and open the tab **Voice**: at the very top there is one short note "An xAI API token is required. Paste it here, or later in Voice > XAI API Token.", ONE text field and ONE button. The button says **Close** while the field is empty.
 2. Paste a fake token into the note's field: the button changes to **OK**, and the field follows the masking rules of T20 (full text while focused, mask when not).
@@ -343,11 +345,11 @@ Needs VaM with the AI Character (AIBody 31). Start without a token: no `ai.xai.a
 
 ## T22 – Remote control (version 31)
 
-Needs VaM with the AI Character (AIBody 31) and the companion app from this version. Edit `Saves/PluginData/AIBody/config.json` section `remote`: `"enabled": true` (leave `token` empty), restart the app. The remote is off until you do this.
+Needs VaM with the AI Character (AIBody 32) and the companion app from this version. Edit `Saves/PluginData/AIBody/config.json` section `remote`: `"enabled": true` (leave `token` empty), restart the app. The remote is off until you do this.
 
 1. The console shows `Remote control: web page and HTTP API on http://127.0.0.1:38438/ (this computer only; ...)`, and `config.json` now has a `remote.token` (copy it). Without `enabled` nothing is opened.
 2. Open `http://127.0.0.1:38438/#token=<token>` in a browser on this computer: the status shows `Plugin: connected`, the expressions / gestures / poses of the character appear as buttons. Type a sentence and press **Say exactly this**: the character speaks it. **Ask the AI** answers like a typed question. **Stop** stops speech.
-3. Click an expression, a gesture and a pose button: they show on the character (with *Body control* on in the tab AI Character). With *Body control* off the page shows `FAILED - body control is off in the plugin` under Remote.
+3. Click an expression, a gesture and a pose command button (only commands whose pose exists are offered): they show on the character (with *Body control* on in the tab AI Character). With *Body control* off the page shows `FAILED - body control is off in the plugin` under Remote.
 4. From a console on the same computer: `curl -H "Authorization: Bearer <token>" -H "Content-Type: application/json" -d "{\"text\":\"Hello\"}" http://127.0.0.1:38438/api/say` speaks; the same call without the header or with a wrong token answers HTTP 401.
 5. Save and reload the scene, change something in the plugin menu, wait 2 s: `config.json` still holds the `remote` section with your token (the plugin keeps it).
 6. Optional OSC: set `"osc_port": 9000`, restart, send `/aibody/say "Hello"` from any OSC tool on this computer (for example `python -m pip install python-osc` and `SimpleUDPClient("127.0.0.1", 9000).send_message("/aibody/say", "Hello")`): the character speaks. Report that OSC works without a token.
@@ -356,9 +358,65 @@ Needs VaM with the AI Character (AIBody 31) and the companion app from this vers
 
 ## T23 – Plugin preset (version 31)
 
-Needs VaM with `d0n.AIBody.31.var` in `AddonPackages`, a Person atom WITHOUT the AIBody plugin.
+Needs VaM with `d0n.AIBody.32.var` in `AddonPackages`, a Person atom WITHOUT the AIBody plugin.
 
-1. Select the Person > tab **Plugins** > **Load Preset** (Plugins tab, preset browser). Look for `Preset_AIBody` under the package `d0n.AIBody.31` (the browser hides some plugin presets; also try *Packages* and the folder `Custom/Atom/Person/Plugins/AIBody`). Take a screenshot of what you see.
-2. Load it: the plugin `AIBody` (from `d0n.AIBody.31:/Custom/Scripts/d0n/AIBody/AIBody.cslist`) appears in the Plugins tab, exactly once, and its UI opens as usual. Report the `AIBody:` startup lines.
+1. Select the Person > tab **Plugins** > **Load Preset** (Plugins tab, preset browser). Look for `Preset_AIBody` under the package `d0n.AIBody.32` (the browser hides some plugin presets; also try *Packages* and the folder `Custom/Atom/Person/Plugins/AIBody`). Take a screenshot of what you see.
+2. Load it: the plugin `AIBody` (from `d0n.AIBody.32:/Custom/Scripts/d0n/AIBody/AIBody.cslist`) appears in the Plugins tab, exactly once, and its UI opens as usual. Report the `AIBody:` startup lines.
 3. Load the preset a second time on the same Person: report whether a second copy of the plugin appears (and, if you had other plugins on the Person, whether the preset removed them).
 4. Report anything VaM complains about in the red log lines.
+
+## T24 – Pose commands: exact match (version 32)
+
+Needs VaM with the AI Character (AIBody 32) and the companion app from this version, AI mode *chain* or *auto* with a key (the gate itself needs no key: the words are typed into the app). *Body control* on (tab AI Character).
+
+Preparation: pose files. None ships with the package, so at first **all 10 starter commands are unavailable**. Pose the Person in a few different ways and save each pose preset (Person > tab *Pose* > save preset) with the command's name, e.g. `Sit Down` (file `Custom/Atom/Person/Pose/Preset_Sit Down.vap`), then tab AI Character > Poses > **Reload poses**. Matching ignores case, spaces, `_` and `-`, so `Preset_sit_down` works too. Make as many as you can: `Sit Down`, `Lay Down`, `Prone`, `Stand Up`, `Spread Your Legs`, `Ankle Your Knees`, `Ankle Your Elbows`, `Turn Around`, `Crawl on all fours`, `Bend Over`.
+
+1. Tab AI Character > **Poses**: the info field lists the pose commands and which of them are available. Report which starters are unavailable.
+2. For each command that has a pose file, type EXACTLY its text into the app (console or the app's input) or say it: the Person takes the pose, there is NO spoken answer, the status line says `Pose command: <command>`, and the console shows no language-model call for it. Report which commands worked.
+3. Case and punctuation: `sit down`, `SIT DOWN`, `Sit Down.`, `Sit Down!`, `Sit Down?`, `  Sit   Down  ` each apply the pose again (put the figure in another position in between).
+4. A command WITHOUT a pose file (for example one you did not make): type it. Nothing moves, no pose is applied, the console warns `Pose command '<x>' is unavailable: ...`. It is not offered to the AI.
+5. Report the red `AIBody:` lines in VaM and the companion console output.
+
+## T25 – Pose commands: near-misses must NOT trigger (version 32)
+
+Same setup as T24, with `Sit Down` and `Prone` available.
+
+1. Type each of these: `please sit down`, `sit down and smile`, `Sit Down please`, `sit`, `down`, `Sit-Down`, `sitdown`, `Can you sit down?`, `sit down, then stand up`, `Prone position`. The Person does NOT change pose; each is an ordinary conversation (the AI answers normally; the answer must not move the body into a pose).
+2. Say the same sentences into the microphone (a sentence that only CONTAINS a command, such as "please sit down", must not move the body).
+3. Ask the AI "Strike a pose" / "Sit down for me, please" (realtime and chain): it answers in words, the body does not take a pose (there is no pose tool).
+4. Switch **Body control** off: type `Sit Down`: nothing happens (the words go to the conversation like any text). Switch it on again.
+5. Report which sentence, if any, moved the body, plus the red `AIBody:` lines.
+
+## T26 – Pose commands: realtime voice (version 32)
+
+Needs VaM with the AI Character and the companion app, **Use realtime voice** on, `Sit Down` available (T24).
+
+1. Say "Sit down." (only that): the Person takes the pose and the character does NOT answer by voice. Report if you hear the start of an answer anyway (the app cancels the realtime answer when the transcript arrives; TODO(verify): the real server may already have started it; report how much was heard).
+2. Say "Please sit down.": an ordinary spoken answer, no pose.
+3. Say "Sit down" and right after a normal question: the question is answered (the cancelled answer of the command must not swallow the next answer).
+4. Report the console lines `Heard: ...` and `Pose command: ...` and the red `AIBody:` lines.
+
+## T27 – Add Pose (version 32)
+
+Needs VaM with the AI Character (AIBody 32) and at least one pose file (T24).
+
+1. Tab AI Character > **Poses**: choose a pose in the pose chooser, type `Take a seat` into **New pose command**, press **Add Pose**. The info field shows the command linked to the pose, the command chooser contains `Take a seat`, and within about 2 seconds `config.json` > `poses.commands` has the new entry `{"command": "Take a seat", "pose": "<pose>"}` (the file also still holds the other commands).
+2. Type `take a seat!` into the app: the pose is applied. Type `please take a seat`: nothing.
+3. Press **Add Pose** with an empty text field, with only `...` as text, and with a text longer than 60 characters: a red note, nothing added.
+4. Type `Take a seat` again with another pose chosen and press **Add Pose**: the command is not duplicated, it is linked to the new pose.
+5. Report the entry in `config.json` and the red `AIBody:` lines.
+
+## T28 – Delete Pose and Restore starter poses (version 32)
+
+1. Tab AI Character > **Poses**: choose `Prone` in the command chooser (the first chooser), press **Delete Pose**: it disappears from the chooser; `config.json` > `poses.commands` no longer has it; typing `Prone` now does nothing special (it is an ordinary sentence).
+2. Delete `Take a seat` (T27) too. Delete all remaining commands: the chooser and **Delete Pose** disappear (no empty menu), `poses.commands` is `[]`, and no typed command applies a pose.
+3. Press **Restore starter poses**: the 10 starters are back (the info note says how many were restored), your own commands and links are untouched; a second press says all are already there.
+4. Report the info field text and the red `AIBody:` lines.
+
+## T29 – Pose commands: persistence and a missing pose file (version 32)
+
+1. Add a command (T27), save the scene, quit VaM, start it, load the scene: the command chooser still holds it and it works. Check `config.json` > `poses.commands`.
+2. Edit `config.json` while VaM is closed (add `{"command": "Wave Hello", "pose": "wave"}`), start VaM: the command is in the chooser; **Reload Config JSON** applies later edits. Remove the whole `poses` key and press **Reload Config JSON**: the starters are back.
+3. Missing pose file: move the file of an available command (for example `Preset_Sit Down.vap`) out of the Pose folder, press **Reload poses**: the command is unavailable (no offer, typing it applies nothing and the console warns), but it is still in the chooser and in `config.json`. Put the file back and **Reload poses**: it works again.
+4. Malformed JSON test: put `{ "v": 3, "type": "pose", "id": "p-9", "command": "x", "json": "{\"pose\":\"Sit Down\",\"x\":1}" }` as `inbox/pose_bad.json` (and once with `"json": "nope"`, and once with a pose id that is not linked to any command): nothing moves; the red log shows one short line `AIBody: Warning: Pose ignored: ...` each.
+5. Report all red `AIBody:` lines and the companion console output.

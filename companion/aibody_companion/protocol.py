@@ -14,7 +14,7 @@ import time
 import uuid
 from typing import Any
 
-from . import PROTOCOL_VERSION
+from . import PROTOCOL_VERSION, pose_commands
 from .logsetup import add_secret
 from .vamjson import as_bool
 
@@ -29,7 +29,9 @@ COMMANDS: dict[str, tuple[set[str], set[str]]] = {
     "set_morphs": ({"morphs"}, {"blend", "release_others"}),
     "reset_morphs": (set(), {"blend"}),
     "gesture": ({"name"}, {"duration", "amplitude"}),
-    "pose": (set(), {"path", "name"}),  # path of a preset, or name: gestures.json pose / preset file
+    # version 32: ONLY {"json": "{\"pose\":\"<id>\"}"} (the plugin parses it and checks it against its pose vocabulary);
+    # command = the matched command text (informational). The old fields path / name are no longer accepted.
+    "pose": ({"json"}, {"command"}),
     "trigger": ({"storable"}, {"action", "param", "value", "value_type"}),
     "idle": (set(), {"enabled", "intensity"}),
     "breathing": (set(), {"enabled", "rate", "depth"}),
@@ -128,8 +130,10 @@ def validate_command(msg: Any) -> list[str]:
             errors.append("speak: 'audio' must be a non-empty path")
         if msg.get("queue", "append") not in SPEAK_QUEUE_MODES:
             errors.append(f"speak: queue must be one of {SPEAK_QUEUE_MODES}")
-    if type_ == "pose" and not (msg.get("path") or msg.get("name")):
-        errors.append("pose: needs 'path' or 'name'")
+    if type_ == "pose":
+        pose, problem = pose_commands.parse_pose_json(msg.get("json"))
+        if pose is None:
+            errors.append(f"pose: {problem}")
     if type_ == "look_at":
         if msg.get("target") not in LOOK_TARGETS:
             errors.append(f"look_at: target must be one of {LOOK_TARGETS}")

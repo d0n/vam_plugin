@@ -39,7 +39,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from . import __version__, body_tools, logsetup, protocol
+from . import __version__, body_tools, logsetup, pose_commands, protocol
 from .atomicfile import atomic_copy
 from .audio import (
     BargeInRule,
@@ -134,6 +134,13 @@ def describe_selftest(t: dict[str, Any]) -> tuple[str, bool]:
         parts.append(f"Timeline {'yes' if has else 'NO'} for {timeline_gestures:.0f} gesture(s)")
         problems |= not has
     return "; ".join(parts), problems
+
+class PoseDecision:
+    """Result of the pose gate for one input: the matched command, whether it can run, and the steps to apply."""
+
+    def __init__(self, entry: dict[str, str], ok: bool, steps: list[tuple[Any, ...]]):
+        self.entry, self.ok, self.steps = entry, ok, steps
+
 
 class Companion:
     def __init__(
@@ -1010,6 +1017,54 @@ class Companion:
         for step in self._turn("text", text, self._generation, t0):
             self._apply(step)
 
+    # -- pose commands (version 32) -----------------------------------------------------------
+
+    def pose_vocabulary(self) -> pose_commands.PoseVocabulary:
+        """The commands: the plugin's list (status field pose_commands, live), else config.json poses.commands."""
+        raw = self.body_info.get("pose_commands")
+        if isinstance(raw, list):
+            entries, _ = pose_commands.validate_entries(raw)
+        else:
+            entries, _ = pose_commands.validate_entries((self.cfg.poses or {}).get("commands", []))
+        return pose_commands.PoseVocabulary(entries)
+
+    def pose_names(self) -> list[str]:
+        return [str(p) for p in self.body_info.get("poses") or [] if str(p)]
+
+    def pose_gate_active(self) -> bool:
+        """Pose commands work in every mode (they are no AI tool), but not while Body control is off in the plugin."""
+        return as_bool(self.body_info.get("body_control", True)) is not False
+
+    def pose_decision(self, text: str) -> PoseDecision | None:
+        """None = the input is no pose command (it goes on to the AI as usual). Otherwise what to do: the pose command
+        when the pose exists on the character, or just a status line (unavailable). Never a spoken reply: a body command
+        is an action, not a conversation; it needs no network or language model and nothing talks over the pose."""
+        vocabulary = self.pose_vocabulary()
+        entry = vocabulary.match(text)
+        if entry is None:
+            return None
+        names = self.pose_names()
+        actual = vocabulary.resolve(entry, names)
+        if actual is None:
+            message = (f"Pose command '{entry['command']}' is unavailable: the character has no pose '{entry['pose']}' "
+                       "(add a pose file or link the command to another pose with 'Add Pose')")
+            log.warning(message)
+            return PoseDecision(entry, False, [("status", message)])
+        command = self.body_command("pose", json=vocabulary.reply_json(entry), command=entry["command"])
+        log.info("Pose command '%s' -> %s", entry["command"], command["json"])
+        return PoseDecision(entry, True, [("command", command), ("status", f"Pose command: {entry['command']} ({actual})")])
+
+    def pose_command(self, text: str) -> tuple[bool, str]:
+        """Runs a pose command given as text (remote control, realtime transcript): the same gate as typed or spoken input."""
+        if not self.pose_gate_active():
+            return False, "body control is off in the plugin"
+        decision = self.pose_decision(text)
+        if decision is None:
+            return False, f"{text!r} is not a pose command"
+        for step in decision.steps:
+            self._apply(step)
+        return decision.ok, "" if decision.ok else str(decision.steps[0][1])
+
     def say_text(self, text: str, interrupt: bool = False) -> None:
         """Speaks exactly this text (remote control): text to speech -> VaM, no language model. Runs like a turn
         (worker thread), so a slow speech engine never blocks the link."""
@@ -1116,6 +1171,12 @@ class Companion:
                 if kind == "text":
                     yield ("status", f"Question (typed): {_short(text)}")
             self._check(generation)
+            if kind in ("audio", "text") and self.pose_gate_active():
+                decision = self.pose_decision(text)  # the HARD GATE: the whole input must equal a pose command
+                if decision is not None:
+                    turn.step("end", result="pose command", command=decision.entry["command"], applied=decision.ok)
+                    yield from decision.steps
+                    return
             nudge = kind == "nudge"
             prompt = text
             if not nudge:

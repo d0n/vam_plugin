@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "written_by": "AIBody companion app 31 (example)",
+  "written_by": "AIBody companion app 32 (example)",
   "connection": {
     "active": true,
     "network_active": true,
@@ -50,6 +50,50 @@
   },
   "ui": {
     "first_run_hint_dismissed": false
+  },
+  "poses": {
+    "commands": [
+      {
+        "command": "Sit Down",
+        "pose": "Sit Down"
+      },
+      {
+        "command": "Lay Down",
+        "pose": "Lay Down"
+      },
+      {
+        "command": "Prone",
+        "pose": "Prone"
+      },
+      {
+        "command": "Stand Up",
+        "pose": "Stand Up"
+      },
+      {
+        "command": "Spread Your Legs",
+        "pose": "Spread Your Legs"
+      },
+      {
+        "command": "Ankle Your Knees",
+        "pose": "Ankle Your Knees"
+      },
+      {
+        "command": "Ankle Your Elbows",
+        "pose": "Ankle Your Elbows"
+      },
+      {
+        "command": "Turn Around",
+        "pose": "Turn Around"
+      },
+      {
+        "command": "Crawl on all fours",
+        "pose": "Crawl on all fours"
+      },
+      {
+        "command": "Bend Over",
+        "pose": "Bend Over"
+      }
+    ]
   },
   "remote": {
     "enabled": false,

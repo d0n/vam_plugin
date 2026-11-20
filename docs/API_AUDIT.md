@@ -400,6 +400,23 @@ New in the plugin (`GazeController.cs`), all with evidence E12 / E28 (see the ta
 - No `foreach` over Dictionary `.Keys`/`.Values`, no LINQ, no file or network access added. A gaze exception only
   stops the gaze (`_gazeBroken`), not the body.
 
+## Version 32 (20.11.2026): pose commands
+
+**No new VaM API.** The plugin side reuses what is already audited:
+
+| Use | API | Evidence |
+|---|---|---|
+| command chooser | `UiPage.Popup` (`CreatePopup`) | E16 |
+| pose chooser (long list) | `UiPage.ScrollablePopup` (`CreateScrollablePopup`), `chooser.choices = ...` | E24 |
+| command text field | `UiPage.TextInput` (`CreateTextField` + `InputField`, bound through `storable.inputField`) | E14 |
+| Add Pose / Delete Pose / Restore starter poses | `UiPage.Button` (`CreateButton`) | E1, E9 |
+| helper storables for the UI | `JSONStorableStringChooser` / `JSONStorableString`, NOT registered (no scene holds them) | as the token field (version 31) |
+| applying a pose | unchanged: `PosePresets` storable `presetBrowsePath` + `CallAction("LoadPreset")` | E7 |
+| config.json | `JSONClass` / `JSONArray` read and assign, written by the plugin's existing `WriteSettings` | as for the other categories |
+| warning line | `SuperController.LogMessage` with the prefix "Warning:" (`Log.Warn`) | same call as `Log.Info` |
+
+The new file `PoseVocabulary.cs` is plain C# (strings, `List<T>`, `StringBuilder`): no VaM or Unity types, no LINQ, no `foreach` over `Dictionary.Keys` / `.Values`, no file or network access; the tests also compile and run it outside VaM. The JSON of a pose command is read by a small strict reader in this file, not by `SimpleJSON`, so the same rules can be tested on both sides. Credits for all evidence sources: `CREDITS.md`.
+
 ## Version 31 (19.11.2026): remote control, plugin preset, token fix
 
 **No new VaM API in the plugin.** The remote control is companion-app code (Python standard library: `http.server`,
@@ -419,7 +436,7 @@ registration). TODO(verify) in VaM (T20 step 4): the field still works, the scen
 | BoominBobbyBo/iHV script (`PluginManager.plugins ... "plugin#100" = "Custom/Scripts/.../x.cs"`) | the Person's storable `PluginManager` has a `plugins` map `plugin#N` -> script path |
 | our scene `examples/scenes/AIBody_GreenScreen.json` and Timeline / CircleLooks instructions | a package script is referenced as `<creator>.<package>.<version>:/Custom/Scripts/.../X.cslist`; the `.cslist`, not single `.cs` files, is loaded |
 
-The preset therefore holds exactly: `{"storables":[{"id":"PluginManager","plugins":{"plugin#0":"d0n.AIBody.31:/Custom/Scripts/d0n/AIBody/AIBody.cslist"}}]}`.
+The preset therefore holds exactly: `{"storables":[{"id":"PluginManager","plugins":{"plugin#0":"d0n.AIBody.32:/Custom/Scripts/d0n/AIBody/AIBody.cslist"}}]}`.
 No parameter values and no `setUnlistedParamsToDefault`, so loading it cannot overwrite other settings. TODO(verify) in VaM (T23):
 that a hand-written `.vap` with only this storable loads, that the package-qualified path is accepted in a preset, that the preset is
 listed from inside the package, and what a second load does to existing plugins.

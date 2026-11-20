@@ -62,6 +62,8 @@ namespace AIBody
         private JSONStorableStringChooser _poseChoiceJson;
         private JSONStorableStringChooser _expressionChoiceJson;
         private JSONStorableStringChooser _gestureChoiceJson;
+        private JSONStorableStringChooser _poseCommandChoiceJson;   // "Pose command": the vocabulary, for Delete Pose
+        private JSONStorableString _poseCommandTextJson;            // "New pose command": text for Add Pose
         /// <summary>Last manual pose / expression / gesture result, shown in the status box (Live).</summary>
         public string CharacterNote = "";
         private CommandRouter _router;
@@ -183,6 +185,9 @@ namespace AIBody
             // choice in the menu, nothing new is saved with the scene. Lists refill on opening (E25).
             _poseChoiceJson = new JSONStorableStringChooser("Pose", new List<string>(), "", "Pose", (string v) => { });
             _poseChoiceJson.popupOpenCallback = RefreshCharacterChoices;
+            _poseCommandChoiceJson = new JSONStorableStringChooser("Pose command", new List<string>(), "", "Pose command", (string v) => { });
+            _poseCommandChoiceJson.popupOpenCallback = RefreshCharacterChoices;
+            _poseCommandTextJson = new JSONStorableString("New pose command", "", (string v) => { });   // not registered: only typed text
             _expressionChoiceJson = new JSONStorableStringChooser("Expression", new List<string>(), "", "Expression", (string v) => { });
             _expressionChoiceJson.popupOpenCallback = RefreshCharacterChoices;
             _gestureChoiceJson = new JSONStorableStringChooser("Gesture", new List<string>(), "", "Gesture", (string v) => { });
@@ -240,7 +245,11 @@ namespace AIBody
                 if (_idleIntensityJson != null) idle.Intensity = _idleIntensityJson.val;
                 _idle = idle;
             });
-            _diag.Run("Poses/gestures (PoseController)", () => _poses = new PoseController(_atom, _idle));
+            _diag.Run("Poses/gestures (PoseController)", () =>
+            {
+                _poses = new PoseController(_atom, _idle);
+                _poses.Vocabulary.SetStarters();   // until config.json poses.commands is read (LoadPoseCommands)
+            });
             _diag.Run("Gaze (GazeController)", () =>
             {
                 GazeController gaze = new GazeController(_atom);
@@ -289,12 +298,24 @@ namespace AIBody
         public void BuildCharacterTab(UiPage page)
         {
             RefreshCharacterChoices();
-            page.Header("<b>Poses</b> (by voice through the AI, or here)");
-            // No empty menu (version 16): without poses only "Reload poses"; the reason is in the info panel.
+            page.Header("<b>Poses</b> (pose commands: a pose is applied only when your WHOLE input equals a command)");
+            // Pose commands (version 32): the vocabulary that is the only way the AI side applies a pose.
+            // No empty menu (version 16): the menus and buttons appear only when there is something to choose.
+            if (_poses != null && _poses.Vocabulary.Count > 0)
+            {
+                page.Popup(_poseCommandChoiceJson);
+                page.Button("Delete Pose", DeleteChosenPoseCommand);
+            }
+            page.Button("Restore starter poses", RestoreStarterPoses);
             if (_poses != null && _poses.PoseNames.Count > 0)
             {
+                page.Header("Add Pose: choose the pose below, type the command text in the field, press Add Pose");
                 page.ScrollablePopup(_poseChoiceJson);
                 page.Button("Apply pose", ApplyChosenPose);
+                page.Header("New pose command (the text you say or type)");
+                if (!page.TextInput(_poseCommandTextJson))
+                    _diag.Warn("Field 'New pose command' is read-only (InputField failed).");
+                page.Button("Add Pose", AddPoseCommand);
             }
             page.Button("Reload poses", () => { ReloadGestures(); RefreshCharacterChoices(); RebuildTab = true; });
             page.Header("<b>Expression and gesture</b>");
@@ -325,7 +346,8 @@ namespace AIBody
         /// <summary>Info for the tab "AI Character" in the big field on the left.</summary>
         public string CharacterInfoText()
         {
-            string text = "Poses: " + (_poses != null ? _poses.PoseNames.Count + " in the menu and available to the AI (" + _poses.PoseScanNote + ")" : "PoseController missing") + "\n";
+            string text = "Poses: " + (_poses != null ? _poses.PoseNames.Count + " in the menu (" + _poses.PoseScanNote + ")" : "PoseController missing") + "\n";
+            text += PoseCommandsInfo();
             text += "Body control off = speech only, the AI does not move the body. Breath morph: a name from the character's Morphs tab.\n";
             text += GazeInfoText();
             return text;
@@ -487,6 +509,9 @@ namespace AIBody
             if (_poseChoiceJson == null) return;
             List<string> poses = _poses != null ? _poses.PoseNames : new List<string>();
             SetMenu(_poseChoiceJson, poses);
+            List<string> commands = new List<string>();
+            if (_poses != null) for (int i = 0; i < _poses.Vocabulary.Count; i++) commands.Add(_poses.Vocabulary[i].Command);
+            SetMenu(_poseCommandChoiceJson, commands);
             List<string> expressions = new List<string>();
             if (_expressions != null) foreach (string n in _expressions.PresetNames) expressions.Add(n);
             SetMenu(_expressionChoiceJson, expressions);
@@ -500,6 +525,72 @@ namespace AIBody
         {
             chooser.choices = names;   // E9, E24, E25
             if (names.Count > 0 && !names.Contains(chooser.val)) chooser.val = names[0];
+        }
+
+        // ---------------------------------------------------------------- pose commands (version 32)
+
+        private string PoseCommandsInfo()
+        {
+            if (_poses == null) return "";
+            PoseVocabulary v = _poses.Vocabulary;
+            List<string> names = _poses.PoseNames;
+            int ready = 0;
+            string lines = "";
+            for (int i = 0; i < v.Count; i++)
+            {
+                bool ok = PoseVocabulary.Resolve(v[i], names) != null;
+                if (ok) ready++;
+                lines += "  " + v[i].Command + (ok ? "" : "  - UNAVAILABLE: no pose '" + v[i].Pose + "'") + "\n";
+            }
+            return "Pose commands: " + v.Count + " (" + ready + " available). Say or type EXACTLY one of them; a command without a pose is never applied.\n" + lines;
+        }
+
+        private void AddPoseCommand()
+        {
+            if (_poses == null) { CharacterNote = "Add Pose: PoseController missing"; return; }
+            string error = _poses.Vocabulary.Add(_poseCommandTextJson.val, _poseChoiceJson.val);
+            if (error != null) { CharacterNote = "<color=red>Add Pose: " + error + "</color>"; return; }
+            CharacterNote = "Pose command added: '" + PoseVocabulary.Collapse(_poseCommandTextJson.val) + "' -> " + _poseChoiceJson.val;
+            _poseCommandTextJson.val = "";
+            RefreshCharacterChoices();
+            RebuildTab = true;
+        }
+
+        private void DeleteChosenPoseCommand()
+        {
+            if (_poses == null) { CharacterNote = "Delete Pose: PoseController missing"; return; }
+            string command = _poseCommandChoiceJson.val;
+            CharacterNote = _poses.Vocabulary.Remove(command) ? "Pose command deleted: '" + command + "'" : "<color=red>Delete Pose: no command chosen</color>";
+            RefreshCharacterChoices();
+            RebuildTab = true;
+        }
+
+        private void RestoreStarterPoses()
+        {
+            if (_poses == null) { CharacterNote = "Restore starter poses: PoseController missing"; return; }
+            int added = _poses.Vocabulary.RestoreStarters();
+            CharacterNote = added == 0 ? "All starter pose commands are already there" : added + " starter pose command(s) restored";
+            RefreshCharacterChoices();
+            RebuildTab = true;
+        }
+
+        /// <summary>Reads config.json poses.commands (a missing key = the starter commands, an empty list = none).</summary>
+        public void LoadPoseCommands(JSONClass root)
+        {
+            if (_poses == null || root == null) return;
+            JSONClass poses = root["poses"] as JSONClass;
+            JSONArray list = poses != null ? poses["commands"] as JSONArray : null;
+            PoseVocabulary v = _poses.Vocabulary;
+            if (list == null) { v.SetStarters(); return; }
+            v.Clear();
+            for (int i = 0; i < list.Count; i++)
+            {
+                JSONClass entry = list[i] as JSONClass;
+                string error = entry == null ? "not an object" : v.Add(entry["command"].Value, entry["pose"].Value);
+                if (error != null) Log.Warn("config.json poses.commands[" + i + "] ignored: " + error);
+            }
+            RefreshCharacterChoices();
+            RebuildTab = true;
         }
 
         private void ApplyChosenPose()
@@ -546,6 +637,20 @@ namespace AIBody
             body["gaze_follows_speaker"].AsBool = _gazeFollowJson.val;
             body["blink_control"].AsBool = _blinkJson.val;
             root["body"] = body;
+            JSONClass poses = new JSONClass();
+            JSONArray commands = new JSONArray();
+            if (_poses != null)
+            {
+                for (int i = 0; i < _poses.Vocabulary.Count; i++)
+                {
+                    JSONClass entry = new JSONClass();
+                    entry["command"] = _poses.Vocabulary[i].Command;
+                    entry["pose"] = _poses.Vocabulary[i].Pose;
+                    commands.Add(entry);
+                }
+            }
+            poses["commands"] = commands;
+            root["poses"] = poses;
         }
 
         public void ApplySettings(JSONClass root)
@@ -646,6 +751,20 @@ namespace AIBody
             JSONArray poses = new JSONArray();
             if (_poses != null) foreach (string n in _poses.PoseNames) poses.Add(new JSONData(n));
             s["poses"] = poses;
+            JSONArray poseCommands = new JSONArray();   // the vocabulary: the companion matches the user's whole input against it
+            if (_poses != null)
+            {
+                List<string> poseNames = _poses.PoseNames;
+                for (int i = 0; i < _poses.Vocabulary.Count; i++)
+                {
+                    JSONClass entry = new JSONClass();
+                    entry["command"] = _poses.Vocabulary[i].Command;
+                    entry["pose"] = _poses.Vocabulary[i].Pose;
+                    entry["available"].AsBool = PoseVocabulary.Resolve(_poses.Vocabulary[i], poseNames) != null;
+                    poseCommands.Add(entry);
+                }
+            }
+            s["pose_commands"] = poseCommands;
             s["body_control"].AsBool = BodyControl;   // off: the companion offers the AI no body tools
             s["gaze_control"].AsBool = _gaze != null && !_gazeBroken && _gaze.AiMayDirect;   // off: no look_at tool
             JSONArray gazeAtoms = new JSONArray();

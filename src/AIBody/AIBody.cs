@@ -40,7 +40,7 @@ namespace AIBody
 {
     public class AIBodyPlugin : MVRScript
     {
-        public const string PluginVersion = "31";   // = package number d0n.AIBody.31.var (scheme since version 12)
+        public const string PluginVersion = "32";   // = package number d0n.AIBody.32.var (scheme since version 12)
 
         private AppLink _link;
         private Body _body;
@@ -282,6 +282,7 @@ namespace AIBody
                 _link.ApplySettings(file);
                 _link.AdoptToken(file);
                 if (_body != null) _body.ApplySettings(file);
+                if (_body != null) _body.LoadPoseCommands(file);
                 JSONClass advanced = file["advanced"] as JSONClass;
                 if (advanced != null && _verboseJson != null)
                     _verboseJson.val = Protocol.GetBool(advanced, "verbose_log", _verboseJson.val);
@@ -313,6 +314,8 @@ namespace AIBody
                 // The XAI API Token comes from config.json ai.xai.api_key (a missing file is fine; an unreadable one
                 // is not: then nothing is written back, so a saved token cannot be overwritten).
                 if (readOk) _diag.Run("XAI API Token from config.json", () => _link.AdoptToken(file));
+                // Pose commands live only in config.json (not in the scene): always read, also for a scene with saved settings.
+                if (file != null && _body != null) _diag.Run("Pose commands from config.json", () => _body.LoadPoseCommands(file));
                 if (file != null && !_settingsInitJson.val)
                 {
                     _diag.Run("Apply settings from config.json (new scene)", () =>

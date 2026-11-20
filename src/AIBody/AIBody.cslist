@@ -13,6 +13,7 @@ SpeechPlayer.cs
 ExpressionController.cs
 BreathingController.cs
 IdleController.cs
+PoseVocabulary.cs
 PoseController.cs
 GazeController.cs
 BlinkController.cs

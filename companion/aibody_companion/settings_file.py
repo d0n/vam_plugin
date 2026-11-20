@@ -13,6 +13,8 @@ README.md section 4. Categories (kept from the first schema; they no longer matc
   advanced    file_poll_interval_s (slider "Companion inbox poll interval (s)": how often the
               plugin reads the companion inbox, not config.json), verbose_log (tab Config)
 
+  poses       commands: [{command, pose}, ...] (version 32, tab AI Character: 'Add Pose' / 'Delete Pose'; a list)
+
 plus two categories this app owns (the plugin keeps them unchanged when it writes, except the "ai" keys
 it has controls for):
 
@@ -51,6 +53,7 @@ from pathlib import Path
 from typing import Any
 
 from .audio.mic_settings import MicSettings, apply_mic_config
+from . import pose_commands
 from .config import ENGINES_AVAILABLE, PLUGIN_DATA_SUBDIR
 from .pipeline.context import DEFAULT_NUDGE_PROMPT, DEFAULT_SCENE_EVENT_PROMPT
 from .pipeline.realtime import PCM_RATES
@@ -112,6 +115,12 @@ DEFAULTS: dict[str, dict[str, Any]] = {
     "advanced": {"file_poll_interval_s": 0.1, "verbose_log": False},
     # Plugin UI state (version 30): the first-run note about the xAI token was closed or answered once.
     "ui": {"first_run_hint_dismissed": False},
+    # Pose commands (version 32; AI Character): the only way a pose is applied. A pose is applied only when the user's
+    # WHOLE input equals a command text (case, spaces and trailing . ! ? ignored); the command links to a pose id
+    # (a pose of the character: gestures.json pose or pose file, names compare ignoring case, spaces, _ and -).
+    # Written by the plugin ('Add Pose' / 'Delete Pose'); a list. A missing "commands" key = the ten starter commands,
+    # an empty list = none. See docs/SPEC.md "Pose commands".
+    "poses": {"commands": pose_commands.starter_entries()},
     # Remote control (version 31; this app only, file only, off by default): a local web page / HTTP API and an
     # optional OSC listener. Both bind 127.0.0.1 only. The HTTP API needs the token (generated into this file on
     # the first start with enabled = true); OSC has no token. Changes apply when the app starts. See docs/REMOTE.md.
@@ -270,7 +279,7 @@ CHOICES: dict[tuple[str, ...], tuple[str, ...]] = {
 }
 
 CATEGORIES = tuple(DEFAULTS)
-PLUGIN_CATEGORIES = ("connection", "engines", "mic", "body", "advanced", "ui")  # written by the plugin
+PLUGIN_CATEGORIES = ("connection", "engines", "mic", "body", "advanced", "ui", "poses")  # written by the plugin
 COMPANION_CATEGORIES = ("ai", "remote")  # read only by this app, preserved by the plugin
 
 
@@ -392,6 +401,15 @@ def validate(data: Any) -> tuple[dict[str, Any], list[str]]:
             mic, mic_errors = apply_mic_config(MicSettings(), section)
             result["mic"] = mic.to_dict()
             errors += [f"mic: {e}" for e in mic_errors]
+            continue
+        if cat == "poses":
+            if "commands" in section:
+                commands, pose_errors = pose_commands.validate_entries(section["commands"])
+                result["poses"] = {"commands": commands}
+                errors += pose_errors
+            for key in section:
+                if key != "commands":
+                    errors.append(f"poses: unknown key {key!r}")
             continue
         result[cat] = _merge((cat,), DEFAULTS[cat], section, errors)
     if "version" in data and as_number(data["version"]) != VERSION:
@@ -519,6 +537,7 @@ def apply_to_config(cfg: Any) -> list[str]:
                           f"using {getattr(cfg, kind)!r}")
     cfg.ai = json.loads(json.dumps(data["ai"]))
     cfg.remote = dict(data["remote"])
+    cfg.poses = json.loads(json.dumps(data["poses"]))
     add_secret(str(cfg.remote.get("token") or ""))
     cfg.verbose_log = bool(data["advanced"]["verbose_log"])
     add_secret(str(data["ai"]["xai"].get("api_key") or ""))  # before anything can log it

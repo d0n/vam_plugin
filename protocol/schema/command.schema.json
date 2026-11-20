@@ -90,7 +90,7 @@
     },
     "path": {
       "type": "string",
-      "description": "pose: preset path, may include a .var reference"
+      "description": "pose: no longer accepted (version 32): use json"
     },
     "storable": {
       "type": "string",
@@ -348,6 +348,15 @@
       "minimum": 0,
       "maximum": 60,
       "description": "look_at: how long to keep looking there, then back to the default gaze (0 / missing = until changed; 'away' defaults to 3 s)"
+    },
+    "json": {
+      "type": "string",
+      "maxLength": 400,
+      "description": "pose (version 32): exactly {\"pose\":\"<id>\"}; the plugin parses it and checks the id against its pose vocabulary (config.json poses.commands)"
+    },
+    "command": {
+      "type": "string",
+      "description": "pose: the matched command text (informational)"
     }
   },
   "allOf": [
@@ -416,17 +425,8 @@
         }
       },
       "then": {
-        "anyOf": [
-          {
-            "required": [
-              "path"
-            ]
-          },
-          {
-            "required": [
-              "name"
-            ]
-          }
+        "required": [
+          "json"
         ]
       }
     },

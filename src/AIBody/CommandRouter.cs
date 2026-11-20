@@ -171,8 +171,13 @@ namespace AIBody
                         Protocol.GetFloat(msg, "duration", 0f), Protocol.GetFloat(msg, "amplitude", 0f));
 
                 case Protocol.CmdPose:
-                    if (Protocol.Has(msg, "name")) return _poses.ApplyPose(Protocol.GetString(msg, "name", ""));
-                    return _poses.LoadPose(Protocol.GetString(msg, "path", ""));
+                {
+                    // Version 32: only {"json": "{\"pose\":\"<id>\"}"}, checked against the pose vocabulary. The old
+                    // fields path / name are not accepted any more.
+                    string poseError = _poses.ApplyPoseJson(Protocol.GetString(msg, "json", ""));
+                    if (poseError != null) Log.Warn("Pose ignored: " + poseError);
+                    return poseError;
+                }
 
                 case Protocol.CmdTrigger:
                     return _poses.Trigger(msg);

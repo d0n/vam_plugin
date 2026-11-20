@@ -27,7 +27,7 @@ ACTIONS: dict[str, str] = {
     "ask": "ask the AI as if the user had typed it; params: text",
     "expression": "show an expression; params: name, intensity (1.0), blend (0.4 s), hold (seconds, optional)",
     "gesture": "play a gesture from gestures.json; params: name",
-    "pose": "apply a pose; params: name",
+    "pose": "run a pose command (the same exact-match gate as typed input); params: name = the command text, e.g. 'Sit Down'",
     "look": "direct the eyes; params: target (client|camera|forward|away|off|atom), atom (name), seconds (0 = until changed)",
     "stop": "stop speaking and drop the answer being prepared; no params",
     "event": "tell the AI about a scene event (like the plugin's 'Scene event'); params: text",
@@ -197,8 +197,6 @@ class RemoteControl:
                 clean["name"] = self._canonical("expressions", clean["name"])
             elif name == "gesture":
                 clean["name"] = self._canonical("gestures", clean["name"])
-            elif name == "pose":
-                clean["name"] = self._canonical("poses", clean["name"])
         try:
             self._queue.put_nowait((name, clean, source))
         except queue.Full:
@@ -224,9 +222,9 @@ class RemoteControl:
 
     def _publish(self, app: Companion) -> None:
         lists = app.body_lists()
+        vocabulary, pose_names = app.pose_vocabulary(), app.pose_names()
         with self._lock:
-            self._known = {"expressions": list(lists.expressions), "gestures": list(lists.gestures),
-                           "poses": list(lists.poses)}
+            self._known = {"expressions": list(lists.expressions), "gestures": list(lists.gestures), "poses": []}
             self._status = {
                 "version": __version__,
                 "plugin_connected": bool(app.transport.connected),
@@ -237,7 +235,8 @@ class RemoteControl:
                 "persona": app.persona_in_use,
                 "expressions": list(lists.expressions),
                 "gestures": list(lists.gestures),
-                "poses": list(lists.poses),
+                "poses": [e["command"] for e in vocabulary.available(pose_names)],  # pose commands that can run
+                "poses_unavailable": [e["command"] for e in vocabulary.unavailable(pose_names)],
                 "gaze": bool(lists.gaze),
                 "gaze_atoms": list(lists.gaze_atoms),
                 "last_action": dict(self._last_action),
@@ -270,6 +269,8 @@ class RemoteControl:
                 if action == "toggle":
                     action = "stop" if app.input.ptt_active else "start"
                 app.handle_ptt(action == "start")
+        elif name == "pose":
+            ok, note = app.pose_command(p["name"])
         elif name == "expression":
             allowed, why = app.tools_allowed()
             if not allowed:
@@ -279,11 +280,9 @@ class RemoteControl:
                 app.send(app.body_command("expression", name=p["name"], intensity=p["intensity"], blend=p["blend"],
                                           hold=p.get("hold")))
         else:  # gesture / pose / look: the same resolution (and the same switches) as the AI's body tools
-            tool = {"gesture": "express", "pose": "pose", "look": "look_at"}[name]
+            tool = {"gesture": "express", "look": "look_at"}[name]
             if name == "gesture":
                 args: dict[str, Any] = {"gesture": p["name"]}
-            elif name == "pose":
-                args = {"name": p["name"]}
             else:
                 args = {"target": p.get("atom") if p["target"] == "atom" else p["target"], "seconds": p["seconds"]}
             commands, result = app.tool_commands(tool, args)

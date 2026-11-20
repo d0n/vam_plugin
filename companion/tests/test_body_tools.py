@@ -30,20 +30,20 @@ class UnitTests(unittest.TestCase):
 
     def test_tools_only_list_what_the_body_has(self):
         tools = body_tools.tools(self.lists)
-        self.assertEqual([t["name"] for t in tools], ["express", "pose"])
-        self.assertEqual(tools[1]["parameters"]["properties"]["name"]["enum"], ["sit", "stand"])
-        self.assertEqual([t["name"] for t in body_tools.tools(body_tools.BodyLists(["neutral"], [], []))],
-                         ["express"], "no pose tool without poses")
+        self.assertEqual([t["name"] for t in tools], ["express"], "poses are never a tool: only the exact-match gate")
+        self.assertEqual([t["name"] for t in body_tools.tools(body_tools.BodyLists(["neutral"], [], []))], ["express"])
 
     def test_resolve(self):
         cmds, result = body_tools.resolve("express", '{"expression": "Happy", "gesture": "wave"}', self.lists, True)
         self.assertEqual(cmds, [("expression", {"name": "happy", "intensity": 1.0, "blend": 0.4}),
                                 ("gesture", {"name": "wave"})])
         self.assertTrue(result["ok"])
-        self.assertEqual(body_tools.resolve("pose", {"name": "sit"}, self.lists, True)[0], [("pose", {"name": "sit"})])
-        self.assertFalse(body_tools.resolve("pose", {"name": "fly"}, self.lists, True)[1]["ok"])
+        for name in ("sit", "fly"):
+            cmds, result = body_tools.resolve("pose", {"name": name}, self.lists, True)
+            self.assertEqual(cmds, [], "a pose call from the model is never turned into a command")
+            self.assertFalse(result["ok"])
         self.assertFalse(body_tools.resolve("look_at", {}, self.lists, True)[1]["ok"])
-        cmds, result = body_tools.resolve("pose", {"name": "sit"}, self.lists, False, "body control is off")
+        cmds, result = body_tools.resolve("express", {"expression": "happy"}, self.lists, False, "body control is off")
         self.assertEqual((cmds, result), ([], {"ok": False, "error": "body control is off"}))
 
     def test_poses_are_not_offered_as_gestures(self):
@@ -88,15 +88,16 @@ class ChainToolTests(unittest.TestCase):
         self.start()
         self.ask("Setz dich bitte hin.")
         first, second = self.requests()
-        self.assertEqual([t["name"] for t in first["tools"]], ["express", "pose"])
-        self.assertIn('"pose"', first["instructions"])
-        self.assertEqual(self.sim.sent(self.plugin, "pose")[0]["name"], "sitting")
+        self.assertEqual([t["name"] for t in first["tools"]], ["express"], "no pose tool is offered")
+        self.assertNotIn('"pose"', first["instructions"])
+        self.assertEqual(self.sim.sent(self.plugin, "pose"), [], "a stray pose call never reaches the body")
         self.assertEqual(self.sim.sent(self.plugin, "expression")[0]["name"], "happy")
         self.assertEqual(self.sim.sent(self.plugin, "gesture")[0]["name"], "nod")
         self.assertEqual(second["previous_response_id"], "resp-1")
         outputs = [i for i in second["input"] if i.get("type") == "function_call_output"]
         self.assertEqual([o["call_id"] for o in outputs], ["c1", "c2"], "results go back, the model does not hang")
-        self.assertTrue(json.loads(outputs[0]["output"])["ok"])
+        self.assertFalse(json.loads(outputs[0]["output"])["ok"], "the stray pose call is answered with an error")
+        self.assertTrue(json.loads(outputs[1]["output"])["ok"])
         self.assertNotIn("role", json.dumps(second["input"]), "no new user message in the continuation")
         self.assertEqual([s["text"] for s in self.sim.sent(self.plugin, "speak")], ["Okay, ich setze mich."])
 
@@ -139,7 +140,7 @@ class RealtimeToolTests(RealtimeSim):
     def item_created(self):
         return any(e["type"] == "conversation.item.create" for e in self.server.conn.received)
 
-    def test_session_offers_pose_and_a_pose_call_becomes_a_command(self):
+    def test_session_offers_no_pose_tool_and_a_stray_pose_call_is_refused(self):
         self.start()
         self.plugin.poses = ["sitting"]
         self.connect()
@@ -150,13 +151,12 @@ class RealtimeToolTests(RealtimeSim):
             ups = [e for e in self.server.conn.received if e["type"] == "session.update"]
             return [t["name"] for t in ups[-1]["session"].get("tools", [])] if ups else []
 
-        self.assertTrue(self.pump(lambda: tool_names() == ["express", "pose"]), tool_names())
+        self.assertTrue(self.pump(lambda: tool_names() == ["express"]), tool_names())
         self.server.respond(["Okay."], tone(1.0), call={"name": "pose", "arguments": {"name": "sitting"}})
-        self.assertTrue(self.pump(lambda: bool(self.sim.sent(self.plugin, "pose"))))
-        self.assertEqual(self.sim.sent(self.plugin, "pose")[0]["name"], "sitting")
         self.assertTrue(self.pump(self.item_created))
+        self.assertEqual(self.sim.sent(self.plugin, "pose"), [])
         out = [e for e in self.server.conn.received if e["type"] == "conversation.item.create"][-1]
-        self.assertEqual(json.loads(out["item"]["output"]), {"ok": True, "pose": "sitting"})
+        self.assertFalse(json.loads(out["item"]["output"])["ok"])
 
     def test_body_control_off_answers_without_commands(self):
         self.start()

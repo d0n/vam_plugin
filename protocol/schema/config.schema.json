@@ -523,6 +523,80 @@
       },
       "description": "Plugin UI state: first_run_hint_dismissed = the short note about the xAI token at the top of the plugin UI was closed or answered, so it is not shown again"
     },
+    "poses": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "commands": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "command",
+              "pose"
+            ],
+            "properties": {
+              "command": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 60
+              },
+              "pose": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              }
+            }
+          },
+          "default": [
+            {
+              "command": "Sit Down",
+              "pose": "Sit Down"
+            },
+            {
+              "command": "Lay Down",
+              "pose": "Lay Down"
+            },
+            {
+              "command": "Prone",
+              "pose": "Prone"
+            },
+            {
+              "command": "Stand Up",
+              "pose": "Stand Up"
+            },
+            {
+              "command": "Spread Your Legs",
+              "pose": "Spread Your Legs"
+            },
+            {
+              "command": "Ankle Your Knees",
+              "pose": "Ankle Your Knees"
+            },
+            {
+              "command": "Ankle Your Elbows",
+              "pose": "Ankle Your Elbows"
+            },
+            {
+              "command": "Turn Around",
+              "pose": "Turn Around"
+            },
+            {
+              "command": "Crawl on all fours",
+              "pose": "Crawl on all fours"
+            },
+            {
+              "command": "Bend Over",
+              "pose": "Bend Over"
+            }
+          ],
+          "description": "List of {command, pose}: command = the text the user says or types (ten starter commands by default); pose = id of a pose of the character (gestures.json pose or pose file; names compare ignoring case, spaces, '_' and '-'). A command whose pose does not exist stays in the list, is shown as unavailable and is never applied. Missing key = the starters, empty list = none"
+        }
+      },
+      "description": "Tab 'AI Character', section 'Pose commands' (version 32): the ONLY way a pose is applied. A pose is applied only when the user's WHOLE input equals a command text (case, extra spaces and trailing . ! ? ignored; no substring or fuzzy match). Written by the plugin ('Add Pose' / 'Delete Pose')"
+    },
     "remote": {
       "type": "object",
       "additionalProperties": false,

@@ -11,6 +11,8 @@ from email.message import Message
 from pathlib import Path
 from typing import Any
 
+from aibody_companion import pose_commands
+
 
 class FakeClock:
     def __init__(self, start: float = 1000.0):
@@ -135,6 +137,7 @@ class FakePlugin:
         self.expressions = ["neutral", "happy", "sad", "thinking", "listening"]  # presets the plugin reports (ExpressionController)
         # ai controls of the plugin tabs (AppLink.BuildAiJson): sent in the config event, merged into config.json "ai"
         self.poses: list[str] = []      # Body.AddStatus "poses" (gestures.json poses + preset files)
+        self.pose_commands: list[dict] = pose_commands.starter_entries()  # Body.AddStatus "pose_commands" (config.json poses.commands)
         self.body_control = True        # Body.AddStatus "body_control"
         self.gaze_control = False       # Body.AddStatus "gaze_control": the AI may direct the eyes (tool look_at)
         self.gaze_atoms: list[str] = []  # Body.AddStatus "gaze_atoms"
@@ -230,6 +233,8 @@ class FakePlugin:
         return {"atom": "Person", "speaking": bool(self.playing), "speech_queue": len(self.playing),
                 "expression": "neutral", "expressions": list(self.expressions),
                 "gestures": ["nod", "shake", "tilt", *self.poses], "poses": list(self.poses),
+                "pose_commands": [{**e, "available": pose_commands.PoseVocabulary.resolve(e, self.poses) is not None}
+                                  for e in self.pose_commands],
                 "body_control": self.body_control, "gaze_control": self.gaze_control,
                 "gaze_atoms": list(self.gaze_atoms), "selftest": dict(self.selftest),
                 "channel": self.channel, "plugin_version": PLUGIN_VERSION}

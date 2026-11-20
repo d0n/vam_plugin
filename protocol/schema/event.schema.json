@@ -243,7 +243,7 @@
       "items": {
         "type": "string"
       },
-      "description": "ready/heartbeat: gestures.json entries of kind pose (the AI's pose tool)"
+      "description": "ready/heartbeat: the character's poses (gestures.json entries of kind pose and pose preset files); the pose commands link to them"
     },
     "body_control": {
       "type": [
@@ -278,6 +278,28 @@
           "type": "string"
         }
       }
+    },
+    "pose_commands": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "command": {
+            "type": "string"
+          },
+          "pose": {
+            "type": "string"
+          },
+          "available": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "command",
+          "pose"
+        ]
+      },
+      "description": "ready/heartbeat (version 32): the plugin's pose vocabulary (config.json poses.commands); available = a pose with that id exists. The companion matches the user's whole input against it"
     }
   },
   "allOf": [

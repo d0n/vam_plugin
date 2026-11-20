@@ -289,14 +289,16 @@ class MainLoopTests(unittest.TestCase):
         self.assertTrue(self.sent("speak"), "the echo engine answers")
 
     def test_body_actions_become_plugin_commands(self):
+        self.plugin.poses = ["Sit Down"]
         self.sim.run(self.plugin, 2)
         self.remote.submit("expression", {"name": "HAPPY", "intensity": 0.7, "blend": 1})
-        self.remote.submit("pose", {"name": "sit"})
+        self.remote.submit("pose", {"name": "sit down."})
         self.remote.submit("stop", {})
         self.sim.run(self.plugin, 1)
         expr = [e for e in self.sent("expression") if e["name"] == "happy" and e.get("intensity") == 0.7]
         self.assertEqual(len(expr), 1, "the plugin's own spelling is used")
-        self.assertEqual(self.sent("pose")[-1]["name"], "sit")
+        self.assertEqual(self.sent("pose")[-1]["json"], '{"pose":"Sit Down"}', "pose commands go through the gate")
+        self.assertEqual(self.sent("pose")[-1]["command"], "Sit Down")
         self.assertTrue(self.sent("stop_speaking"))
         self.assertEqual(self.remote.status()["last_action"]["action"].split(" ")[0], "stop")
 
@@ -306,8 +308,10 @@ class MainLoopTests(unittest.TestCase):
         with self.assertRaises(RemoteError) as e:
             self.remote.submit("expression", {"name": "furious"})
         self.assertIn("neutral", str(e.exception))
-        with self.assertRaises(RemoteError):
-            self.remote.submit("pose", {"name": "fly"})
+        self.remote.submit("pose", {"name": "please sit down"})  # accepted for the queue, refused by the gate
+        self.sim.run(self.plugin, 1)
+        self.assertEqual(self.sent("pose"), [])
+        self.assertFalse(self.remote.status()["last_action"]["ok"])
 
     def test_body_control_off_and_gaze_off_are_respected(self):
         self.plugin.body_control = False

@@ -3,9 +3,8 @@
   express(expression, gesture?)  -> "expression" (+ "gesture") command; expressions from
                                     expressions.json / the built-ins, gestures from gestures.json
                                     (head nod / shake / tilt, Timeline animations, triggers)
-  pose(name)                     -> "pose" command by name (gestures.json entries of kind pose and
-                                    the preset files in Custom/Atom/Person/Pose, as the plugin lists
-                                    them in "poses")
+  (no pose tool since version 32: a pose is applied only when the user's whole input equals a pose command,
+   see pose_commands.py; the AI never sees or chooses poses)
 
   look_at(target, seconds?)      -> "look_at" command: where the eyes look (client, camera, forward, away, off,
                                     or the name of an atom in the scene). Only offered while the plugin says
@@ -27,7 +26,7 @@ from .emotion import offered as offered_expressions
 from .protocol import LOOK_MAX_SECONDS
 from .vamjson import as_bool
 
-TOOL_RULES = """To show a facial expression or a gesture, call the function "express"{pose}{gaze}; never say expression
+TOOL_RULES = """To show a facial expression or a gesture, call the function "express"{gaze}; never say expression
 names, gestures, poses, gaze targets or tags aloud and never describe what you do with your body."""
 
 GAZE_RULE = (' and "look_at" to direct your eyes (look at the user when you talk to them, glance away briefly '
@@ -73,15 +72,6 @@ def tools(lists: BodyLists) -> list[dict[str, Any]]:
                        "Call it at the start of an answer when your mood changes. It is never spoken.",
         "parameters": {"type": "object", "properties": props, "required": ["expression"]},
     }]
-    if lists.poses:
-        out.append({
-            "type": "function",
-            "name": "pose",
-            "description": "Silently changes the posture of your 3D body to one of the saved poses, e.g. when "
-                           "the user asks you to sit, stand or strike a pose. It is never spoken.",
-            "parameters": {"type": "object", "properties": {"name": {"type": "string", "enum": list(lists.poses)}},
-                           "required": ["name"]},
-        })
     if lists.gaze:
         out.append({
             "type": "function",
@@ -100,8 +90,7 @@ def tools(lists: BodyLists) -> list[dict[str, Any]]:
 
 
 def rules(lists: BodyLists) -> str:
-    return TOOL_RULES.format(pose=' or "pose" to change your posture' if lists.poses else "",
-                             gaze=GAZE_RULE if lists.gaze else "")
+    return TOOL_RULES.format(gaze=GAZE_RULE if lists.gaze else "")
 
 
 def _pick(value: Any, names: list[str]) -> str | None:
@@ -136,11 +125,8 @@ def resolve(name: str, arguments: Any, lists: BodyLists, allowed: bool,
         if not commands:
             return [], {"ok": False, "error": "unknown expression / gesture"}
         return commands, {"ok": True, "expression": expression, "gesture": gesture}
-    if name == "pose":
-        pose = _pick(args.get("name"), lists.poses)
-        if not pose:
-            return [], {"ok": False, "error": f"unknown pose; available: {', '.join(lists.poses) or 'none'}"}
-        return [("pose", {"name": pose})], {"ok": True, "pose": pose}
+    if name == "pose":  # no such tool since version 32 (a model that still calls it gets this answer)
+        return [], {"ok": False, "error": "poses cannot be chosen by the AI; they change only when the user says an exact pose command"}
     if name == "look_at":
         return _look_at(args, lists)
     return [], {"ok": False, "error": f"unknown function {name!r}"}

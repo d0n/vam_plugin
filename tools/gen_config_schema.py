@@ -32,6 +32,13 @@ DESCRIPTIONS = {
     ("body",): "Tab 'AI Character', section 'Body (this Person only)'",
     ("ui",): "Plugin UI state: first_run_hint_dismissed = the short note about the xAI token at the top of the plugin UI was closed or answered, "
              "so it is not shown again",
+    ("poses",): "Tab 'AI Character', section 'Pose commands' (version 32): the ONLY way a pose is applied. A pose is applied "
+                "only when the user's WHOLE input equals a command text (case, extra spaces and trailing . ! ? ignored; no "
+                "substring or fuzzy match). Written by the plugin ('Add Pose' / 'Delete Pose')",
+    ("poses", "commands"): "List of {command, pose}: command = the text the user says or types (ten starter commands by default); "
+                           "pose = id of a pose of the character (gestures.json pose or pose file; names compare ignoring case, "
+                           "spaces, '_' and '-'). A command whose pose does not exist stays in the list, is shown as unavailable "
+                           "and is never applied. Missing key = the starters, empty list = none",
     ("remote",): "Remote control (version 31, file only, no tab; the plugin keeps this section unchanged): a local web page / "
                  "HTTP API and an optional OSC listener of the companion app, off by default, bound to 127.0.0.1 only. "
                  "Applies when the app starts. See docs/REMOTE.md",
@@ -74,6 +81,12 @@ BOOL_STRING = {"type": "string", "enum": ["true", "false", "True", "False"]}
 
 
 def leaf(path: tuple[str, ...], default):
+    if isinstance(default, list):  # poses.commands: a list of {command, pose}
+        return {"type": "array", "maxItems": 100, "items": {
+            "type": "object", "additionalProperties": False, "required": ["command", "pose"],
+            "properties": {"command": {"type": "string", "minLength": 1, "maxLength": 60},
+                           "pose": {"type": "string", "minLength": 1, "maxLength": 200}}},
+            "default": default}
     if isinstance(default, bool):
         return {"anyOf": [{"type": "boolean"}, BOOL_STRING], "default": default}
     if isinstance(default, (int, float)):

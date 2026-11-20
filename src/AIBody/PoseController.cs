@@ -39,6 +39,12 @@ namespace AIBody
         public string PoseScanNote { get; private set; }
 
         /// <summary>
+        /// Pose commands (version 32): the ONLY way the companion app applies a pose. Set up by Body from config.json
+        /// poses.commands. A pose from the app is applied only through ApplyPoseJson, which checks it against this list.
+        /// </summary>
+        public readonly PoseVocabulary Vocabulary = new PoseVocabulary();
+
+        /// <summary>
         /// Pose presets by name: gestures.json entries of kind "pose" first, then the preset files in
         /// PoseFolders (name = file name without "Preset_" and extension). Used by the pose menu in
         /// the tab AI Character and by the AI's pose tool (the plugin reports them as "poses").
@@ -119,7 +125,24 @@ namespace AIBody
             }
         }
 
-        /// <summary>Applies a pose by name (gestures.json pose, else a listed preset file).</summary>
+        /// <summary>
+        /// The companion app's answer to a pose command: {"pose":"<id>"}. Parsed strictly, the id must belong to a command
+        /// of this vocabulary and the character must have that pose; otherwise nothing is applied. Returns an error
+        /// message (the caller logs a short warning), or null on success.
+        /// </summary>
+        public string ApplyPoseJson(string json)
+        {
+            string pose;
+            string error = PoseVocabulary.ParsePoseJson(json, out pose);
+            if (error != null) return error;
+            PoseCommand entry = Vocabulary.FindByPoseId(pose);
+            if (entry == null) return "'" + pose + "' is not a pose of the pose vocabulary";
+            string actual = PoseVocabulary.Resolve(entry, PoseNames);
+            if (actual == null) return "pose command '" + entry.Command + "' is unavailable: the character has no pose '" + entry.Pose + "'";
+            return ApplyPose(actual);
+        }
+
+        /// <summary>Applies a pose by name (gestures.json pose, else a listed preset file). Only for the menu button and ApplyPoseJson.</summary>
         public string ApplyPose(string name)
         {
             if (string.IsNullOrEmpty(name)) return "No pose selected";
@@ -176,8 +199,8 @@ namespace AIBody
                         duration > 0f ? duration : Protocol.GetFloat(def, "duration", 1.2f),
                         amplitude > 0f ? amplitude : Protocol.GetFloat(def, "amplitude", 1f))
                         ? null : "Unknown head gesture";
-                case "pose":
-                    return LoadPose(Protocol.GetString(def, "path", ""));
+                case "pose":   // version 32: poses are applied only through the pose vocabulary (ApplyPoseJson), never as a gesture
+                    return "Poses are applied only through pose commands, not as a gesture";
                 case "timeline":
                     return PlayTimeline(Protocol.GetString(def, "storable", "VamTimeline.AtomPlugin"),
                         Protocol.GetString(def, "animation", ""));

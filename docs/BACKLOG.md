@@ -41,6 +41,11 @@ The three lists are separate: **Done** (in the code, with version), **Won't work
 - **Token masking by focus** (first / last 4 characters visible, none while the field has focus) – Leon, 19.11.2026.
 - **First-run note** (one short text, one field, one button at the top of the plugin UI; shown until a token exists or the note was closed) – Leon, 19.11.2026.
 
+**Version 32 (20.11.2026)** – in detail in `SPEC.md` "Pose commands" and `TECHNICAL.md`, unit tests plus the plugin's real `PoseVocabulary.cs` under .NET, **not in VaM** (`TEST_PROTOCOL.md` T24–T29):
+
+- **Pose commands** (Leon, voice call 20.11.2026): fixed vocabulary in `config.json` > `poses.commands` (10 starters), whole-input exact-match gate in the companion, JSON answer `{"pose":"<id>"}` validated on both sides, **Add Pose** / **Delete Pose** / **Restore starter poses** in the tab AI Character; the AI's `pose` tool is gone (behaviour change). All 10 starters need pose files (none ships in the package) before they become available.
+- **Credits** for every source: `docs/CREDITS.md`.
+
 **Version 31 (19.11.2026)** – in detail in `SPEC.md`, `TECHNICAL.md` and `REMOTE.md`, tested with unit tests (real sockets for HTTP and OSC), **not in VaM** (`TEST_PROTOCOL.md` T22–T23):
 
 - **Remote control in the companion app** (`remote.*` in config.json, off by default, `127.0.0.1` only, one character): a local web page and HTTP API with a token (`Host` / `Origin` checks against DNS rebinding, JSON only, size limits), plus an optional OSC listener (`remote.osc_port`, off by default, no token). Actions: say exactly this text, ask the AI, expression, gesture, pose, look, stop, scene event, push-to-talk. The plugin only gained one line that keeps the `remote` section of config.json when it saves. – catalog 3 "Transport" (a).

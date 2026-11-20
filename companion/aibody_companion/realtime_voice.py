@@ -90,6 +90,8 @@ class RealtimeVoice:
         self._waiting_since: float | None = None  # user stopped talking, no answer yet
         self.turn: Turn | None = None  # trace of the current realtime exchange
         self._audio_bytes = 0
+        self._suppress_until = 0.0  # a pose command was heard: the answer the server may still start is dropped
+        self._answered_since_stop = False  # a response was created after the user stopped talking
 
     # -- session ---------------------------------------------------------------------------
 
@@ -238,6 +240,7 @@ class RealtimeVoice:
             self.refresh_instructions()  # the answer to this turn sees the current time
         elif type_ == "input_audio_buffer.speech_stopped":
             self.user_speaking = False
+            self._answered_since_stop = False
             self.c.on_user_activity()
             if self.turn is not None and self.turn.latency is None:
                 self.turn.latency = LatencyTrace(self.c._clock(), "realtime")
@@ -249,8 +252,13 @@ class RealtimeVoice:
             text = str(event.get("transcript") or "").strip()
             if text:
                 log.info("Heard: %r", text)
+                if self._pose_command(text):
+                    return  # a pose command is not a conversation: no history, no spoken answer
                 self.c.history.append({"role": "user", "content": text})
         elif type_ == "response.created":
+            self._answered_since_stop = True
+            if self._suppressed(rid):
+                return
             self._start_response(rid)
         elif type_ == "response.output_audio.delta":
             if not self._current(rid):
@@ -281,6 +289,39 @@ class RealtimeVoice:
             log.warning("Realtime error: %s", err.get("message") if isinstance(err, dict) else err)
         else:
             log.debug("Realtime event: %s", type_)
+
+    # -- pose commands (version 32): the gate also runs on what the server heard ----------------------
+
+    SUPPRESS_S = 8.0
+
+    def _pose_command(self, text: str) -> bool:
+        """The whole transcript equals a pose command: run it and drop the server's answer (started or still to come).
+        TODO(verify) with the real xAI realtime server: that response.cancel stops an answer that is already running."""
+        if not self.c.pose_gate_active():
+            return False
+        decision = self.c.pose_decision(text)
+        if decision is None:
+            return False
+        for step in decision.steps:
+            self.c._apply(step)
+        if self.responding and self.response_id:
+            self.cancelled.add(self.response_id)
+            self.client.send({"type": "response.cancel"})
+            self.c.stop_speaking()
+            self._reset_response()
+        # the answer to this utterance may not have started yet (the transcript can arrive first): drop that one too
+        self._suppress_until = 0.0 if self._answered_since_stop else self.c._clock() + self.SUPPRESS_S
+        return True
+
+    def _suppressed(self, rid: str | None) -> bool:
+        if self._suppress_until <= 0 or self.c._clock() > self._suppress_until:
+            self._suppress_until = 0.0
+            return False
+        self._suppress_until = 0.0
+        if rid:
+            self.cancelled.add(rid)
+        self.client.send({"type": "response.cancel"})
+        return True
 
     def _current(self, rid: str | None) -> bool:
         if rid and rid in self.cancelled:

@@ -6,9 +6,9 @@ English [README](../README.md).
 
 ## Load flow (the whole setup)
 
-1. Copy `d0n.AIBody.31.var` to `<VaM>/AddonPackages/` (remove older AIBody packages, see below).
+1. Copy `d0n.AIBody.32.var` to `<VaM>/AddonPackages/` (remove older AIBody packages, see below).
 2. In VaM select the AI character's Person atom > **Plugins** tab > **Add Plugin** > choose
-   `AddonPackages > d0n.AIBody.31:/Custom/Scripts/d0n/AIBody/AIBody.cslist`.
+   `AddonPackages > d0n.AIBody.32:/Custom/Scripts/d0n/AIBody/AIBody.cslist`.
 3. Start the companion app: `python -m aibody_companion --vam-root "D:\VaM"`.
 
 That's it. The plugin's status box shows "Companion app: running ..." once both sides see each
@@ -150,22 +150,22 @@ tools/                     assemble_plugins.py (plugin folder), build_var.py (pa
 
 ### Install the package
 
-Download `d0n.AIBody.31.var` from the [releases](https://github.com/d0n/vam_plugin/releases), or
-build it with `python tools/build_var.py` (writes `dist/d0n.AIBody.31.var`), and copy it to:
+Download `d0n.AIBody.32.var` from the [releases](https://github.com/d0n/vam_plugin/releases), or
+build it with `python tools/build_var.py` (writes `dist/d0n.AIBody.32.var`), and copy it to:
 
 ```
-<VaM>/AddonPackages/d0n.AIBody.31.var
+<VaM>/AddonPackages/d0n.AIBody.32.var
 ```
 
 Remove all older AIBody packages from `AddonPackages`: `d0n.AIBody.1.var`, `d0n.AIBody.2.var`,
 `d0n.AIBody.3.var` to `d0n.AIBody.28.var`, `d0n.AIBodySession.*.var`, `d0n.AIBodyPerson.*.var`,
 `d0n.AIBodyPerson2.*.var`. Scenes saved with an older package point at that package's path, so
-remove the old plugin entry from the character and add `d0n.AIBody.31` again, then save.
+remove the old plugin entry from the character and add `d0n.AIBody.32` again, then save.
 
 Contents:
 
 ```
-d0n.AIBody.31.var
+d0n.AIBody.32.var
 ├── meta.json
 └── Custom/Scripts/d0n/AIBody/
     ├── AIBody.cslist
@@ -536,8 +536,9 @@ set parameters on any of them.
 | SpeechRecognition | in-VaM Windows speech recognition (legacy, breaks with Windows updates) | VaMHub |
 | Embody, Dev Tools (Acid Bubbles) | code to study for VaM plugin patterns | [Embody](https://github.com/acidbubbles/vam-embody), [Dev Tools](https://github.com/acidbubbles/vam-devtools) |
 
-Poses from VaMHub can be loaded with the `pose` command using the usual package path, for example
-`Author.Package.1:/Custom/Atom/Person/Pose/name.vap`.
+Poses from VaMHub are applied through pose commands (version 32): put the pose file in `Custom/Atom/Person/Pose` (or
+`.../Pose/AIBody`, or a package) and name the pose like a command, or link a command to it with **Add Pose** in the
+plugin; the `pose` protocol command carries only the JSON `{"pose":"<id>"}` of a vocabulary entry.
 
 ## Roadmap
 
@@ -625,6 +626,16 @@ event or a saved scene, and an old plugin's `list_devices` event are ignored qui
 - **Code:** `SocketLink.cs` (sockets, threads), `NetworkTransport.cs` (hybrid transport over file + socket),
   `companion/aibody_companion/transport/{socket_transport,hybrid}.py` (companion side), tests
   `companion/tests/test_network.py` (real sockets) and a .NET harness that compiles `SocketLink.cs`.
+
+### Pose commands (since version 32)
+
+- **Where:** companion `aibody_companion/pose_commands.py` (vocabulary, normalization, strict JSON, `PoseVocabulary`), the gate in `Companion._turn` (before history and the language model, for typed text and speech-to-text results), `Companion.pose_command` (remote action), `RealtimeVoice._pose_command` (transcript of the realtime server); plugin `src/AIBody/PoseVocabulary.cs` (pure C#: no VaM types, no LINQ, no Dictionary key enumeration), `PoseController.ApplyPoseJson`, `CommandRouter.CmdPose`, `Body.cs` (Poses section of the tab AI Character, `LoadPoseCommands`, `WriteSettings` writes `poses.commands`, `AddStatus` writes `pose_commands`).
+- **Normalization (both sides, identical):** trim the white-space set (ASCII white space, NEL, NBSP, U+1680, U+2000-200A, U+2028/2029, U+202F, U+205F, U+3000), remove trailing `.` `!` `?` `…` `。` `！` `？` and white space (repeated), lower-case, collapse inner white space to one space. A match is `==` on the result; an empty result never matches.
+- **Flow:** `Companion._turn` has the text -> `pose_decision(text)` -> `None` (not a command: normal conversation) or a `PoseDecision` with steps: unavailable = a warning log and a status line only; available = `("command", pose)` with `json={"pose":"<id>"}` and `command="<label>"`, and the status line "Pose command: ...". No model call, no speech, no history entry. Gate off when *Body control* is off (the words go to the conversation like any text). The model has no `pose` tool (`body_tools` refuses a stray call with an error result), the realtime prompt does not mention one.
+- **Availability:** the companion learns the live vocabulary from the plugin's status field `pose_commands` (`[{command, pose, available}]`) and falls back to `config.json`; a command is available when the character has a pose that matches the linked pose id by `PoseKey` (lower-case letters and digits only, so `Preset_Sit Down`, `sit_down`, `Sit-Down` are the same pose).
+- **Plugin side:** `CommandRouter.CmdPose` reads only the `json` field; `ApplyPoseJson` parses it strictly (`ParsePoseJson`: exactly one key `pose`, non-empty text, no duplicate keys, nothing after the object, at most 400 characters), finds the vocabulary entry by pose id (`FindByPoseId`), resolves it against `PoseController.PoseNames` and only then calls `ApplyPose`. Any failure: `Log.Warn("Pose ignored: ...")` (one English line `AIBody: Warning: Pose ignored: ...`), nothing applied. A `kind: pose` entry of `gestures.json` is refused as a gesture. Manual **Apply pose** in the menu stays (a user action).
+- **Realtime:** the server answers by itself, so the gate also runs on `conversation.item.input_audio_transcription.completed`. On a match: pose command, `response.cancel` plus stop speaking if an answer is running, and a drop window (8 s, only when no response was created since `speech_stopped`) for an answer that starts right after. TODO(verify) with the real xAI realtime server (T26).
+- **Tests:** `companion/tests/test_pose_commands.py` (gate vectors, chain and realtime flows with the fake plugin and fake server, protocol, config round trip, source rules) and a .NET harness (`tests/csharp_pose_harness`) that compiles the plugin's real `PoseVocabulary.cs` and compares it with the Python code on shared vectors (normalization, keys, gate, JSON parsing, Add / Remove / Restore logic).
 
 ### Remote control (since version 31)
 

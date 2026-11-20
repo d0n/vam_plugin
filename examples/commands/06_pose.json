@@ -1,1 +1,1 @@
-{ "v": 3, "type": "pose", "id": "p-1", "path": "Custom/Atom/Person/Pose/AIBody/standing_relaxed.json" }
+{ "v": 3, "type": "pose", "id": "p-1", "command": "Sit Down", "json": "{\"pose\":\"Sit Down\"}" }

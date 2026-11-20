@@ -29,7 +29,7 @@ that part off; everything else keeps working.
 
 Open `http://127.0.0.1:38438/#token=<remote.token>` in a browser on the same computer (the part after `#` is never sent
 to a server; the page moves it into the tab's session storage and removes it from the address bar). The page shows the
-status and has: text to say exactly / ask the AI / scene event / stop, buttons for the expressions, gestures, poses
+status and has: text to say exactly / ask the AI / scene event / stop, buttons for the expressions, gestures, pose commands
 the plugin reports, eye targets, and push-to-talk start / stop.
 
 ## HTTP API
@@ -40,12 +40,12 @@ POST bodies are JSON objects (`Content-Type: application/json`, at most 16 KB). 
 
 | Call | Parameters | What happens |
 |---|---|---|
-| `GET /api/status` | | plugin connected, link, mode, last turn status, microphone, persona, the lists of expressions / gestures / poses / gaze atoms, the last remote action |
+| `GET /api/status` | | plugin connected, link, mode, last turn status, microphone, persona, the lists of expressions / gestures / pose commands (`poses` = available, `poses_unavailable`) / gaze atoms, the last remote action |
 | `POST /api/say` | `text`, `interrupt` (false) | speaks exactly this text (text to speech, no language model); `interrupt: true` cuts in with the first sentence |
 | `POST /api/ask` | `text` | asked like typed text: language model, speech, body tools |
 | `POST /api/expression` | `name`, `intensity` (1.0), `blend` (0.4 s), `hold` (seconds, optional) | shows the expression |
 | `POST /api/gesture` | `name` | plays the gesture |
-| `POST /api/pose` | `name` | applies the pose |
+| `POST /api/pose` | `name` | runs a **pose command** (version 32): `name` is the command text (e.g. `Sit Down`) and goes through the same exact-match gate as typed input; anything else (`please sit down`, a pose name that is not a command) is refused and logged; an unavailable command is refused too |
 | `POST /api/look` | `target` (`client`, `camera`, `forward`, `away`, `off`, `atom`), `atom` (atom name), `seconds` (0 = until changed) | directs the eyes |
 | `POST /api/stop` | | stops speaking and drops the answer being prepared |
 | `POST /api/event` | `text` | tells the AI about a scene event (like the plugin's *Scene event*) |
@@ -70,7 +70,8 @@ With `remote.osc_port` above 0 the app listens for OSC 1.0 messages (types `i f 
 | `/aibody/say` | `"text"` [`interrupt` 0/1] |
 | `/aibody/ask`, `/aibody/event` | `"text"` |
 | `/aibody/expression` | `"name"` [`intensity`] [`blend`] [`hold`] |
-| `/aibody/gesture`, `/aibody/pose` | `"name"` |
+| `/aibody/gesture` | `"name"` |
+| `/aibody/pose` | `"command text"` (a pose command, e.g. `"Sit Down"`; the exact-match gate applies) |
 | `/aibody/look` | `"client"`, `"camera"`, `"forward"`, `"away"`, `"off"` or `"atom:<Name>"`, [`seconds`] |
 | `/aibody/stop` | none |
 | `/aibody/ptt` | `"start"` / `"stop"` / `"toggle"` (or `1` / `0`) |

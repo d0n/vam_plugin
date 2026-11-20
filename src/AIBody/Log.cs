@@ -33,6 +33,12 @@ namespace AIBody
             return _recent.Count == 0 ? "" : string.Join("\n", _recent.ToArray()) + "\n";
         }
 
+        /// <summary>A short warning in the normal (not red) log: something was ignored on purpose.</summary>
+        public static void Warn(string message)
+        {
+            SuperController.LogMessage(Prefix + "Warning: " + message);
+        }
+
         public static void Error(string message)
         {
             SuperController.LogError(Prefix + message);
