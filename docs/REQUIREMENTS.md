@@ -1,10 +1,10 @@
 # AIBody – requirements catalog (status overview)
 
-Status: 20.11.2026, version 36. Overview of what is done and what is open; updated with every release.
+Status: 20.11.2026, version 37. Overview of what is done and what is open; updated with every release.
 - Agreed specification (what applies): [`docs/SPEC.md`](SPEC.md)
 - Deferred ideas / nice to have: [`docs/BACKLOG.md`](BACKLOG.md)
 - Test instructions in VaM: [`docs/TEST_PROTOCOL.md`](TEST_PROTOCOL.md) · API evidence: [`docs/API_AUDIT.md`](API_AUDIT.md)
-- Repo: https://github.com/d0n/vam_plugin · current package: `d0n.AIBody.36.var` (version = package number since 12)
+- Repo: https://github.com/d0n/vam_plugin · current package: `d0n.AIBody.37.var` (version = package number since 12)
 
 "Done" means: tested in code and against rebuilt counterparts. What has not yet been checked in VaM or against the real xAI APIs is listed again under 2.
 
@@ -80,7 +80,7 @@ Status: 20.11.2026, version 36. Overview of what is done and what is open; updat
 
 ### Scene, docs
 - Attribution in the README, section 6 (MacGruber as the main source, Acid Bubbles, VamDeluxe, Sally, further evidence sources) – version 13.
-- Scene template green screen / passthrough (Sally's *Camera Background Color* #00FF00): `examples/scenes/AIBody_GreenScreen.json`, `docs/SCENE_GREENSCREEN.md` – v0.7.x (wish 17.11.2026); package reference corrected to the current package – after v0.7.4.
+- Scene template green screen / passthrough (Sally's *Camera Background Color* #00FF00): originally `examples/scenes/AIBody_GreenScreen.json`, `docs/SCENE_GREENSCREEN.md` – v0.7.x (wish 17.11.2026); package reference corrected to the current package – after v0.7.4. Replaced in version 37 by `examples/scenes/AIBody_Example.json` plus the preview `AIBody_Example.jpg`.
 - Scene with two people: `AI Character` (female, `Female 3`, AIBody) and `Client Character` (male, `Male 1`, Camera Background Color directly on the Person), 1.2 m apart, facing each other – version 12 (Leon, 17.11.2026 22:30).
 - README rewritten: purpose, bundled scene, two characters, complete settings reference, notes for the Hub; technical details in `docs/TECHNICAL.md` – after v0.7.4 (Leon, 17.11.2026 22:11).
 - `docs/BACKLOG.md` (deferred ideas, Leon 17.11.2026 21:45) and `docs/SPEC.md` (spec log, Leon 17.11.2026 21:50) – v0.7.4.
@@ -144,6 +144,10 @@ Status: 20.11.2026, version 36. Overview of what is done and what is open; updat
 - **Companion setup, two independent points:** background yes / no / abort + "Set your color for transparency", then Scene / Plugin; the background answer switches the plugin's toggle ON with that color once per setup, in any scene; the scene choice only writes the scene. Tests for all four combinations. TODO(verify): T41.
 - **Latency, code only (no feature):** keep-alive HTTPS pool for STT / LLM / TTS with pre-connect on speech start, immediate main-loop wake-up, early first clause, speech files without fsync; plugin: speech starts when the clip is loaded, status texts only while the UI is open, fewer per-frame allocations. T42.
 
+### Version 37 (20.11.2026)
+- **New example scene with preview thumbnail:** Leon's two-character scene (female `Person`, built-in `Female 1`, AIBody; male `BryanGosling`, built-in `Male 4`, no plugin) replaces the old greenscreen template. In the package as `Saves/scene/AIBody/AIBody_Example.json` plus `AIBody_Example.jpg` (same base name, for VaM's Load Scene preview). Loose release assets of the same names. Plugin entry `SELF:/` inside the package; no third-party package dependencies. Figures stay without clothing (no evidenced built-in clothing ids in the repo). Explicit genital morphs and leftover third-party hair storables removed. TODO(verify): T44.
+- **Menu rebuild from after version 36 included:** menus ordered by topic, Body control on by default, the gaze and blinking block removed, status in the left info fields with bold control labels (commit d431901). T43.
+
 ## 2. Still open / to do
 
 ### Next version
@@ -169,6 +173,7 @@ _Version 21 implemented the field "XAI API Token" and the button "Question and A
 - T13–T16, T18: voice detection and echo gate, gaze, natural gaze / blinking / scene hooks, emotions / personas / memory, local engines.
 - T19: Network Active (toggle on / off, VaM's network switch off → file fallback, companion not running).
 - T20: token masking by focus. T21: first-run note. T22: remote control (web page, HTTP, OSC). T23: plugin preset (Load Preset).
+- T38–T42: background color, scene from the package, setup Scene / Plugin, speech start (version 36). T43: eyes belong to VaM, Body control ON, menus by topic. T44: example scene thumbnail in Load Scene and AIBody on the female (version 37).
 - The engines have never run against the real xAI / ElevenLabs APIs (only a rebuilt server).
 
 ### TODO(verify) in the code
@@ -193,7 +198,7 @@ _Version 21 implemented the field "XAI API Token" and the button "Question and A
 - Session config vs. Person config: deferred until after the tests, see Backlog.
 
 ### Not yet implemented (agreed)
-- Demo / tutorial scene.
+- ~~Demo / tutorial scene.~~ Shipped in the package since version 36; version 37 is Leon's two-character example with a Load Scene preview thumbnail (T44).
 - Documentation and publication on the VaM Hub ("Plugins + Scripts", with tags).
 - Deferred (formerly "we want", details in BACKLOG): session / person split with session connection and bootstrap plugin, client on its own atom.
 

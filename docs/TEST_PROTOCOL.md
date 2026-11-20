@@ -1,4 +1,4 @@
-# AIBody – test protocol for the first test in VaM 1.22 (from v0.6.3, now version 36; T9 from v0.7.2, T10 from v0.7.3, menu layout from version 15, T19–T21 from version 30, T22–T23 from version 31, T24–T29 from version 32, T38–T42 from version 36)
+# AIBody – test protocol for the first test in VaM 1.22 (from v0.6.3, now version 37; T9 from v0.7.2, T10 from v0.7.3, menu layout from version 15, T19–T21 from version 30, T22–T23 from version 31, T24–T29 from version 32, T38–T42 from version 36, T43 after version 36, T44 from version 37)
 
 Goal: the open "must do now" points that can only be checked in VaM. Please go through every point
 in order and enter the result (✅ / ❌ / unclear). Duration: about 20 minutes.
@@ -13,9 +13,9 @@ in order and enter the result (✅ / ❌ / unclear). Duration: about 20 minutes.
 **Preparation**
 
 - Close VaM. In `<VaM main folder>/AddonPackages/` delete all old AIBody packages:
-  `d0n.AIBody.1.var` to `d0n.AIBody.35.var`, `d0n.AIBodySession.*`, `d0n.AIBodyPerson.*`,
+  `d0n.AIBody.1.var` to `d0n.AIBody.36.var`, `d0n.AIBodySession.*`, `d0n.AIBodyPerson.*`,
   `d0n.AIBodyPerson2.*`. Also remove loose files under `Custom/Scripts/d0n/AIBody/`.
-- Copy `d0n.AIBody.36.var` to `<VaM main folder>/AddonPackages/`.
+- Copy `d0n.AIBody.37.var` to `<VaM main folder>/AddonPackages/`.
 - Have the companion app ready (do **not** start it yet):
   `python -m aibody_companion --vam-root "D:\VaM"` (adjust the path to your own VaM folder).
   For T9 enter the xAI key in the plugin (tab **Voice** > field **XAI API Token**, from version 21) or set it before starting: `set XAI_API_KEY=xai-...` (cmd) or `$env:XAI_API_KEY="xai-..."` (PowerShell); the field wins.
@@ -26,7 +26,7 @@ in order and enter the result (✅ / ❌ / unclear). Duration: about 20 minutes.
 
 1. Start VaM, open a scene with a female standard figure (or a new scene + Person).
 2. Select the figure (Person atom) > tab **Plugins** > **Add Plugin** >
-   `AddonPackages > d0n.AIBody.36:/Custom/Scripts/d0n/AIBody/AIBody.cslist`.
+   `AddonPackages > d0n.AIBody.37:/Custom/Scripts/d0n/AIBody/AIBody.cslist`.
    **Not** under *Session Plugins* or *Scene Plugins*.
 3. If VaM asks whether to allow plugins from the package: allow it and note that it asked.
 4. Open **Open Custom UI** (plugin window).
@@ -525,3 +525,11 @@ Report: the console output of each run and the tab Config after each step.
 4. Fresh scene, add the plugin, and with a `config.json` without `body.body_control`: **Body control** is on. Only Question and Answer switches it off.
 5. Right column of every tab: only bold category headers, controls and the labels above the two input fields, no help or status text (the one caption "for pass-through transparency" under the color picker stays). Order as in `docs/SPEC.md` > Menu (e.g. AI Character: Body control, Idle poses, Idle motion and breathing with Breath morph (from the Morphs tab) right under Breath depth, Expression and gesture, Poses; Speech volume is in Voice > Voice and sound).
 6. Left info field of every tab: the explanations read as running prose and every control name is **bold** (e.g. "**Breaths per minute** controls how fast the chest breathes"); the status lines (companion connection, test tone result, idle pose status, breath morph found / NOT found, errors in red) are there and short.
+
+## T44 – Example scene thumbnail and AIBody on the female (version 37)
+
+1. VaM > **Open Scene** / **Load Scene** > package `d0n.AIBody.37` > folder `AIBody` > **AIBody_Example**. The preview thumbnail of the two characters is visible in the scene list next to the name (the package has `Saves/scene/AIBody/AIBody_Example.jpg` beside the `.json`).
+2. Load the scene: two people, no question about a missing package. Select the female atom `Person` > tab **Plugins**: AIBody of this package (`SELF:/Custom/Scripts/d0n/AIBody/AIBody.cslist` or the equivalent package path). The male atom `BryanGosling` has no AIBody plugin. Tab Config: **Set background color** is OFF unless you turned it on yourself.
+3. Optional: copy the release assets `AIBody_Example.json` and `AIBody_Example.jpg` together to `Saves/scene/AIBody/` and open that copy from the browser; the same thumbnail and the same plugin load (the loose scene references `d0n.AIBody.37:/…`).
+
+Report: screenshot of the Load Scene list with the thumbnail, and of the loaded scene with the plugin on `Person`.

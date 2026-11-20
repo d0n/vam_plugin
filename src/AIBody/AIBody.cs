@@ -42,7 +42,7 @@ namespace AIBody
 {
     public class AIBodyPlugin : MVRScript
     {
-        public const string PluginVersion = "36";   // = package number d0n.AIBody.36.var (scheme since version 12)
+        public const string PluginVersion = "37";   // = package number d0n.AIBody.37.var (scheme since version 12)
 
         private AppLink _link;
         private Body _body;

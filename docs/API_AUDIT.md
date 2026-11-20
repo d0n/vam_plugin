@@ -457,7 +457,7 @@ registration). TODO(verify) in VaM (T20 step 4): the field still works, the scen
 |---|---|
 | VaM Hub "PresetLoader" and the vam-backstage classifier (`docs/Implementation.md`, type `pluginPreset`) | Person plugin presets are `.vap` files in `Custom/Atom/Person/Plugins/`; the browser hides them |
 | BoominBobbyBo/iHV script (`PluginManager.plugins ... "plugin#100" = "Custom/Scripts/.../x.cs"`) | the Person's storable `PluginManager` has a `plugins` map `plugin#N` -> script path |
-| our scene `examples/scenes/AIBody_GreenScreen.json` and Timeline / CircleLooks instructions | a package script is referenced as `<creator>.<package>.<version>:/Custom/Scripts/.../X.cslist`; the `.cslist`, not single `.cs` files, is loaded |
+| our scene `examples/scenes/AIBody_Example.json` and Timeline / CircleLooks instructions | a package script is referenced as `<creator>.<package>.<version>:/Custom/Scripts/.../X.cslist`; the `.cslist`, not single `.cs` files, is loaded |
 
 The preset therefore holds exactly: `{"storables":[{"id":"PluginManager","plugins":{"plugin#0":"d0n.AIBody.32:/Custom/Scripts/d0n/AIBody/AIBody.cslist"}}]}`.
 No parameter values and no `setUnlistedParamsToDefault`, so loading it cannot overwrite other settings. TODO(verify) in VaM (T23):

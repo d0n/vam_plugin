@@ -13,10 +13,10 @@ Asked once when the app starts for the first time (config.json "setup.asked" is 
        no  -> setup.background = false; the plugin's toggle stays as it is (OFF by default).
   2. "Choose what to use": Scene or Plugin (either / or).
        Scene  -> the app writes the AIBody scene to <VaM>/Saves/scene/AIBody/AIBody_Example.json (an existing file is
-                 kept as .bak): AI Character with AIBody of this version anchored at a fixed spot (root controller
-                 locked, the player starts at the scene's load position), Client Character opposite, two lights, no
-                 room and no third-party plugin. The scene carries the background answer of point 1 for AIBody
-                 (toggle and color) and nothing else; the same scene ships in the package (VaM: Open Scene >
+                 kept as .bak) and the preview thumbnail AIBody_Example.jpg next to it: two people, female Person
+                 (Female 1) with AIBody of this version, male BryanGosling (Male 4) without a plugin, no third-party
+                 package. The scene carries the background answer of point 1 for AIBody (toggle and color) and
+                 nothing else; the same scene and thumbnail ship in the package (VaM: Open Scene >
                  d0n.AIBody.<n> > AIBody_Example).
        Plugin -> nothing is written; the app says how to add the plugin to your own Person atom.
 
@@ -48,15 +48,16 @@ QUESTION_CHOICE = "Choose what to use"
 DEFAULT_COLOR = "#00FF00"
 CHOICE_SCENE = "scene"
 CHOICE_PLUGIN = "plugin"
-TEMPLATE = Path(__file__).resolve().parents[2] / "examples" / "scenes" / "AIBody_GreenScreen.json"
+TEMPLATE = Path(__file__).resolve().parents[2] / "examples" / "scenes" / "AIBody_Example.json"
 SCENE_REL = "Saves/scene/AIBody/AIBody_Example.json"
+THUMB_REL = "Saves/scene/AIBody/AIBody_Example.jpg"
 AIBODY_SCRIPT = "/Custom/Scripts/d0n/AIBody/AIBody.cslist"
 AIBODY_STORABLE = "plugin#0_AIBody.AIBodyPlugin"  # "<plugin id>_<namespace>.<class>", like VamTimeline.AtomPlugin (E8)
 TOGGLE_NAME = "Set background color"  # AIBodyPlugin.BackgroundToggleName
 COLOR_NAME = "Background color"  # AIBodyPlugin.BackgroundColorName
 CHOICE_TEXT = (
     f"{QUESTION_CHOICE}:\n"
-    "  1) Scene  - load the AIBody scene: the AI Character stays anchored at a fixed spot, plain neutral background\n"
+    "  1) Scene  - load the AIBody scene: two people, AIBody on the female, preview thumbnail in Load Scene\n"
     "  2) Plugin - only the plugin, on a Person atom in your own scene\n")
 
 
@@ -145,6 +146,9 @@ def write_scene(vam_root: str | Path, background: bool, color: str = DEFAULT_COL
     if path.exists():
         shutil.copyfile(path, path.with_suffix(".json.bak"))
     atomic_write_bytes(path, (json.dumps(scene_data(background, color, template), indent=3) + "\n").encode("utf-8"))
+    thumb_src = Path(template).with_suffix(".jpg")
+    if thumb_src.is_file():
+        shutil.copyfile(thumb_src, Path(vam_root) / THUMB_REL)
     return path
 
 

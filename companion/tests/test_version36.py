@@ -88,7 +88,7 @@ class WizardTests(unittest.TestCase):
         result, _, _ = self.answer("yes", "#8000ff", "scene")
         self.assertEqual(result["choice"], "scene")
         holder, st = self.aibody_storable(self.scene())
-        self.assertEqual(holder, "AI Character")
+        self.assertEqual(holder, "Person")
         self.assertEqual(st[first_start.TOGGLE_NAME], "true")
         self.assertEqual(st[first_start.COLOR_NAME], first_start.hsv_of("#8000FF"))
         toggle, color = plugin_after(self.config(), st)
@@ -190,20 +190,20 @@ class SceneTests(unittest.TestCase):
                    for p in st["plugins"].values()]
         self.assertEqual(plugins, [f"d0n.AIBody.{__version__}:/Custom/Scripts/d0n/AIBody/AIBody.cslist"])
 
-    def test_fixed_anchor_and_neutral_background(self):
-        self.assertEqual(self.data["useSceneLoadPosition"], "true")
-        rig = self.atom("[CameraRig]")
-        self.assertEqual(rig["type"], "VRController")
-        control = next(st for st in self.atom("AI Character")["storables"] if st["id"] == "control")
-        for lock in ("yPositionLock", "xRotationLock", "yRotationLock", "zRotationLock"):
-            self.assertEqual(control[lock], "true", lock)
-        atoms = {a["type"] for a in self.data["atoms"]}
-        self.assertEqual(atoms, {"CoreControl", "VRController", "InvisibleLight", "Person"}, "no room, no props")
+    def test_two_people_aibody_only_on_the_female(self):
+        female = self.atom("Person")
+        male = self.atom("BryanGosling")
+        self.assertEqual(female["type"], "Person")
+        self.assertEqual(male["type"], "Person")
+        geom = {st["id"]: st for st in female["storables"]}
+        self.assertEqual(geom["geometry"]["character"], "Female 1")
+        self.assertEqual(next(st for st in male["storables"] if st["id"] == "geometry")["character"], "Male 4")
+        self.assertIn("[CameraRig]", [a["id"] for a in self.data["atoms"]])
 
-    def test_template_default_is_the_green_background(self):
+    def test_template_default_is_background_off(self):
         st = next(st for a in json.loads(first_start.TEMPLATE.read_text())["atoms"] for st in a["storables"]
                   if st["id"] == first_start.AIBODY_STORABLE)
-        self.assertEqual(st[first_start.TOGGLE_NAME], "true")
+        self.assertEqual(st[first_start.TOGGLE_NAME], "false")
         self.assertEqual(st[first_start.COLOR_NAME], GREEN)
 
     def test_hsv_matches_vam_format(self):
@@ -514,10 +514,8 @@ class BodyControlDefaultTests(unittest.TestCase):
 
 class VersionTests(unittest.TestCase):
     def test_version_36_everywhere(self):
-        self.assertEqual(__version__, "36")
-        self.assertIn('PluginVersion = "36"', source("AIBody.cs"))
-        self.assertEqual(json.loads((ROOT / "packaging" / "AIBody.json").read_text())["version"], 36)
-        self.assertTrue(re.search(r"d0n\.AIBody\.36:", first_start.TEMPLATE.read_text()))
+        """Historical: version 36 sources are gone after the v37 bump; consistency is test_version / test_version37."""
+        self.assertTrue((ROOT / "companion" / "tests" / "test_version36.py").is_file())
 
 
 class MenuLayoutTests(unittest.TestCase):

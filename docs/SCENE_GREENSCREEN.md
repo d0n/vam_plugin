@@ -1,38 +1,35 @@
-# Scene template "AIBody Green Screen" (the "Scene" choice)
+# AIBody example scene (and greenscreen background)
 
-Status 20.11.2026 (version 36) · Leon's wish of 17.11.2026 (two people: 22:30), call of 20.11.2026 22:03 (Scene / Plugin, background color in the plugin) · File: [`examples/scenes/AIBody_GreenScreen.json`](../examples/scenes/AIBody_GreenScreen.json) · in the package: `Saves/scene/AIBody/AIBody_Example.json`
+Status 20.11.2026 (version 37) · Leon's two-character example of 20.11.2026 · File: [`examples/scenes/AIBody_Example.json`](../examples/scenes/AIBody_Example.json) with preview [`examples/scenes/AIBody_Example.jpg`](../examples/scenes/AIBody_Example.jpg) · in the package: `Saves/scene/AIBody/AIBody_Example.json` and `Saves/scene/AIBody/AIBody_Example.jpg`
 
-Empty scene without a room, a fixed anchor:
+Two people, no third-party package (`meta.json` dependencies `{}`):
 
-1. Atom `AI Character` (Person, female: `geometry.character` = `Female 3`), position (0, 0, 0), rotation 0°, root controller locked (`control`: `yPositionLock`, `xRotationLock`, `yRotationLock`, `zRotationLock` as in E21; `xPositionLock` / `zPositionLock` TODO(verify)). Plugins tab of the Person: **AIBody** `d0n.AIBody.36:/Custom/Scripts/d0n/AIBody/AIBody.cslist` with its saved values `Set background color` = true and `Background color` = #00FF00 (`{"h":"0.3333333","s":"1","v":"1"}`).
-2. Atom `Client Character` (Person, male: `geometry.character` = `Male 1`), position (0, 0, 1.2), rotation 180° about the vertical axis, i.e. facing the AI character, 1.2 m apart. No plugin.
-3. `[CameraRig]` (VRController) at the client's place and `useSceneLoadPosition` true: the player starts there (E21; TODO(verify)).
-4. Two invisible lights (InvisibleLight). No floor, no walls, no scene plugin, no third-party package (the package's meta dependencies stay `{}`).
-
-Look: only VaM's built-in standard figures (`Female 3`, `Male 1`), no clothes, hair or looks from third-party packages. Plain neutral background; green #00FF00 is the high-contrast chroma color.
+1. Atom `Person` (Person, female: `geometry.character` = `Female 1`), root slightly to the right of the origin. Plugins tab of the Person: **AIBody** `d0n.AIBody.37:/Custom/Scripts/d0n/AIBody/AIBody.cslist` (inside the package: `SELF:/Custom/Scripts/d0n/AIBody/AIBody.cslist`) with saved values `Set background color` = false and `Background color` = #00FF00 (the default color if you switch it on).
+2. Atom `BryanGosling` (Person, male: `geometry.character` = `Male 4`), at the origin. No plugin.
+3. `[CameraRig]`, `WindowCamera`, `PlayerNavigationPanel`, `CoreControl`. No scene plugin, no clothes (no evidenced built-in clothing ids; looks without fixed clothing, as before).
 
 Roles:
-- `AI Character` is the AI's body (AIBody) and makes the background color (tab Config > Background).
-- `Client Character` is the user's visible body. AIBody knows no client atom: microphone, push-to-talk and text input run through the companion app and the tab *Client Character* in the AIBody plugin on the AI character.
+- `Person` is the AI's body (AIBody). One character only: do not add AIBody to `BryanGosling`.
+- `BryanGosling` is the second figure in the example. Microphone, push-to-talk and text input run through the companion app and the tab *Client Character* in the AIBody plugin on the female.
 
-**Important:** VaM does **not** make the background transparent. VaM only shows a uniform color. Transparency is made by the headset or the streaming program through a chroma key on exactly the same color (default #00FF00), e.g. Quest 3 with Virtual Desktop. On the desktop this can be done, for example, with an external window chroma key script (see sources).
+**Background / greenscreen (optional):** the scene ships with **Set background color** off, so the packaged look matches the thumbnail. Switch it on in tab Config > Background if you want a plain chroma color (default #00FF00). VaM does **not** make the background transparent. VaM only shows a uniform color. Transparency is made by the headset or the streaming program through a chroma key on exactly the same color, e.g. Quest 3 with Virtual Desktop.
 
 ## Choose what to use
 
-- **Scene:** ONE download is enough: the scene is inside `d0n.AIBody.36.var` at `Saves/scene/AIBody/AIBody_Example.json` (plugin entry `SELF:/Custom/Scripts/d0n/AIBody/AIBody.cslist` = the plugin of the same package, so it never points at another version). VaM's scene browser (main menu **Open Scene** / **Load Scene**) lists scenes of packages that lie below `Saves/scene/`: open the package `d0n.AIBody.36` (package filter / shortcut on the left of the browser), folder `AIBody`, file **AIBody_Example**; VaM shows it as `d0n.AIBody.36:/Saves/scene/AIBody/AIBody_Example.json`. TODO(verify) in VaM 1.22: the exact place in the browser (T39).
-- Optional loose copy (release asset `AIBody_Example.json`, also what the companion's setup writes when you choose Scene there, with your background answer): put it at `<VaM main folder>/Saves/scene/AIBody/AIBody_Example.json`; it references `d0n.AIBody.36:/Custom/Scripts/d0n/AIBody/AIBody.cslist` (SELF: only works inside a package) and is listed in the scene browser's own folder `Saves/scene/AIBody`.
+- **Scene:** ONE download is enough: the scene is inside `d0n.AIBody.37.var` at `Saves/scene/AIBody/AIBody_Example.json` (plugin entry `SELF:/Custom/Scripts/d0n/AIBody/AIBody.cslist` = the plugin of the same package, so it never points at another version) with the preview `Saves/scene/AIBody/AIBody_Example.jpg` (same base name: VaM's Load Scene menu can show the thumbnail). VaM's scene browser (main menu **Open Scene** / **Load Scene**) lists scenes of packages that lie below `Saves/scene/`: open the package `d0n.AIBody.37` (package filter / shortcut on the left of the browser), folder `AIBody`, file **AIBody_Example**. TODO(verify) in VaM 1.22: the thumbnail in the list (T44).
+- Optional loose copy (release assets `AIBody_Example.json` and `AIBody_Example.jpg`, also what the companion's setup writes when you choose Scene there, with your background answer): put both at `<VaM main folder>/Saves/scene/AIBody/`; the JSON references `d0n.AIBody.37:/Custom/Scripts/d0n/AIBody/AIBody.cslist` (SELF: only works inside a package).
 - **Plugin:** add AIBody to a Person of your own scene (Plugins > Add Plugin, or the plugin preset). Switch **Set background color** on in tab Config if you want the plain color; the companion's setup does it for you when you answered yes there.
 
 ## What you need
 
-- `d0n.AIBody.36.var` – [release v36](https://github.com/d0n/vam_plugin/releases/tag/v36), into `<VaM main folder>/AddonPackages/`. Nothing else.
+- `d0n.AIBody.37.var` – [release v37](https://github.com/d0n/vam_plugin/releases/tag/v37), into `<VaM main folder>/AddonPackages/`. Nothing else.
 
 ## Checking
 
-1. Open the scene (see above). Select `AI Character` > tab **Plugins**: `d0n.AIBody.36:/Custom/Scripts/d0n/AIBody/AIBody.cslist`; plugin window > tab **Config** > Background: Set background color ON, green.
-2. Start the companion app (see README), set the chroma key in the headset to the same color.
+1. Open the scene (see above) and confirm the thumbnail in the Load Scene list. Select `Person` > tab **Plugins**: `SELF:/Custom/Scripts/d0n/AIBody/AIBody.cslist` (or the package path); plugin window > tab **Config** > Background: Set background color OFF unless you turned it on.
+2. Start the companion app (see README). For a greenscreen, switch Set background color on and set the chroma key in the headset to the same color.
 
-Afterwards please send a screenshot (the scene plus the plugin's tab Config) and all red lines with "AIBody:" from the error log. Test steps: `docs/TEST_PROTOCOL.md` T38-T41.
+Afterwards please send a screenshot (the Load Scene list with the thumbnail, the scene, and the plugin's tab Config) and all red lines with "AIBody:" from the error log. Test steps: `docs/TEST_PROTOCOL.md` T38 (background) and T44 (thumbnail and plugin on the female).
 
 ## How AIBody makes the background (version 36)
 

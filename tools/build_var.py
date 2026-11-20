@@ -6,11 +6,14 @@
     Custom/Scripts/d0n/AIBody/AIBody.cslist   (+ the .cs files it lists, same folder)
     Custom/Scripts/d0n/AIBody/AIBodyTest.wav  (test tone for the plugin's "Play test tone")
     Custom/Atom/Person/Plugins/AIBody/Preset_AIBody.vap  (plugin preset, version 31: adds the plugin to a Person)
-    Saves/scene/AIBody/AIBody_Example.json     (version 36: the AIBody scene = the "Scene" choice; VaM's scene browser
-                                                lists scenes of packages below Saves/scene/; the plugin is referenced
-                                                as "SELF:/Custom/Scripts/d0n/AIBody/AIBody.cslist" = this package)
+    Saves/scene/AIBody/AIBody_Example.json     (the AIBody scene = the "Scene" choice; VaM's scene browser lists
+                                                scenes of packages below Saves/scene/; the plugin is referenced as
+                                                "SELF:/Custom/Scripts/d0n/AIBody/AIBody.cslist" = this package)
+    Saves/scene/AIBody/AIBody_Example.jpg      (version 37: preview thumbnail next to the scene, same base name, so
+                                                VaM's Load Scene menu can show it)
   dist/AIBody_Example.json                     (optional loose copy for <VaM>/Saves/scene/AIBody/, release asset; it
                                                 references "d0n.AIBody.<N>:/..." because SELF: only works in a package)
+  dist/AIBody_Example.jpg                      (the same thumbnail next to the loose scene)
 
 meta.json is packaging/meta.json (unchanged, incl. licenseType) with the overrides from
 packaging/AIBody.json, which also sets the package version <N>. The script folder is assembled by
@@ -40,10 +43,12 @@ PRESET_PATH = "Custom/Atom/Person/Plugins/AIBody/Preset_AIBody.vap"  # VaM's fol
 
 
 SCENE_PATH = "Saves/scene/AIBody/AIBody_Example.json"
-SCENE_TEMPLATE = ROOT / "examples" / "scenes" / "AIBody_GreenScreen.json"
-
+SCENE_THUMB_PATH = "Saves/scene/AIBody/AIBody_Example.jpg"
+SCENE_TEMPLATE = ROOT / "examples" / "scenes" / "AIBody_Example.json"
+SCENE_THUMB = SCENE_TEMPLATE.with_suffix(".jpg")
 
 LOOSE_SCENE = "AIBody_Example.json"
+LOOSE_THUMB = "AIBody_Example.jpg"
 
 
 def example_scene(creator: str, package: str, version: int, script_dir: str, inside_package: bool = True) -> str:
@@ -122,7 +127,11 @@ def build(version_override: int | None = None) -> Path:
     files = assemble()
     (STAGE / TEST_TONE).write_bytes(test_tone_wav())
     files.append(TEST_TONE)
-    meta["contentList"] = [f"{script_dir}/{f}" for f in files] + [PRESET_PATH, SCENE_PATH]
+    packaged = [PRESET_PATH, SCENE_PATH]
+    if not SCENE_THUMB.is_file():
+        raise SystemExit(f"missing scene thumbnail: {SCENE_THUMB}")
+    packaged.append(SCENE_THUMB_PATH)
+    meta["contentList"] = [f"{script_dir}/{f}" for f in files] + packaged
     out = ROOT / "dist" / f"{creator}.{meta['packageName']}.{version}.var"
     out.parent.mkdir(exist_ok=True)
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
@@ -131,13 +140,15 @@ def build(version_override: int | None = None) -> Path:
             z.write(STAGE / f, f"{script_dir}/{f}")
         z.writestr(PRESET_PATH, plugin_preset(creator, meta["packageName"], version, script_dir))
         z.writestr(SCENE_PATH, example_scene(creator, meta["packageName"], version, script_dir))
+        z.write(SCENE_THUMB, SCENE_THUMB_PATH)
     (out.parent / LOOSE_SCENE).write_text(example_scene(creator, meta["packageName"], version, script_dir, False),
                                           encoding="utf-8")
+    (out.parent / LOOSE_THUMB).write_bytes(SCENE_THUMB.read_bytes())
     problems = scan_var(out)
     if problems:
         out.unlink()
         raise SystemExit("forbidden APIs inside the .var (deleted):\n" + "\n".join(problems))
-    print(f"Wrote {out.relative_to(ROOT)} ({len(files) + 2} files); strict scan of the .var: 0 forbidden matches")
+    print(f"Wrote {out.relative_to(ROOT)} ({len(files) + 3} files); strict scan of the .var: 0 forbidden matches")
     return out
 
 
