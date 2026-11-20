@@ -510,7 +510,7 @@ namespace AIBody
             List<string> poses = _poses != null ? _poses.PoseNames : new List<string>();
             SetMenu(_poseChoiceJson, poses);
             List<string> commands = new List<string>();
-            if (_poses != null) for (int i = 0; i < _poses.Vocabulary.Count; i++) commands.Add(_poses.Vocabulary[i].Command);
+            if (_poses != null) for (int i = 0; i < _poses.Vocabulary.Count; i++) commands.Add(_poses.Vocabulary.Get(i).Command);
             SetMenu(_poseCommandChoiceJson, commands);
             List<string> expressions = new List<string>();
             if (_expressions != null) foreach (string n in _expressions.PresetNames) expressions.Add(n);
@@ -538,9 +538,9 @@ namespace AIBody
             string lines = "";
             for (int i = 0; i < v.Count; i++)
             {
-                bool ok = PoseVocabulary.Resolve(v[i], names) != null;
+                bool ok = PoseVocabulary.Resolve(v.Get(i), names) != null;
                 if (ok) ready++;
-                lines += "  " + v[i].Command + (ok ? "" : "  - UNAVAILABLE: no pose '" + v[i].Pose + "'") + "\n";
+                lines += "  " + v.Get(i).Command + (ok ? "" : "  - UNAVAILABLE: no pose '" + v.Get(i).Pose + "'") + "\n";
             }
             return "Pose commands: " + v.Count + " (" + ready + " available). Say or type EXACTLY one of them; a command without a pose is never applied.\n" + lines;
         }
@@ -644,8 +644,8 @@ namespace AIBody
                 for (int i = 0; i < _poses.Vocabulary.Count; i++)
                 {
                     JSONClass entry = new JSONClass();
-                    entry["command"] = _poses.Vocabulary[i].Command;
-                    entry["pose"] = _poses.Vocabulary[i].Pose;
+                    entry["command"] = _poses.Vocabulary.Get(i).Command;
+                    entry["pose"] = _poses.Vocabulary.Get(i).Pose;
                     commands.Add(entry);
                 }
             }
@@ -758,9 +758,9 @@ namespace AIBody
                 for (int i = 0; i < _poses.Vocabulary.Count; i++)
                 {
                     JSONClass entry = new JSONClass();
-                    entry["command"] = _poses.Vocabulary[i].Command;
-                    entry["pose"] = _poses.Vocabulary[i].Pose;
-                    entry["available"].AsBool = PoseVocabulary.Resolve(_poses.Vocabulary[i], poseNames) != null;
+                    entry["command"] = _poses.Vocabulary.Get(i).Command;
+                    entry["pose"] = _poses.Vocabulary.Get(i).Pose;
+                    entry["available"].AsBool = PoseVocabulary.Resolve(_poses.Vocabulary.Get(i), poseNames) != null;
                     poseCommands.Add(entry);
                 }
             }

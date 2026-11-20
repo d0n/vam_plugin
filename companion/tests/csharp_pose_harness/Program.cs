@@ -48,7 +48,7 @@ public static class Program
                     else if (what == "byid") { PoseCommand m = v.FindByPoseId(S(step, 1)); messages.Add(m == null ? "-" : m.Command); }
                 }
                 List<string> entries = new List<string>();
-                for (int i = 0; i < v.Count; i++) entries.Add(v[i].Command + ">" + v[i].Pose);
+                for (int i = 0; i < v.Count; i++) entries.Add(v.Get(i).Command + ">" + v.Get(i).Pose);
                 result = new object[] { messages, entries };
             }
             else result = "unknown op";

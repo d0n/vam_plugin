@@ -37,6 +37,7 @@ FORBIDDEN: list[tuple[str, str]] = [
     # "CS584: Internal compiler error ... Dictionary<TKey,TValue>.ValueCollection.Enumerator" for a
     # foreach over dict.Values. Our stub compile (Roslyn) does not see this, so these constructs are
     # banned outright: iterate the dictionary itself (KeyValuePair) or copy into a List first.
+    ("VaM security check: indexer (emits System.Reflection.DefaultMemberAttribute)", r"\bthis\s*\["),
     ("VaM compiler: foreach over Dictionary .Keys/.Values (CS584)",
      r"\bin\s+[\w.\[\]()\"]+\.(?:Keys|Values)\s*\)"),
     ("VaM compiler: member access / LINQ on .Keys/.Values (CS584 risk)", r"\.(?:Keys|Values)\s*\.\s*\w"),

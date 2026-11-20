@@ -40,7 +40,9 @@ namespace AIBody
         private readonly List<PoseCommand> _entries = new List<PoseCommand>();
 
         public int Count { get { return _entries.Count; } }
-        public PoseCommand this[int index] { get { return _entries[index]; } }
+        /// <summary>Entry at index. A method, not an indexer: an indexer makes the compiler emit
+        /// an attribute that VaM's security check rejects.</summary>
+        public PoseCommand Get(int index) { return _entries[index]; }
 
         public void Clear() { _entries.Clear(); }
 
