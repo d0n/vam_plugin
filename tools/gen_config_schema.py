@@ -40,14 +40,18 @@ DESCRIPTIONS = {
                            "spaces, '_' and '-'). A command whose pose does not exist stays in the list, is shown as unavailable "
                            "and is never applied. Missing key, empty list or a list without one usable entry = the ten starters "
                            "(version 35)",
-    ("setup",): "First-start questions of the companion app (version 35, file only, no tab; the plugin keeps this section "
-                "unchanged). Asked once in the app's console: first the pass-through question, then the standard scene "
-                "question; 'python -m aibody_companion --setup' asks again",
-    ("setup", "asked"): "true = the questions were answered (they are not asked again on start)",
-    ("setup", "green_background"): "Answer to 'Do you want a green background to use pass-through?': true = the example "
-                                   "scene gets the green #00FF00 background (Camera Background Color plugin by Sally)",
-    ("setup", "example_scene"): "Answer to 'Do you want to use the standard scene as an example?': true = the app writes "
-                                "Saves/scene/AIBody/AIBody_Example.json; false = plugin only",
+    ("setup",): "First-start questions of the companion app (version 36, file only, no tab; the plugin only reads it). "
+                "Asked once in the app's console; 'python -m aibody_companion --setup' asks again. Two independent points: "
+                "the background (yes / no / abort, and its color) and what to use (Scene / Plugin)",
+    ("setup", "asked"): "true = the questions were answered (they are not asked again on start; Abort leaves it false)",
+    ("setup", "background"): "Answer to 'Do you want a greenscreen background?': true = the plugin switches its toggle "
+                             "'Set background color' (tab Config) on with background_color, once per revision",
+    ("setup", "background_color"): "Answer to 'Set your color for transparency' as #RRGGBB (default #00FF00, green)",
+    ("setup", "choice"): "Answer to 'Choose what to use': scene = the app wrote Saves/scene/AIBody/AIBody_Example.json; "
+                         "plugin = nothing written; empty = not answered yet",
+    ("setup", "revision"): "Grows by one with every answered setup; the plugin applies a background answer once per revision",
+    ("ui", "background_setup_applied"): "The setup.revision whose background answer the plugin has applied (version 36; "
+                                        "written by the plugin)",
     ("body", "idle_poses"): "Toggle 'Idle poses' (version 35): when nothing happens for a while the character takes an "
                             "available pose of the pose commands by itself and next time goes back to idle_pose_default",
     ("body", "idle_pose_min_s"): "Slider 'Idle pose min wait (s)': shortest quiet time before an idle pose change (10-1800)",

@@ -21,6 +21,7 @@ from collections import deque
 from collections.abc import Callable
 from typing import Any
 
+from .. import wakeup
 from .base import Transport
 
 log = logging.getLogger(__name__)
@@ -125,6 +126,7 @@ class SocketTransport(Transport):
             self._last_seen = self._clock()
             items = message if isinstance(message, list) else [message]
             self._events.extend(m for m in items if isinstance(m, dict) and "net" not in m)
+        wakeup.notify()  # version 36: the main loop handles the plugin's event now (push-to-talk, speech_started)
 
     # -- Transport ------------------------------------------------------------------------------------
 

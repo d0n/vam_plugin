@@ -19,5 +19,6 @@ PoseController.cs
 GazeController.cs
 BlinkController.cs
 CommandRouter.cs
+Background.cs
 Body.cs
 AIBody.cs

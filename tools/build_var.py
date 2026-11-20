@@ -6,6 +6,11 @@
     Custom/Scripts/d0n/AIBody/AIBody.cslist   (+ the .cs files it lists, same folder)
     Custom/Scripts/d0n/AIBody/AIBodyTest.wav  (test tone for the plugin's "Play test tone")
     Custom/Atom/Person/Plugins/AIBody/Preset_AIBody.vap  (plugin preset, version 31: adds the plugin to a Person)
+    Saves/scene/AIBody/AIBody_Example.json     (version 36: the AIBody scene = the "Scene" choice; VaM's scene browser
+                                                lists scenes of packages below Saves/scene/; the plugin is referenced
+                                                as "SELF:/Custom/Scripts/d0n/AIBody/AIBody.cslist" = this package)
+  dist/AIBody_Example.json                     (optional loose copy for <VaM>/Saves/scene/AIBody/, release asset; it
+                                                references "d0n.AIBody.<N>:/..." because SELF: only works in a package)
 
 meta.json is packaging/meta.json (unchanged, incl. licenseType) with the overrides from
 packaging/AIBody.json, which also sets the package version <N>. The script folder is assembled by
@@ -32,6 +37,32 @@ STAGE = ROOT / "build" / "var" / "AIBody"
 SCRIPT_FOLDER = "AIBody"
 TEST_TONE = "AIBodyTest.wav"  # Body.TestToneFile
 PRESET_PATH = "Custom/Atom/Person/Plugins/AIBody/Preset_AIBody.vap"  # VaM's folder for Person plugin presets
+
+
+SCENE_PATH = "Saves/scene/AIBody/AIBody_Example.json"
+SCENE_TEMPLATE = ROOT / "examples" / "scenes" / "AIBody_GreenScreen.json"
+
+
+LOOSE_SCENE = "AIBody_Example.json"
+
+
+def example_scene(creator: str, package: str, version: int, script_dir: str, inside_package: bool = True) -> str:
+    """The scene template with AIBody (no other package is referenced: meta dependencies stay {}). Inside the package
+    the plugin is "SELF:/<script_dir>/AIBody.cslist" (VaM's prefix for content of the same package, E34), so the
+    scene never points at another version; the loose copy uses "<creator>.<package>.<version>:/...".
+    TODO(verify) in VaM: the scene is listed by Open Scene, and PluginManager resolves SELF: in a package scene."""
+    data = json.loads(SCENE_TEMPLATE.read_text(encoding="utf-8"))
+    prefix = "SELF" if inside_package else f"{creator}.{package}.{version}"
+    cslist = f"{prefix}:/{script_dir}/AIBody.cslist"
+    for atom in data.get("atoms", []):
+        for st in atom.get("storables", []):
+            if st.get("id") == "PluginManager":
+                for key, value in list(st.get("plugins", {}).items()):
+                    if value.endswith(f"/{script_dir}/AIBody.cslist"):
+                        st["plugins"][key] = cslist
+                    else:
+                        raise SystemExit(f"scene template references another plugin: {value}")
+    return json.dumps(data, indent=3) + "\n"
 
 
 def plugin_preset(creator: str, package: str, version: int, script_dir: str) -> str:
@@ -91,7 +122,7 @@ def build(version_override: int | None = None) -> Path:
     files = assemble()
     (STAGE / TEST_TONE).write_bytes(test_tone_wav())
     files.append(TEST_TONE)
-    meta["contentList"] = [f"{script_dir}/{f}" for f in files] + [PRESET_PATH]
+    meta["contentList"] = [f"{script_dir}/{f}" for f in files] + [PRESET_PATH, SCENE_PATH]
     out = ROOT / "dist" / f"{creator}.{meta['packageName']}.{version}.var"
     out.parent.mkdir(exist_ok=True)
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
@@ -99,11 +130,14 @@ def build(version_override: int | None = None) -> Path:
         for f in files:
             z.write(STAGE / f, f"{script_dir}/{f}")
         z.writestr(PRESET_PATH, plugin_preset(creator, meta["packageName"], version, script_dir))
+        z.writestr(SCENE_PATH, example_scene(creator, meta["packageName"], version, script_dir))
+    (out.parent / LOOSE_SCENE).write_text(example_scene(creator, meta["packageName"], version, script_dir, False),
+                                          encoding="utf-8")
     problems = scan_var(out)
     if problems:
         out.unlink()
         raise SystemExit("forbidden APIs inside the .var (deleted):\n" + "\n".join(problems))
-    print(f"Wrote {out.relative_to(ROOT)} ({len(files) + 1} files); strict scan of the .var: 0 forbidden matches")
+    print(f"Wrote {out.relative_to(ROOT)} ({len(files) + 2} files); strict scan of the .var: 0 forbidden matches")
     return out
 
 

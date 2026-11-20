@@ -10,6 +10,7 @@ import queue
 from collections.abc import Callable, Iterator
 from typing import Any
 
+from .. import wakeup
 from .mic_settings import MicSettings
 
 log = logging.getLogger(__name__)
@@ -111,6 +112,7 @@ class MicCapture:
                 log.debug("mic status: %s", status)
             try:
                 self._queue.put_nowait(bytes(indata))
+                wakeup.notify()  # version 36: the VAD sees the frame now (utterance end without a poll delay)
             except queue.Full:
                 log.warning("The computer cannot keep up with the microphone, so a bit of sound was skipped (harmless if rare; close heavy programs if it repeats)")
 

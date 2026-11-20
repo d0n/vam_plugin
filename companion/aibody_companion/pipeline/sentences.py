@@ -17,6 +17,11 @@ ABBREVIATIONS = {
 _END = re.compile(r"([.!?…]+)([\"'»«”“)\]]*)(\s+)")
 _TAG = re.compile(r"<<([^<>]{0,80})>>")
 MAX_CHARS = 240  # longer runs without a sentence end are cut at a comma or space
+# Version 36 (latency): the FIRST piece of an answer may end at a clause mark (", " "; " ": " " - ") once it has
+# this many characters, so text to speech starts before the model has finished the whole first sentence (and the
+# first, shorter piece is synthesized faster). Later pieces stay whole sentences (natural prosody).
+FIRST_CLAUSE_MIN = 28
+_CLAUSE = re.compile(r"[,;:]\s|\s[-–—]\s")
 
 
 @dataclass
@@ -31,8 +36,10 @@ def _clean(text: str) -> str:
 
 
 class SentenceSplitter:
-    def __init__(self) -> None:
+    def __init__(self, early_first_clause: bool = True) -> None:
         self._buf = ""
+        self._early = early_first_clause
+        self._emitted = 0
 
     def feed(self, delta: str) -> list[str]:
         self._buf += delta
@@ -49,6 +56,15 @@ class SentenceSplitter:
                 out.append(sentence)
             start = m.end()
         self._buf = self._buf[start:]
+        if self._early and not out and self._emitted == 0:
+            for m in _CLAUSE.finditer(self._buf):
+                if m.start() < FIRST_CLAUSE_MIN:
+                    continue
+                piece = _clean(self._buf[:m.start() + 1])
+                if len(piece) >= FIRST_CLAUSE_MIN and "<<" not in self._buf[:m.start()]:
+                    out.append(piece)
+                    self._buf = self._buf[m.end():]
+                break
         while len(self._buf) > MAX_CHARS:
             cut = max(self._buf.rfind(", ", 0, MAX_CHARS), self._buf.rfind(" ", 0, MAX_CHARS))
             if cut <= 0:
@@ -57,6 +73,7 @@ class SentenceSplitter:
             if piece:
                 out.append(piece)
             self._buf = self._buf[cut + 1:]
+        self._emitted += len(out)
         return out
 
     def flush(self) -> list[str]:

@@ -58,7 +58,7 @@ def write_pcm_wav(pcm16: bytes, sample_rate: int, out_path: Path, channels: int 
         w.setsampwidth(2)
         w.setframerate(sample_rate)
         w.writeframes(pcm16)
-    atomic_write_bytes(out_path, buf.getvalue())  # temp name, fsync, replace: complete or absent
+    atomic_write_bytes(out_path, buf.getvalue(), durable=False)  # temp name, replace: complete or absent
     LAST_WRITE_S["s"] = time.perf_counter() - started
     return len(pcm16) / (2 * channels) / float(sample_rate)
 
@@ -67,7 +67,7 @@ def write_audio(data: bytes, sample_rate: int, out_path: Path) -> float:
     """Writes a TTS answer: a complete WAV (starts with RIFF) as is, else raw 16-bit PCM."""
     if data[:4] == b"RIFF":
         started = time.perf_counter()
-        atomic_write_bytes(out_path, data)
+        atomic_write_bytes(out_path, data, durable=False)
         LAST_WRITE_S["s"] = time.perf_counter() - started
         return wav_duration(out_path)
     return write_pcm_wav(data, sample_rate, out_path)
@@ -109,5 +109,5 @@ class ToneTts:
             w.setsampwidth(2)
             w.setframerate(self.sample_rate)
             w.writeframes(bytes(frames))
-        atomic_write_bytes(out_path, buf.getvalue())  # was written in place: a reader could see half a file
+        atomic_write_bytes(out_path, buf.getvalue(), durable=False)  # was written in place: a reader could see half a file
         return duration

@@ -35,7 +35,8 @@ namespace AIBody
         private Thread _receiver;
         private Thread _sender;
         private volatile bool _running;
-        private readonly Queue<string> _incoming = new Queue<string>();
+        private Queue<string> _incoming = new Queue<string>();
+        private Queue<string> _drain = new Queue<string>();   // main thread: swapped with _incoming (no array per frame)
         private readonly Queue<byte[]> _outgoing = new Queue<byte[]>();
         private readonly object _inLock = new object();
         private readonly object _outLock = new object();
@@ -124,23 +125,22 @@ namespace AIBody
             _sinceStart += dt;
             _sinceHeard += dt;
 
-            string[] batch = null;
+            // Version 36: swap the two queues under the lock instead of copying into a new array every time.
             lock (_inLock)
             {
                 if (_incoming.Count > 0)
                 {
-                    batch = _incoming.ToArray();
-                    _incoming.Clear();
+                    Queue<string> full = _incoming;
+                    _incoming = _drain;
+                    _drain = full;
                 }
             }
-            if (batch != null)
+            while (_drain.Count > 0)
             {
-                for (int i = 0; i < batch.Length; i++)
-                {
-                    _sinceHeard = 0f;
-                    if (IsLinkDatagram(batch[i])) continue;
-                    if (_onPayload != null) _onPayload(batch[i]);
-                }
+                string text = _drain.Dequeue();
+                _sinceHeard = 0f;
+                if (IsLinkDatagram(text)) continue;
+                if (_onPayload != null) _onPayload(text);
             }
 
             bool live = _sinceHeard < AliveTimeout;

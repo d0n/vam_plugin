@@ -1386,7 +1386,11 @@ namespace AIBody
                 }
             }
             TickTestTone(dt);
-            if (_mic != null) _mic.Update(dt, connected, _appAlive, _activeJson != null && _activeJson.val);
+            if (_mic != null)
+            {
+                _mic.UiVisible = UiVisible;
+                _mic.Update(dt, connected, _appAlive, _activeJson != null && _activeJson.val);
+            }
         }
 
         /// <summary>
@@ -1409,6 +1413,9 @@ namespace AIBody
                 return _network != null ? _network.NetworkStatus : "Network: starting";
             }
         }
+
+        /// <summary>Version 36: false while VaM's plugin UI is closed (status texts are not built then).</summary>
+        public bool UiVisible = true;
 
         public string StatusText()
         {

@@ -29,7 +29,11 @@ class PluginPresetTests(unittest.TestCase):
 
     def test_preset_is_in_the_package_and_the_content_list(self):
         build = load_build_var()
+        loose = ROOT / "dist" / build.LOOSE_SCENE
+        kept = loose.read_bytes() if loose.exists() else None
         path = build.build(31)
+        self.addCleanup(path.unlink)
+        self.addCleanup(lambda: loose.write_bytes(kept) if kept is not None else loose.unlink())
         with zipfile.ZipFile(path) as z:
             names = z.namelist()
             self.assertIn(build.PRESET_PATH, names)

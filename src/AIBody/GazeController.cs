@@ -100,6 +100,10 @@ namespace AIBody
 
         public bool Available { get { return _eyes != null && _eyeTarget != null; } }
         public string Status { get { return _status; } }
+
+        /// <summary>Version 36 (performance): false while nobody can read the status (plugin UI closed); the
+        /// per-frame status and target descriptions are then not built (no string garbage every frame).</summary>
+        public bool Describe = true;
         public bool Yielded { get { return _yielded; } }
         public string OtherPlugin { get { return _otherPlugin; } }
         public string DefaultKey { get { return _defaultKey; } }
@@ -222,7 +226,7 @@ namespace AIBody
             {
                 Release();
                 if (!Enabled) _status = "off (Gaze control is switched off)";
-                else if (_otherPlugin.Length > 0) _status = "paused: " + _otherPlugin + " is on this Person and controls the eyes";
+                else if (_otherPlugin.Length > 0) _status = Describe ? "paused: " + _otherPlugin + " is on this Person and controls the eyes" : "paused";
                 else _status = "stopped: another plugin changed the eyes. Pick 'Default gaze' to take over again";
                 return;
             }
@@ -242,12 +246,12 @@ namespace AIBody
             if (!TargetPoint(key, dt, out point, out described))
             {
                 Release();
-                _status = "target not found (" + key + "); eyes released";
+                _status = Describe ? "target not found (" + key + "); eyes released" : "target not found";
                 return;
             }
             Take();
             _eyeTarget.control.position = point;   // E12 L678, E28 L209
-            _status = "looking at " + described + " (" + why + (_aiKey != null && _aiLeft > 0f ? ", " + _aiLeft.ToString("0") + " s left" : "") + ")";
+            if (Describe) _status = "looking at " + described + " (" + why + (_aiKey != null && _aiLeft > 0f ? ", " + _aiLeft.ToString("0") + " s left" : "") + ")";
         }
 
         private void Take()
@@ -285,7 +289,7 @@ namespace AIBody
             if (key == KeyClient)
             {
                 Atom client = FindClient();
-                if (client != null && AtomPoint(client, out point)) { described = "the client (" + client.uid + ")"; return true; }
+                if (client != null && AtomPoint(client, out point)) { described = Describe ? "the client (" + client.uid + ")" : "the client"; return true; }
                 bool ok = CameraPoint(out point, out described);   // no client in the scene: the viewer
                 described = "the camera (no client in the scene)";
                 return ok;
@@ -312,7 +316,7 @@ namespace AIBody
                 string name = key.Substring(AtomPrefix.Length);
                 Atom found = CachedAtom(name, dt);
                 if (found == null || !AtomPoint(found, out point)) return false;
-                described = "atom " + found.uid;
+                described = Describe ? "atom " + found.uid : "atom";
                 return true;
             }
             return false;
@@ -377,7 +381,7 @@ namespace AIBody
             if (client != null && AtomPoint(client, out focus)) what = "the client (" + client.uid + ")";
             else if (!CameraPoint(out focus, out what)) return false;
 
-            described = what + " (natural gaze)";
+            described = Describe ? what + " (natural gaze)" : what;
             if (!haveHead) { point = focus + Vector3.up * _natDy; return true; }
             Vector3 toFocus = focus - origin;
             float dist = toFocus.magnitude;

@@ -51,6 +51,18 @@ class AtomicWriteTests(unittest.TestCase):
         self.assertEqual(final.read_bytes(), b"RIFFdata")
         self.assertEqual(sorted(p.name for p in self.dir.iterdir()), ["a.wav"], "no temp file left")
 
+    def test_speech_files_skip_fsync_but_stay_atomic(self):
+        """Version 36 (latency): WAVs and command files need the rename, not the fsync (crash safety only)."""
+        final = self.dir / "s.wav"
+        with mock.patch("os.fsync") as fsync:
+            atomicfile.atomic_write_bytes(final, b"RIFFx", durable=False)
+            tts_module.write_pcm_wav(bytes(200), 16000, self.dir / "p.wav")
+        fsync.assert_not_called()
+        self.assertEqual(final.read_bytes(), b"RIFFx")
+        self.assertEqual(sorted(p.suffix for p in self.dir.iterdir()), [".wav", ".wav"], "no temp file left")
+        ft = (ROOT / "companion/aibody_companion/transport/file_transport.py").read_text(encoding="utf-8")
+        self.assertIn("durable=False", ft)
+
     def test_failure_leaves_neither_final_nor_temp_file(self):
         final = self.dir / "b.wav"
         with mock.patch("os.replace", side_effect=OSError("disk")), self.assertRaises(OSError):
@@ -88,7 +100,7 @@ class AtomicWriteTests(unittest.TestCase):
         self.assertNotIn('wave.open(str(out_path), "wb")', text, "ToneTts used to write in place")
         self.assertNotIn(".replace(out_path)", text)
         orch = (ROOT / "companion/aibody_companion/orchestrator.py").read_text(encoding="utf-8")
-        self.assertIn("atomic_copy(path, new_path)", orch)
+        self.assertIn("atomic_copy(path, new_path, durable=False)", orch)
         self.assertNotIn("shutil.copyfile", orch)
 
 

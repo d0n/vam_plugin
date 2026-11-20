@@ -39,7 +39,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from . import __version__, body_tools, logsetup, pose_commands, protocol
+from . import __version__, body_tools, logsetup, pose_commands, protocol, wakeup
 from .atomicfile import atomic_copy
 from .audio import (
     BargeInRule,
@@ -58,7 +58,8 @@ from .pipeline import Directive, LanguageModel, SentenceSplitter, SpeechToText, 
 from .pipeline import tts as tts_module
 from .pipeline.context import clean_scene_event, is_silent, nudge_text, scene_event_text, time_context
 from .pipeline.engines import EngineSet
-from .pipeline.http import ApiError
+from .pipeline import http as http_module
+from .pipeline.http import ApiError, HttpClient
 from .pipeline.realtime import KEY_REJECTED as REALTIME_KEY_REJECTED
 from .pipeline.tts import test_tone_pcm, write_pcm_wav
 from .pipeline.xai import ToolCall
@@ -195,6 +196,7 @@ class Companion:
         self._results: queue.Queue[tuple[Any, ...]] = queue.Queue()
         self._generation = 0  # bumped by cancel_turns(); older turns stop and their output is dropped
         self._busy = threading.Event()
+        self._user_was_talking = False  # rising edge of the VAD: warm_connections()
         self._worker: threading.Thread | None = None
         if self.mic:
             self.mic.apply(self.mic_settings)
@@ -910,6 +912,8 @@ class Companion:
                 self.realtime.barge_in(manual=True)
             self.input.set_ptt(active)  # frames stream to the server while held; no local utterance
             return
+        if active:
+            self.warm_connections()  # version 36: TLS handshakes while the user talks, not after
         if active and self.mic_settings.ptt_interrupts and (not self.gate.is_open or self._busy.is_set()):
             self.cancel_turns()  # the user talks: the answer being prepared is dropped ...
             self.send(self.body_command("stop_speaking"))  # ... and the body stops
@@ -959,9 +963,26 @@ class Companion:
             self.realtime.feed_mic(frame)
             return None
         utterance = self.input.process(frame)
+        talking = self.input.segmenter.in_speech
+        if talking and not self._user_was_talking:
+            self.warm_connections()  # version 36: the user started talking: open the API connections now
+        self._user_was_talking = talking
         if self.input.barge_frames:
             return self.voice_barge_in(self.input.take_barge() or [])
         return self.handle_utterance(utterance) if utterance else None
+
+    def warm_connections(self) -> None:
+        """Version 36 (latency): opens kept-alive connections to the cloud engines' hosts in the background (one per
+        engine on a host, at most 2), so STT, the language model and TTS of the coming turn skip the TCP / TLS
+        handshake. Only for engines on the real network (not the offline test engines or injected test clients)."""
+        hosts: dict[str, int] = {}
+        for engine in (self.stt, self.llm, self.tts):
+            url = getattr(engine, "base_url", None)
+            client = getattr(engine, "http", None)
+            if isinstance(url, str) and isinstance(client, HttpClient) and client.pooled and url.startswith("https://"):
+                hosts[url] = hosts.get(url, 0) + 1
+        for url, count in hosts.items():
+            http_module.warm(url, min(count, 2))
 
     def _configure_barge(self) -> None:
         """ai.barge_in (config.json only): the loudness rule for talking over the body without headphones."""
@@ -1100,6 +1121,7 @@ class Companion:
             try:
                 for step in self._turn(kind, data, generation, t0):
                     self._results.put((generation, *step))
+                    wakeup.notify()  # version 36: the main loop sends it now, not after its next poll sleep
             except Exception:  # noqa: BLE001 - a broken turn must not kill the worker
                 log.exception("Turn failed")
             finally:
@@ -1433,7 +1455,7 @@ class Companion:
         new_path = self.cfg.audio_abs_path(f"{new_id}.wav")
         try:
             new_path.parent.mkdir(parents=True, exist_ok=True)
-            atomic_copy(path, new_path)  # complete under its final name before the speak command follows
+            atomic_copy(path, new_path, durable=False)  # complete under its final name before the speak command follows
         except OSError as e:
             log.warning("Audio: could not copy the speech file %s to %s: %s - check that the folder is writable and the disk is not full", path, new_path, e)
             return

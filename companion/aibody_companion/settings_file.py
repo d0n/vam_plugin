@@ -21,7 +21,8 @@ it has controls for):
 
   remote      enabled, http_port, osc_port, token (file only, version 31): local web page / HTTP API / OSC, off by
               default, 127.0.0.1 only (docs/REMOTE.md)
-  setup       asked, green_background, example_scene (version 35): the answers to the first-start questions (setup.py)
+  setup       asked, background, background_color, choice, revision (version 36): the answers to the first-start
+              questions (setup.py); the plugin only reads it (background answer -> its toggle "Set background color")
 
   ai          mode, persona, persona_name, memory {...}, emotion {...}, language, fallback {stt, llm, tts}, realtime {...}, proactive {...},
               xai {...}, elevenlabs {...}
@@ -122,7 +123,8 @@ DEFAULTS: dict[str, dict[str, Any]] = {
     },
     "advanced": {"file_poll_interval_s": 0.1, "verbose_log": False},
     # Plugin UI state (version 30): the first-run note about the xAI token was closed or answered once.
-    "ui": {"first_run_hint_dismissed": False},
+    # Version 36: background_setup_applied = the setup.revision whose background answer the plugin has applied.
+    "ui": {"first_run_hint_dismissed": False, "background_setup_applied": 0},
     # Pose commands (version 32; AI Character): the only way a pose is applied. A pose is applied only when the user's
     # WHOLE input equals a command text (case, spaces and trailing . ! ? ignored); the command links to a pose id
     # (a pose of the character: gestures.json pose or pose file, names compare ignoring case, spaces, _ and -).
@@ -132,12 +134,14 @@ DEFAULTS: dict[str, dict[str, Any]] = {
     # Remote control (version 31; this app only, file only, off by default): a local web page / HTTP API and an
     # optional OSC listener. Both bind 127.0.0.1 only. The HTTP API needs the token (generated into this file on
     # the first start with enabled = true); OSC has no token. Changes apply when the app starts. See docs/REMOTE.md.
-    # First start questions (version 35, this app only, asked once in the console; python -m aibody_companion --setup
-    # asks again): green_background = the pass-through question, example_scene = the standard scene question.
+    # First start questions (version 36, this app only, asked once in the console; python -m aibody_companion --setup
+    # asks again). Two independent points: background (+ its color) and what to use (scene / plugin).
     "setup": {
         "asked": False,
-        "green_background": False,
-        "example_scene": False,
+        "background": False,
+        "background_color": "#00FF00",
+        "choice": "",
+        "revision": 0,
     },
     "remote": {
         "enabled": False,
@@ -285,6 +289,7 @@ RANGES: dict[tuple[str, str], tuple[float, float]] = {
 
 # Allowed values for some strings.
 CHOICES: dict[tuple[str, ...], tuple[str, ...]] = {
+    ("setup", "choice"): ("", "scene", "plugin"),
     ("ai", "mode"): ("qa", "auto", "realtime", "chain"),
     ("ai", "realtime", "sample_rate"): tuple(str(r) for r in PCM_RATES),
     ("ai", "realtime", "reasoning_effort"): ("none", "high"),
@@ -364,7 +369,8 @@ def _check_value(path: tuple[str, ...], default: Any, value: Any, errors: list[s
 
 
 # Keys of versions that no longer exist; an old config.json that still has them keeps working.
-LEGACY_KEYS = {("connection", "channel"), ("ai", "channels")}
+LEGACY_KEYS = {("connection", "channel"), ("ai", "channels"),
+               ("setup", "green_background"), ("setup", "example_scene")}  # version 35 answers (replaced in 36)
 
 
 def _merge(path: tuple[str, ...], default: dict[str, Any], data: dict[str, Any], errors: list[str]) -> dict[str, Any]:

@@ -44,6 +44,10 @@ namespace AIBody
         /// <summary>What happened last, for the info field.</summary>
         public string Status = "waiting";
 
+        /// <summary>Version 36 (performance): false while the plugin UI is closed; the per-frame countdown text is skipped.</summary>
+        public bool Describe = true;
+        private int _shownSeconds = -1;
+
         public IdlePoseScheduler(int seed)
         {
             _random = new Random(seed);
@@ -88,14 +92,19 @@ namespace AIBody
         public string Update(float dt, bool busy, bool bodyControl, PoseVocabulary vocabulary, List<string> poseNames)
         {
             if (_cooldown > 0f) _cooldown = Math.Max(0f, _cooldown - dt);
-            if (!Enabled) { _quiet = 0f; Status = "off"; return null; }
-            if (!bodyControl) { _quiet = 0f; Status = "paused (Body control is off)"; return null; }
-            if (busy) { _quiet = 0f; Status = "paused while someone speaks"; return null; }
+            if (!Enabled) { _quiet = 0f; _shownSeconds = -1; Status = "off"; return null; }
+            if (!bodyControl) { _quiet = 0f; _shownSeconds = -1; Status = "paused (Body control is off)"; return null; }
+            if (busy) { _quiet = 0f; _shownSeconds = -1; Status = "paused while someone speaks"; return null; }
             if (_next < Lo || _next > Hi) PlanNext();   // the wait settings changed
             _quiet += dt;
             if (_cooldown > 0f || _quiet < _next)
             {
-                Status = "next change in about " + SecondsLeft.ToString("0") + " s of quiet";
+                int seconds = (int)Math.Round(SecondsLeft);
+                if (Describe && seconds != _shownSeconds)   // a new string once per second, not every frame
+                {
+                    _shownSeconds = seconds;
+                    Status = "next change in about " + seconds + " s of quiet";
+                }
                 return null;
             }
             _quiet = 0f;
@@ -105,20 +114,20 @@ namespace AIBody
             {
                 _inIdlePose = false;
                 _lastKey = PoseVocabulary.PoseKey(home);
-                Status = "back to the default idle pose '" + home + "'";
+                _shownSeconds = -1; Status = "back to the default idle pose '" + home + "'";
                 return home;
             }
             List<string> candidates = Candidates(vocabulary, poseNames, home);
             if (candidates.Count == 0)
             {
                 _inIdlePose = false;
-                Status = "no idle pose available (no pose command with a pose of this character besides the default)";
+                _shownSeconds = -1; Status = "no idle pose available (no pose command with a pose of this character besides the default)";
                 return null;
             }
             string pick = candidates[_random.Next(candidates.Count)];
             _inIdlePose = true;
             _lastKey = PoseVocabulary.PoseKey(pick);
-            Status = "idle pose '" + pick + "'";
+            _shownSeconds = -1; Status = "idle pose '" + pick + "'";
             return pick;
         }
 

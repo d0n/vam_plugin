@@ -11,6 +11,11 @@ become visible only when complete. The recipe for both:
 
 Nothing else is needed as a signal: the existence of the final file / the command file IS the
 signal. No sleeping, no guessing of wait times.
+
+Version 36 (latency): step 2's fsync only protects against a power loss, not against another program (VaM) seeing
+half a file - the rename alone guarantees that, because both programs read the same OS file cache. Speech WAVs and
+command files are therefore written with durable=False (no fsync: it costs milliseconds on Windows, more on a hard
+disk, on every sentence); config.json, personas, memory and scenes keep durable=True.
 """
 from __future__ import annotations
 
@@ -29,7 +34,7 @@ def _temp_path(final: Path) -> Path:
     return final.with_name(f".{final.name}.{os.getpid()}.{next(_counter)}.part")
 
 
-def atomic_write_bytes(final: Path, data: bytes) -> None:
+def atomic_write_bytes(final: Path, data: bytes, durable: bool = True) -> None:
     final = Path(final)
     final.parent.mkdir(parents=True, exist_ok=True)
     tmp = _temp_path(final)
@@ -37,7 +42,8 @@ def atomic_write_bytes(final: Path, data: bytes) -> None:
         with open(tmp, "wb") as f:
             f.write(data)
             f.flush()
-            os.fsync(f.fileno())
+            if durable:
+                os.fsync(f.fileno())
         os.replace(tmp, final)
     except BaseException:
         with contextlib.suppress(OSError):
@@ -45,11 +51,11 @@ def atomic_write_bytes(final: Path, data: bytes) -> None:
         raise
 
 
-def atomic_write_text(final: Path, text: str, encoding: str = "utf-8") -> None:
-    atomic_write_bytes(final, text.encode(encoding))
+def atomic_write_text(final: Path, text: str, encoding: str = "utf-8", durable: bool = True) -> None:
+    atomic_write_bytes(final, text.encode(encoding), durable)
 
 
-def atomic_copy(source: Path, final: Path) -> None:
+def atomic_copy(source: Path, final: Path, durable: bool = True) -> None:
     """Copies a complete file to `final` the same way (temp name, fsync, replace)."""
     final = Path(final)
     final.parent.mkdir(parents=True, exist_ok=True)
@@ -58,7 +64,8 @@ def atomic_copy(source: Path, final: Path) -> None:
         with open(source, "rb") as src, open(tmp, "wb") as dst:
             shutil.copyfileobj(src, dst)
             dst.flush()
-            os.fsync(dst.fileno())
+            if durable:
+                os.fsync(dst.fileno())
         os.replace(tmp, final)
     except BaseException:
         with contextlib.suppress(OSError):

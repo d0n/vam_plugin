@@ -9,8 +9,13 @@
 //   - play:  the "HeadAudioSource" AudioSourceControl's PlayNow(namedClip) (Dollmaster), so VaM's
 //            built-in lip sync follows it; Stop() and .audioSource            (FreeMMD); .volume (Dollmaster SFX)
 //   - free:  URLAudioClipManager.singleton.RemoveClip(namedClip)           (Dollmaster SFX)
-// There is no network code and no readiness API: a clip counts as started when the head
-// AudioSource (UnityEngine.AudioSource) is playing a new clip, and as finished when it stops.
+// Readiness (version 36, latency): PlayNow is called the moment the clip has loaded, i.e. when
+// NamedAudioClip.sourceClip is no longer null (the check vam-timeline's CustomTrigger.cs makes, E33).
+// Before, PlayNow ran right after QueueClip; a clip still loading did not start and the next try came
+// 1 s later, so a first sentence could wait up to a second for nothing. If sourceClip never shows up
+// (TODO(verify) in VaM), the old way takes over after ReadyWaitMax: PlayNow retries every RetryInterval.
+// A clip counts as started when the head AudioSource (UnityEngine.AudioSource) is playing a new clip,
+// and as finished when it stops.
 // TODO(verify): on 1.22, that a Saves/PluginData relative path works with NormalizeMediaPath +
 // QueueClip (the evidence loads paths picked in the file browser), and that PlayNow on a clip
 // still loading is retried safely (start detection via AudioSource.isPlaying/clip).
@@ -60,7 +65,10 @@ namespace AIBody
         /// <summary>Seconds to wait for a clip to start playing before reporting it as failed.</summary>
         public float StartTimeout = 15f;
         /// <summary>PlayNow is called again at this interval until the clip plays (it may still be loading).</summary>
-        public float RetryInterval = 1f;
+        public float RetryInterval = 0.5f;
+
+        /// <summary>Longest wait for sourceClip before PlayNow is tried anyway (fallback, old behaviour).</summary>
+        public float ReadyWaitMax = 2f;
         public int PrefetchCount = 2;
         /// <summary>While a speech file is not visible yet, FileExists is asked again at this interval (no sleeping).</summary>
         public float FileCheckInterval = 0.25f;
@@ -291,9 +299,22 @@ namespace AIBody
             u.PreviousClip = _audio.clip;
             _control.volume = _volume;
             Status = "Loading: " + FileName(u.Path) + (_volume < 0.01f ? " (note: Speech volume is 0)" : "");
+            if (ClipReady(u)) PlayNow(u);   // else Track() calls it the frame the clip has loaded
+        }
+
+        private void PlayNow(Utterance u)
+        {
             u.Plays++;
+            u.RetryTimer = 0f;
             Log.Debug("PlayNow " + u.Id + ": " + u.Path);
             _control.PlayNow(u.Clip);
+        }
+
+        /// <summary>True once VaM has loaded the clip (sourceClip set, E33). A failing check counts as ready.</summary>
+        private static bool ClipReady(Utterance u)
+        {
+            try { return u.Clip != null && u.Clip.sourceClip != null; }
+            catch (Exception) { return true; }
         }
 
         private void Track(float deltaTime)
@@ -323,13 +344,14 @@ namespace AIBody
                     Finish("failed");
                     return;
                 }
-                u.RetryTimer += deltaTime;
-                if (u.RetryTimer >= RetryInterval)
+                if (u.Plays == 0)
                 {
-                    u.RetryTimer = 0f;
-                    u.Plays++;
-                    _control.PlayNow(u.Clip); // the clip may have still been loading
+                    // Not handed to the head audio yet: start it the frame the clip is loaded.
+                    if (ClipReady(u) || u.PlayTime >= ReadyWaitMax) PlayNow(u);
+                    return;
                 }
+                u.RetryTimer += deltaTime;
+                if (u.RetryTimer >= RetryInterval) PlayNow(u);   // the clip may still have been loading
                 return;
             }
             if (_audio.clip != u.StartedClip) Finish("interrupted");

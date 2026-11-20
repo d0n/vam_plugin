@@ -2,7 +2,7 @@
 //
 // Only members with public evidence of use in sandboxed VaM plugins are declared here, so the
 // compile check fails if the plugin starts using anything else. Each group names its evidence
-// (keys E1..E20 = links in docs/API_AUDIT.md). Deliberately NOT declared: NamedAudioClip.clipToPlay (evidenced by vam-timeline CustomTrigger.cs L86, but AIBody does not use it),
+// (keys E1..E33 = links in docs/API_AUDIT.md). Deliberately NOT declared:
 // JSONStorable.GetActionNames, FileManagerSecure.GetFiles(dir, pattern),
 // UnityEngine.Networking / UnityWebRequest (no stub file exists for them at all).
 #pragma warning disable 0067, 0649, 0169, 1591
@@ -23,7 +23,29 @@ public class SuperController : MonoBehaviour
     public List<Atom> GetAtoms() { return null; }                     // E12 L180, L759, L797
 }
 
-public class CameraTarget : MonoBehaviour { }                          // E12 L647
+public class CameraTarget : MonoBehaviour                              // E12 L647
+{
+    public static CameraTarget centerTarget;                          // E30 (AutoPupil L191, L205)
+    public Camera targetCamera;                                       // E30 (AutoPupil L191, L205)
+}
+
+public class SkyshopLightController : JSONStorable                     // E31 (SkyshopLightController.singleton; "showSkybox" via GetBoolJSONParam)
+{
+    public static SkyshopLightController singleton;
+}
+
+public struct HSVColor { public float H; public float S; public float V; }   // E32 (AmbientLightRig L125, L181)
+public class HSVColorPicker : MonoBehaviour
+{
+    public static HSVColor RGBToHSV(float r, float g, float b) { return new HSVColor(); }   // E32 (TemplateWithSamples L36)
+}
+public class JSONStorableColor : JSONStorableParam                     // E32 (TemplateWithSamples L37; AmbientLightRig L127)
+{
+    public HSVColor val;
+    public JSONStorableColor(string name, HSVColor startingColor, JSONStorableColor.SetJSONColorCallback cb) { }
+    public delegate void SetJSONColorCallback(JSONStorableColor jcolor);
+}
+public class UIDynamicColorPicker : UIDynamic { }                     // E18 (VamHeightPlugin UI.cs L867, L1506)
 
 public class Atom : MonoBehaviour
 {
@@ -44,6 +66,8 @@ public class JSONStorable : MonoBehaviour
     public void RegisterString(JSONStorableString p) { }              // E9
     public void RegisterStringChooser(JSONStorableStringChooser p) { }// E9, E16
     public void RegisterAction(JSONStorableAction a) { }              // E9, E12
+    public void RegisterColor(JSONStorableColor p) { }                // E32 (TemplateWithSamples L38, AmbientLightRig L131)
+    public void SetColorParamValue(string n, HSVColor c) { }           // E32 (AmbientLightRig L214)
     public JSONStorableFloat GetFloatJSONParam(string n) { return null; }                 // E12
     public JSONStorableBool GetBoolJSONParam(string n) { return null; }                   // E12
     public JSONStorableString GetStringJSONParam(string n) { return null; }               // E13
@@ -109,12 +133,15 @@ public class MVRScript : JSONStorable
     public UIDynamicPopup CreateScrollablePopup(JSONStorableStringChooser p, bool rightSide = false) { return null; }  // E24
     public UIDynamicTextField CreateTextField(JSONStorableString p, bool rightSide = false) { return null; } // E12
     public UIDynamicButton CreateButton(string label, bool rightSide = false) { return null; }        // E1, E3
+    public UIDynamicColorPicker CreateColorPicker(JSONStorableColor p, bool rightSide = false) { return null; }   // E32, E18 L867
+    public Transform UITransform;                                     // E12 L1271, E11 L206 (UITransform.gameObject.activeInHierarchy: the plugin UI is open)
     // Tabs: remove the controls of the old tab, create the new ones.                     E17, E18
     public void RemoveToggle(UIDynamicToggle t) { }
     public void RemoveSlider(UIDynamicSlider s) { }
     public void RemovePopup(UIDynamicPopup p) { }
     public void RemoveButton(UIDynamicButton b) { }
     public void RemoveTextField(UIDynamicTextField t) { }
+    public void RemoveColorPicker(UIDynamicColorPicker c) { }        // E18 L1506
 }
 
 public class DAZMorph { public float morphValue; }                    // E4
@@ -125,7 +152,7 @@ public class GenerateDAZMorphsControlUI
 }
 public class DAZCharacterSelector : JSONStorable { public GenerateDAZMorphsControlUI morphsControlUI; } // E4
 
-public class NamedAudioClip { public string uid; }                    // E1
+public class NamedAudioClip { public string uid; public AudioClip sourceClip; }   // uid: E1; sourceClip (null until loaded): E33 (CustomTrigger.cs L82)
 public class URLAudioClip : NamedAudioClip { }
 public class URLAudioClipManager : MonoBehaviour
 {

@@ -129,7 +129,7 @@ namespace AIBody
 
         private static string[] OnlyJson(string[] files)
         {
-            if (files == null) return null;
+            if (files == null || files.Length == 0) return files;   // the common case: an empty inbox, no new list
             List<string> result = new List<string>();
             for (int i = 0; i < files.Length; i++)
             {

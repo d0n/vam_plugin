@@ -1,10 +1,10 @@
 # AIBody – requirements catalog (status overview)
 
-Status: 19.11.2026, version 30. Overview of what is done and what is open; updated with every release.
+Status: 20.11.2026, version 36. Overview of what is done and what is open; updated with every release.
 - Agreed specification (what applies): [`docs/SPEC.md`](SPEC.md)
 - Deferred ideas / nice to have: [`docs/BACKLOG.md`](BACKLOG.md)
 - Test instructions in VaM: [`docs/TEST_PROTOCOL.md`](TEST_PROTOCOL.md) · API evidence: [`docs/API_AUDIT.md`](API_AUDIT.md)
-- Repo: https://github.com/d0n/vam_plugin · current package: `d0n.AIBody.30.var` (version = package number since 12)
+- Repo: https://github.com/d0n/vam_plugin · current package: `d0n.AIBody.36.var` (version = package number since 12)
 
 "Done" means: tested in code and against rebuilt counterparts. What has not yet been checked in VaM or against the real xAI APIs is listed again under 2.
 
@@ -13,7 +13,7 @@ Status: 19.11.2026, version 30. Overview of what is done and what is open; updat
 ### Loading, sandbox, package
 - One plugin, one `.cslist` (`Custom/Scripts/d0n/AIBody/AIBody.cslist`), one MVRScript class, loaded in one step in the Person's Plugins tab – v0.6.0.
 - Strict sandbox (no `UnityWebRequest`, `UnityEngine.Networking`, `WWW`, `System.IO`, `Process`, reflection, `DllImport`, Unity `Microphone`); the build scan fails otherwise – v0.6.1. Until version 29 the plugin had no network code at all; since version 30 `System.Net` / sockets are allowed in exactly one file (`SocketLink.cs`), see "Version 30".
-- Only evidenced APIs, evidence in `docs/API_AUDIT.md` (E1–E27) – v0.6.1, extended continuously.
+- Only evidenced APIs, evidence in `docs/API_AUDIT.md` (E1–E34) – v0.6.1, extended continuously.
 - File access only through `FileManagerSecure` – v0.6.1.
 - Diagnosis in the plugin window: status field, self-test, every init phase guarded on its own – v0.6.2.
 - One `.var` into `<VaM>/AddonPackages/`; list of old packages to delete in README and release notes – since v0.6.0.
@@ -137,6 +137,12 @@ Status: 19.11.2026, version 30. Overview of what is done and what is open; updat
 - **No start note in the menu**, only "Companion app: not connected"; **Test tone via companion** waits for the app and reports the result at the top of the Voice info. T35.
 - **Body control** also gates `idle` / `breathing` commands and idle poses; documented in the info field and SPEC. T36.
 - **First-start questions** in the companion console (green background first, then the standard scene). T37.
+
+### Version 36 (20.11.2026)
+- **Background color in the plugin** (tab Config: Set background color, default OFF; color picker, default #00FF00; hint "for pass-through transparency"); VaM's camera clear color + skybox off, restored on off / disable; replaces Sally's plugin. TODO(verify): T38.
+- **Choose what to use: Scene / Plugin**, either / or; the scene as a fixed anchor (AI Character locked, player start), shipped in the package (`Saves/scene/AIBody/AIBody_Example.json`), no dependency. TODO(verify): T39, T40.
+- **Companion setup, two independent points:** background yes / no / abort + "Set your color for transparency", then Scene / Plugin; the background answer switches the plugin's toggle ON with that color once per setup, in any scene; the scene choice only writes the scene. Tests for all four combinations. TODO(verify): T41.
+- **Latency, code only (no feature):** keep-alive HTTPS pool for STT / LLM / TTS with pre-connect on speech start, immediate main-loop wake-up, early first clause, speech files without fsync; plugin: speech starts when the clip is loaded, status texts only while the UI is open, fewer per-frame allocations. T42.
 
 ## 2. Still open / to do
 

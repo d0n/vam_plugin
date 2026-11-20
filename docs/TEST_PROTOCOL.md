@@ -1,4 +1,4 @@
-# AIBody – test protocol for the first test in VaM 1.22 (from v0.6.3, now version 35; T9 from v0.7.2, T10 from v0.7.3, menu layout from version 15, T19–T21 from version 30, T22–T23 from version 31, T24–T29 from version 32)
+# AIBody – test protocol for the first test in VaM 1.22 (from v0.6.3, now version 36; T9 from v0.7.2, T10 from v0.7.3, menu layout from version 15, T19–T21 from version 30, T22–T23 from version 31, T24–T29 from version 32, T38–T42 from version 36)
 
 Goal: the open "must do now" points that can only be checked in VaM. Please go through every point
 in order and enter the result (✅ / ❌ / unclear). Duration: about 20 minutes.
@@ -13,9 +13,9 @@ in order and enter the result (✅ / ❌ / unclear). Duration: about 20 minutes.
 **Preparation**
 
 - Close VaM. In `<VaM main folder>/AddonPackages/` delete all old AIBody packages:
-  `d0n.AIBody.1.var` to `d0n.AIBody.34.var`, `d0n.AIBodySession.*`, `d0n.AIBodyPerson.*`,
+  `d0n.AIBody.1.var` to `d0n.AIBody.35.var`, `d0n.AIBodySession.*`, `d0n.AIBodyPerson.*`,
   `d0n.AIBodyPerson2.*`. Also remove loose files under `Custom/Scripts/d0n/AIBody/`.
-- Copy `d0n.AIBody.35.var` to `<VaM main folder>/AddonPackages/`.
+- Copy `d0n.AIBody.36.var` to `<VaM main folder>/AddonPackages/`.
 - Have the companion app ready (do **not** start it yet):
   `python -m aibody_companion --vam-root "D:\VaM"` (adjust the path to your own VaM folder).
   For T9 enter the xAI key in the plugin (tab **Voice** > field **XAI API Token**, from version 21) or set it before starting: `set XAI_API_KEY=xai-...` (cmd) or `$env:XAI_API_KEY="xai-..."` (PowerShell); the field wins.
@@ -26,7 +26,7 @@ in order and enter the result (✅ / ❌ / unclear). Duration: about 20 minutes.
 
 1. Start VaM, open a scene with a female standard figure (or a new scene + Person).
 2. Select the figure (Person atom) > tab **Plugins** > **Add Plugin** >
-   `AddonPackages > d0n.AIBody.35:/Custom/Scripts/d0n/AIBody/AIBody.cslist`.
+   `AddonPackages > d0n.AIBody.36:/Custom/Scripts/d0n/AIBody/AIBody.cslist`.
    **Not** under *Session Plugins* or *Scene Plugins*.
 3. If VaM asks whether to allow plugins from the package: allow it and note that it asked.
 4. Open **Open Custom UI** (plugin window).
@@ -473,9 +473,47 @@ Needs the starter pose files (T24), at least `Stand Up` and one more.
 2. Your own buttons still work: Apply pose, Show expression, Play gesture. Idle head motion, breathing, gaze and blink keep their own toggles.
 3. The info field (AI Character) explains this. Switch it on again: everything works. Report the info field text.
 
-## T37 – First-start questions in the companion app (version 35)
+## T37 – First-start questions in the companion app (version 35; replaced by T41 in version 36)
 
 1. Start the app once with `python -m aibody_companion --vam-root "D:\VaM" --setup` in a console.
 2. It asks first "Do you want a green background to use pass-through?", then "Do you want to use the standard scene as an example?". Answer `yes`, `yes`: `Saves/scene/AIBody/AIBody_Example.json` is written; load it in VaM: two people, green background, AIBody 35 on the AI Character.
 3. Run with `--setup` again, answer `no`, `yes`: the scene is written again (the old one as `.bak`) without the green background. Answer `yes`, `no`: no scene is written; the console explains where the green background is set.
 4. Start the app normally: no questions any more (`config.json` > `setup.asked` true). Report the console output.
+
+## T38 – Background color in the plugin (version 36)
+
+1. Plugin window > tab **Config**: below the other controls the section **Background**: toggle **Set background color** (OFF), below it the color picker (sliders and swatch, green #00FF00), below that the text "for pass-through transparency".
+2. Switch it on: the sky / room background turns plain green in the desktop view and in the headset. Move the hue slider to purple: the background follows at once.
+3. Switch it off: the old background (sky) comes back exactly as before. Switch on again, then disable the plugin (checkbox in the Plugins tab) and remove it: the old background comes back each time.
+4. Switch on, save the scene, load it again: the background is on with the same color.
+
+Report: screenshots in VR / desktop with green and after switching off, red "AIBody:" lines. TODO(verify): the headset view uses the same camera (`CameraTarget.centerTarget.targetCamera`).
+
+## T39 – Scene from the package (version 36)
+
+1. VaM > **Open Scene** (scene browser) > package `d0n.AIBody.36` > folder `AIBody` > **AIBody_Example** (`d0n.AIBody.36:/Saves/scene/AIBody/AIBody_Example.json`). Report exactly where the browser lists it (package shortcut on the left, or in the main list), and whether the AIBody plugin loads (the scene references it as `SELF:/Custom/Scripts/d0n/AIBody/AIBody.cslist`).
+   Optional: copy the release asset `AIBody_Example.json` to `Saves/scene/AIBody/` and open it from the browser's folder `Saves/scene/AIBody`: the same scene.
+2. Expected: AI Character (female) with AIBody 36, Client Character (male) 1.2 m opposite, no room, plain green background (tab Config of AIBody: Set background color ON); no question about a missing package.
+3. Try to drag the AI Character's root controller: it does not turn and does not move up / down (anchored). In VR you start at the Client Character's place.
+
+Report: screenshot, whether the anchor holds, where you start in VR.
+
+## T40 – Choose what to use: Plugin (version 36)
+
+1. In your own scene add AIBody to a Person (Plugins > Add Plugin or the preset). Nothing else is added; Set background color is OFF.
+
+## T41 – Companion setup: background and Scene / Plugin are independent (version 36)
+
+1. Start `python -m aibody_companion --vam-root "D:\VaM" --setup` in a console. First question: "Do you want a greenscreen background? [yes/no/abort]". Answer `abort`: the app says nothing was changed; start again with `--setup`.
+2. Answer `yes`, then "Set your color for transparency [#00FF00]": type `#800080` (purple), then "Choose what to use": `plugin`. No scene is written. In VaM (your own scene with AIBody, T40): within a few seconds after the app connects (or with Reload Config JSON) Set background color switches ON and the color picker shows purple.
+3. Switch it OFF in VaM, restart the app normally: it stays OFF (applied once).
+4. `--setup` again: `no`, `scene`: `Saves/scene/AIBody/AIBody_Example.json` is written; load it: the scene without background color, Set background color OFF.
+5. `--setup` again: `yes`, Enter (green), `scene`: the scene loads with the green background ON.
+
+Report: the console output of each run and the tab Config after each step.
+
+## T42 – Speech starts without a delay (version 36)
+
+1. Ask three short questions in a row. Each answer starts without a noticeable gap after the companion log line "Say"; no answer is cut at the start, none plays twice.
+2. Report the "Latency to first sound" line of the status field before (version 35) and now, if you still have it.
+

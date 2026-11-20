@@ -127,7 +127,7 @@ class FirstRunHintTests(unittest.TestCase):
     def test_dismissal_is_persisted_in_config_json_and_read_back(self):
         self.assertIn('ui["first_run_hint_dismissed"].AsBool = _hintDismissed;', self.link)
         self.assertIn('Protocol.GetBool(uiState, "first_run_hint_dismissed", false)', self.link)
-        self.assertEqual(settings_file.defaults()["ui"], {"first_run_hint_dismissed": False})
+        self.assertEqual(settings_file.defaults()["ui"], {"first_run_hint_dismissed": False, "background_setup_applied": 0})
         self.assertIn("ui", settings_file.PLUGIN_CATEGORIES)
         schema = json.loads((ROOT / "protocol/schema/config.schema.json").read_text(encoding="utf-8"))
         self.assertIn("first_run_hint_dismissed", schema["properties"]["ui"]["properties"])

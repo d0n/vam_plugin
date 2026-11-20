@@ -66,7 +66,7 @@ class FileTransport(Transport):
             # Zero padded ns timestamp + sequence keeps ordinal sort == send order.
             name = f"{time.time_ns():020d}_{next(self._seq):06d}"
             # The command appears under its final name only when complete (temp name, fsync, replace).
-            atomic_write_text(self.inbox / f"{name}.json", json.dumps(command))
+            atomic_write_text(self.inbox / f"{name}.json", json.dumps(command), durable=False)
 
     def drop_stale_commands(self, now: float | None = None) -> int:
         """Deletes our own inbox files older than COMMAND_TTL_S. Returns how many."""

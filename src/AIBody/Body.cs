@@ -889,8 +889,13 @@ namespace AIBody
 
         // ---------------------------------------------------------------- frame loop
 
+        /// <summary>Version 36: false while VaM's plugin UI is closed; then no status strings are built per frame.</summary>
+        public bool UiVisible = true;
+
         public void Update(float dt)
         {
+            if (_gaze != null) _gaze.Describe = UiVisible;
+            if (_idlePoses != null) _idlePoses.Describe = UiVisible;
             _lastCommandAge += dt;
             _selfTestAge += dt;
             if (_speech != null) _speech.Update(dt);

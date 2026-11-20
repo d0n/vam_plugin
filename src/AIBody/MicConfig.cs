@@ -156,6 +156,12 @@ namespace AIBody
             if (PttActive) SendPtt(true);
         }
 
+        public const float StatusInterval = 0.2f;
+        private float _statusAge = StatusInterval;
+
+        /// <summary>Set by the plugin each frame: false while VaM's plugin UI is closed (nothing to show then).</summary>
+        public bool UiVisible = true;
+
         public void Update(float deltaTime, bool connected, bool appRunning, bool linkActive)
         {
             _appRunning = appRunning;
@@ -175,7 +181,14 @@ namespace AIBody
             }
             // Debounce slider drags: send 0.3 s after the last change.
             if (_dirty && connected && _sinceChange > 0.3f) SendConfig();
-            RefreshStatus();
+            // Version 36 (performance): the status text was rebuilt every frame (string garbage at 90 fps);
+            // now 5 times a second and only while the plugin UI is open.
+            _statusAge += deltaTime;
+            if (UiVisible && _statusAge >= StatusInterval)
+            {
+                _statusAge = 0f;
+                RefreshStatus();
+            }
         }
 
         // ------------------------------------------------------------------ outgoing

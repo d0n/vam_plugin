@@ -52,6 +52,7 @@ namespace AIBody
         private readonly List<UIDynamicButton> _buttons = new List<UIDynamicButton>();
         private readonly List<UIDynamicTextField> _texts = new List<UIDynamicTextField>();
         private readonly List<JSONStorableString> _inputs = new List<JSONStorableString>();
+        private readonly List<UIDynamicColorPicker> _colors = new List<UIDynamicColorPicker>();
 
         public UiPage(MVRScript plugin, bool rightSide)
         {
@@ -78,6 +79,16 @@ namespace AIBody
             if (slider != null && !string.IsNullOrEmpty(label)) slider.label = label;
             _sliders.Add(slider);
         }
+        /// <summary>VaM's colour picker (H / S / V sliders and a colour swatch): E32, E18.</summary>
+        public void ColorPicker(JSONStorableColor p) { if (p != null) _colors.Add(_plugin.CreateColorPicker(p, _right)); }
+
+        /// <summary>One short line of help directly below a control (a small text field, like Header).</summary>
+        public void Note(string text)
+        {
+            UIDynamicTextField f = UiHelper.Header(_plugin, text, _right);
+            _texts.Add(f);
+        }
+
         public void Popup(JSONStorableStringChooser p) { if (p != null) _popups.Add(_plugin.CreatePopup(p, _right)); }
 
         /// <summary>Popup with a scrolling list (long device lists), as Collider Editor uses it.</summary>
@@ -153,11 +164,13 @@ namespace AIBody
             foreach (UIDynamicPopup c in _popups) _plugin.RemovePopup(c);
             foreach (UIDynamicButton c in _buttons) _plugin.RemoveButton(c);
             foreach (UIDynamicTextField c in _texts) _plugin.RemoveTextField(c);
+            foreach (UIDynamicColorPicker c in _colors) _plugin.RemoveColorPicker(c);
             _toggles.Clear();
             _sliders.Clear();
             _popups.Clear();
             _buttons.Clear();
             _texts.Clear();
+            _colors.Clear();
         }
     }
 }

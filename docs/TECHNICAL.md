@@ -437,7 +437,9 @@ python tools/build_var.py      # builds dist/d0n.AIBody.<N>.var and scans every 
 
 ## Example scene: green screen / passthrough
 
-`examples/scenes/AIBody_GreenScreen.json` is a VaM scene template: one Person with AIBody on its Plugins tab, Sally's scene plugin [Camera Background Color](https://hub.virtamate.com/resources/camera-background-color.24185/) (`Sally.CameraBackgroundColor.7.var`) set to #00FF00, two invisible lights, no room. The headset (e.g. Virtual Desktop chroma key on #00FF00) makes the green transparent, not VaM. Script path, class and parameter names (`Color`, `Show Skybox`) were read from the original package; the plugin switches the skybox off itself. Steps: [docs/SCENE_GREENSCREEN.md](SCENE_GREENSCREEN.md).
+`examples/scenes/AIBody_GreenScreen.json` is a VaM scene template (in the package as `Saves/scene/AIBody/AIBody_Example.json`, the "Scene" choice): the AI Character with AIBody, anchored (root controller locks, player start at the Client Character), the Client Character without plugin, two invisible lights, no room, no other package. Since version 36 the background is AIBody's own `Background.cs` (tab Config > Background: toggle default OFF, color picker default #00FF00): camera clear color + skybox off through `CameraTarget.centerTarget.targetCamera` and `SkyshopLightController.singleton` (E30-E32), old values restored on off / disable. Until version 35 Sally's Camera Background Color did this. The headset (e.g. Virtual Desktop chroma key on the same color) makes it transparent, not VaM.
+
+Latency (version 36, code only, no feature): the companion keeps HTTPS connections alive in one pool (`pipeline/http.py`) and pre-connects when the user starts speaking; threads wake the main loop at once (`wakeup.py`); the first spoken piece may end at a clause mark; speech and command files skip fsync (`atomicfile.durable=False`, still atomic). The plugin starts speech the frame VaM has loaded the clip (`SpeechPlayer.ClipReady`), builds status texts only while its UI is open and avoids per-frame copies (socket queue swap, empty inbox scan). Steps: [docs/SCENE_GREENSCREEN.md](SCENE_GREENSCREEN.md).
 
 ## Plugin sandbox limits
 

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "written_by": "AIBody companion app 35 (example)",
+  "written_by": "AIBody companion app 36 (example)",
   "connection": {
     "active": true,
     "network_active": true,
@@ -53,7 +53,8 @@
     "verbose_log": false
   },
   "ui": {
-    "first_run_hint_dismissed": false
+    "first_run_hint_dismissed": false,
+    "background_setup_applied": 0
   },
   "poses": {
     "commands": [
@@ -101,8 +102,10 @@
   },
   "setup": {
     "asked": false,
-    "green_background": false,
-    "example_scene": false
+    "background": false,
+    "background_color": "#00FF00",
+    "choice": "",
+    "revision": 0
   },
   "remote": {
     "enabled": false,

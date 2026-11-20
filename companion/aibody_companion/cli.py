@@ -6,10 +6,10 @@ import logging
 import queue
 import sys
 import threading
-import time
 
 from . import __version__, logsetup, settings_file
 from . import setup as first_start
+from . import wakeup
 from .audio import EchoGate, MicController
 from .config import Config, load_config
 from .orchestrator import Companion
@@ -33,7 +33,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--no-stdin", action="store_true", help="do not read typed messages from stdin")
     p.add_argument("--list-devices", action="store_true", help="print input devices and exit")
     p.add_argument("--setup", action="store_true",
-                   help="ask the first-start questions again (green background for pass-through, standard scene)")
+                   help="ask the first-start questions again (background color, Scene / Plugin)")
     p.add_argument("--no-setup", action="store_true", help="never ask the first-start questions")
     p.add_argument("-v", "--verbose", action="store_true",
                    help="DEBUG output of all modules plus the turn trace (else: config.json advanced.verbose_log)")
@@ -97,7 +97,9 @@ def start_stdin_reader() -> queue.Queue[str | None]:
     def reader() -> None:
         for line in sys.stdin:
             lines.put(line.rstrip("\n"))
+            wakeup.notify()
         lines.put(None)
+        wakeup.notify()
 
     threading.Thread(target=reader, daemon=True).start()
     return lines
@@ -121,7 +123,7 @@ def run(companion: Companion, read_stdin: bool, poll_interval: float) -> None:
                     return
             elif line.strip():
                 companion.handle_user_text(line.strip())
-        time.sleep(poll_interval)
+        wakeup.wait(poll_interval)  # version 36: returns at once when a thread has work for the tick
 
 
 def maybe_ask_setup(vam_root: str, args: argparse.Namespace, interactive: bool | None = None) -> bool:

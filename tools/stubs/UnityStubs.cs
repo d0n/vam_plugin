@@ -19,6 +19,20 @@ namespace UnityEngine
     public class GameObject : Object
     {
         public T AddComponent<T>() where T : Component { return null; }
+        public bool activeInHierarchy { get { return false; } }       // E12 L1271, E11 L206
+    }
+    public struct Color                                                // E32 (AmbientLightRig L122, L181), E30 (AutoPupil L204)
+    {
+        public float r, g, b, a;
+        public Color(float r, float g, float b, float a) { this.r = r; this.g = g; this.b = b; this.a = a; }
+        public Color(float r, float g, float b) { this.r = r; this.g = g; this.b = b; this.a = 1f; }
+        public static Color HSVToRGB(float h, float s, float v) { return new Color(); }   // E32 (AmbientLightRig L181)
+    }
+    public enum CameraClearFlags { Skybox = 1, SolidColor = 2, Depth = 3, Nothing = 4 }   // E30 (AutoPupil L203: SolidColor); the old value is only kept and restored
+    public class Camera : Behaviour                                    // E30 (AutoPupil L203-205)
+    {
+        public CameraClearFlags clearFlags { get; set; }
+        public Color backgroundColor { get; set; }
     }
     public class Transform : Component
     {

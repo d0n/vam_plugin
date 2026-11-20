@@ -26,7 +26,8 @@
 // test; Voice > AI Character: AI mode, voice, engines, proactive) | AI Character (poses, expression
 // and gesture, body of this Person) | Client Character (microphone, voice activation, push-to-talk, voice barge-in)
 // | Config (Reload Config JSON, Companion inbox poll interval = storable "File poll interval (s)",
-// how often the companion inbox is read; verbose log).
+// how often the companion inbox is read; verbose log; version 36: Set background color + colour picker,
+// saved with the scene, see Background.cs).
 //
 // config.json (Saves/PluginData/AIBody/config.json, one global file) is shared with the companion
 // app, one object per tab category (docs/CONFIG.md). The plugin UI (saved with the scene) wins
@@ -40,13 +41,25 @@ namespace AIBody
 {
     public class AIBodyPlugin : MVRScript
     {
-        public const string PluginVersion = "35";   // = package number d0n.AIBody.35.var (scheme since version 12)
+        public const string PluginVersion = "36";   // = package number d0n.AIBody.36.var (scheme since version 12)
 
         private AppLink _link;
         private Body _body;
         private JSONStorableBool _verboseJson;
         private JSONStorableString _statusJson;
         private Diag _diag;
+
+        // Version 36: scene background colour (saved with the scene, not in config.json: it belongs to the scene).
+        public const string BackgroundToggleName = "Set background color";
+        public const string BackgroundColorName = "Background color";
+        public const string BackgroundHint = "for pass-through transparency";
+        private JSONStorableBool _backgroundJson;
+        private JSONStorableColor _backgroundColorJson;
+        private BackgroundController _background;
+        private bool _uiVisible;
+        private int _backgroundSetupApplied;   // config.json ui.background_setup_applied: setup.revision already applied
+        private bool _appWasSeen;
+        private string _lastStatusText = "";
 
         private bool _initialized;
         private bool _linkBroken;
@@ -150,6 +163,7 @@ namespace AIBody
                 _settingsInitJson = new JSONStorableBool("Settings initialized", false, (bool v) => { });
                 RegisterBool(_settingsInitJson);
             });
+            _diag.Run("Background color", CreateBackground);
             if (_link != null) _diag.Run("AppLink.CreateStorables", _link.CreateStorables);
             if (_body != null)
             {
@@ -201,6 +215,99 @@ namespace AIBody
             return cut > 0 ? script.Substring(0, cut) : null;
         }
 
+        // ---------------------------------------------------------------- background colour (version 36)
+
+        private void CreateBackground()
+        {
+            _background = new BackgroundController();
+            _backgroundJson = new JSONStorableBool(BackgroundToggleName, false, (bool v) => ApplyBackground());
+            RegisterBool(_backgroundJson);
+            // Default green #00FF00 (Leon): high contrast against a room with many dark / blue things.
+            _backgroundColorJson = new JSONStorableColor(BackgroundColorName, HSVColorPicker.RGBToHSV(0f, 1f, 0f),
+                (JSONStorableColor c) => ApplyBackground());
+            RegisterColor(_backgroundColorJson);
+            ApplyBackground();
+        }
+
+        private void ApplyBackground()
+        {
+            if (_background == null || _backgroundJson == null || _backgroundColorJson == null) return;
+            HSVColor hsv = _backgroundColorJson.val;
+            _background.Set(_backgroundJson.val, Color.HSVToRGB(hsv.H, hsv.S, hsv.V));
+        }
+
+        /// <summary>
+        /// Version 36: the companion's first-start answer (config.json "setup": background, background_color, revision)
+        /// switches "Set background color" ON with that color - once per answered setup (revision), in whatever scene
+        /// runs. A "no" changes nothing (the toggle is OFF by default). The scene choice has no effect here.
+        /// </summary>
+        private void ApplyBackgroundSetup(JSONClass file)
+        {
+            if (file == null || _backgroundJson == null) return;
+            JSONClass ui = file["ui"] as JSONClass;
+            if (ui != null) _backgroundSetupApplied = Math.Max(_backgroundSetupApplied, (int)Protocol.GetFloat(ui, "background_setup_applied", 0f));
+            JSONClass setup = file["setup"] as JSONClass;
+            if (setup == null || !Protocol.GetBool(setup, "asked", false)) return;
+            int revision = (int)Protocol.GetFloat(setup, "revision", 0f);
+            if (revision <= _backgroundSetupApplied) return;
+            _backgroundSetupApplied = revision;
+            if (!Protocol.GetBool(setup, "background", false)) return;
+            float r, g, b;
+            if (ParseHexColor(Protocol.GetString(setup, "background_color", "#00FF00"), out r, out g, out b))
+                SetColorParamValue(BackgroundColorName, HSVColorPicker.RGBToHSV(r, g, b));   // E32
+            _backgroundJson.val = true;
+            ApplyBackground();
+            _diag.Step("Background color switched on from the companion setup (" + Protocol.GetString(setup, "background_color", "#00FF00") + ")");
+        }
+
+        /// <summary>"#RRGGBB" (or without '#') to 0..1 components; false if it is not such a color.</summary>
+        public static bool ParseHexColor(string text, out float r, out float g, out float b)
+        {
+            r = g = b = 0f;
+            string t = (text ?? "").Trim();
+            if (t.StartsWith("#")) t = t.Substring(1);
+            if (t.Length != 6) return false;
+            int value = 0;
+            for (int i = 0; i < 6; i++)
+            {
+                int d = "0123456789ABCDEF".IndexOf(char.ToUpperInvariant(t[i]));
+                if (d < 0) return false;
+                value = value * 16 + d;
+            }
+            r = ((value >> 16) & 255) / 255f;
+            g = ((value >> 8) & 255) / 255f;
+            b = (value & 255) / 255f;
+            return true;
+        }
+
+        private void CheckBackgroundSetup()
+        {
+            try { ApplyBackgroundSetup(_link != null ? _link.ReadSettingsRoot() : null); }
+            catch (Exception e) { Log.Debug("Background setup check: " + e.Message); }
+        }
+
+        /// <summary>Tab Config: the toggle, below it the colour picker (sliders + swatch), below that the one-line hint.</summary>
+        private void BuildBackgroundSection()
+        {
+            if (_backgroundJson == null) return;
+            _page.Toggle(_backgroundJson);
+            _page.ColorPicker(_backgroundColorJson);
+            _page.Note(BackgroundHint);
+        }
+
+        /// <summary>Info lines of the tab Config about the background and how to use the scene.</summary>
+        private string BackgroundInfo()
+        {
+            string state = _background != null ? _background.Status : "not available";
+            return "<b>Background</b>\n"
+                + "Set background color: " + state + ". On = the camera shows one plain color instead of the room's sky "
+                + "(saved with the scene; off restores the old background). A 'yes' in the companion's setup switches it on "
+                + "once with the color chosen there.\n"
+                + "Choose what to use: Scene = VaM > Open Scene > d0n.AIBody." + PluginVersion
+                + " > AIBody_Example (AI Character anchored at a fixed spot, green background on); "
+                + "Plugin = this plugin on your own Person atom in your own scene.\n";
+        }
+
         // ---------------------------------------------------------------- tabs
 
         private void ShowTab(int index)
@@ -233,6 +340,8 @@ namespace AIBody
                         _page.Header("<b>Config</b> (config.json, connection, logging)");
                         if (_link != null) _link.BuildConfigTab(_page, ReloadConfigJson);
                         _page.Toggle(_verboseJson);
+                        _page.Header("<b>Background</b>");
+                        BuildBackgroundSection();
                         break;
                 }
                 RefreshStatus();
@@ -287,6 +396,7 @@ namespace AIBody
                 if (advanced != null && _verboseJson != null)
                     _verboseJson.val = Protocol.GetBool(advanced, "verbose_log", _verboseJson.val);
                 if (_body != null) _body.ReloadConfigFiles();
+                ApplyBackgroundSetup(file);
                 _link.MarkConfigDirty();
                 _configStatus = "config.json reloaded (" + DateTime.Now.ToString("HH:mm:ss") + "): " + _link.SettingsPath;
             }
@@ -316,6 +426,7 @@ namespace AIBody
                 if (readOk) _diag.Run("XAI API Token from config.json", () => _link.AdoptToken(file));
                 // Pose commands live only in config.json (not in the scene): always read, also for a scene with saved settings.
                 if (file != null && _body != null) _diag.Run("Pose commands from config.json", () => _body.LoadPoseCommands(file));
+                if (file != null) _diag.Run("Background answer from the companion setup", () => ApplyBackgroundSetup(file));
                 if (file != null && !_settingsInitJson.val)
                 {
                     _diag.Run("Apply settings from config.json (new scene)", () =>
@@ -345,6 +456,8 @@ namespace AIBody
                 root["written_by"] = "AIBody plugin " + PluginVersion;
                 _link.WriteSettings(root);
                 if (_body != null) _body.WriteSettings(root);
+                JSONClass uiState = root["ui"] as JSONClass;
+                if (uiState != null) uiState["background_setup_applied"].AsInt = _backgroundSetupApplied;
                 JSONClass advanced = root["advanced"] as JSONClass;
                 if (advanced != null && _verboseJson != null) advanced["verbose_log"].AsBool = _verboseJson.val;
                 string text = root.ToString();
@@ -434,6 +547,7 @@ namespace AIBody
                         text = (_link != null ? "config.json: " + _link.SettingsPath + "\n" + _link.ChannelInfoText() + "\n" + _link.NetworkInfoText() + "\n"
                                 + _link.FilePollInfoText() + "\n" : "")
                             + (_configStatus.Length > 0 ? _configStatus + "\n" : "")
+                            + BackgroundInfo()
                             + SelfTest()
                             + (Log.Verbose && Log.RecentText().Length > 0 ? "<b>Recent events</b> (Verbose log)\n" + Log.RecentText() : "")
                             + "<b>Startup log</b>\n" + (_diag != null ? _diag.Text : "");
@@ -474,8 +588,11 @@ namespace AIBody
             try { if (containingAtom != null) uid = containingAtom.uid; }
             catch (Exception) { }
             // Version 16: only the open tab's info (self test, recent events and start log: tab Config).
-            _statusJson.val = "<b>AIBody " + PluginVersion + "</b> on '" + uid + "' - " + StartLine()
-                + TabInfo();
+            string text = "<b>AIBody " + PluginVersion + "</b> on '" + uid + "' - " + StartLine() + TabInfo();
+            // Version 36: assigning the field re-lays out a long rich text in Unity's UI; skip it when nothing changed.
+            if (text == _lastStatusText) return;
+            _lastStatusText = text;
+            _statusJson.val = text;
         }
 
         // ---------------------------------------------------------------- frame loop
@@ -484,6 +601,11 @@ namespace AIBody
         {
             if (!_initialized) return;
             float dt = Time.deltaTime;
+            // Version 36 (performance): the info texts are only built while the plugin's UI is open
+            // (UITransform.gameObject.activeInHierarchy, E12 L1271 / E11 L206); opening it refreshes at once.
+            bool visible = UiVisible();
+            if (_link != null) _link.UiVisible = visible;
+            if (_body != null) _body.UiVisible = visible;
             if (_link != null && !_linkBroken)
             {
                 try { _link.Update(dt); }   // may hand body commands to _body synchronously
@@ -498,6 +620,12 @@ namespace AIBody
             try { UpdateSettings(dt); }
             catch (Exception e) { _settingsChecked = true; _diag.Fail("config.json", e); }
 
+            if (_background != null) _background.Tick(dt);
+            // The companion asks its setup questions when it starts: read its answer when it (re)connects.
+            bool appSeen = _link != null && _link.AppSeen;
+            if (appSeen && !_appWasSeen && _settingsChecked) CheckBackgroundSetup();
+            _appWasSeen = appSeen;
+
             if (_body != null && _body.RebuildTab)
             {
                 _body.RebuildTab = false;   // next frame, not inside the button's own click handler
@@ -505,7 +633,10 @@ namespace AIBody
             }
 
             _uiTimer += dt;
-            if (_uiTimer < 0.5f) return;
+            bool opened = visible && !_uiVisible;
+            _uiVisible = visible;
+            if (!visible) return;
+            if (_uiTimer < 0.5f && !opened) return;
             _uiTimer = 0f;
             try
             {
@@ -519,6 +650,12 @@ namespace AIBody
             }
         }
 
+        private bool UiVisible()
+        {
+            try { return UITransform != null && UITransform.gameObject.activeInHierarchy; }
+            catch (Exception) { return true; }   // unknown: keep the info field up to date
+        }
+
         // ---------------------------------------------------------------- teardown
 
         private void OnDisable()
@@ -528,11 +665,15 @@ namespace AIBody
             catch (Exception e) { Log.Error("OnDisable: link stop failed", e); }
             try { if (_body != null) _body.Restore(); }
             catch (Exception e) { Log.Error("OnDisable: body restore failed", e); }
+            try { if (_background != null) _background.Restore(); }
+            catch (Exception e) { Log.Error("OnDisable: background restore failed", e); }
         }
 
         private void OnEnable()
         {
-            if (!_initialized || _link == null) return;
+            if (!_initialized) return;
+            ApplyBackground();   // version 36: the background comes back when the plugin is enabled again
+            if (_link == null) return;
             try { if (!_link.IsRunning && _link.Active) _link.Restart(); }
             catch (Exception e) { Log.Error("OnEnable: restart failed", e); }
         }

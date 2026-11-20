@@ -5,7 +5,7 @@
       "y": "0",
       "z": "0"
    },
-   "useSceneLoadPosition": "false",
+   "useSceneLoadPosition": "true",
    "atoms": [
       {
          "id": "CoreControl",
@@ -21,6 +21,22 @@
                "plugins": {}
             }
          ]
+      },
+      {
+         "id": "[CameraRig]",
+         "on": "true",
+         "type": "VRController",
+         "position": {
+            "x": "0",
+            "y": "0",
+            "z": "1.2"
+         },
+         "rotation": {
+            "x": "0",
+            "y": "180",
+            "z": "0"
+         },
+         "storables": []
       },
       {
          "id": "InvisibleLight#Main",
@@ -170,7 +186,13 @@
                   "x": "0",
                   "y": "0",
                   "z": "0"
-               }
+               },
+               "xPositionLock": "true",
+               "yPositionLock": "true",
+               "zPositionLock": "true",
+               "xRotationLock": "true",
+               "yRotationLock": "true",
+               "zRotationLock": "true"
             },
             {
                "id": "geometry",
@@ -179,7 +201,16 @@
             {
                "id": "PluginManager",
                "plugins": {
-                  "plugin#0": "d0n.AIBody.35:/Custom/Scripts/d0n/AIBody/AIBody.cslist"
+                  "plugin#0": "d0n.AIBody.36:/Custom/Scripts/d0n/AIBody/AIBody.cslist"
+               }
+            },
+            {
+               "id": "plugin#0_AIBody.AIBodyPlugin",
+               "Set background color": "true",
+               "Background color": {
+                  "h": "0.3333333",
+                  "s": "1",
+                  "v": "1"
                }
             }
          ]
@@ -228,18 +259,7 @@
             },
             {
                "id": "PluginManager",
-               "plugins": {
-                  "plugin#0": "Sally.CameraBackgroundColor.7:/Custom/Scripts/Sally/CameraBackgroundColor/CameraBackgroundColor.cs"
-               }
-            },
-            {
-               "id": "plugin#0_CameraBackgroundColor",
-               "Color": {
-                  "h": "0.3333333",
-                  "s": "1",
-                  "v": "1"
-               },
-               "Show Skybox": "false"
+               "plugins": {}
             }
          ]
       }
