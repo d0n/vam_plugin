@@ -44,6 +44,9 @@ namespace AIBody
         /// </summary>
         public readonly PoseVocabulary Vocabulary = new PoseVocabulary();
 
+        /// <summary>Called after a pose preset was loaded (version 35: the idle motion forgets its old offsets).</summary>
+        public Action OnPoseLoaded;
+
         /// <summary>
         /// Pose presets by name: gestures.json entries of kind "pose" first, then the preset files in
         /// PoseFolders (name = file name without "Preset_" and extension). Used by the pose menu in
@@ -224,6 +227,7 @@ namespace AIBody
             if (url == null) return "PosePresets has no presetBrowsePath parameter";
             url.val = SuperController.singleton.NormalizePath(path);
             presets.CallAction("LoadPreset");
+            if (OnPoseLoaded != null) OnPoseLoaded();
             return null;
         }
 

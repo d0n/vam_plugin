@@ -9,6 +9,7 @@ import threading
 import time
 
 from . import __version__, logsetup, settings_file
+from . import setup as first_start
 from .audio import EchoGate, MicController
 from .config import Config, load_config
 from .orchestrator import Companion
@@ -31,6 +32,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--no-mic", action="store_true", help="never open the microphone (text input only)")
     p.add_argument("--no-stdin", action="store_true", help="do not read typed messages from stdin")
     p.add_argument("--list-devices", action="store_true", help="print input devices and exit")
+    p.add_argument("--setup", action="store_true",
+                   help="ask the first-start questions again (green background for pass-through, standard scene)")
+    p.add_argument("--no-setup", action="store_true", help="never ask the first-start questions")
     p.add_argument("-v", "--verbose", action="store_true",
                    help="DEBUG output of all modules plus the turn trace (else: config.json advanced.verbose_log)")
     return p
@@ -120,6 +124,21 @@ def run(companion: Companion, read_stdin: bool, poll_interval: float) -> None:
         time.sleep(poll_interval)
 
 
+def maybe_ask_setup(vam_root: str, args: argparse.Namespace, interactive: bool | None = None) -> bool:
+    """The first-start questions (setup.py): once, or again with --setup; only in an interactive console. True if asked."""
+    if args.no_setup:
+        return False
+    if not args.setup and first_start.already_asked(vam_root):
+        return False
+    if interactive is None:
+        interactive = sys.stdin is not None and sys.stdin.isatty()
+    if not interactive:
+        log.info("Setup questions skipped (no interactive console); start once with --setup in a console to answer them")
+        return False
+    first_start.run(vam_root)
+    return True
+
+
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     logsetup.setup(None, debug=args.verbose)
@@ -148,6 +167,7 @@ def main(argv: list[str] | None = None) -> int:
     for problem in settings_file.apply_to_config(cfg):
         log.warning("config.json: %s", problem)
     logsetup.set_verbose(cfg.verbose_log)
+    maybe_ask_setup(cfg.vam_root, args)
     errors = cfg.validate()  # re-check after config.json (engines)
     if errors:
         for e in errors:

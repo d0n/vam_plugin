@@ -206,6 +206,7 @@ Layout since version 15 (Leon, 17.11.2026): one large info field on the left, fo
 - `--vam-root <path>` (required): the VaM main folder.
 - `--channel <name>`: no longer used; accepted and ignored with a warning (the app always serves the one character in `Saves/PluginData/AIBody/default/`).
 - `--config <file>`: the app's own JSON file (template `companion/config.example.json`), keys: `vam_root`, `poll_interval_s` (0.02, tick of the main loop), `sample_rate` (16000, microphone), `frame_ms` (30, VAD block length), `mic` (start values like `mic.*`), `keep_audio_files` (20, this many WAVs stay around), `stt` / `llm` / `tts`. Microphone, engines, `ai` and `verbose_log` from `config.json` override this file.
+- `--setup` / `--no-setup` (version 35): ask the first-start questions again (green background for pass-through, then the standard scene as an example) / never ask them. Without either, the app asks once in an interactive console.
 - `--no-mic`: never open the microphone (text input only).
 - `--no-stdin`: no text input from the console.
 - `--list-devices`: print input devices and exit (diagnosis only; the app always records from the default input device, another microphone is set as the default in Windows).

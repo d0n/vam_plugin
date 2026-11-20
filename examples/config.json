@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "written_by": "AIBody companion app 34 (example)",
+  "written_by": "AIBody companion app 35 (example)",
   "connection": {
     "active": true,
     "network_active": true,
@@ -42,7 +42,11 @@
     "gaze_control": true,
     "gaze_default": "default",
     "gaze_follows_speaker": false,
-    "blink_control": false
+    "blink_control": false,
+    "idle_poses": true,
+    "idle_pose_min_s": 45.0,
+    "idle_pose_max_s": 120.0,
+    "idle_pose_default": "Stand Up"
   },
   "advanced": {
     "file_poll_interval_s": 0.1,
@@ -94,6 +98,11 @@
         "pose": "Bend Over"
       }
     ]
+  },
+  "setup": {
+    "asked": false,
+    "green_background": false,
+    "example_scene": false
   },
   "remote": {
     "enabled": false,

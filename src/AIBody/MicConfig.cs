@@ -25,8 +25,10 @@ namespace AIBody
         public const string VadWebRtc = "WebRTC";
         public const string VadSilero = "Silero";
 
-        /// <summary>Start command of the companion app, shown when it is not running.</summary>
+        /// <summary>Start command of the companion app: written to the VaM log once when the app is not running (version 35:
+        /// no longer in the menu, Leon 20.11.2026).</summary>
         public const string StartHint = "python -m aibody_companion --vam-root \"D:\\VaM\"";
+        private bool _startHintLogged;
 
         private readonly MVRScript _plugin;
         private readonly Action<JSONClass> _send;
@@ -162,11 +164,15 @@ namespace AIBody
             _levelAge += deltaTime;
             _speechAge += deltaTime;
             // The companion app is the only thing that listens: say plainly when it is not there.
+            // Version 35 (Leon): only a neutral one-line status in the menu; the start command goes to the log once.
             _appHint = !linkActive
-                ? "<color=red>The link to the companion app is switched off. Turn on 'Active' in tab Voice.</color>"
-                : !appRunning
-                    ? "<color=red>Companion app not running, so nothing is heard or spoken. Start it in a console, in the 'companion' folder: " + StartHint + "</color>"
-                    : "";
+                ? "Companion app: link switched off ('Active' in tab Voice)"
+                : !appRunning ? "Companion app: not connected" : "";
+            if (linkActive && !appRunning && !_startHintLogged)
+            {
+                _startHintLogged = true;
+                Log.Info("Companion app not connected. Start it in a console, in the 'companion' folder: " + StartHint);
+            }
             // Debounce slider drags: send 0.3 s after the last change.
             if (_dirty && connected && _sinceChange > 0.3f) SendConfig();
             RefreshStatus();

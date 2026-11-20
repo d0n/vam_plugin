@@ -246,6 +246,9 @@ namespace AIBody
             // The persona list comes from the companion app's heartbeat; "(none)" = the plain ai.persona text of config.json.
             _personaJson = new JSONStorableStringChooser("Persona", new List<string> { PersonaNone }, PersonaNone, "Persona",
                 (string v) => MarkConfigDirty());
+            // Version 35: the menu is refilled from the last list the companion app reported each time it opens, so it
+            // always shows at least "(none)" and the app's personas (E25).
+            _personaJson.popupOpenCallback = RefreshPersonaChoices;
             _plugin.RegisterStringChooser(_personaJson);
             _memoryJson = new JSONStorableBool("Memory", false, (bool v) => MarkConfigDirty());
             _plugin.RegisterBool(_memoryJson);
@@ -565,18 +568,71 @@ namespace AIBody
         }
 
         private string _testToneStatus;
+        private bool _testTonePending;    // pressed while the app was not connected: sent as soon as it connects
+        private bool _testToneWaiting;    // sent: waiting for the app's speak "Test tone"
+        private float _testToneAge;
+        public const float TestToneWait = 60f;      // a press waits this long for the app to connect
+        public const float TestToneAnswer = 10f;    // and this long for its answer
 
-        /// <summary>Asks the companion app for a test WAV in the channel's audio folder (tests that path).</summary>
+        /// <summary>
+        /// "Test tone via companion": asks the companion app for a test WAV in its audio folder (tests the path app -> file ->
+        /// head audio). Version 35: before, a press while the app was not connected did nothing visible (one line at the end
+        /// of the info field). Now the request waits up to TestToneWait s for the app, the result stands at the top of the
+        /// Voice info field, and the arrival of the app's answer (or its absence) is reported.
+        /// </summary>
         public void RequestTestTone()
         {
+            _testToneAge = 0f;
             if (!_appAlive)
             {
-                _testToneStatus = "Test tone not sent: the companion app is not connected. Start it first (the 'Companion app' line in the info field shows how).";
+                _testTonePending = true;
+                _testToneWaiting = false;
+                _testToneStatus = "Test tone via companion: waiting for the companion app (not connected). It is sent as soon as the app connects (up to " + TestToneWait.ToString("0") + " s).";
+                Log.Info("Test tone via companion: the companion app is not connected yet; the request waits for it.");
                 return;
             }
-            Send(Protocol.NewEvent(Protocol.EvtTestTone));
-            _testToneStatus = "Test tone requested from the companion app. You should hear it from the character in a moment. If not, read the red audio note in the info field and companion.log.";
+            SendTestTone();
         }
+
+        private void SendTestTone()
+        {
+            _testTonePending = false;
+            _testToneWaiting = true;
+            _testToneAge = 0f;
+            Send(Protocol.NewEvent(Protocol.EvtTestTone));
+            _testToneStatus = "Test tone via companion: requested, waiting for the app's answer ...";
+        }
+
+        /// <summary>Called for every body command from the app: the test tone arrives as a speak with the text "Test tone".</summary>
+        private void NoteTestToneSpeak(JSONClass msg)
+        {
+            if (!_testToneWaiting || Protocol.GetString(msg, "type", "") != Protocol.CmdSpeak || Protocol.GetString(msg, "text", "") != "Test tone") return;
+            _testToneWaiting = false;
+            _testToneStatus = "Test tone via companion: arrived (" + Protocol.GetString(msg, "audio", "") + "), playing on the character. Nothing heard? See 'Audio' in tab AI Character and the red notes here.";
+        }
+
+        private void TickTestTone(float dt)
+        {
+            if (!_testTonePending && !_testToneWaiting) return;
+            _testToneAge += dt;
+            if (_testTonePending)
+            {
+                if (_appAlive) SendTestTone();
+                else if (_testToneAge > TestToneWait)
+                {
+                    _testTonePending = false;
+                    _testToneStatus = "Test tone via companion: not sent, the companion app did not connect within " + TestToneWait.ToString("0") + " s.";
+                }
+            }
+            else if (_testToneAge > TestToneAnswer)
+            {
+                _testToneWaiting = false;
+                _testToneStatus = "Test tone via companion: no answer from the app within " + TestToneAnswer.ToString("0") + " s (see companion.log).";
+            }
+        }
+
+        /// <summary>The test tone result for the top of the Voice info field ("" = nothing pressed yet).</summary>
+        public string TestToneStatus { get { return _testToneStatus ?? ""; } }
 
         /// <summary>
         /// Tab "Voice", section "Voice > AI Character": how the AI character listens, thinks and speaks
@@ -607,6 +663,7 @@ namespace AIBody
         private string PersonaInfoText()
         {
             string text = "<b>Persona and memory</b>\n";
+            text += "Persona menu: " + (_personaListSeen ? _personaNames.Count + " persona(s) from the companion app" + (_personaNames.Count == 0 ? " (only '(none)': no folder with a persona.json in Saves/PluginData/AIBody/personas yet)" : "") : "'(none)' until the companion app reports its personas") + ".\n";
             if (PersonaName.Length == 0) text += "Persona: none (the text ai.persona from config.json). Personas are folders in Saves/PluginData/AIBody/personas/<name>/ with a persona.json (docs/PERSONAS.md); pick one in the Persona menu.\n";
             else if (_appAlive && _personaInUse != PersonaName) text += "Persona: '" + PersonaName + "' is not in use: " + (_personaNote.Length > 0 ? _personaNote : "the companion app has not confirmed it yet") + "\n";
             else text += "Persona: " + PersonaName + " (its prompt, language and voice replace ai.persona, config.json language and the Voice menu).\n";
@@ -999,12 +1056,31 @@ namespace AIBody
             _personaJson.val = name;
         }
 
-        /// <summary>The persona list from the companion app: "(none)" first, then the folders; the chosen one is kept.</summary>
+        /// <summary>Persona folder names from the last companion heartbeat (version 35: kept for the menu refill).</summary>
+        private readonly List<string> _personaNames = new List<string>();
+        private bool _personaListSeen;
+
+        /// <summary>The persona list from the companion app: "(none)" first, then the folders; the chosen one is kept.
+        /// Version 35: a missing list (older app) keeps the last one; an empty list still gives the menu "(none)".</summary>
         private void SetPersonaChoices(JSONArray names)
         {
             if (names == null || _personaJson == null) return;
+            _personaListSeen = true;
+            _personaNames.Clear();
+            for (int i = 0; i < names.Count; i++)
+            {
+                string n = names[i].Value;
+                if (n.Length > 0 && n != PersonaNone && !_personaNames.Contains(n)) _personaNames.Add(n);
+            }
+            RefreshPersonaChoices();
+        }
+
+        /// <summary>Sets the Persona menu from _personaNames: always "(none)" first, the chosen one is kept.</summary>
+        private void RefreshPersonaChoices()
+        {
+            if (_personaJson == null) return;
             List<string> choices = new List<string> { PersonaNone };
-            for (int i = 0; i < names.Count; i++) if (!choices.Contains(names[i].Value)) choices.Add(names[i].Value);
+            for (int i = 0; i < _personaNames.Count; i++) if (!choices.Contains(_personaNames[i])) choices.Add(_personaNames[i]);
             if (!choices.Contains(_personaJson.val)) choices.Add(_personaJson.val);
             bool same = choices.Count == _personaJson.choices.Count;
             for (int i = 0; same && i < choices.Count; i++) same = choices[i] == _personaJson.choices[i];
@@ -1168,6 +1244,7 @@ namespace AIBody
 
             if (Protocol.IsBodyCommand(type))
             {
+                NoteTestToneSpeak(msg);
                 if (OnBodyCommand != null) OnBodyCommand(msg);
                 return;
             }
@@ -1308,6 +1385,7 @@ namespace AIBody
                     if (!alive) _transport.PruneOutbox(MaxOutboxWhileAway);
                 }
             }
+            TickTestTone(dt);
             if (_mic != null) _mic.Update(dt, connected, _appAlive, _activeJson != null && _activeJson.val);
         }
 
@@ -1337,7 +1415,6 @@ namespace AIBody
             if (_transport == null) return "Link: " + (Active ? "off" : "inactive (Active is off)") + "\n";
             string text = "Link: " + _transport.Name + " - " + _transport.State + "\n" + NetworkStatus + "\n";
             if (!string.IsNullOrEmpty(_transport.LastError)) text += "Last error: " + _transport.LastError + "\n";
-            if (_testToneStatus != null) text += _testToneStatus + "\n";
             if (_appAlive)
             {
                 // Version 17: modes and engines only once, in the engine status above (no second summary).
@@ -1356,7 +1433,7 @@ namespace AIBody
                 if (_latency != null) text += LatencyLine() + "\n";
             }
             else if (_lastSession != null) text += "Companion app: connection lost (no heartbeat). It reconnects by itself once the app runs again; if it should be running, look at its console window.\n";
-            else text += "Companion app: not running yet. Start it in a console, in the 'companion' folder: python -m aibody_companion --vam-root \"D:\\VaM\"\n";
+            else text += "Companion app: not connected\n";   // version 35: no start instructions in the menu (README, log)
             return text;
         }
     }

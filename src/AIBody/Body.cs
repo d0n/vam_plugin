@@ -25,6 +25,12 @@ namespace AIBody
         private JSONStorableFloat _breathDepthJson;
         private JSONStorableString _breathMorphJson;
         private JSONStorableBool _bodyControlJson;
+        // Idle poses (version 35): the character changes on its own to an available pose now and then.
+        private JSONStorableBool _idlePosesJson;
+        private JSONStorableFloat _idlePoseMinJson;
+        private JSONStorableFloat _idlePoseMaxJson;
+        private JSONStorableStringChooser _idlePoseDefaultJson;
+        private IdlePoseScheduler _idlePoses;
         private JSONStorableBool _gazeControlJson;
         private JSONStorableStringChooser _gazeDefaultJson;
         private JSONStorableBool _gazeFollowJson;
@@ -159,7 +165,9 @@ namespace AIBody
 
         public void CreateStorables()
         {
-            // Off = speech only: expression / morph / gesture / pose / trigger commands are ignored.
+            // Off = the AI / companion side cannot move the body: expression / morph / gesture / pose / trigger / look_at /
+            // idle / breathing commands are ignored and there are no idle poses (version 35). Speech still works; the plugin's
+            // own idle head motion, breathing, gaze and blinking keep their own toggles.
             _bodyControlJson = new JSONStorableBool("Body control", true, (bool v) =>
             {
                 if (!v && _expressions != null) _expressions.Reset(0.4f);
@@ -180,6 +188,18 @@ namespace AIBody
             // TODO(verify): choose a chest morph that exists on the character.
             _breathMorphJson = new JSONStorableString("Breath morph", "Breath1", (string v) => { if (_breathing != null) _breathing.SetMorph(v); _selfTestAge = 999f; });
             _plugin.RegisterString(_breathMorphJson);
+            _idlePosesJson = new JSONStorableBool("Idle poses", true, (bool v) => { if (_idlePoses != null) _idlePoses.Enabled = v; });
+            _plugin.RegisterBool(_idlePosesJson);
+            _idlePoseMinJson = new JSONStorableFloat("Idle pose min wait (s)", IdlePoseScheduler.DefaultMinSeconds,
+                (float v) => { if (_idlePoses != null) _idlePoses.MinSeconds = v; }, IdlePoseScheduler.LowestSeconds, IdlePoseScheduler.HighestSeconds);
+            _plugin.RegisterFloat(_idlePoseMinJson);
+            _idlePoseMaxJson = new JSONStorableFloat("Idle pose max wait (s)", IdlePoseScheduler.DefaultMaxSeconds,
+                (float v) => { if (_idlePoses != null) _idlePoses.MaxSeconds = v; }, IdlePoseScheduler.LowestSeconds, IdlePoseScheduler.HighestSeconds);
+            _plugin.RegisterFloat(_idlePoseMaxJson);
+            _idlePoseDefaultJson = new JSONStorableStringChooser("Idle default pose", new List<string> { IdlePoseScheduler.DefaultIdlePose },
+                IdlePoseScheduler.DefaultIdlePose, "Idle default pose", (string v) => { if (_idlePoses != null) _idlePoses.DefaultPose = v; });
+            _idlePoseDefaultJson.popupOpenCallback = RefreshCharacterChoices;
+            _plugin.RegisterStringChooser(_idlePoseDefaultJson);
 
             // Manual pose / expression / gesture menu (tab AI Character). Not registered: only the
             // choice in the menu, nothing new is saved with the scene. Lists refill on opening (E25).
@@ -249,6 +269,16 @@ namespace AIBody
             {
                 _poses = new PoseController(_atom, _idle);
                 _poses.Vocabulary.SetStarters();   // until config.json poses.commands is read (LoadPoseCommands)
+                _poses.OnPoseLoaded = () => { if (_idle != null) _idle.Rebase(); };
+            });
+            _diag.Run("Idle poses (IdlePoseScheduler)", () =>
+            {
+                IdlePoseScheduler idlePoses = new IdlePoseScheduler((int)(DateTime.UtcNow.Ticks & 0x7fffffff));
+                idlePoses.Enabled = _idlePosesJson == null || _idlePosesJson.val;
+                if (_idlePoseMinJson != null) idlePoses.MinSeconds = _idlePoseMinJson.val;
+                if (_idlePoseMaxJson != null) idlePoses.MaxSeconds = _idlePoseMaxJson.val;
+                if (_idlePoseDefaultJson != null) idlePoses.DefaultPose = _idlePoseDefaultJson.val;
+                _idlePoses = idlePoses;
             });
             _diag.Run("Gaze (GazeController)", () =>
             {
@@ -318,6 +348,11 @@ namespace AIBody
                 page.Button("Add Pose", AddPoseCommand);
             }
             page.Button("Reload poses", () => { ReloadGestures(); RefreshCharacterChoices(); RebuildTab = true; });
+            page.Header("<b>Idle poses</b> (when nothing happens for a while, the character changes pose by itself)");
+            page.Toggle(_idlePosesJson);
+            page.ScrollablePopup(_idlePoseDefaultJson);
+            page.Slider(_idlePoseMinJson);
+            page.Slider(_idlePoseMaxJson);
             page.Header("<b>Expression and gesture</b>");
             page.Popup(_expressionChoiceJson);
             page.Button("Show expression", ShowChosenExpression);
@@ -348,9 +383,30 @@ namespace AIBody
         {
             string text = "Poses: " + (_poses != null ? _poses.PoseNames.Count + " in the menu (" + _poses.PoseScanNote + ")" : "PoseController missing") + "\n";
             text += PoseCommandsInfo();
-            text += "Body control off = speech only, the AI does not move the body. Breath morph: a name from the character's Morphs tab.\n";
+            text += IdlePosesInfo();
+            text += BodyControlHelp + " Breath morph: a name from the character's Morphs tab; without it the chest still rises with each breath.\n";
             text += GazeInfoText();
             return text;
+        }
+
+        /// <summary>What the toggle "Body control" does (version 35, the same text as in docs/SPEC.md).</summary>
+        public const string BodyControlHelp = "Body control off = the AI and the companion app cannot move the body: no poses (also no "
+            + "spoken pose commands), gestures, expressions, morphs, triggers, look_at, idle / breathing commands and no idle poses; "
+            + "the character only speaks. Your own menu buttons here (Apply pose, Show expression, Play gesture) still work, and so do "
+            + "the plugin's own life signs, each with its own toggle: Idle head motion (with the chest weight shift), Breathing, "
+            + "Gaze control, Blink control.";
+
+        private string IdlePosesInfo()
+        {
+            if (_idlePoses == null) return "Idle poses: not available (see the log)\n";
+            List<string> names = _poses != null ? _poses.PoseNames : new List<string>();
+            string home = IdlePoseScheduler.ResolveName(_idlePoses.DefaultPose, names);
+            int count = _poses != null ? _idlePoses.Candidates(_poses.Vocabulary, names, home).Count : 0;
+            return "Idle poses: " + (_idlePoses.Enabled ? _idlePoses.Status : "off") + ". After " + _idlePoses.MinSeconds.ToString("0")
+                + "-" + _idlePoses.MaxSeconds.ToString("0") + " s without speech or a pose command the character takes one of the "
+                + count + " available pose command poses, and next time goes back to the default idle pose ("
+                + (home ?? "'" + _idlePoses.DefaultPose + "' not found, so it does not go back") + "). After your own pose command it waits "
+                + IdlePoseScheduler.CooldownSeconds.ToString("0") + " s first. Idle head motion and breathing keep running in every pose.\n";
         }
 
         // ---------------------------------------------------------------- scene hooks (since version 26)
@@ -512,6 +568,12 @@ namespace AIBody
             List<string> commands = new List<string>();
             if (_poses != null) for (int i = 0; i < _poses.Vocabulary.Count; i++) commands.Add(_poses.Vocabulary.Get(i).Command);
             SetMenu(_poseCommandChoiceJson, commands);
+            if (_idlePoseDefaultJson != null)
+            {
+                List<string> homes = new List<string>(poses);
+                if (!homes.Contains(_idlePoseDefaultJson.val)) homes.Add(_idlePoseDefaultJson.val);   // keep the saved choice
+                _idlePoseDefaultJson.choices = homes;   // E9, E24, E25
+            }
             List<string> expressions = new List<string>();
             if (_expressions != null) foreach (string n in _expressions.PresetNames) expressions.Add(n);
             SetMenu(_expressionChoiceJson, expressions);
@@ -574,20 +636,29 @@ namespace AIBody
             RebuildTab = true;
         }
 
-        /// <summary>Reads config.json poses.commands (a missing key = the starter commands, an empty list = none).</summary>
+        /// <summary>Reads config.json poses.commands. A missing key, an empty list or a list without one usable entry =
+        /// the ten starter commands (version 35, Leon: they are in the configuration from the start); the next write of
+        /// config.json (once a second, when changed) then stores them.</summary>
         public void LoadPoseCommands(JSONClass root)
         {
             if (_poses == null || root == null) return;
             JSONClass poses = root["poses"] as JSONClass;
             JSONArray list = poses != null ? poses["commands"] as JSONArray : null;
             PoseVocabulary v = _poses.Vocabulary;
-            if (list == null) { v.SetStarters(); return; }
             v.Clear();
-            for (int i = 0; i < list.Count; i++)
+            if (list != null)
             {
-                JSONClass entry = list[i] as JSONClass;
-                string error = entry == null ? "not an object" : v.Add(entry["command"].Value, entry["pose"].Value);
-                if (error != null) Log.Warn("config.json poses.commands[" + i + "] ignored: " + error);
+                for (int i = 0; i < list.Count; i++)
+                {
+                    JSONClass entry = list[i] as JSONClass;
+                    string error = entry == null ? "not an object" : v.Add(entry["command"].Value, entry["pose"].Value);
+                    if (error != null) Log.Warn("config.json poses.commands[" + i + "] ignored: " + error);
+                }
+            }
+            if (v.Count == 0)
+            {
+                v.SetStarters();
+                Log.Info("config.json poses.commands missing or empty: the " + v.Count + " starter pose commands are used and saved");
             }
             RefreshCharacterChoices();
             RebuildTab = true;
@@ -598,6 +669,7 @@ namespace AIBody
             if (_poses == null) { CharacterNote = "Pose: PoseController missing"; return; }
             string name = _poseChoiceJson.val;
             string error = _poses.ApplyPose(name);
+            if (error == null && _idlePoses != null) _idlePoses.NoteUserPose();
             CharacterNote = error == null ? "Pose applied: " + name : "<color=red>Pose '" + name + "': " + error + "</color>";
             Log.Debug(CharacterNote);
         }
@@ -636,6 +708,10 @@ namespace AIBody
             body["gaze_default"] = GazeKey(_gazeDefaultJson.val);
             body["gaze_follows_speaker"].AsBool = _gazeFollowJson.val;
             body["blink_control"].AsBool = _blinkJson.val;
+            body["idle_poses"].AsBool = _idlePosesJson.val;
+            body["idle_pose_min_s"].AsFloat = _idlePoseMinJson.val;
+            body["idle_pose_max_s"].AsFloat = _idlePoseMaxJson.val;
+            body["idle_pose_default"] = _idlePoseDefaultJson.val;
             root["body"] = body;
             JSONClass poses = new JSONClass();
             JSONArray commands = new JSONArray();
@@ -669,6 +745,22 @@ namespace AIBody
             _gazeDefaultJson.val = GazeLabel(Protocol.GetString(body, "gaze_default", GazeKey(_gazeDefaultJson.val)));
             _gazeFollowJson.val = Protocol.GetBool(body, "gaze_follows_speaker", _gazeFollowJson.val);
             _blinkJson.val = Protocol.GetBool(body, "blink_control", _blinkJson.val);
+            _idlePosesJson.val = Protocol.GetBool(body, "idle_poses", _idlePosesJson.val);
+            _idlePoseMinJson.val = Protocol.GetFloat(body, "idle_pose_min_s", _idlePoseMinJson.val);
+            _idlePoseMaxJson.val = Protocol.GetFloat(body, "idle_pose_max_s", _idlePoseMaxJson.val);
+            string home = Protocol.GetString(body, "idle_pose_default", _idlePoseDefaultJson.val);
+            if (home.Length > 0) SetChooserValue(_idlePoseDefaultJson, home);
+        }
+
+        private static void SetChooserValue(JSONStorableStringChooser chooser, string value)
+        {
+            if (!chooser.choices.Contains(value))
+            {
+                List<string> choices = new List<string>(chooser.choices);
+                choices.Add(value);
+                chooser.choices = choices;
+            }
+            chooser.val = value;
         }
 
         /// <summary>Set from config.json (connection.paths) by the plugin.</summary>
@@ -730,6 +822,8 @@ namespace AIBody
             if (_router == null) return;
             _lastCommandAge = 0f;
             _router.Handle(msg);
+            // A pose command of the user (the companion sends one only for an exact command): idle poses wait first.
+            if (_idlePoses != null && Protocol.GetString(msg, "type", "") == Protocol.CmdPose) _idlePoses.NoteUserPose();
         }
 
         /// <summary>Adds the body's state to the link's ready / heartbeat / pong.</summary>
@@ -806,6 +900,7 @@ namespace AIBody
             UpdateGaze(dt, speaking);
             UpdateBlink(dt, speaking);
             UpdateSceneState(speaking);
+            UpdateIdlePoses(dt, speaking);
             if (_idle == null) return;
             string finishedGesture = _idle.Update(dt, speaking,
                 _breathing != null ? _breathing.Cycle : 0f, _breathing != null ? _breathing.CurrentDepth : 0f);
@@ -814,6 +909,27 @@ namespace AIBody
                 JSONClass done = Protocol.NewEvent(Protocol.EvtGestureDone);
                 done["name"] = finishedGesture;
                 _send(done);
+            }
+        }
+
+        private bool _idlePosesBroken;
+
+        private void UpdateIdlePoses(float dt, bool speaking)
+        {
+            if (_idlePoses == null || _poses == null || _idlePosesBroken) return;
+            try
+            {
+                bool busy = speaking || (UserSpeaking != null && UserSpeaking()) || (_speech != null && _speech.QueueLength > 0);
+                string pose = _idlePoses.Update(dt, busy, BodyControl, _poses.Vocabulary, _poses.PoseNames);
+                if (pose == null) return;
+                string error = _poses.ApplyPose(pose);
+                if (error == null) Log.Debug("Idle pose: " + pose);
+                else Log.Warn("Idle pose '" + pose + "' failed: " + error);
+            }
+            catch (Exception e)
+            {
+                _idlePosesBroken = true;   // only the idle poses stop
+                _diag.Fail("Idle poses (stopped)", e);
             }
         }
 
@@ -868,7 +984,7 @@ namespace AIBody
                 if (_speech.LastError != null && _speech.LastError != _speech.Status && _speech.LastErrorAge < 300f)
                     text += "<color=red>" + _speech.LastError + "</color> (" + _speech.LastErrorAge.ToString("0") + " s ago)\n";
             }
-            if (!BodyControl) text += "Body control: off (speech only)\n";
+            if (!BodyControl) text += "Body control: off (speech only; no poses, gestures, expressions or idle poses from the AI side)\n";
             if (_testStatus != null) text += _testStatus + "\n";
             if (CharacterNote.Length > 0) text += CharacterNote + "\n";
             if (_expressions != null) text += "Expression: " + _expressions.Current + "\n";

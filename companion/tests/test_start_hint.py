@@ -66,7 +66,8 @@ class WindowsPathExampleTests(unittest.TestCase):
 
     def test_plugin_hints_show_the_windows_style_path(self):
         self.assertIn('--vam-root \\"D:\\\\VaM\\""', source("MicConfig.cs"))
-        self.assertIn('--vam-root \\"D:\\\\VaM\\"', source("AppLink.cs"))
+        # version 35 (Leon): the start command is no longer in the menu; it is logged once (MicConfig.StartHint)
+        self.assertNotIn('--vam-root', source("AppLink.cs"))
         self.assertNotIn("--channel", source("AppLink.cs"))
         self.assertNotIn('--vam-root \\"<VaM>\\"', source("MicConfig.cs") + source("AppLink.cs"))
 

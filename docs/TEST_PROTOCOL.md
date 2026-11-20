@@ -1,4 +1,4 @@
-# AIBody – test protocol for the first test in VaM 1.22 (from v0.6.3, now version 32; T9 from v0.7.2, T10 from v0.7.3, menu layout from version 15, T19–T21 from version 30, T22–T23 from version 31, T24–T29 from version 32)
+# AIBody – test protocol for the first test in VaM 1.22 (from v0.6.3, now version 35; T9 from v0.7.2, T10 from v0.7.3, menu layout from version 15, T19–T21 from version 30, T22–T23 from version 31, T24–T29 from version 32)
 
 Goal: the open "must do now" points that can only be checked in VaM. Please go through every point
 in order and enter the result (✅ / ❌ / unclear). Duration: about 20 minutes.
@@ -13,9 +13,9 @@ in order and enter the result (✅ / ❌ / unclear). Duration: about 20 minutes.
 **Preparation**
 
 - Close VaM. In `<VaM main folder>/AddonPackages/` delete all old AIBody packages:
-  `d0n.AIBody.1.var` to `d0n.AIBody.29.var`, `d0n.AIBodySession.*`, `d0n.AIBodyPerson.*`,
+  `d0n.AIBody.1.var` to `d0n.AIBody.34.var`, `d0n.AIBodySession.*`, `d0n.AIBodyPerson.*`,
   `d0n.AIBodyPerson2.*`. Also remove loose files under `Custom/Scripts/d0n/AIBody/`.
-- Copy `d0n.AIBody.32.var` to `<VaM main folder>/AddonPackages/`.
+- Copy `d0n.AIBody.35.var` to `<VaM main folder>/AddonPackages/`.
 - Have the companion app ready (do **not** start it yet):
   `python -m aibody_companion --vam-root "D:\VaM"` (adjust the path to your own VaM folder).
   For T9 enter the xAI key in the plugin (tab **Voice** > field **XAI API Token**, from version 21) or set it before starting: `set XAI_API_KEY=xai-...` (cmd) or `$env:XAI_API_KEY="xai-..."` (PowerShell); the field wins.
@@ -26,7 +26,7 @@ in order and enter the result (✅ / ❌ / unclear). Duration: about 20 minutes.
 
 1. Start VaM, open a scene with a female standard figure (or a new scene + Person).
 2. Select the figure (Person atom) > tab **Plugins** > **Add Plugin** >
-   `AddonPackages > d0n.AIBody.32:/Custom/Scripts/d0n/AIBody/AIBody.cslist`.
+   `AddonPackages > d0n.AIBody.35:/Custom/Scripts/d0n/AIBody/AIBody.cslist`.
    **Not** under *Session Plugins* or *Scene Plugins*.
 3. If VaM asks whether to allow plugins from the package: allow it and note that it asked.
 4. Open **Open Custom UI** (plugin window).
@@ -409,7 +409,7 @@ Needs VaM with the AI Character (AIBody 32) and at least one pose file (T24).
 ## T28 – Delete Pose and Restore starter poses (version 32)
 
 1. Tab AI Character > **Poses**: choose `Prone` in the command chooser (the first chooser), press **Delete Pose**: it disappears from the chooser; `config.json` > `poses.commands` no longer has it; typing `Prone` now does nothing special (it is an ordinary sentence).
-2. Delete `Take a seat` (T27) too. Delete all remaining commands: the chooser and **Delete Pose** disappear (no empty menu), `poses.commands` is `[]`, and no typed command applies a pose.
+2. Delete `Take a seat` (T27) too. Delete all remaining commands: the chooser and **Delete Pose** disappear (no empty menu) and no typed command applies a pose. Since version 35 an empty list means the starters: after **Reload Config JSON** (or the next start) the 10 starters are back.
 3. Press **Restore starter poses**: the 10 starters are back (the info note says how many were restored), your own commands and links are untouched; a second press says all are already there.
 4. Report the info field text and the red `AIBody:` lines.
 
@@ -420,3 +420,62 @@ Needs VaM with the AI Character (AIBody 32) and at least one pose file (T24).
 3. Missing pose file: move the file of an available command (for example `Preset_Sit Down.vap`) out of the Pose folder, press **Reload poses**: the command is unavailable (no offer, typing it applies nothing and the console warns), but it is still in the chooser and in `config.json`. Put the file back and **Reload poses**: it works again.
 4. Malformed JSON test: put `{ "v": 3, "type": "pose", "id": "p-9", "command": "x", "json": "{\"pose\":\"Sit Down\",\"x\":1}" }` as `inbox/pose_bad.json` (and once with `"json": "nope"`, and once with a pose id that is not linked to any command): nothing moves; the red log shows one short line `AIBody: Warning: Pose ignored: ...` each.
 5. Report all red `AIBody:` lines and the companion console output.
+
+## T30 – Starter poses from the start (version 35)
+
+1. Close VaM and the app. Rename `Saves/PluginData/AIBody/config.json` (keep it as a backup). Start VaM, load the AI Character with AIBody 35.
+2. Tab AI Character > **Poses**: the command chooser holds the 10 starters, **Delete Pose** is there. Within about 2 seconds the new `config.json` has the 10 starters in `poses.commands`.
+3. Set `"poses": {"commands": []}` in `config.json`, press **Reload Config JSON** (tab Config): the starters are back.
+4. Report the info field text and the red `AIBody:` lines; then restore your backup.
+
+## T31 – Idle poses (version 35)
+
+Needs the starter pose files (T24), at least `Stand Up` and one more.
+
+1. Tab AI Character > **Idle poses**: *Idle poses* on, *Idle default pose* `Stand Up`, set *Idle pose min wait (s)* 10 and *max* 15. Do not talk to the character.
+2. After 10-15 s it takes a random pose of the command list (never one whose pose file is missing), after the next 10-15 s it goes back to `Stand Up`, and so on. The info field line "Idle poses: on ..." shows the next step.
+3. Talk to it (or let it speak): no pose change while either of you speaks; the timer starts again afterwards.
+4. Say or type `Sit Down`: it sits and stays seated for at least 2 minutes (cooldown), then idle poses go on.
+5. Switch **Body control** off: no idle pose changes any more. Switch *Idle poses* off: none either.
+6. Close and reopen VaM: the four settings are kept (`config.json` > `body.idle_poses`, `idle_pose_min_s`, `idle_pose_max_s`, `idle_pose_default`).
+7. Report the info field text and the red `AIBody:` lines.
+
+## T32 – Own idle motion and breathing (version 35)
+
+1. Remove any third-party idle / breathing plugin from the AI Character. *Idle head motion* and *Breathing* on (tab AI Character > Body).
+2. Watch the character for a minute in a standing pose: the head sways a little, the upper body shifts slowly from side to side and rises and falls with the breath. Nothing jumps.
+3. Apply another pose (Apply pose or a pose command): the motion continues in the new pose without a jump back.
+4. Choose a breath morph that does not exist (or none): the chest still breathes through the motion.
+5. Switch *Idle head motion* off: head and chest go back to the pose. Report whether the chest shift is visible (chest controller id `chestControl`, TODO(verify)) and the red `AIBody:` lines.
+
+## T33 – Pose commands by voice (version 35)
+
+1. With the app running and the microphone on, say `Sit down`, `Lay down`, `Turn around` clearly, each alone: the pose is applied every time, with no spoken answer. The console shows "Pose command: ..." (the speech-to-text result may end with `.`, `,` or `?`: it still matches).
+2. Say `please sit down` and `sit down and smile`: no pose, a normal answer.
+3. Say a German sentence such as `Setz dich hin`: no pose (there are no German commands). Optional: add `Setz dich hin` with **Add Pose** linked to the Sit Down pose and say it again: it sits.
+4. Report the console lines for each sentence.
+
+## T34 – Persona dropdown (version 35)
+
+1. Tab Voice > section **Voice > AI Character** > **Persona**: the dropdown is there and shows at least `(none)`, also without the app running.
+2. Copy `examples/personas/Anna` to `Saves/PluginData/AIBody/personas/Anna`, start the app: within a few seconds (or when the dropdown is opened) `Anna` is in the list; the info field says "Persona menu: 1 persona(s) ...". Choose `Anna`: the app console reports the persona change.
+3. Report the list and the info field line.
+
+## T35 – Companion app not connected / Test tone via companion (version 35)
+
+1. Close the app. The menu shows only "Companion app: not connected" (tab Client Character and Voice); no "Start it in a console" text in the menu. The VaM log contains the start command once.
+2. Press **Test tone via companion** with the app closed: the top of the Voice info field says it waits for the app. Start the app within 60 s: the test tone is heard, the info field says it arrived, the console says "Test tone sent: ...".
+3. Press it again with the app running: the tone is heard at once. Report the info field lines.
+
+## T36 – Body control off (version 35)
+
+1. Switch **Body control** off (tab AI Character > Body). Ask the AI to smile and to wave, type `Sit Down`: it answers by voice, but no expression, gesture or pose; `Sit Down` is answered as ordinary text. No idle poses (T31).
+2. Your own buttons still work: Apply pose, Show expression, Play gesture. Idle head motion, breathing, gaze and blink keep their own toggles.
+3. The info field (AI Character) explains this. Switch it on again: everything works. Report the info field text.
+
+## T37 – First-start questions in the companion app (version 35)
+
+1. Start the app once with `python -m aibody_companion --vam-root "D:\VaM" --setup` in a console.
+2. It asks first "Do you want a green background to use pass-through?", then "Do you want to use the standard scene as an example?". Answer `yes`, `yes`: `Saves/scene/AIBody/AIBody_Example.json` is written; load it in VaM: two people, green background, AIBody 35 on the AI Character.
+3. Run with `--setup` again, answer `no`, `yes`: the scene is written again (the old one as `.bak`) without the green background. Answer `yes`, `no`: no scene is written; the console explains where the green background is set.
+4. Start the app normally: no questions any more (`config.json` > `setup.asked` true). Report the console output.

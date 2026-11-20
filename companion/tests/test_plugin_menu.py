@@ -304,12 +304,17 @@ class NoMicSelectionTests(unittest.TestCase):
             self.assertIn(part, build)
         self.assertNotIn("Device", build)
 
-    def test_companion_not_running_hint_stays(self):
+    def test_companion_not_running_is_a_neutral_status_line_only(self):
+        """Version 35 (Leon): the note 'Companion App not running, so nothing is heard or spoken. Start it in a console ...'
+        is gone from the menu; a neutral one-line status stays, the start command goes to the VaM log once."""
         mic = source("MicConfig.cs")
         update = method_body(mic, "public void Update(float deltaTime, bool connected, bool appRunning, bool linkActive)")
-        for part in ("Companion app not running, so nothing is heard or spoken. Start it in a console", "StartHint",
-                     "Turn on 'Active' in tab Voice", "<color=red>"):
-            self.assertIn(part, update)
+        self.assertIn('"Companion app: not connected"', update)
+        self.assertIn('Log.Info("Companion app not connected. Start it in a console', update)
+        plugin = "".join(source(f.name) for f in sorted((ROOT / "src/AIBody").glob("*.cs")))
+        self.assertNotIn("nothing is heard or spoken", plugin)
+        self.assertNotIn("<color=red>Companion app", plugin)
+        self.assertNotIn("Start it in a console", source("AppLink.cs"))
         self.assertIn("_appHint", method_body(mic, "private void RefreshStatus()"))
         self.assertIn("_mic.Update(dt, connected, _appAlive,", source("AppLink.cs"))
 

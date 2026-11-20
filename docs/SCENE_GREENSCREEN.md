@@ -1,10 +1,10 @@
 # Scene template "AIBody Green Screen"
 
-Status 20.11.2026 (version 32) · Leon's wish of 17.11.2026 (two people: 22:30) · File: [`examples/scenes/AIBody_GreenScreen.json`](../examples/scenes/AIBody_GreenScreen.json)
+Status 20.11.2026 (version 35) · Leon's wish of 17.11.2026 (two people: 22:30) · File: [`examples/scenes/AIBody_GreenScreen.json`](../examples/scenes/AIBody_GreenScreen.json)
 
 Empty scene without a room, with:
 
-1. Atom `AI Character` (Person, female: `geometry.character` = `Female 3`), position (0, 0, 0), rotation 0°. Plugins tab of the Person: **AIBody** `d0n.AIBody.32:/Custom/Scripts/d0n/AIBody/AIBody.cslist`.
+1. Atom `AI Character` (Person, female: `geometry.character` = `Female 3`), position (0, 0, 0), rotation 0°. Plugins tab of the Person: **AIBody** `d0n.AIBody.35:/Custom/Scripts/d0n/AIBody/AIBody.cslist`.
 2. Atom `Client Character` (Person, male: `geometry.character` = `Male 1`), position (0, 0, 1.2), rotation 180° about the vertical axis, i.e. facing the AI character, 1.2 m apart. Plugins tab of the Person: **Camera Background Color** by Sally `Sally.CameraBackgroundColor.7:/Custom/Scripts/Sally/CameraBackgroundColor/CameraBackgroundColor.cs`, color **#00FF00** (HSV h 0.3333333, s 1, v 1), "Show Skybox" off.
 3. Two invisible lights (InvisibleLight). No floor, no walls, no scene plugin.
 
@@ -18,7 +18,7 @@ Roles:
 
 ## What you need
 
-- `d0n.AIBody.32.var` – [release v32](https://github.com/d0n/vam_plugin/releases/tag/v32)
+- `d0n.AIBody.35.var` – [release v35](https://github.com/d0n/vam_plugin/releases/tag/v35)
 - `Sally.CameraBackgroundColor.7.var` (version 7, 6097 bytes, VaM 1.22.0.3, no dependencies) – Hub: [Camera Background Color](https://hub.virtamate.com/resources/camera-background-color.24185/) by Sally (Sally Whitemane). The scene asks for exactly version 7.
 
 Put both files into `<VaM main folder>/AddonPackages/`.
@@ -27,7 +27,7 @@ Put both files into `<VaM main folder>/AddonPackages/`.
 
 1. Save the scene as `<VaM main folder>/Saves/scene/AIBody/AIBody_GreenScreen.json` (create the `AIBody` folder if necessary).
 2. Start VaM > **Open Scene** > `Saves/scene/AIBody/AIBody_GreenScreen.json`.
-3. **Check AIBody:** select `AI Character` > tab **Plugins**: `d0n.AIBody.32:/Custom/Scripts/d0n/AIBody/AIBody.cslist`.
+3. **Check AIBody:** select `AI Character` > tab **Plugins**: `d0n.AIBody.35:/Custom/Scripts/d0n/AIBody/AIBody.cslist`.
 4. **Camera Background Color:** select `Client Character` > tab **Plugins**: `Sally.CameraBackgroundColor.7:/…/CameraBackgroundColor.cs`. In the plugin window: "Color" green (R 0, G 255, B 0), "Show Skybox" off.
 5. Do not additionally load the plugin as a *Session Plugin* or *Scene Plugin*; two instances interfere (the plugin warns: "multiple CameraBackgroundColor plugins loaded").
 6. Start the companion app (see README), set the chroma key in the headset to **#00FF00**.

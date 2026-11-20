@@ -40,7 +40,7 @@ namespace AIBody
 {
     public class AIBodyPlugin : MVRScript
     {
-        public const string PluginVersion = "34";   // = package number d0n.AIBody.34.var (scheme since version 12)
+        public const string PluginVersion = "35";   // = package number d0n.AIBody.35.var (scheme since version 12)
 
         private AppLink _link;
         private Body _body;
@@ -365,6 +365,9 @@ namespace AIBody
                     // "remote" (version 31): owned by the app and the user (enabled, ports, token), kept unchanged.
                     JSONClass remote = existing["remote"] as JSONClass;
                     if (remote != null) root["remote"] = remote;
+                    // "setup" (version 35): the companion app's first-start answers, kept unchanged.
+                    JSONClass setup = existing["setup"] as JSONClass;
+                    if (setup != null) root["setup"] = setup;
                 }
                 FileManagerSecure.CreateDirectory(AppLink.DataRoot);
                 FileManagerSecure.WriteAllText(path, root.ToString());
@@ -416,7 +419,9 @@ namespace AIBody
                 switch (_tab)
                 {
                     case 0:
-                        text = (_simpleQa.Length > 0 ? _simpleQa + "\n" : "") + (_link != null ? _link.VoiceInfoText() : "")
+                        // Version 35: the result of "Test tone via companion" first, where it is seen.
+                        text = (_link != null && _link.TestToneStatus.Length > 0 ? "<b>" + _link.TestToneStatus + "</b>\n" : "")
+                            + (_simpleQa.Length > 0 ? _simpleQa + "\n" : "") + (_link != null ? _link.VoiceInfoText() : "")
                             + Section("Connection", _linkLive);
                         break;
                     case 1:

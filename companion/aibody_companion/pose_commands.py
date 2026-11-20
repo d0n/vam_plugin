@@ -3,7 +3,7 @@
 A pose is applied only when the user's ENTIRE input equals a command of the vocabulary (config.json poses.commands:
 command text -> pose id). The match is deterministic, in code, not in a prompt:
 
-  1. trim and collapse white space, lower case, drop trailing '.', '!', '?' (and '...'),
+  1. trim and collapse white space, lower case, drop trailing '.', '!', '?', '...' and (version 35) ',', ';', ':',
   2. compare the whole text with the command text normalized the same way.
 
 No substring, word or fuzzy match: "please sit down" and "sit down and smile" do not match. The AI never sees the
@@ -32,7 +32,8 @@ MAX_POSE_CHARS = 200
 # Exactly the characters that the plugin treats as white space (char.IsWhiteSpace on .NET 3.5), so both sides agree.
 _WHITESPACE = frozenset("\t\n\x0b\x0c\r \x85\xa0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009"
                         "\u200a\u2028\u2029\u202f\u205f\u3000")
-_TRAILING = frozenset(".!?\u2026\u3002\uff01\uff1f")  # . ! ? ... and the full-width forms
+# . ! ? ... and the full-width forms; version 35 also , ; : (speech-to-text sometimes ends with them: "Sit down,")
+_TRAILING = frozenset(".!?\u2026\u3002\uff01\uff1f,;:\uff0c\uff1b\uff1a\u3001")
 
 
 def collapse(text: str) -> str:

@@ -316,6 +316,7 @@ loaded names). Since version 32 there is no `pose` tool: a pose is applied only 
 commands on this channel; every call is answered (`{"ok": true}` / `{"ok": false, "error"}`).
 `look_at` (`target` enum: client, camera, forward, away, off + the `gaze_atoms`; `seconds`) is offered only while
 `gaze_control` is true. No tools in `ai.mode` `qa` or with `body_control` false.
+With `body_control` false the plugin also ignores `expression`, `set_morphs`, `reset_morphs`, `gesture`, `pose`, `trigger`, `look_at`, `idle` and `breathing` commands and runs no idle poses (since version 35: `idle` and `breathing` too).
 
 ## Scene events (since version 26, plugin -> companion)
 

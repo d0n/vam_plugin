@@ -38,7 +38,22 @@ DESCRIPTIONS = {
     ("poses", "commands"): "List of {command, pose}: command = the text the user says or types (ten starter commands by default); "
                            "pose = id of a pose of the character (gestures.json pose or pose file; names compare ignoring case, "
                            "spaces, '_' and '-'). A command whose pose does not exist stays in the list, is shown as unavailable "
-                           "and is never applied. Missing key = the starters, empty list = none",
+                           "and is never applied. Missing key, empty list or a list without one usable entry = the ten starters "
+                           "(version 35)",
+    ("setup",): "First-start questions of the companion app (version 35, file only, no tab; the plugin keeps this section "
+                "unchanged). Asked once in the app's console: first the pass-through question, then the standard scene "
+                "question; 'python -m aibody_companion --setup' asks again",
+    ("setup", "asked"): "true = the questions were answered (they are not asked again on start)",
+    ("setup", "green_background"): "Answer to 'Do you want a green background to use pass-through?': true = the example "
+                                   "scene gets the green #00FF00 background (Camera Background Color plugin by Sally)",
+    ("setup", "example_scene"): "Answer to 'Do you want to use the standard scene as an example?': true = the app writes "
+                                "Saves/scene/AIBody/AIBody_Example.json; false = plugin only",
+    ("body", "idle_poses"): "Toggle 'Idle poses' (version 35): when nothing happens for a while the character takes an "
+                            "available pose of the pose commands by itself and next time goes back to idle_pose_default",
+    ("body", "idle_pose_min_s"): "Slider 'Idle pose min wait (s)': shortest quiet time before an idle pose change (10-1800)",
+    ("body", "idle_pose_max_s"): "Slider 'Idle pose max wait (s)': longest quiet time before an idle pose change (10-1800)",
+    ("body", "idle_pose_default"): "Menu 'Idle default pose': the pose the character returns to between idle poses "
+                                   "(a pose name of the character; not found = no return pose)",
     ("remote",): "Remote control (version 31, file only, no tab; the plugin keeps this section unchanged): a local web page / "
                  "HTTP API and an optional OSC listener of the companion app, off by default, bound to 127.0.0.1 only. "
                  "Applies when the app starts. See docs/REMOTE.md",

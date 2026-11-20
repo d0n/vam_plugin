@@ -363,6 +363,8 @@ class FakePlugin:
                         ai[section] = {}
                     ai[section].update(vam_json(ui[section]))
                 root["ai"] = ai
+            if isinstance(existing.get("setup"), dict):
+                root["setup"] = existing["setup"]  # version 35: AIBody.WriteSettings keeps the app's "setup" unchanged
         self.settings_path.parent.mkdir(parents=True, exist_ok=True)
         self.settings_path.write_text(json.dumps(vam_json(root)), encoding="utf-8")
 

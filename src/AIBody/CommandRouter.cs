@@ -4,7 +4,9 @@
 // Speech never depends on the body: a speak is queued first, its optional expression is applied
 // afterwards and may fail on its own. With "Body control" off, expression / morph / gesture / pose /
 // trigger commands are ignored (no error), so a plain question-and-answer flow only needs the head
-// audio. A controller that could not be created gives a clear error instead of an exception.
+// audio. Version 35: the companion's idle / breathing commands are body commands too, so with Body control off the
+// AI / companion side cannot move the body at all (the plugin's own idle motion and breathing keep their own toggles).
+// A controller that could not be created gives a clear error instead of an exception.
 using System;
 using System.Collections.Generic;
 using SimpleJSON;
@@ -93,7 +95,7 @@ namespace AIBody
         {
             return type == Protocol.CmdExpression || type == Protocol.CmdSetMorphs || type == Protocol.CmdResetMorphs
                 || type == Protocol.CmdGesture || type == Protocol.CmdPose || type == Protocol.CmdTrigger
-                || type == Protocol.CmdLookAt;
+                || type == Protocol.CmdLookAt || type == Protocol.CmdIdle || type == Protocol.CmdBreathing;
         }
 
         // Returns null on success, else an error message.
@@ -114,6 +116,7 @@ namespace AIBody
                 {
                     if (_gaze == null) return "Gaze control is not available: the gaze part of the plugin did not start (see the Self-test in tab Config)";
                 }
+                else if (type == Protocol.CmdIdle || type == Protocol.CmdBreathing) { }   // checked in their case below
                 else if (_expressions == null) return "Expressions are not available: the plugin found no morphs on this character yet (see the Self-test in tab Config)";
             }
             switch (type)

@@ -1,7 +1,7 @@
-// Simple procedural breathing: a sine wave on a configurable chest morph plus an optional
-// tiny head bob. For realistic breathing (chest physics, breast motion, sounds) use
-// MacGruber's "Life" plugin on the same atom and drive it through the "trigger" command;
-// this controller is a dependency free fallback.
+// Procedural breathing, AIBody's own (no other plugin needed, no code of other plugins): a breath cycle that drives
+// a configurable chest morph and, through IdleController, a small rise of the chest and head. Version 35: the cycle
+// runs even when the morph is missing, so the chest / head part still breathes (before, a missing morph meant no
+// visible breathing at all). Other breathing plugins can still be used on the same atom; AIBody does not need them.
 using System;
 using UnityEngine;
 
@@ -60,6 +60,9 @@ namespace AIBody
         {
             float targetDepth = Enabled ? Depth * (speaking ? SpeakingDepthFactor : 1f) : 0f;
             _currentDepth = Mathf.MoveTowards(_currentDepth, targetDepth, deltaTime * 0.5f);
+            // The cycle always advances (version 35): IdleController uses it for the chest and head even without a morph.
+            _phase += deltaTime * Mathf.Max(1f, Rate) / 60f;
+            if (_phase > 1f) _phase -= 1f;
             if (_morph == null)
             {
                 // The morph UI may not be ready at Init: look the morph up again every 5 s.
@@ -76,8 +79,6 @@ namespace AIBody
                 return;
             }
 
-            _phase += deltaTime * Mathf.Max(1f, Rate) / 60f;
-            if (_phase > 1f) _phase -= 1f;
             // Inhale is slightly faster than exhale: shape the sine a little.
             float s = 0.5f - 0.5f * Mathf.Cos(_phase * Mathf.PI * 2f);
             s = Mathf.Pow(s, 1.3f);

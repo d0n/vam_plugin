@@ -1,12 +1,17 @@
-// Idle motion and procedural head gestures.
+// Idle motion and procedural head gestures, AIBody's own (version 35: no other idle / breathing plugin needed, no code
+// taken from other plugins).
 //
-// Applies a small additive rotation to the head controller: slow Perlin noise sway while
-// idle, plus short procedural gestures (nod, shake, tilt). The offset of the previous frame
-// is removed before the new one is applied, so user posing, Timeline animations or other
-// plugins moving the head are preserved instead of overwritten.
+// Applies small additive rotations:
+//   - head controller: slow Perlin noise sway while idle (more while speaking), the breath rise, and short
+//     procedural gestures (nod, shake, tilt);
+//   - chest controller (version 35): a slow weight shift from side to side every few seconds, a little sway and the
+//     breath rise of the chest, so the upper body never stands still.
+// The offset of the previous frame is removed before the new one is applied, so user posing, Timeline animations or
+// other plugins moving the controllers are preserved instead of overwritten. After a pose is loaded the offsets are
+// forgotten (Rebase), because the pose set the controllers anew.
 //
-// For full body idle animation prefer dedicated plugins on the same atom (E-Motion,
-// Naturalis, Timeline idle loops, Glance for eyes) and start them via "trigger"/"gesture".
+// For full body idle animation other plugins on the same atom (Timeline idle loops, ...) still work and can be started
+// via "trigger" / "gesture"; AIBody does not depend on them.
 using System;
 using UnityEngine;
 
@@ -16,8 +21,10 @@ namespace AIBody
     {
         private readonly Atom _atom;
         private FreeControllerV3 _head;   // looked up lazily, retried every 5 s
+        private FreeControllerV3 _chest;  // TODO(verify): storable id "chestControl" (same pattern as headControl, E6)
         private float _retryIn;
         private Quaternion _lastOffset = Quaternion.identity;
+        private Quaternion _lastChestOffset = Quaternion.identity;
         private float _time;
         private readonly float _seed;
 
@@ -26,6 +33,13 @@ namespace AIBody
         private float _gestureDuration;
         private float _gestureAmplitude;
 
+        // weight shift: the side changes every ShiftMin..ShiftMax seconds, blended smoothly
+        private float _shiftTarget;
+        private float _shift;
+        private float _shiftIn;
+        private const float ShiftMin = 5f;
+        private const float ShiftMax = 11f;
+
         public bool Enabled = true;
 
         /// <summary>0..1 overall amount of idle sway.</summary>
@@ -33,6 +47,9 @@ namespace AIBody
 
         /// <summary>Maximum sway angle in degrees at intensity 1.</summary>
         public float MaxAngle = 4f;
+
+        /// <summary>Maximum weight-shift lean of the chest in degrees at intensity 1.</summary>
+        public float MaxChestAngle = 2.5f;
 
         /// <summary>Extra multiplier while the character is speaking (people move more when talking).</summary>
         public float SpeakingBoost = 1.6f;
@@ -43,14 +60,20 @@ namespace AIBody
             Resolve();
             if (_head == null) Log.Error("No headControl on atom " + atom.uid + " yet; idle head motion waits for it.");
             _seed = UnityEngine.Random.Range(0f, 100f);
+            _shiftIn = UnityEngine.Random.Range(ShiftMin, ShiftMax);
         }
 
         public bool Available { get { return _head != null; } }
+
+        /// <summary>True when the chest controller was found (weight shift and chest breathing work).</summary>
+        public bool ChestAvailable { get { return _chest != null; } }
 
         private void Resolve()
         {
             try { _head = _atom.GetStorableByID("headControl") as FreeControllerV3; }
             catch (Exception) { _head = null; }
+            try { _chest = _atom.GetStorableByID("chestControl") as FreeControllerV3; }
+            catch (Exception) { _chest = null; }
         }
 
         public bool IsGesturing { get { return _gesture != null; } }
@@ -76,7 +99,7 @@ namespace AIBody
                 _retryIn = 5f;
                 Resolve();
                 if (_head == null) return null;
-                Log.Info("headControl found; idle head motion enabled.");
+                Log.Info("headControl found; idle head motion enabled" + (_chest != null ? " (with chest weight shift)." : "."));
             }
             _time += deltaTime;
             string finished = null;
@@ -89,6 +112,20 @@ namespace AIBody
 
             // Breathing makes the head rise a tiny bit; express it as a small pitch.
             pitch -= breathCycle * breathDepth * 1.5f;
+
+            // --- weight shift (chest), the head leans back against it a little ---
+            _shiftIn -= deltaTime;
+            if (_shiftIn <= 0f)
+            {
+                _shiftIn = UnityEngine.Random.Range(ShiftMin, ShiftMax);
+                _shiftTarget = _shiftTarget > 0f ? -UnityEngine.Random.Range(0.5f, 1f) : UnityEngine.Random.Range(0.5f, 1f);
+            }
+            _shift += ((Enabled ? _shiftTarget : 0f) - _shift) * Mathf.Clamp01(deltaTime * 0.6f);
+            float chestAmount = Enabled ? Intensity * MaxChestAngle : 0f;
+            float chestRoll = _shift * chestAmount + (Mathf.PerlinNoise(_seed + 30f, _time * 0.07f) - 0.5f) * chestAmount * 0.5f;
+            float chestYaw = (Mathf.PerlinNoise(_seed + 40f, _time * 0.05f) - 0.5f) * chestAmount;
+            float chestPitch = -breathCycle * breathDepth * 2f;   // the chest rises with each breath
+            roll -= chestRoll * 0.5f;
 
             // --- procedural gestures ---
             if (_gesture != null)
@@ -107,30 +144,36 @@ namespace AIBody
                 }
             }
 
-            ApplyOffset(Quaternion.Euler(pitch, yaw, roll));
+            _lastOffset = ApplyOffset(_head, _lastOffset, Quaternion.Euler(pitch, yaw, roll));
+            if (_chest != null) _lastChestOffset = ApplyOffset(_chest, _lastChestOffset, Quaternion.Euler(chestPitch, chestYaw, chestRoll));
             return finished;
         }
 
-        private void ApplyOffset(Quaternion offset)
+        /// <summary>Replaces last frame's offset on the controller with the new one; returns the offset now applied.</summary>
+        private static Quaternion ApplyOffset(FreeControllerV3 controller, Quaternion last, Quaternion offset)
         {
-            // Only meaningful while the head controller drives rotation.
-            if (_head.currentRotationState == FreeControllerV3.RotationState.Off)
-            {
-                _lastOffset = Quaternion.identity;
-                return;
-            }
-            Transform t = _head.transform;
-            Quaternion baseRot = t.rotation * Quaternion.Inverse(_lastOffset);
+            // Only meaningful while the controller drives rotation.
+            if (controller.currentRotationState == FreeControllerV3.RotationState.Off) return Quaternion.identity;
+            Transform t = controller.transform;
+            Quaternion baseRot = t.rotation * Quaternion.Inverse(last);
             t.rotation = baseRot * offset;
-            _lastOffset = offset;
+            return offset;
+        }
+
+        /// <summary>A pose was just loaded: it set the controllers anew, so the old offsets are not removed again.</summary>
+        public void Rebase()
+        {
+            _lastOffset = Quaternion.identity;
+            _lastChestOffset = Quaternion.identity;
         }
 
         /// <summary>Removes any offset still applied (call on disable/destroy).</summary>
         public void RestoreNow()
         {
-            if (_head == null) return;
-            _head.transform.rotation = _head.transform.rotation * Quaternion.Inverse(_lastOffset);
+            if (_head != null) _head.transform.rotation = _head.transform.rotation * Quaternion.Inverse(_lastOffset);
+            if (_chest != null) _chest.transform.rotation = _chest.transform.rotation * Quaternion.Inverse(_lastChestOffset);
             _lastOffset = Quaternion.identity;
+            _lastChestOffset = Quaternion.identity;
             _gesture = null;
         }
     }

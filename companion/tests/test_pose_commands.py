@@ -119,7 +119,10 @@ class SettingsTests(unittest.TestCase):
         self.assertEqual(result["poses"]["commands"], [{"command": "Wave Hello", "pose": "wave"}])
         self.assertTrue(errors)
         result, errors = settings_file.validate({"poses": {"commands": []}})
-        self.assertEqual((result["poses"]["commands"], errors), ([], []), "deleting every command is valid")
+        self.assertEqual(([e["command"] for e in result["poses"]["commands"]], errors), (STARTERS, []),
+                         "version 35: an empty list = the starter commands")
+        result, errors = settings_file.validate({"poses": {"commands": [{"command": "", "pose": "x"}]}})
+        self.assertEqual([e["command"] for e in result["poses"]["commands"]], STARTERS, "no usable entry = the starters")
         result, errors = settings_file.validate({})
         self.assertEqual([e["command"] for e in result["poses"]["commands"]], STARTERS)
         self.assertTrue(settings_file.validate({"poses": {"other": 1}})[1])
@@ -314,7 +317,8 @@ DOTNET = shutil.which("dotnet") or str(Path.home() / ".dotnet" / "dotnet")
 
 VECTORS = ["Sit Down", "  Sit   Down!!  ", "SIT DOWN?!", "sit\tdown", "Sit Down.\n", "Sit\u00a0Down", "Sit\u3000Down\uff01",
            "Sit Down\u2026", "Ä Ö Ü ß", "Crawl on all fours.", "", "   ", "...", "a.b", "a  b  c", "?!x", "!Sit",
-           "\u00c4nkle Your Knees", "Turn  Around ...", "Sit\u2003Down", "tab\there", "x\u000b y", "x\u0085y"]
+           "\u00c4nkle Your Knees", "Turn  Around ...", "Sit\u2003Down", "tab\there", "x\u000b y", "x\u0085y",
+           "Sit down,", "Sit down;", "Sit down:", "Lay down\uff0c", "Turn around\u3001", ",Sit", "Sit, down", "a ,"]
 KEYS = ["Preset_Sit Down", "sit_down", "Sit-Down", "SIT  DOWN", "Ankle Your Knees", "Ä-ö_ü", "", "___", "a1 b2", "Pose 01"]
 PARSE = ['{"pose":"Sit Down"}', ' { "pose" : "x" } ', '{"pose":"A\\u00e4\\"b"}', '{"pose":"a\\\\b\\/c\\n"}', "", "pose", "[]", "{}",
          '{"pose":""}', '{"pose":5}', '{"pose":null}', '{"pose":"a","x":1}', '{"pose":"a","pose":"b"}', '{"Pose":"a"}',

@@ -9,7 +9,8 @@ README.md section 4. Categories (kept from the first schema; they no longer matc
   engines     stt, llm, tts (tab Voice > AI Character)
   mic         microphone + push-to-talk settings (tab Client Character; audio/mic_settings.py)
   body        speech_volume, body_control, gaze_control, gaze_default, gaze_follows_speaker, idle_motion, idle_intensity, breathing,
-              breaths_per_minute, breath_depth, breath_morph (tab AI Character)
+              breaths_per_minute, breath_depth, breath_morph, idle_poses, idle_pose_min_s, idle_pose_max_s, idle_pose_default
+              (tab AI Character)
   advanced    file_poll_interval_s (slider "Companion inbox poll interval (s)": how often the
               plugin reads the companion inbox, not config.json), verbose_log (tab Config)
 
@@ -20,6 +21,7 @@ it has controls for):
 
   remote      enabled, http_port, osc_port, token (file only, version 31): local web page / HTTP API / OSC, off by
               default, 127.0.0.1 only (docs/REMOTE.md)
+  setup       asked, green_background, example_scene (version 35): the answers to the first-start questions (setup.py)
 
   ai          mode, persona, persona_name, memory {...}, emotion {...}, language, fallback {stt, llm, tts}, realtime {...}, proactive {...},
               xai {...}, elevenlabs {...}
@@ -111,6 +113,12 @@ DEFAULTS: dict[str, dict[str, Any]] = {
         "gaze_default": "default",  # default | natural | client | camera | forward | atom:<name>; default = leave the eyes alone
         "gaze_follows_speaker": False,  # look at the client while someone talks
         "blink_control": False,  # true = AIBody blinks (VaM's auto blink is switched off meanwhile)
+        # Idle poses (version 35): after idle_pose_min_s..idle_pose_max_s seconds without speech or a pose command the
+        # character takes an available pose of the pose commands by itself and next time goes back to idle_pose_default.
+        "idle_poses": True,
+        "idle_pose_min_s": 45.0,
+        "idle_pose_max_s": 120.0,
+        "idle_pose_default": "Stand Up",  # a pose name of the character; not found = no return pose
     },
     "advanced": {"file_poll_interval_s": 0.1, "verbose_log": False},
     # Plugin UI state (version 30): the first-run note about the xAI token was closed or answered once.
@@ -119,11 +127,18 @@ DEFAULTS: dict[str, dict[str, Any]] = {
     # WHOLE input equals a command text (case, spaces and trailing . ! ? ignored); the command links to a pose id
     # (a pose of the character: gestures.json pose or pose file, names compare ignoring case, spaces, _ and -).
     # Written by the plugin ('Add Pose' / 'Delete Pose'); a list. A missing "commands" key = the ten starter commands,
-    # an empty list = none. See docs/SPEC.md "Pose commands".
+    # and (version 35) an empty or unusable list = the starters too. See docs/SPEC.md "Pose commands".
     "poses": {"commands": pose_commands.starter_entries()},
     # Remote control (version 31; this app only, file only, off by default): a local web page / HTTP API and an
     # optional OSC listener. Both bind 127.0.0.1 only. The HTTP API needs the token (generated into this file on
     # the first start with enabled = true); OSC has no token. Changes apply when the app starts. See docs/REMOTE.md.
+    # First start questions (version 35, this app only, asked once in the console; python -m aibody_companion --setup
+    # asks again): green_background = the pass-through question, example_scene = the standard scene question.
+    "setup": {
+        "asked": False,
+        "green_background": False,
+        "example_scene": False,
+    },
     "remote": {
         "enabled": False,
         "http_port": 38438,
@@ -242,6 +257,8 @@ RANGES: dict[tuple[str, str], tuple[float, float]] = {
     ("body", "idle_intensity"): (0.0, 1.0),
     ("body", "breaths_per_minute"): (4.0, 40.0),
     ("body", "breath_depth"): (0.0, 1.0),
+    ("body", "idle_pose_min_s"): (10.0, 1800.0),
+    ("body", "idle_pose_max_s"): (10.0, 1800.0),
     ("advanced", "file_poll_interval_s"): (0.02, 2.0),
     ("ai", "xai", "max_output_tokens"): (16, 8000),
     ("ai", "xai", "speed"): (0.7, 1.5),
@@ -280,7 +297,7 @@ CHOICES: dict[tuple[str, ...], tuple[str, ...]] = {
 
 CATEGORIES = tuple(DEFAULTS)
 PLUGIN_CATEGORIES = ("connection", "engines", "mic", "body", "advanced", "ui", "poses")  # written by the plugin
-COMPANION_CATEGORIES = ("ai", "remote")  # read only by this app, preserved by the plugin
+COMPANION_CATEGORIES = ("ai", "remote", "setup")  # read only by this app, preserved by the plugin
 
 
 def settings_path(vam_root: str | Path) -> Path:
@@ -405,7 +422,8 @@ def validate(data: Any) -> tuple[dict[str, Any], list[str]]:
         if cat == "poses":
             if "commands" in section:
                 commands, pose_errors = pose_commands.validate_entries(section["commands"])
-                result["poses"] = {"commands": commands}
+                # version 35: an empty (or unusable) list = the starter commands, never an empty vocabulary
+                result["poses"] = {"commands": commands or pose_commands.starter_entries()}
                 errors += pose_errors
             for key in section:
                 if key != "commands":

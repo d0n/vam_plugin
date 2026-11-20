@@ -128,6 +128,16 @@ Status: 19.11.2026, version 30. Overview of what is done and what is open; updat
 - **Plugin preset (version 31):** `Custom/Atom/Person/Plugins/AIBody/Preset_AIBody.vap` in the package adds the one `.cslist` to a Person. TODO(verify): `docs/TEST_PROTOCOL.md` T23.
 - **Token never in a scene (version 31):** the token field's storable is not registered with VaM any more (closes the T20 caveat).
 
+### Version 35 (20.11.2026)
+- **Starter poses from the start:** a missing, empty or unusable `poses.commands` = the 10 starters (plugin and companion).
+- **Idle poses:** toggle, default pose (`Stand Up`), min / max wait (45 / 120 s); random available vocabulary poses alternating with the default pose; not while speaking or listening, 120 s cooldown after a user pose command, not with Body control off; persisted in `config.json` `body.idle_*`. TODO(verify): T31.
+- **Own idle motion / breathing:** chest weight shift and breath rise in AIBody's own `IdleController`, breath cycle without the morph; no third-party idle / breathing plugin needed, no code copied. TODO(verify): `chestControl`, T32.
+- **Voice pose commands:** trailing `,` `;` `:` ignored as well (C# and Python); no translations. T33.
+- **Persona dropdown** always present with at least `(none)`, refilled on open. T34.
+- **No start note in the menu**, only "Companion app: not connected"; **Test tone via companion** waits for the app and reports the result at the top of the Voice info. T35.
+- **Body control** also gates `idle` / `breathing` commands and idle poses; documented in the info field and SPEC. T36.
+- **First-start questions** in the companion console (green background first, then the standard scene). T37.
+
 ## 2. Still open / to do
 
 ### Next version

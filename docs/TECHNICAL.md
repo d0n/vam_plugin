@@ -284,6 +284,8 @@ python -m aibody_companion --list-devices                 # diagnostics: list th
 python -m aibody_companion --vam-root "D:\VaM"            # channel from config.json ("default")
 ```
 
+First start (version 35): in an interactive console the app asks once "Do you want a green background to use pass-through?" and then "Do you want to use the standard scene as an example?" (yes / no); yes to the scene writes `Saves/scene/AIBody/AIBody_Example.json` (with or without the green background). `--setup` asks again, `--no-setup` skips it; answers in `config.json` > `setup`.
+
 Options: `--channel` (default `default`), `--no-mic` (text only), `--no-stdin`, `-v` / `--verbose`
 (DEBUG for every module, turn trace always on),
 `--config config.json` (see `config.example.json`, including initial `mic` settings).
@@ -351,11 +353,13 @@ the key status in the info field (tab *Voice*) says which key is needed (red whe
 ### Body tools (the AI moves the body)
 
 In `auto` / `realtime` / `chain` with **Body control** on, the language model gets function tools:
-`express` (expression and / or gesture from the loaded lists) and `pose` (only if poses exist).
+`express` (expression and / or gesture from the loaded lists) (no `pose` tool since version 32: poses only through pose commands).
 Realtime: `function_call` -> commands to the plugin -> `function_call_output`; chain: `/v1/responses`
 with `tools`, the outputs go back with `previous_response_id` (at most 3 tool-only rounds per turn).
 Every call gets a result (`{"ok": true}` or `{"ok": false, "error": ...}`) so the model never waits.
 Not offered in `qa` (speech only) or with Body control off; a stray call is answered `ok: false`.
+Body control off (version 35, SPEC "Body control"): the plugin ignores `expression`, `set_morphs`, `reset_morphs`, `gesture`, `pose`, `trigger`, `look_at`, `idle` and `breathing` and runs no idle poses; speech and the user's own menu buttons still work.
+Idle poses and own idle motion (version 35): `IdlePoses.cs` (`IdlePoseScheduler`, pure C#, tested with `companion/tests/csharp_idle_harness`) picks the next pose; `IdleController` adds head sway, chest weight shift and breath rise as additive rotation offsets on `headControl` / `chestControl` (re-based after each pose load); no third-party plugin or code.
 `look_at` (`target`: client, camera, forward, away, off or an atom name from the plugin's `gaze_atoms`; optional
 `seconds`) is added while the plugin reports `gaze_control` (see "Gaze" below).
 

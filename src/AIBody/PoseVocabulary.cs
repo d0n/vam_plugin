@@ -77,7 +77,9 @@ namespace AIBody
 
         private static bool IsTrailing(char c)
         {
-            return c == '.' || c == '!' || c == '?' || c == '\u2026' || c == '\u3002' || c == '\uff01' || c == '\uff1f';
+            // Version 35: also , ; : (and the full-width forms), which speech-to-text sometimes puts at the end ("Sit down,").
+            return c == '.' || c == '!' || c == '?' || c == '\u2026' || c == '\u3002' || c == '\uff01' || c == '\uff1f'
+                || c == ',' || c == ';' || c == ':' || c == '\uff0c' || c == '\uff1b' || c == '\uff1a' || c == '\u3001';
         }
 
         /// <summary>Trims and collapses internal white space to single spaces.</summary>

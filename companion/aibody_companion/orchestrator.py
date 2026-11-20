@@ -1026,6 +1026,8 @@ class Companion:
             entries, _ = pose_commands.validate_entries(raw)
         else:
             entries, _ = pose_commands.validate_entries((self.cfg.poses or {}).get("commands", []))
+            if not entries:
+                entries = pose_commands.starter_entries()   # version 35: never an empty vocabulary from the file
         return pose_commands.PoseVocabulary(entries)
 
     def pose_names(self) -> list[str]:
@@ -1524,6 +1526,7 @@ class Companion:
         turn = Turn("test_tone")
         turn.step("wav written", wav=self._rel(path), seconds=round(duration, 2))
         self._utt_turn[utterance_id] = turn
+        self._set_turn(f"Test tone sent: {self.cfg.audio_rel_path(path.name)}")  # version 35: the plugin shows the answer
         return self._queue_speech(utterance_id, "Test tone", path, duration, interrupt=True)
 
     def stop_speaking(self) -> None:
