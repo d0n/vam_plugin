@@ -198,6 +198,11 @@ Status: 21.11.2026, version 44. Overview of what is done and what is open; updat
 - **Speech volume up to 3:** one slider for speech and test tones; above 1 the companion multiplies its WAVs by the volume (plain linear gain, no limiter, Leon 21:15/21:16); **Play test tone** uses 2x / 3x copies. Default 1 unchanged. T73.
 - Not in v44 (v45): config-menu commands for the AI, post-command / Add Pose follow-ups.
 
+### Version 45 (21.11.2026, Leon 21:25 / 22:25)
+- **The package survives a failed setup run:** older `d0n.AIBody.<n>.var` are removed only after the install succeeded and the new package is in AddonPackages with the bundled SHA-256 (v44 removed them before copying; a failed / cancelled install then left no package, Leon's v44 test). If the new package is not there, the older ones stay and the setup says so. T74.
+- **No option "Remove older AIBody packages" any more:** the other `d0n.AIBody.<n>.var` are always removed (Leon 22:25). T74.
+- **A companion that cannot be ended stops the setup before anything changes** (Preparing to Install), instead of failing halfway; taskkill without `/T`. T74.
+
 ## 2. Still open / to do
 
 ### Next version

@@ -10,7 +10,7 @@ More documents: [SPEC](docs/SPEC.md) (agreed scope) · [REQUIREMENTS](docs/REQUI
 
 You start VaM as usual. AIBody has two parts:
 
-- **The plugin and the scene** come in one package, `d0n.AIBody.<N>.var`. Since version 44 `AIBody Companion Setup.exe` puts it into `<VaM main folder>/AddonPackages/` for you and removes older `d0n.AIBody.<number>.var` files (option **Remove older AIBody packages**, on by default); without the setup put it there yourself (delete older `d0n.AIBody.*.var` files). In VaM both are found under the add-on packages: the scene via the main menu **Open Scene** > package `d0n.AIBody.<N>` > `AIBody` > **AI-Buddy**, the plugin via Person > tab **Plugins** > **Add Plugin** > `d0n.AIBody.<N>` > `AIBody.cslist`.
+- **The plugin and the scene** come in one package, `d0n.AIBody.<N>.var`. Since version 44 `AIBody Companion Setup.exe` puts it into `<VaM main folder>/AddonPackages/` for you and removes older `d0n.AIBody.<number>.var` files (always, once the new package is in place); without the setup put it there yourself (delete older `d0n.AIBody.*.var` files). In VaM both are found under the add-on packages: the scene via the main menu **Open Scene** > package `d0n.AIBody.<N>` > `AIBody` > **AI-Buddy**, the plugin via Person > tab **Plugins** > **Add Plugin** > `d0n.AIBody.<N>` > `AIBody.cslist`.
 - **AIBody Companion** is a small Windows app that runs in the background on the same computer and does the listening and talking: microphone, speech recognition, the AI (xAI) and the voice. VaM plugins run in a sandbox without internet, microphone access or the right to start programs, so this part cannot live inside VaM. The plugin connects to it by itself; you only start it.
 
 **Install AIBody Companion (once):**

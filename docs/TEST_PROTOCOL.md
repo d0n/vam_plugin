@@ -748,9 +748,9 @@ Correction (version 44): the v43 setup writes no log by itself. Start it from a 
 ## T70 – The setup installs the package and removes older ones (version 44, Windows)
 
 1. In `<VaM>\AddonPackages` put an old `d0n.AIBody.42.var` (or keep your hand-copied one) and note the other packages there.
-2. Run `AIBody Companion Setup.exe` of v44. Page **Select Additional Tasks**: **Remove older AIBody packages (d0n.AIBody.<number>.var) from AddonPackages** is checked. Page **Your VaM folder**: your VaM folder (e.g. `D:\VaM`). Finish.
+2. Run `AIBody Companion Setup.exe` of v44. Page **Select Additional Tasks**: **Remove older AIBody packages (d0n.AIBody.<number>.var) from AddonPackages** is checked (since v45 there is no such option, see T74). Page **Your VaM folder**: your VaM folder (e.g. `D:\VaM`). Finish.
 3. `<VaM>\AddonPackages` now has `d0n.AIBody.44.var` (about 180 kB) and no other `d0n.AIBody.<number>.var`; every other package (also `d0n.AIBodySession.*`, VARs in subfolders) is still there.
-4. Repeat with the option unchecked: the older packages stay, `d0n.AIBody.44.var` is copied anyway.
+4. Repeat with the option unchecked: the older packages stay, `d0n.AIBody.44.var` is copied anyway. (v44 only; v45 has no option.)
 5. VaM (restart or **Rescan Add-on Packages**): **AI-Buddy** in package `d0n.AIBody.44` loads.
 Report: the file list of AddonPackages before / after, and the lines `Existing install`, `Remove older AIBody packages`, `Deleted`, `Package:` of `%TEMP%\Setup Log <date> #<n>.txt`.
 
@@ -766,7 +766,7 @@ Report: the exact box texts (screenshots) and which button you pressed.
 Cause of "the installer no longer works" (v41-v43): the setup asked Windows' Restart Manager to close the running companion; its tray windows refused, so the "files in use" dialog came back after every **Continue** / **Retry** and nothing was installed.
 1. Start AIBody Companion (tray icon visible), leave it running, run the v44 setup and click through.
 2. The tray icon disappears during the install, no "close applications" loop, the setup finishes; with **Launch AIBody Companion now** the new version starts.
-3. In the setup log: `Stop AIBody Companion: taskkill /F /T /IM "AIBody Companion.exe" exit code 0`.
+3. In the setup log: `Stop AIBody Companion: taskkill /F /T /IM "AIBody Companion.exe" exit code 0` (since v45 without `/T`: `taskkill /F /IM "AIBody Companion.exe" exit code 0`).
 4. Optional: with the companion running, sign out of Windows: Windows no longer says AIBody Companion prevents it.
 Report: whether any dialog came up, and the `Stop AIBody Companion` lines of the log.
 
@@ -777,3 +777,12 @@ Report: whether any dialog came up, and the `Stop AIBody Companion` lines of the
 3. At 1.5, 2 and 3 let the AI talk (a long answer): the voice is clearly louder than at 1, at normal speaker volume; note from which value it distorts. companion.log: `Speech volume 2.00: speech WAVs x2.00 (linear gain)`.
 4. Back to 0.5: quieter than 1 (VaM's head audio), companion.log `unchanged`.
 Report: the loudest setting that still sounds clean on speakers and on the headset.
+
+## T74 – The package is placed even after a failed setup run (version 45, Windows)
+
+Leon's v44 test (21:25): the v44 setup removed the old VAR, but `d0n.AIBody.44.var` never arrived. Cause: v44 deleted the older packages before copying; when the install then failed or was cancelled, Inno Setup's rollback removed the new package as well. Since v45 the older ones are removed only after the install succeeded and the new package is in place (SHA-256 checked), always (there is no option any more).
+1. In `<VaM>\AddonPackages` put an old `d0n.AIBody.42.var` (and keep any other packages). Run the v45 setup. Page **Select Additional Tasks** shows only **Create a desktop shortcut** and **Start with Windows**.
+2. Finish: `<VaM>\AddonPackages` has `d0n.AIBody.45.var` and no other `d0n.AIBody.<number>.var`; other packages untouched. Setup log: `Dest filename: D:\VaM\AddonPackages\d0n.AIBody.45.var`, then `Package: ... in place (SHA-256 checked)`, then `Remove older AIBody packages: found ...` and `Deleted ...`.
+3. Put `d0n.AIBody.42.var` back, run the setup again and press **Cancel** on the page **Installing** while files are copied (or on the progress page as early as you can): `d0n.AIBody.42.var` is still there (with v44 it was gone and no package was left).
+4. Start AIBody Companion **as administrator** (right-click > **Run as administrator**), then run the setup: on **Preparing to Install** it says **AIBody Companion is still running and could not be closed ... Nothing was changed.** and stops; AddonPackages unchanged. Quit the companion from the tray and run the setup again: it goes through.
+Report: the AddonPackages file list after each step and the lines `Package:`, `Remove older`, `Deleted`, `Stop AIBody Companion`, `Rolling back` of `%TEMP%\Setup Log <date> #<n>.txt`.

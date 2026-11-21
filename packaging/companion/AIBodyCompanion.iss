@@ -17,7 +17,9 @@
 ;  - at start it looks for an existing install (installed companion version, d0n.AIBody.<n>.var in AddonPackages) and
 ;    says so: same version = "already installed", OK reinstalls / repairs, Cancel stops; older = "Update from <old> to
 ;    <v>". Silent setups never ask (reinstall / update). Everything found is written to the setup log.
-;  - task "Remove older AIBody packages" (on by default): deletes the other d0n.AIBody.<digits>.var before copying.
+;  - every install deletes the other d0n.AIBody.<digits>.var at the top of AddonPackages (no option since Leon 22:25),
+;    only after the install succeeded and the new package is in place with the bundled SHA-256 (ssPostInstall,
+;    Leon 21:25). v44 deleted them at ssInstall, before copying: a failed / cancelled install left no package at all.
 ;  - a running AIBody Companion is ended with taskkill before the files are replaced (PrepareToInstall): its tray
 ;    windows refused Restart Manager's close request, so the v43 setup looped on "files in use".
 ;    CloseApplications=force stays as a fallback. SetupLogging=yes: %TEMP%\Setup Log <date> #<n>.txt for every run.
@@ -69,7 +71,6 @@ UninstallDisplayIcon={app}\AIBody Companion.exe
 [Tasks]
 Name: "desktopicon"; Description: "Create a desktop shortcut"; Flags: unchecked
 Name: "autostart"; Description: "Start with Windows"; Flags: unchecked
-Name: "removeoldvars"; Description: "Remove older AIBody packages (d0n.AIBody.<number>.var) from AddonPackages"
 
 [Files]
 Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
@@ -98,6 +99,7 @@ const
 var
   VamPage: TInputDirWizardPage;
   VamDirParam: String;
+  CompanionStillRunning: Boolean;
 
 function IsVamDir(const Dir: String): Boolean;
 begin
@@ -337,7 +339,7 @@ begin
     if VarState <> '' then Text := Text + ' (It is already there and will be replaced.)';
     if GetArrayLength(Found) > 0 then
       Text := Text + #13#10#13#10 + 'AIBody packages in AddonPackages now: ' + JoinNames(Found) + '. ' +
-        'Keep "Remove older AIBody packages" checked on the next page to delete the older ones.';
+        'The older ones are removed once the new package is in place.';
     Text := Text + #13#10#13#10 + 'OK: continue. Cancel: stop the setup and change nothing.';
   end
   else
@@ -426,6 +428,19 @@ begin
   Result := RemoveBackslashUnlessRoot(Result);
 end;
 
+{ [Files]: the package goes to <VaM>\AddonPackages, only for a folder with VaM.exe. }
+function AddonDir(Param: String): String;
+begin
+  Result := AddBackslash(ChosenVamDir()) + 'AddonPackages';
+end;
+
+function HaveVamDir(): Boolean;
+begin
+  Result := IsVamDir(ChosenVamDir());
+  if Result then Log('Package: copying ' + ThisVar + ' to ' + AddonDir(''))
+  else Log('Package: no VaM folder known, ' + ThisVar + ' is not copied (put it into <VaM>\AddonPackages yourself)');
+end;
+
 function JsonEscape(const S: String): String;
 begin
   Result := S;
@@ -451,27 +466,54 @@ begin
     Log('Could not write ' + Folder + '\' + LauncherFile);
 end;
 
+{ Version 45: the new package must be in place (and identical to the bundled one) before older ones are deleted. }
+function PackageInPlace(const Path: String): Boolean;
+var
+  Sha: String;
+begin
+  Result := FileExists(Path);
+  if not Result or (ThisVarSha256 = '') then exit;
+  try
+    Sha := GetSHA256OfFile(Path);
+  except
+    Sha := '';
+  end;
+  Result := CompareText(Sha, ThisVarSha256) = 0;
+end;
+
+{ Version 45: runs at ssPostInstall, i.e. only after every file (the companion and the package) was copied and the
+  setup can no longer roll back. v44 deleted the older packages at ssInstall, before copying: when the copy then failed
+  or was cancelled, the rollback removed the new package and the user had none (Leon 21:25). }
+procedure PlacePackage(const Dir: String);
+var
+  NewVar: String;
+begin
+  NewVar := AddonDir('') + '\' + ThisVar;
+  if not PackageInPlace(NewVar) then
+  begin
+    Log('Package: ERROR ' + NewVar + ' is missing or not the bundled file after the install; older AIBody packages kept: ' +
+        JoinNames(OwnVars(Dir)));
+    if not WizardSilent() then
+      MsgBox('The package ' + ThisVar + ' could not be placed in ' + AddonDir('') + '. Older AIBody packages were kept. ' +
+        'Download ' + ThisVar + ' from the release page and copy it there yourself.', mbError, MB_OK);
+    exit;
+  end;
+  Log('Package: ' + NewVar + ' in place (SHA-256 checked)');
+  Log('Remove older AIBody packages: found ' + JoinNames(OwnVars(Dir)) + '; keeping ' + ThisVar);
+  DeleteOwnVars(Dir, ThisVar);
+end;
+
 procedure CurStepChanged(CurStep: TSetupStep);
 var
   Dir: String;
 begin
-  if CurStep = ssInstall then
-  begin
-    Dir := ChosenVamDir();
-    if not IsVamDir(Dir) then exit;
-    if WizardIsTaskSelected('removeoldvars') then
-    begin
-      Log('Remove older AIBody packages: on; found ' + JoinNames(OwnVars(Dir)) + '; keeping ' + ThisVar);
-      DeleteOwnVars(Dir, ThisVar);
-    end
-    else
-      Log('Remove older AIBody packages: off; kept ' + JoinNames(OwnVars(Dir)));
-    exit;
-  end;
   if CurStep <> ssPostInstall then exit;
   Dir := ChosenVamDir();
   if IsVamDir(Dir) then
-    WriteLauncherSettings(Dir)
+  begin
+    PlacePackage(Dir);
+    WriteLauncherSettings(Dir);
+  end
   else
     Log('No VaM folder chosen or found; AIBody Companion asks with its folder picker on its first start.');
 end;
@@ -479,19 +521,6 @@ end;
 procedure RegisterPreviousData(PreviousDataKey: Integer);
 begin
   SetPreviousData(PreviousDataKey, 'VamDir', ChosenVamDir());
-end;
-
-{ [Files]: the package goes to <VaM>\AddonPackages, only for a folder with VaM.exe. }
-function AddonDir(Param: String): String;
-begin
-  Result := AddBackslash(ChosenVamDir()) + 'AddonPackages';
-end;
-
-function HaveVamDir(): Boolean;
-begin
-  Result := IsVamDir(ChosenVamDir());
-  if Result then Log('Package: copying ' + ThisVar + ' to ' + AddonDir(''))
-  else Log('Package: no VaM folder known, ' + ThisVar + ' is not copied (put it into <VaM>\AddonPackages yourself)');
 end;
 
 { Version 44: AIBody Companion's tray windows refuse Restart Manager's close request (v43 looped on "files in use"),
@@ -502,13 +531,13 @@ var
 begin
   for I := 1 to 20 do
   begin
-    if not Exec(ExpandConstant('{sys}\taskkill.exe'), '/F /T /IM "AIBody Companion.exe"', '', SW_HIDE,
+    if not Exec(ExpandConstant('{sys}\taskkill.exe'), '/F /IM "AIBody Companion.exe"', '', SW_HIDE,
                 ewWaitUntilTerminated, Code) then
     begin
       Log('Stop AIBody Companion: taskkill could not be started');
       exit;
     end;
-    Log('Stop AIBody Companion: taskkill /F /T /IM "AIBody Companion.exe" exit code ' + IntToStr(Code));
+    Log('Stop AIBody Companion: taskkill /F /IM "AIBody Companion.exe" exit code ' + IntToStr(Code));
     if Code = 128 then
     begin
       if I > 1 then Sleep(500);   { let Windows release the files of the ended process }
@@ -516,13 +545,19 @@ begin
     end;
     Sleep(250);
   end;
-  Log('Stop AIBody Companion: still running after 20 tries; Restart Manager (CloseApplications=force) is next');
+  CompanionStillRunning := True;
+  Log('Stop AIBody Companion: still running after 20 tries (started as administrator?); setup stops before changing anything');
 end;
 
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 begin
   Result := '';
+  CompanionStillRunning := False;
   StopCompanion();
+  { Version 45: stop here (nothing changed yet) instead of failing halfway through the file copy. }
+  if CompanionStillRunning then
+    Result := 'AIBody Companion is still running and could not be closed (was it started as administrator?). ' +
+      'Quit it from its tray icon or in Task Manager, then run this setup again. Nothing was changed.';
 end;
 
 { Uninstall: the VaM folder from launcher.json (removed later by [UninstallDelete]) or the one the setup recorded. }

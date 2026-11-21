@@ -170,11 +170,9 @@ class InstallerTests(TestCase):
         self.assertIn("dist/d0n.AIBody.${{ steps.ver.outputs.version }}.var", wf)   # artifact = the release VAR
 
     def test_old_packages_removed_on_every_install(self):
-        self.assertIn('Name: "removeoldvars"; Description: "Remove older AIBody packages (d0n.AIBody.<number>.var) from AddonPackages"\r\n', self.iss.replace("\r\n", "\n").replace("\n", "\r\n"))
-        task = [l for l in self.iss.splitlines() if l.startswith('Name: "removeoldvars"')][0]
-        self.assertNotIn("unchecked", task)                                  # on by default
-        step = self.iss[self.iss.index("procedure CurStepChanged"):self.iss.index("procedure RegisterPreviousData")]
-        self.assertIn("if CurStep = ssInstall then", step)
+        # since Leon 22:25 without an option, and only after the new package is in place (test_package_after_install.py)
+        self.assertNotIn("removeoldvars", self.iss)
+        step = self.iss[self.iss.index("procedure PlacePackage"):self.iss.index("procedure RegisterPreviousData")]
         self.assertIn("DeleteOwnVars(Dir, ThisVar);", step)
         self.assertNotIn("InstalledVersion", step)                           # not tied to an existing install
         self.assertNotIn("[InstallDelete]", self.iss)                        # VARs are the only cleanup (Leon 21:08)
@@ -187,7 +185,7 @@ class InstallerTests(TestCase):
         self.assertIn("SetupLogging=yes", self.iss)
         prep = self.iss[self.iss.index("function PrepareToInstall"):]
         self.assertIn("StopCompanion();", prep[:200])
-        self.assertIn("'/F /T /IM \"AIBody Companion.exe\"'", self.iss)
+        self.assertIn("'/F /IM \"AIBody Companion.exe\"'", self.iss)        # no /T since Leon 21:25
         self.assertIn("if Code = 128 then", self.iss)
         wf = WF.read_text(encoding="utf-8")
         self.assertIn("$running = Start-Process -FilePath $exe -PassThru", wf)
