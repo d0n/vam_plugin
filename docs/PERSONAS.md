@@ -10,7 +10,7 @@ A persona is a folder with a `persona.json` under
 <VaM main folder>\Saves\PluginData\AIBody\personas\<name>\persona.json
 ```
 
-Examples to copy: [`examples/personas/`](../examples/personas/) (Anna, Marc). Folder name = name in the menu (letters, digits, spaces, `_`, `.`, `-`, at most 40 characters, no dot or space at the end).
+Since version 41 a loose file `personas\<name>.json` (same content) is listed too, and the shipped starters Anna and Marc (the only two) are written once also when you already have personas of your own; with no own persona the menu therefore shows three entries: `(none)`, Anna, Marc. Examples to copy: [`examples/personas/`](../examples/personas/) (Anna, Marc). Folder name = name in the menu (letters, digits, spaces, `_`, `.`, `-`, at most 40 characters, no dot or space at the end).
 
 ```json
 {
@@ -28,7 +28,7 @@ Examples to copy: [`examples/personas/`](../examples/personas/) (Anna, Marc). Fo
 | `prompt` | Character text of the AI; **replaces** `ai.persona` from `config.json` while the persona is selected (empty = `ai.persona`). At most 8000 characters. |
 | `name` | Display name; the AI is told "Your name is Anna." Optional. |
 | `language` | `auto` or a language code (`de`, `en`, …); replaces `ai.language` (language hint for recognition and voice). Optional. |
-| `voice` | xAI voice (`eve`, `ara`, `rex`, `sal`, `leo` or an own id); **replaces the menu "Voice"** for this persona (chain and realtime). Optional. |
+| `voice` | xAI voice (one of the built-in voices in the menu **Voice**, e.g. `eve` or `ara`, or an own id); **replaces the menu "Voice"** for this persona (chain and realtime). Optional. |
 | `elevenlabs_voice_id` | Voice for ElevenLabs speech output, replaces `ai.elevenlabs.voice_id`. Optional. |
 | `memory` | `false` = nothing is ever remembered for this persona (default `true`; only applies if **Memory** is on). |
 

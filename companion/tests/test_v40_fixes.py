@@ -143,8 +143,10 @@ class PersonaTests(TestCase):
             root = Path(tmp)
             (root / "Mine").mkdir()
             (root / "Mine" / "persona.json").write_text('{"name": "Mine", "prompt": "x"}', encoding="utf-8")
-            self.assertEqual(personas.seed_starter_personas(root), [])
-            self.assertEqual(personas.PersonaStore(root).names(), ["Mine"])
+            # after version 40 (Leon 17:19): the starters are added NEXT TO your own; yours is never touched
+            self.assertEqual(personas.seed_starter_personas(root), ["Anna", "Marc"])
+            self.assertEqual(personas.PersonaStore(root).names(), ["Anna", "Marc", "Mine"])
+            self.assertEqual((root / "Mine" / "persona.json").read_text(encoding="utf-8"), '{"name": "Mine", "prompt": "x"}')
 
     def test_cli_seeds_on_start(self):
         cli = (ROOT / "companion" / "aibody_companion" / "cli.py").read_text(encoding="utf-8")

@@ -124,17 +124,34 @@ class PersonaStore:
         self.root = Path(root)
 
     def names(self) -> list[str]:
-        """Folders with a persona.json and a name the menu can carry, sorted."""
+        """Every persona in the folder, sorted: folders with a persona.json and (after version 40, Leon 17:19: "all files
+        in the personas folder") loose <name>.json files directly in it; a name the menu can carry."""
         try:
-            entries = sorted(p for p in self.root.iterdir() if p.is_dir())
+            entries = list(self.root.iterdir())
         except OSError:
             return []
-        return [p.name for p in entries if valid_name(p.name) and (p / PERSONA_FILE).is_file()]
+        found: set[str] = set()
+        for p in entries:
+            try:
+                if p.is_dir() and valid_name(p.name) and (p / PERSONA_FILE).is_file():
+                    found.add(p.name)
+                elif (p.is_file() and p.suffix.lower() == ".json" and valid_name(p.stem)
+                      and p.name.lower() not in (PERSONA_FILE, MEMORY_FILE)):
+                    found.add(p.stem)
+            except OSError:
+                continue
+        return sorted(found, key=str.lower)
+
+    def file_of(self, name: str) -> Path:
+        """personas/<name>/persona.json, or the loose personas/<name>.json when only that exists."""
+        folder = self.root / name / PERSONA_FILE
+        loose = self.root / f"{name}.json"
+        return loose if not folder.is_file() and loose.is_file() else folder
 
     def load(self, name: str) -> tuple[Persona | None, list[str]]:
         if not valid_name(name):
             return None, [f"persona {name!r}: not a valid folder name (letters, digits, space, _ . -)"]
-        path = self.root / name / PERSONA_FILE
+        path = self.file_of(name)
         try:
             if not path.is_file():
                 return None, [f"persona {name!r} not found: {path}"]
@@ -277,16 +294,19 @@ STARTER_PERSONAS: dict[str, dict[str, object]] = {
 
 
 def seed_starter_personas(root: Path) -> list[str]:
-    """Writes the starter personas into an empty personas folder (first start). Returns the names written."""
+    """Writes the shipped starter personas that are missing (first start), also next to personas of your own (after
+    version 40: before, only into an EMPTY folder, so they never appeared beside your own). Never overwrites; the marker
+    file keeps a deleted starter from coming back. Returns the names written."""
     root = Path(root)
     marker = root / STARTER_MARKER
-    if marker.exists() or PersonaStore(root).names():
+    if marker.exists():
         return []
+    existing = {n.lower() for n in PersonaStore(root).names()}
     written: list[str] = []
     try:
         for name, data in STARTER_PERSONAS.items():
             path = root / name / PERSONA_FILE
-            if path.exists():
+            if path.exists() or name.lower() in existing:
                 continue
             path.parent.mkdir(parents=True, exist_ok=True)
             atomic_write_text(path, json.dumps(data, indent=2, ensure_ascii=False) + "\n")

@@ -330,7 +330,9 @@ class LatencyCodeTests(unittest.TestCase):
 
     def test_speech_starts_when_the_clip_is_ready(self):
         sp = source("SpeechPlayer.cs")
-        self.assertIn("u.Clip.sourceClip != null", sp)
+        # since the audio fix after version 40: ready = sourceClip set AND its audio data loaded (E36)
+        self.assertIn("u.Clip.sourceClip", sp)
+        self.assertIn("AudioDataLoadState.Loaded", sp)
         self.assertIn("RetryInterval = 0.5f", sp)
 
     def test_socket_queue_swap_without_copy(self):
@@ -522,7 +524,7 @@ class BodyControlDefaultTests(unittest.TestCase):
 
 class VersionTests(unittest.TestCase):
     def test_version_36_everywhere(self):
-        """Historical: version 36 sources are gone after the v37 bump; consistency is test_version40."""
+        """Historical: version 36 sources are gone after the v37 bump; consistency is test_version41."""
         self.assertTrue((ROOT / "companion" / "tests" / "test_version36.py").is_file())
 
 
@@ -577,7 +579,7 @@ class MenuLayoutTests(unittest.TestCase):
                             "page.Popup(_aiGenderJson)", "page.Popup(_userGenderJson)", '"<b>Clothing</b>"'])
         self.assertNotIn("_volumeJson", char)
         self.assertIn("page.Slider(_volumeJson);", method_body(source("Body.cs"), "public void BuildSoundSection(UiPage page)"))
-        self.assertIn('BreathMorphLabel = "Breath morph (from the Morphs tab)"', source("Body.cs"))
+        self.assertIn('BreathMorphLabel = "Breath morph";', source("Body.cs"))   # after version 40: no help text in the label
         self.assertIn('new JSONStorableString("Breath morph", "Breath1"', source("Body.cs"))
         mic = method_body(source("MicConfig.cs"), "public void BuildTab(UiPage page, JSONStorableBool bargeIn)")
         self.order(mic, ['"<b>Microphone</b>"', "Toggle(Enabled)", "Popup(Mode)", "Slider(Gain)", '"<b>Push-to-talk</b>"', "_pttActive",
@@ -620,7 +622,7 @@ class MenuLayoutTests(unittest.TestCase):
         cs = "".join(source(f) for f in ("AIBody.cs", "AppLink.cs", "Body.cs", "MicConfig.cs", "CharacterWizard.cs"))
         labels = set(re.findall(r"<b>([^<\"]+)</b>", cs))
         known = set(re.findall(r'new JSONStorable\w+\("([^"]+)"', cs)) | set(re.findall(r'Button\("([^"]+)"', cs))
-        known |= {"Breath morph (from the Morphs tab)", "Companion inbox poll interval (s)", "XAI API Token",
+        known |= {"Breath morph", "Companion inbox poll interval (s)", "XAI API Token",
                   "Background color", "Set background color", "Pose command", "Pose", "Language model", "Speech-to-text", "Text-to-speech", "Voice",
                   "AI gender/body", "Your character gender"}
         headers = {"Companion connection", "AI", "Voice and sound", "Logging", "Background", "Body control", "Idle poses",

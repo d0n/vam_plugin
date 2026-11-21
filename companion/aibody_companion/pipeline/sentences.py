@@ -25,6 +25,78 @@ _CLAUSE = re.compile(r"[,;:]\s|\s[-–—]\s")
 
 
 @dataclass
+class InlineToolCall:
+    """A function call the model wrote INTO its text ("<tool_call>{"name": ..., "parameters": {...}}</tool_call>",
+    seen in Leon's companion.log of 21.11.2026: it was spoken aloud). The caller runs it like a real tool call;
+    it is never spoken."""
+    name: str
+    arguments: str
+
+
+_TOOL_OPEN = "<tool_call>"
+_TOOL_CLOSE = "</tool_call>"
+TOOL_TEXT_MAX = 4000  # an opening tag without its end after this many characters is dropped as text
+
+
+def parse_inline_tool_call(body: str) -> InlineToolCall | None:
+    """{"name": "express", "parameters"|"arguments": {...}} -> InlineToolCall; None if it is not such JSON."""
+    import json
+    try:
+        data = json.loads(body.strip())
+    except ValueError:
+        return None
+    if not isinstance(data, dict) or not isinstance(data.get("name"), str):
+        return None
+    args = data.get("parameters", data.get("arguments", {}))
+    if isinstance(args, str):
+        return InlineToolCall(data["name"], args)
+    return InlineToolCall(data["name"], json.dumps(args if isinstance(args, dict) else {}, ensure_ascii=False))
+
+
+class ToolTextFilter:
+    """Takes <tool_call>...</tool_call> blocks out of streamed text (also when split over many deltas); returns the
+    speakable text and the calls found. A possible start of a tag at the end of a delta is held back."""
+
+    def __init__(self) -> None:
+        self._buf = ""
+
+    def feed(self, delta: str) -> tuple[str, list[InlineToolCall]]:
+        self._buf += delta
+        out: list[str] = []
+        calls: list[InlineToolCall] = []
+        while True:
+            start = self._buf.find(_TOOL_OPEN)
+            if start < 0:
+                keep = 0
+                for n in range(min(len(_TOOL_OPEN) - 1, len(self._buf)), 0, -1):
+                    if _TOOL_OPEN.startswith(self._buf[-n:]):
+                        keep = n
+                        break
+                out.append(self._buf[:len(self._buf) - keep])
+                self._buf = self._buf[len(self._buf) - keep:]
+                break
+            out.append(self._buf[:start])
+            end = self._buf.find(_TOOL_CLOSE, start)
+            if end < 0:
+                if len(self._buf) - start > TOOL_TEXT_MAX:
+                    self._buf = self._buf[start + len(_TOOL_OPEN):]  # never closed: drop the tag, keep the words
+                    continue
+                self._buf = self._buf[start:]
+                break
+            call = parse_inline_tool_call(self._buf[start + len(_TOOL_OPEN):end])
+            if call is not None:
+                calls.append(call)
+            self._buf = self._buf[end + len(_TOOL_CLOSE):]
+        return "".join(out), calls
+
+    def flush(self) -> str:
+        rest = self._buf
+        self._buf = ""
+        start = rest.find(_TOOL_OPEN)
+        return rest[:start] if start >= 0 else rest
+
+
+@dataclass
 class Directive:
     expression: str | None = None
     gesture: str | None = None
@@ -91,6 +163,7 @@ class StreamParser:
         self._head = ""
         self._head_done = False
         self._splitter = SentenceSplitter()
+        self._tools = ToolTextFilter()
 
     def _parse_tag(self, body: str) -> Directive | None:
         d = Directive()
@@ -102,6 +175,12 @@ class StreamParser:
         return d if (d.expression or d.gesture) else None
 
     def feed(self, delta: str) -> list[object]:
+        text, calls = self._tools.feed(delta)
+        items: list[object] = list(calls)
+        items.extend(self._feed_text(text))
+        return items
+
+    def _feed_text(self, delta: str) -> list[object]:
         if self._head_done:
             return list(self._splitter.feed(delta))
         self._head += delta
@@ -128,8 +207,11 @@ class StreamParser:
 
     def finish(self) -> list[object]:
         items: list[object] = []
+        rest = self._tools.flush()
+        if rest:
+            items.extend(self._feed_text(rest))
         if not self._head_done:
-            items.extend(self.feed(""))
+            items.extend(self._feed_text(""))
             if not self._head_done:  # stream ended inside an unfinished tag
                 self._head_done = True
                 items.extend(self._splitter.feed(self._head.replace("<<", "")))

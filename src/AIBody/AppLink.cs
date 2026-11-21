@@ -243,9 +243,10 @@ namespace AIBody
             SettingsDefaults.Float(_plugin, _proactiveIdleJson);
             _bargeInJson = new JSONStorableBool("Voice barge-in (headphones)", false, (bool v) => MarkConfigDirty());
             SettingsDefaults.Bool(_plugin, _bargeInJson);
-            // xAI voices (docs.x.ai: same roster for speech-to-speech and TTS); a custom id from config.json is kept.
-            _voiceJson = new JSONStorableStringChooser("Voice", new List<string> { "eve", "ara", "rex", "sal", "leo" },
-                "eve", "Voice", (string v) => MarkConfigDirty());
+            // xAI voices: the 28 built-in voices of docs.x.ai (text-to-speech page, 21.11.2026); the companion app
+            // replaces the list with the answer of GET /v1/tts/voices (heartbeat "voices"). A custom id is kept.
+            _voiceJson = new JSONStorableStringChooser("Voice", new List<string>(XaiVoices), "eve", "Voice",
+                (string v) => MarkConfigDirty());
             SettingsDefaults.Chooser(_plugin, _voiceJson);
             // The persona list comes from the companion app's heartbeat; "(none)" = the plain ai.persona text of config.json.
             _personaJson = new JSONStorableStringChooser("Persona", new List<string> { PersonaNone }, PersonaNone, "Persona",
@@ -1121,6 +1122,31 @@ namespace AIBody
             }
         }
 
+        /// <summary>The built-in xAI voices of docs.x.ai (21.11.2026), the page's order; no invented names.</summary>
+        public static readonly string[] XaiVoices = {
+            "carina", "zagan", "helix", "orion", "luna", "iris", "altair", "zenith", "perseus", "helios", "lux",
+            "kepler", "rigel", "cosmo", "celeste", "ursa", "sirius", "lumen", "castor", "naksh", "atlas", "aurora",
+            "liora", "ara", "eve", "leo", "rex", "sal" };
+
+        /// <summary>The voice list from the companion heartbeat (after version 40): GET /v1/tts/voices or its
+        /// static list. The chosen voice stays in the menu. An older app sends none: the static list stays.</summary>
+        private void SetVoiceChoices(JSONArray names)
+        {
+            if (names == null || names.Count == 0 || _voiceJson == null) return;
+            List<string> choices = new List<string>();
+            for (int i = 0; i < names.Count; i++)
+            {
+                string n = names[i].Value;
+                if (n.Length > 0 && !choices.Contains(n)) choices.Add(n);
+            }
+            if (!string.IsNullOrEmpty(_voiceJson.val) && !choices.Contains(_voiceJson.val)) choices.Add(_voiceJson.val);
+            bool same = choices.Count == _voiceJson.choices.Count;
+            for (int i = 0; same && i < choices.Count; i++) same = choices[i] == _voiceJson.choices[i];
+            if (same) return;
+            try { _voiceJson.choices = choices; }   // choices refresh: E9, E24, E25
+            catch (Exception e) { _diag.Fail("Update voice list", e); }
+        }
+
         private void SetVoice(string voice)
         {
             if (string.IsNullOrEmpty(voice)) return;
@@ -1327,6 +1353,7 @@ namespace AIBody
                 SetChoices(_ttsJson, available["tts"] as JSONArray);
             }
             SetPersonaChoices(msg["personas"] as JSONArray);
+            SetVoiceChoices(msg["voices"] as JSONArray);
             _personaInUse = msg["persona"].Value;
             _personaNote = msg["persona_note"].Value;
             JSONClass memoryInfo = msg["memory"] as JSONClass;

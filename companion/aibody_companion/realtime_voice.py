@@ -37,7 +37,7 @@ from .pipeline.realtime import (
     SegmentAssembler,
     resample_pcm16,
 )
-from .pipeline.sentences import StreamParser
+from .pipeline.sentences import InlineToolCall, StreamParser
 from .pipeline.tts import write_pcm_wav
 
 if TYPE_CHECKING:
@@ -370,7 +370,16 @@ class RealtimeVoice:
         if self._parser is None:
             return
         for item in self._parser.feed(delta):
-            if not isinstance(item, str):
+            if isinstance(item, InlineToolCall):
+                # a tool call written into the transcript (after version 40): run it like a function call
+                try:
+                    args = json.loads(item.arguments or "{}")
+                except json.JSONDecodeError:
+                    args = {}
+                commands, _ = self.c.tool_commands(item.name, args)
+                for cmd in commands:
+                    self.c.send(cmd)
+            elif not isinstance(item, str):
                 self.c.send_directive(item)
 
     def _function_call(self, event: dict[str, Any]) -> None:

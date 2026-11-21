@@ -91,12 +91,20 @@ namespace UnityEngine
     {
         public static float Range(float a, float b) { return a; }
     }
-    public class AudioClip : Object { public float length { get { return 0f; } } }
+    // loadState / LoadAudioData: mmd2timeline AudioClipHelper.cs L112, L168-185 (E3)
+    public enum AudioDataLoadState { Unloaded, Loading, Loaded, Failed }
+    public class AudioClip : Object
+    {
+        public float length { get { return 0f; } }
+        public AudioDataLoadState loadState { get { return AudioDataLoadState.Loaded; } }
+        public bool LoadAudioData() { return true; }
+    }
     public class AudioSource : Behaviour
     {
         // Read-only use: playback goes through AudioSourceControl (FreeMMD reads .audioSource).
         public bool isPlaying { get { return false; } }
         public AudioClip clip { get; set; }
+        public float time { get; set; }   // FreeMMD.cs L56 (read), vam-timeline CustomTrigger.cs L92 (E33); AIBody only reads it
     }
 }
 

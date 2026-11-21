@@ -18,6 +18,7 @@ public class SuperController : MonoBehaviour
     public static void LogMessage(string m) { }                       // E9
     public static void LogError(string m) { }                         // E9, E12
     public string NormalizeMediaPath(string path) { return path; }    // E1, E3 (before QueueClip)
+    public string NormalizeLoadPath(string path) { return path; }     // E1 (Dollmaster.cs L295), E3 (FreeMMD L318, mmd2timeline L194): GetClip(existing) key
     public string NormalizePath(string path) { return path; }         // E7 (preset browse path)
     public CameraTarget centerCameraTarget;                           // E12 L647 (the player's view; .transform)
     public List<Atom> GetAtoms() { return null; }                     // E12 L180, L759, L797
@@ -74,6 +75,7 @@ public class JSONStorable : MonoBehaviour
     public JSONStorableStringChooser GetStringChooserJSONParam(string n) { return null; } // E13
     public JSONStorableUrl GetUrlJSONParam(string n) { return null; }                     // E7
     public void CallAction(string n) { }                                                  // E7, E8
+    public void CallAction(string n, NamedAudioClip clip) { }                             // E29 (MacGruber Breathe.cs L209: "PlayNow" with a clip)
     public SimpleJSON.JSONClass GetJSON(bool includePhysical = true, bool includeAppearance = true, bool forceStore = false) { return null; } // E1 (L288, PluginManager)
 }
 
@@ -152,7 +154,7 @@ public class GenerateDAZMorphsControlUI
 }
 public class DAZCharacterSelector : JSONStorable { public GenerateDAZMorphsControlUI morphsControlUI; } // E4
 
-public class NamedAudioClip { public string uid; public AudioClip sourceClip; }   // uid: E1; sourceClip (null until loaded): E33 (CustomTrigger.cs L82)
+public class NamedAudioClip { public string uid; public AudioClip sourceClip; public AudioClip clipToPlay; }   // uid: E1; sourceClip (null until loaded): E33 (CustomTrigger.cs L82); clipToPlay: E33 L86
 public class URLAudioClip : NamedAudioClip { }
 public class URLAudioClipManager : MonoBehaviour
 {
@@ -166,6 +168,8 @@ public class AudioSourceControl : JSONStorable
     public AudioSource audioSource;                                   // E3
     public float volume;                                              // E2
     public void PlayNow(NamedAudioClip clip) { }                      // E1, E2
+    public void PlayNowClearQueue(NamedAudioClip clip) { }            // E3 (FreeMMD.cs L176)
+    public NamedAudioClip playingClip;                                // E36 (Dollmaster BreathController.cs L78)
     public void Stop() { }                                            // E3
 }
 

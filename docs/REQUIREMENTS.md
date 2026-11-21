@@ -1,10 +1,10 @@
 # AIBody – requirements catalog (status overview)
 
-Status: 21.11.2026, version 40. Overview of what is done and what is open; updated with every release.
+Status: 21.11.2026, version 41. Overview of what is done and what is open; updated with every release.
 - Agreed specification (what applies): [`docs/SPEC.md`](SPEC.md)
 - Deferred ideas / nice to have: [`docs/BACKLOG.md`](BACKLOG.md)
 - Test instructions in VaM: [`docs/TEST_PROTOCOL.md`](TEST_PROTOCOL.md) · API evidence: [`docs/API_AUDIT.md`](API_AUDIT.md)
-- Repo: https://github.com/d0n/vam_plugin · current package: `d0n.AIBody.40.var` (version = package number since 12)
+- Repo: https://github.com/d0n/vam_plugin · current package: `d0n.AIBody.41.var` (version = package number since 12)
 
 "Done" means: tested in code and against rebuilt counterparts. What has not yet been checked in VaM or against the real xAI APIs is listed again under 2.
 
@@ -161,10 +161,17 @@ Status: 21.11.2026, version 40. Overview of what is done and what is open; updat
 - **Plugin log:** the "not connected" hint and the test-tone wait line once per VaM session, at most one waiting test tone; hints point to the Start menu entry **AIBody Companion**. T50.
 - **AIBody Companion Setup.exe:** per-user Windows installer (no admin), Start menu and optional desktop shortcut, optional Start with Windows, background note, tray Quit, single instance, VaM folder detection or a one-time folder picker, uninstaller; built and self-tested by GitHub Actions. T51.
 
-### On main after version 40 (21.11.2026, not released; no version number yet)
+### Version 41 (21.11.2026, Leon 17:01-17:27)
 - **Installer asks for the VaM folder** (Leon, 17:01): wizard page **Your VaM folder**, prefilled by auto-detection, only a folder with `VaM.exe` is accepted, changeable by running the setup again; written to `%LOCALAPPDATA%\AIBody Companion\launcher.json`, which the app reads first. Silent setup: `/VAMDIR="..."`. The in-app folder picker is only the fallback. T52.
 - **Reset to Default** (Leon, 17:01): tab Config > Reset, with **Confirm Reset to Default** / **Cancel**; all saved plugin settings of the scene back to their defaults, including the character wizard's answers; the XAI API Token, the key file paths, pose commands, personas and the companion's own config sections are kept. T53.
 - **AI-Buddy scene: AIBody on the male `BryanGosling`** (Leon, 17:02), with its saved values (Set background color on, #00FF00); the female `Person` has no plugin; the rest of the scene is unchanged. T54.
+- **Speech audio** (Leon, 17:19/17:21: it never worked): plays only after the WAV's audio data is loaded (`loadState` Loaded, `LoadAudioData()`), with the load and play calls of audited working plugins (API_AUDIT E36); `[audio]` debug lines behind **Verbose log**. TODO(verify): T55.
+- **Installer messages** are message boxes with **OK** that wait. T51/T52.
+- **Voice menu with all xAI voices:** the 28 built-in voices of docs.x.ai, replaced by the companion's answer of `GET /v1/tts/voices`. T56.
+- **Persona menu:** every persona folder and loose `<name>.json`; the starters Anna and Marc also next to own personas (only these two are shipped). T49.
+- **Pose commands:** **Apply pose command** for the chosen entry, results and errors in the left field and the log; **Add Pose** without text takes the pose name. T57.
+- **Right column:** headers and controls only; no new info field without Leon's approval.
+- **No spoken tool calls:** `<tool_call>...</tool_call>` text from the model is run, not spoken. T58.
 
 ## 2. Still open / to do
 

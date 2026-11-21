@@ -45,9 +45,11 @@ COMMANDS: dict[str, tuple[set[str], set[str]]] = {
     # mode: {requested: qa|auto|realtime|chain, active: realtime|chain, status: text};
     # proactive: {enabled, idle_seconds, status?}; audio_out: {folder, auto, note?} (speech WAV folder);
     # turn: last question / answer step or problem as text (status box)
+    # voices: xAI voice ids for the Voice menu (after version 40, voices.py)
     "companion_heartbeat": ({"session"}, {"version", "engines_available", "engines_status", "engines_active",
                                           "mic_capturing", "mode", "proactive", "keys", "audio_out", "turn",
-                                          "latency", "personas", "persona", "persona_note", "memory"}),
+                                          "latency", "personas", "persona", "persona_note", "memory",
+                                          "voices"}),
 }
 
 # Commands for the plugin's body (everything else is handled by its app link).

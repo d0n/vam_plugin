@@ -9,8 +9,9 @@ The installer ("AIBody Companion Setup.exe", Inno Setup around a PyInstaller bui
    the companion never has to sit inside the VaM folder; then a parent folder of the exe and common folders on every
    drive (X:\\VaM, X:\\Virt-A-Mate, X:\\Games\\VaM, ...); VaM has no installer, registry key or Steam entry to read.
    Only as the last fallback (no folder from setup, or VaM moved) it asks once with a folder picker and remembers it.
-3. Runs the companion app (cli.main with --no-stdin --no-setup) in the background, shows a small note that closes
-   by itself ("AIBody Companion is now running in the background") and puts an icon with Quit in the tray.
+3. Runs the companion app (cli.main with --no-stdin --no-setup) in the background, shows a message box
+   ("AIBody Companion is now running in the background") that stays until the user clicks OK (Leon, 21.11.2026 17:19),
+   and then puts an icon with Quit in the tray. Every note of the launcher is such an OK message box.
 
 No console window (PyInstaller --windowed). Launcher settings and its own log live in %LOCALAPPDATA%\\AIBody Companion;
 the companion's config.json and companion.log stay where they always were, under <VaM>\\Saves\\PluginData\\AIBody.
@@ -37,7 +38,7 @@ SETTINGS_FILE = "launcher.json"
 LAUNCHER_LOG = "launcher.log"
 NOTE_SECONDS = 5
 RUNNING_NOTE = ("AIBody Companion is now running in the background. The AIBody plugin in VaM connects to it by itself. "
-                "Quit it from the tray icon.")
+                "Quit it from the tray icon. Click OK to close this message.")
 ALREADY_NOTE = "AIBody Companion is already running in the background."
 COMMON_SUBFOLDERS = ("VaM", "Virt-A-Mate", "VAM", "Games\\VaM", "Games\\Virt-A-Mate", "Program Files\\VaM",
                      "Program Files\\Virt-A-Mate")
@@ -118,25 +119,21 @@ def detect_vam_root(exe_dir: Path, saved: str | None, candidates: Iterable[Path]
 # -- small windows ---------------------------------------------------------------------------------------------------
 
 def show_note(text: str, seconds: int = NOTE_SECONDS) -> None:
-    """A small window that closes by itself (tkinter is part of the build)."""
+    """A message box with an OK button that stays until the user confirms it (Leon, 21.11.2026 17:19: no
+    auto-closing note). `seconds` is ignored (kept for old callers). tkinter is part of the build."""
     try:
         import tkinter as tk
+        from tkinter import messagebox
     except ImportError:
         return
     try:
-        win = tk.Tk()
-        win.title(APP_NAME)
-        win.attributes("-topmost", True)
-        win.resizable(False, False)
-        tk.Label(win, text=text, wraplength=360, justify="left", padx=18, pady=14).pack()
-        tk.Button(win, text="OK", width=10, command=win.destroy).pack(pady=(0, 12))
-        win.update_idletasks()
-        w, h = win.winfo_width(), win.winfo_height()
-        x = win.winfo_screenwidth() - w - 40
-        y = win.winfo_screenheight() - h - 90
-        win.geometry(f"+{max(0, x)}+{max(0, y)}")
-        win.after(seconds * 1000, win.destroy)
-        win.mainloop()
+        root = tk.Tk()
+        root.withdraw()
+        root.attributes("-topmost", True)   # in front of other windows, so the box is seen
+        try:
+            messagebox.showinfo(APP_NAME, text, parent=root)   # blocks until OK
+        finally:
+            root.destroy()
     except Exception:  # noqa: BLE001 - a missing display must never stop the companion
         pass
 

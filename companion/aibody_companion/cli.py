@@ -11,6 +11,7 @@ from pathlib import Path
 from . import __version__, logsetup, settings_file
 from . import setup as first_start
 from . import personas as personas_module
+from . import voices as voices_module
 from . import wakeup
 from .audio import EchoGate, MicController
 from .config import PLUGIN_DATA_SUBDIR, Config, load_config
@@ -60,8 +61,11 @@ def build_stack(cfg: Config, use_mic: bool = True) -> Companion:
     for kind, states in engines.status().items():
         for name, state in states.items():
             log.info("Engine %s/%s: %s", kind, name, state)
+    # the Voice menu list: GET /v1/tts/voices with the xAI key (background), else the docs list (voices.py)
+    catalog = voices_module.VoiceCatalog(
+        fetcher=lambda key, base: voices_module.fetch_xai_voices(engines.http, base, key))
     companion = Companion(cfg, build_transport(cfg), gate=EchoGate(), mic=mic, engines=engines,
-                          background_turns=True)
+                          background_turns=True, voices=catalog)
     log.info("Mode: %s -> %s (%s)", companion.mode_requested, companion.active_mode, companion.mode_note)
     log.info("Audio folder: %s%s", cfg.audio_rel_dir,
              " (automatic; switches once to Saves/PluginData if VaM cannot load from there)"

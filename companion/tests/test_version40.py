@@ -18,23 +18,9 @@ def source(name: str) -> str:
 
 
 class VersionTests(TestCase):
-    def test_version_40_everywhere(self):
-        self.assertEqual(__version__, "40")
-        self.assertIn('PluginVersion = "40"', source("AIBody.cs"))
-        self.assertIn('version = "40"', (ROOT / "companion" / "pyproject.toml").read_text())
-        self.assertEqual(json.loads((ROOT / "packaging" / "AIBody.json").read_text())["version"], 40)
-        self.assertTrue(re.search(r"d0n\.AIBody\.40:", first_start.TEMPLATE.read_text()))
-        self.assertIn("AIBody companion app 40 (example)", (ROOT / "examples" / "config.json").read_text(encoding="utf-8"))
-        self.assertEqual(json.loads((ROOT / "packaging" / "meta.json").read_text())["licenseType"], "FC")
-
-    def test_docs(self):
-        readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertIn("Status: version 40, package `d0n.AIBody.40.var`, release `v40`", readme)
-        start = readme[readme.index("## Getting started"):readme.index("### For developers")]
-        for part in ("AIBody Companion Setup.exe", "More info", "Run anyway", "Start menu", "Start with Windows",
-                     "127.0.0.1", "Add Plugin"):
-            self.assertIn(part, start)
-        self.assertNotIn("python -m", start)
+    def test_version_40_is_historical(self):
+        """Historical: version 40 sources are gone after the v41 bump; consistency is test_version41."""
+        self.assertTrue((ROOT / "companion" / "tests" / "test_version41.py").is_file())
         spec = (ROOT / "docs" / "SPEC.md").read_text(encoding="utf-8")
         self.assertIn("(version 40, release; Leon, calls 16:06-16:16): package `d0n.AIBody.40.var`, tag `v40`", spec)
         tp = (ROOT / "docs" / "TEST_PROTOCOL.md").read_text(encoding="utf-8")

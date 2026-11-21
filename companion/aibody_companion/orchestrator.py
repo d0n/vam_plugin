@@ -62,9 +62,11 @@ from .pipeline import http as http_module
 from .pipeline.http import ApiError, HttpClient
 from .pipeline.realtime import KEY_REJECTED as REALTIME_KEY_REJECTED
 from .pipeline.tts import test_tone_pcm, write_pcm_wav
+from .pipeline.sentences import InlineToolCall
 from .pipeline.xai import ToolCall
 from . import characters as characters_module
 from . import personas as personas_module
+from . import voices as voices_module
 from .proactive import ProactiveTimer
 from .realtime_voice import RealtimeVoice
 from .settings_file import CHOICES, DEFAULTS, RANGES, _check_value
@@ -159,11 +161,15 @@ class Companion:
         background_turns: bool = False,
         realtime_connector: Callable[..., Any] | None = None,
         wall: Callable[[], datetime] | None = None,
+        voices: voices_module.VoiceCatalog | None = None,
     ):
         self.cfg = config
         self.transport = transport
         # Without an EngineSet only the offline engines exist (no keys are read).
         self.engine_set = engines or EngineSet(config.ai, env={})
+        # xAI voice list for the plugin's Voice menu (after version 40): static docs list; cli.py passes a catalog
+        # that also asks GET /v1/tts/voices
+        self.voices = voices or voices_module.VoiceCatalog()
         self.engine_set.characters = characters_module.normalize(getattr(config, "characters", None))
         for kind in ("stt", "llm", "tts"):
             self.engine_set.select(kind, getattr(config, kind))
@@ -749,8 +755,13 @@ class Companion:
             mode=self.mode_info(), proactive=self.proactive_info(), keys=self.engine_set.key_info(),
             audio_out=self.audio_info(), turn=self.turn_status, latency=self.latency.info(),
             personas=self.persona_names(), persona=self.persona_in_use, persona_note=self.persona_note,
-            memory=self.memory_info(),
+            memory=self.memory_info(), voices=self.voice_names(),
         ))
+
+    def voice_names(self) -> list[str]:
+        """The xAI voices for the plugin's Voice menu (voices.py: GET /v1/tts/voices, else the docs list)."""
+        base = str((self.engine_set.ai.get("xai") or {}).get("base_url") or "https://api.x.ai/v1")
+        return self.voices.names(self.engine_set.key("xai"), base)
 
     def audio_info(self) -> dict[str, Any]:
         info: dict[str, Any] = {"folder": self.cfg.audio_rel_dir, "auto": self.cfg.audio_auto}
@@ -1233,6 +1244,10 @@ class Companion:
                       time_context=prompt != text)
             for item in self._answer(text, prompt, nudge, problems):
                 self._check(generation)
+                if isinstance(item, InlineToolCall):
+                    # written into the answer text instead of a function call (Leon's log, 21.11.2026): run, never speak
+                    log.info("The model wrote a tool call into its text (%s); it is run, not spoken", item.name)
+                    item = ToolCall(call_id="inline", name=item.name, arguments=item.arguments)
                 if isinstance(item, ToolCall):
                     commands, result = self.tool_commands(item.name, item.arguments)
                     item.reply(result)

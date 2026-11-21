@@ -1,4 +1,4 @@
-"""After version 40 (Leon, 21.11.2026 17:01/17:02; on main, not released yet):
+"""Version 41 (Leon, 21.11.2026 17:01/17:02):
 1. the installer asks for the VaM folder (wizard page, auto-detected, VaM.exe required, /VAMDIR= when silent) and writes
    it to the launcher's launcher.json, which the launcher reads first;
 2. tab Config > Reset: 'Reset to Default' with a confirm step resets every saved plugin setting, including the

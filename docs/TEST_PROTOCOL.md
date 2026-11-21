@@ -1,4 +1,4 @@
-# AIBody – test protocol for the first test in VaM 1.22 (from v0.6.3, now version 40; T9 from v0.7.2, T10 from v0.7.3, menu layout from version 15, T19–T21 from version 30, T22–T23 from version 31, T24–T29 from version 32, T38–T42 from version 36, T43 after version 36, T44 from version 37, T45 after version 37, T46 from version 38, T47 from version 39, T48–T51 from version 40, T52–T54 on main after version 40)
+# AIBody – test protocol for the first test in VaM 1.22 (from v0.6.3, now version 41; T9 from v0.7.2, T10 from v0.7.3, menu layout from version 15, T19–T21 from version 30, T22–T23 from version 31, T24–T29 from version 32, T38–T42 from version 36, T43 after version 36, T44 from version 37, T45 after version 37, T46 from version 38, T47 from version 39, T48–T51 from version 40, T52–T58 from version 41)
 
 Goal: the open "must do now" points that can only be checked in VaM. Please go through every point
 in order and enter the result (✅ / ❌ / unclear). Duration: about 20 minutes.
@@ -15,7 +15,7 @@ in order and enter the result (✅ / ❌ / unclear). Duration: about 20 minutes.
 - Close VaM. In `<VaM main folder>/AddonPackages/` delete all old AIBody packages:
   `d0n.AIBody.1.var` to `d0n.AIBody.39.var`, `d0n.AIBodySession.*`, `d0n.AIBodyPerson.*`,
   `d0n.AIBodyPerson2.*`. Also remove loose files under `Custom/Scripts/d0n/AIBody/`.
-- Copy `d0n.AIBody.40.var` to `<VaM main folder>/AddonPackages/`.
+- Copy `d0n.AIBody.41.var` to `<VaM main folder>/AddonPackages/`.
 - Have the companion app ready (do **not** start it yet):
   `python -m aibody_companion --vam-root "D:\VaM"` (adjust the path to your own VaM folder).
   For T9 enter the xAI key in the plugin (tab **Voice** > field **XAI API Token**, from version 21) or set it before starting: `set XAI_API_KEY=xai-...` (cmd) or `$env:XAI_API_KEY="xai-..."` (PowerShell); the field wins.
@@ -26,7 +26,7 @@ in order and enter the result (✅ / ❌ / unclear). Duration: about 20 minutes.
 
 1. Start VaM, open a scene with a female standard figure (or a new scene + Person).
 2. Select the figure (Person atom) > tab **Plugins** > **Add Plugin** >
-   `AddonPackages > d0n.AIBody.40:/Custom/Scripts/d0n/AIBody/AIBody.cslist`.
+   `AddonPackages > d0n.AIBody.41:/Custom/Scripts/d0n/AIBody/AIBody.cslist`.
    **Not** under *Session Plugins* or *Scene Plugins*.
 3. If VaM asks whether to allow plugins from the package: allow it and note that it asked.
 4. Open **Open Custom UI** (plugin window).
@@ -523,7 +523,7 @@ Report: the console output of each run and the tab Config after each step.
 2. Expressions (Show expression, Reset expression, Reload expressions) and gestures (nod, shake, tilt via Play gesture) work as before.
 3. An old `config.json` with `body.gaze_control`, `body.gaze_default`, `body.gaze_follows_speaker` or `body.blink_control` loads without a warning; after a few seconds the plugin rewrites the file without these keys.
 4. Fresh scene, add the plugin, and with a `config.json` without `body.body_control`: **Body control** is on. Only Question and Answer switches it off.
-5. Right column of every tab: only bold category headers, controls and the labels above the two input fields, no help or status text (the one caption "for pass-through transparency" under the color picker stays). Order as in `docs/SPEC.md` > Menu (e.g. AI Character: Body control, Idle poses, Idle motion and breathing with Breath morph (from the Morphs tab) right under Breath depth, Expression and gesture, Poses; Speech volume is in Voice > Voice and sound).
+5. Right column of every tab: only bold category headers, controls and the labels above the two input fields, no help or status text (the one caption "for pass-through transparency" under the color picker stays). Order as in `docs/SPEC.md` > Menu (e.g. AI Character: Body control, Idle poses, Idle motion and breathing with Breath morph right under Breath depth, Expression and gesture, Poses; Speech volume is in Voice > Voice and sound).
 6. Left info field of every tab: the explanations read as running prose and every control name is **bold** (e.g. "**Breaths per minute** controls how fast the chest breathes"); the status lines (companion connection, test tone result, idle pose status, breath morph found / NOT found, errors in red) are there and short.
 
 ## T44 – Example scene thumbnail and AIBody on the female (version 37)
@@ -547,7 +547,7 @@ Report: short note that the gate, the skip path and both gender menus behaved as
 
 ## T46 – AI-Buddy scene: original look, plugin, background, dependencies (version 38)
 
-1. VaM > **Open Scene** / **Load Scene** > package `d0n.AIBody.40` > folder `AIBody` > **AI-Buddy**. The preview thumbnail of the two characters is visible in the scene list next to the name (the package has `Saves/scene/AIBody/AI-Buddy.jpg` beside the `.json`).
+1. VaM > **Open Scene** / **Load Scene** > package `d0n.AIBody.41` > folder `AIBody` > **AI-Buddy**. The preview thumbnail of the two characters is visible in the scene list next to the name (the package has `Saves/scene/AIBody/AI-Buddy.jpg` beside the `.json`).
 2. Load the scene. It should not hang. If a declared third-party package is missing, VaM should show a missing-package notice and still load. Two people with clothing: female `Person` in the Pro Court shorts and Nico tanktop, male `BryanGosling` in the police pants and hoodie (the hoodie is loose local content and may be missing). Select `Person` > tab **Plugins**: AIBody of this package (`SELF:/Custom/Scripts/d0n/AIBody/AIBody.cslist` or the equivalent package path). The male atom `BryanGosling` has no AIBody plugin and no Improved PoV. There are no Dollmaster atoms (`Doll SFX Person`, `Thrust AP Person`). Tab Config: **Set background color** is ON, color #00FF00, unless you changed it.
 3. Optional: copy `AI-Buddy.json` and `AI-Buddy.jpg` together to `Saves/scene/AIBody/` and open that copy from the browser; the same thumbnail and the same plugin load (the loose scene references `d0n.AIBody.40:/…`).
 4. Missing loose files listed in `docs/SCENE_GREENSCREEN.md` as needs local content (morphs, N3DX textures, tan-line decals, scamp THEV hair, PositiveResult hoodie, Bryan Gosling morph/face texture) should be skipped, not crash the load.
@@ -566,7 +566,7 @@ Report: screenshot of the Voice tab (AI section and left info field) and a short
 
 ## T48 – Character wizard asks its question (version 40)
 
-1. Load **AI-Buddy** from `d0n.AIBody.40` (or a fresh scene with AIBody on a Person), even if you answered the wizard in an earlier scene. Tab **AI Character**: under **Characters** the line **Do you want to configure your characters?** stands right above **Yes** and **No**.
+1. Load **AI-Buddy** from `d0n.AIBody.41` (or a fresh scene with AIBody on a Person), even if you answered the wizard in an earlier scene. Tab **AI Character**: under **Characters** the line **Do you want to configure your characters?** stands right above **Yes** and **No**.
 2. Press **Yes**: **AI gender/body** and **Your character gender** appear. Save the scene, reload it: the steps are shown again (the answer is saved with the scene). Load a different new scene with AIBody: the question is asked there again.
 3. Press **No** in a scene: only **Configure characters** stays; it brings the question back.
 
@@ -589,27 +589,27 @@ Report: the AIBody lines of the VaM log.
 
 ## T51 – AIBody Companion installer (version 40, Windows)
 
-1. Download `AIBody Companion Setup.exe` from the v40 release, double-click. If SmartScreen shows "Windows protected your PC": **More info** > **Run anyway**. No admin prompt appears.
-2. Leave **Create a desktop shortcut** and **Start with Windows** as you like, finish with **Launch AIBody Companion now** checked. A small note says AIBody Companion is now running in the background; the tray has its icon with **Quit**. No console window.
-3. If your VaM folder is not found (the app looks at the remembered folder, a VaM folder around the app, and `X:\VaM`, `X:\Virt-A-Mate`, `X:\Games\VaM` ... on every drive), a folder picker asks once; choose the folder with `VaM.exe`. Start it again from the Start menu: only the "already running" note appears.
+1. Download `AIBody Companion Setup.exe` from the v41 release (v40 has the first installer), double-click. If SmartScreen shows "Windows protected your PC": **More info** > **Run anyway**. No admin prompt appears.
+2. Leave **Create a desktop shortcut** and **Start with Windows** as you like, finish with **Launch AIBody Companion now** checked. A message box says AIBody Companion is now running in the background and stays until you click **OK** (since version 41; in v40 it closed by itself); the tray has its icon with **Quit**. No console window.
+3. If your VaM folder is not found (the app looks at the remembered folder, a VaM folder around the app, and `X:\VaM`, `X:\Virt-A-Mate`, `X:\Games\VaM` ... on every drive), a folder picker asks once; choose the folder with `VaM.exe`. Start it again from the Start menu: only the "already running" message box appears; click **OK**.
 4. Start VaM, load AI-Buddy: the plugin connects (tab Voice, left field: companion connected), the companion log is `<VaM>/Saves/PluginData/AIBody/logs/companion.log`.
 5. Tray > **Quit**: the plugin reports the companion as not connected. Settings > Apps > AIBody Companion > Uninstall: the folder `%LOCALAPPDATA%\Programs\AIBody Companion` and the shortcuts are gone.
 
 Report: screenshots of the note, the tray menu and the Voice tab; anything SmartScreen or an antivirus said.
 
-## T52 – Installer asks for the VaM folder (on main after version 40, Windows)
+## T52 – Installer asks for the VaM folder (version 41, Windows)
 
-Use an `AIBody Companion Setup.exe` built from main (GitHub Actions artifact of the workflow "Companion Windows installer"), until the next release ships it.
+Use `AIBody Companion Setup.exe` of the v41 release.
 
 1. Run the setup. After the options page comes **Your VaM folder**: the field already shows your VaM folder (the folder of the last setup, the remembered folder, or a VaM folder found on any drive, e.g. `D:\VaM`). If it is empty or wrong, click **Browse** and choose the folder with `VaM.exe`.
 2. Choose a folder without `VaM.exe` (e.g. your Desktop) and click **Next**: a message says there is no VaM.exe in this folder and the page stays. Choose the right folder again: **Next** works.
-3. Finish with **Launch AIBody Companion now**: no folder picker appears; the note says the app runs in the background. `%LOCALAPPDATA%\AIBody Companion\launcher.json` contains your folder as `vam_root` and `"vam_root_set_by": "setup"`.
+3. Finish with **Launch AIBody Companion now**: no folder picker appears; the message box says the app runs in the background and waits for **OK**. `%LOCALAPPDATA%\AIBody Companion\launcher.json` contains your folder as `vam_root` and `"vam_root_set_by": "setup"`.
 4. Run the setup again: the page shows the folder from step 1. Choose another VaM folder if you have one, finish, quit and start AIBody Companion from the Start menu: it uses the new folder (its log is under that folder's `Saves/PluginData/AIBody/logs/`).
 5. Fallback: quit the app, rename the chosen VaM folder for a moment, start AIBody Companion: it looks for VaM itself and, if it finds nothing, asks once with its folder picker. Rename the folder back.
 
 Report: screenshot of the **Your VaM folder** page and of the error message from step 2; the content of `launcher.json`.
 
-## T53 – Reset to Default (on main after version 40)
+## T53 – Reset to Default (version 41)
 
 1. Load AI-Buddy. Change a few settings in different tabs: tab Voice **Voice** = rex, **Proactive talking** off; tab Client Character **Mic mode** = Push-to-talk; tab AI Character: answer the wizard with **Yes** and choose **AI gender/body**; tab Config **Verbose log** on, **Set background color** off.
 2. Tab Config: below **Background** is the header **Reset** with the button **Reset to Default**. The left info field explains what it resets and what it keeps. Press it: instead of it there are **Confirm Reset to Default** and **Cancel**, and the left field says the reset waits for your confirmation. Press **Cancel**: nothing changed, the left field says so.
@@ -619,13 +619,49 @@ Report: screenshot of the **Your VaM folder** page and of the error message from
 
 Report: screenshots of the Config tab before and after pressing **Reset to Default**, and of the AI Character tab after the reset; any red `AIBody:` log line.
 
-## T54 – AI-Buddy: AIBody on the male BryanGosling (on main after version 40)
+## T54 – AI-Buddy: AIBody on the male BryanGosling (version 41)
 
-Use a package built from main (`python tools/build_var.py`) until the next release.
+Use `d0n.AIBody.41.var`.
 
 1. Load **AI-Buddy**. Select the male atom `BryanGosling` > tab **Plugins**: AIBody (`SELF:/Custom/Scripts/d0n/AIBody/AIBody.cslist`) is there; its tab Config shows **Set background color** on with #00FF00, and the background is green.
 2. Select the female atom `Person` > tab **Plugins**: no AIBody plugin.
-3. Talk to the character: the male speaks (lip sync on his head audio), his expressions and idle motion move. Clothing, hair and looks of both people are as before.
+3. Talk to the character: the male's voice comes from his head audio (T55), his expressions and idle motion move. Clothing, hair and looks of both people are as before.
 
 Report: screenshots of both Plugins tabs; anything that looks different from the v40 scene apart from the plugin.
 
+## T55 – Speech audio: loaded before play, [audio] debug lines (version 41)
+
+Audio never played in any version (companion.log: "did not start playing within 15 s" for every sentence and the test tone). Version 41 waits until the WAV's audio data is loaded (`loadState` Loaded, `LoadAudioData()` when needed) and only then plays it on the head audio with the calls of known working plugins.
+
+1. Load AI-Buddy with the companion running. Tab Config > **Logging**: **Verbose log** on.
+2. Tab Voice > **Voice and sound**: **Play test tone** (the plugin's own WAV), then **Test tone via companion** (a WAV the companion writes). Each time you should hear the short tone from the male's head within about a second.
+3. Open VaM's log (the message log / `output_log.txt`) and copy every line with `AIBody: [audio]`: "head audio of 'BryanGosling': HeadAudioSource found", per sound a `QueueClip(...)` line (or "clip already loaded, reused"), lines with the clip's `loadState` (Unloaded / Loading / Loaded), one "PlayNowClearQueue (try 1)" line and a "playing" line (clip length, number of play calls, time to start).
+4. Ask the AI something: each sentence is spoken; each one has its own `[audio]` lines.
+5. If nothing is heard: copy the `[audio]` lines and the red `AIBody:` lines (they now say whether the clip never loaded, failed to decode, or loaded but the head audio did not start, and what it showed: enabled, active, volume, the clip it was playing). Also check that **Freeze Motion/Sound** in VaM's top menu is off.
+
+Report: the `[audio]` lines of the test tone and of one answer, heard yes/no.
+
+## T56 – Voice: all xAI voices (version 41)
+
+1. Tab Voice > **Voice and sound** > **Voice**: the list has the 28 built-in xAI voices (carina, zagan, helix, orion, luna, iris, altair, zenith, perseus, helios, lux, kepler, rigel, cosmo, celeste, ursa, sirius, lumen, castor, naksh, atlas, aurora, liora, ara, eve, leo, rex, sal), before the companion is connected too.
+2. With the companion connected and a working XAI API Token, wait a few seconds: the companion asks xAI for its current list (`GET /v1/tts/voices`) and the menu shows that list (companion.log: "Voices: N from xAI /tts/voices"). Without network it says the static list stays.
+3. Choose e.g. **luna** and ask something: the answer is spoken with that voice (after T55 works). A persona with its own voice still overrides the menu.
+
+Report: screenshot of the open Voice menu; the "Voices:" line of companion.log.
+
+## T57 – Pose commands: Apply pose command, Add Pose (version 41)
+
+1. Tab AI Character > **Poses**: under **Pose command** is the new button **Apply pose command**. Choose a command (e.g. "sit") and press it: the character takes that pose; the left field says "Pose command applied: 'sit' -> <pose>" and VaM's log has the same line. Choosing in the menu alone only selects (with **Verbose log** a debug line says so).
+2. Choose a command whose pose this character does not have (the left field marks it UNAVAILABLE): **Apply pose command** shows a red reason in the left field and a warning in VaM's log.
+3. Choose a pose in **Pose**, leave **New pose command** empty and press **Add Pose**: the pose name becomes a new pose command and is chosen in **Pose command**. With text typed in, that text becomes the command. Close and reopen the plugin UI: the entries are still there (config.json `poses.commands`).
+4. **Pose** + **Apply pose** still work as before.
+
+Report: the left-field lines and VaM log lines of steps 1-3.
+
+## T58 – No spoken "tool_call" text (version 41)
+
+companion.log of 21.11.2026 showed the model sometimes writes its expression call as text (`<tool_call>{"name": "express", ...}</tool_call>`), which was sent to the voice. Version 41 runs such a block as the expression / gesture and never speaks it.
+
+1. Talk for a few minutes (English and German). companion.log: no `Say (...)` line contains `tool_call`; when the model does it, the log says "The model wrote a tool call into its text (express); it is run, not spoken".
+
+Report: any `Say` line with `<`, `{` or `tool_call`.

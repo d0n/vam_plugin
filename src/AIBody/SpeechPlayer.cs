@@ -9,11 +9,22 @@
 //   - play:  the "HeadAudioSource" AudioSourceControl's PlayNow(namedClip) (Dollmaster), so VaM's
 //            built-in lip sync follows it; Stop() and .audioSource            (FreeMMD); .volume (Dollmaster SFX)
 //   - free:  URLAudioClipManager.singleton.RemoveClip(namedClip)           (Dollmaster SFX)
+// Audio fix (21.11.2026, after version 40; Leon: audio never played in any version). Root cause analysis from first
+// principles against the audited plugins (docs/API_AUDIT.md E36): "loaded" was taken as NamedAudioClip.sourceClip != null,
+// but that only means Unity has read the WAV header (its length is known); the sample data can still be Unloaded or
+// Loading, and an AudioSource with such a clip does not start (AudioSource.isPlaying stays false: Leon's log said
+// "playing=False, clip=1.3 s long" for every file, the packaged test tone too). mmd2timeline calls
+// sourceClip.LoadAudioData() and waits for loadState == Loaded; this player now does the same, uses the load sequence of
+// Dollmaster / FreeMMD / mmd2timeline (GetClip(NormalizeLoadPath) for an already loaded clip, else QueueClip +
+// GetClip(uid)), starts the clip ONCE with PlayNowClearQueue (FreeMMD) when it is Loaded, and only if it does not start
+// tries PlayNow (Dollmaster) and the storable action "PlayNow" with the clip (MacGruber Breathe), one per second.
+// Start detection: the head audio plays our clipToPlay (vam-timeline E33) or AudioSourceControl.playingClip is our
+// clip (Dollmaster BreathController). With Verbose log on, every step is logged with the prefix "[audio]".
 // Readiness (version 36, latency): PlayNow is called the moment the clip has loaded, i.e. when
 // NamedAudioClip.sourceClip is no longer null (the check vam-timeline's CustomTrigger.cs makes, E33).
 // Before, PlayNow ran right after QueueClip; a clip still loading did not start and the next try came
 // 1 s later, so a first sentence could wait up to a second for nothing. If sourceClip never shows up
-// (TODO(verify) in VaM), the old way takes over after ReadyWaitMax: PlayNow retries every RetryInterval.
+// (Since the audio fix there is no time cap: a clip is started only when its data is loaded, see above.)
 // A clip counts as started when the head AudioSource (UnityEngine.AudioSource) is playing a new clip,
 // and as finished when it stops.
 // TODO(verify): on 1.22, that a Saves/PluginData relative path works with NormalizeMediaPath +
@@ -51,10 +62,15 @@ namespace AIBody
             public float PlayTime;
             public float RetryTimer;
             public int Plays;                // PlayNow calls (first + retries)
+            public bool Reused;              // GetClip(NormalizeLoadPath(path)) found an already loaded clip: not ours to remove
+            public float LoadTimer;          // time since the last LoadAudioData() call
+            public string LastState = "";    // last logged readiness (Verbose log)
+            public bool LoadFailed;          // sourceClip.loadState == Failed: Unity could not decode the file
         }
 
         private readonly Atom _atom;
         private AudioSourceControl _control;   // looked up lazily (Resolve), retried every 5 s
+        private JSONStorable _storable;         // the same "HeadAudioSource" storable, for CallAction("PlayNow", clip) (E29)
         private AudioSource _audio;
         private float _retryIn;
         private bool _warned;
@@ -66,9 +82,11 @@ namespace AIBody
         public float StartTimeout = 15f;
         /// <summary>PlayNow is called again at this interval until the clip plays (it may still be loading).</summary>
         public float RetryInterval = 0.5f;
+        /// <summary>A clip that was handed to the head audio but did not start gets the next play call after this time.</summary>
+        public float PlayRetryInterval = 1f;
 
         /// <summary>Longest wait for sourceClip before PlayNow is tried anyway (fallback, old behaviour).</summary>
-        public float ReadyWaitMax = 2f;
+        public float ReadyWaitMax = 2f;   // unused since the audio fix (kept for old callers); readiness = loadState Loaded
         public int PrefetchCount = 2;
         /// <summary>While a speech file is not visible yet, FileExists is asked again at this interval (no sleeping).</summary>
         public float FileCheckInterval = 0.25f;
@@ -126,13 +144,15 @@ namespace AIBody
             _retryIn = 5f;
             try
             {
-                _control = _atom.GetStorableByID("HeadAudioSource") as AudioSourceControl;
+                _storable = _atom.GetStorableByID("HeadAudioSource");
+                _control = _storable as AudioSourceControl;
                 _audio = _control != null ? _control.audioSource : null;
                 if (_audio != null)
                 {
                     _control.volume = _volume;
                     LookupError = null;
                     if (_warned) Log.Info("HeadAudioSource found; speech output enabled.");
+                    Log.Debug("[audio] head audio of '" + _atom.uid + "': HeadAudioSource found, " + SourceState());
                     return true;
                 }
                 LookupError = _control == null ? "this atom has no 'HeadAudioSource' (is the plugin on a Person atom?)" : "the head audio source has no audio output yet (the character may still be loading)";
@@ -277,6 +297,15 @@ namespace AIBody
             u.Queued = true;
             try
             {
+                // Already loaded (same file played before)? Dollmaster L295-296, FreeMMD L318-319, mmd2timeline L194-195.
+                NamedAudioClip existing = URLAudioClipManager.singleton.GetClip(SuperController.singleton.NormalizeLoadPath(u.Path));
+                if (existing != null)
+                {
+                    u.Clip = existing;
+                    u.Reused = true;
+                    Log.Debug("[audio] " + u.Id + ": clip already loaded, reused (" + u.Path + ")");
+                    return;
+                }
                 string url = SuperController.singleton.NormalizeMediaPath(u.Path);
                 URLAudioClip queued = URLAudioClipManager.singleton.QueueClip(url);
                 if (queued == null)
@@ -285,6 +314,7 @@ namespace AIBody
                     return;
                 }
                 u.Clip = URLAudioClipManager.singleton.GetClip(queued.uid);
+                Log.Debug("[audio] " + u.Id + ": QueueClip(" + url + ") -> uid " + queued.uid + (u.Clip == null ? ", GetClip returned null" : ""));
                 if (u.Clip == null) u.Error = "VaM loaded the audio file but could not find the clip afterwards (clip id " + queued.uid + "). Press 'Play test tone' again; if it keeps failing, restart VaM.";
             }
             catch (Exception e)
@@ -299,22 +329,111 @@ namespace AIBody
             u.PreviousClip = _audio.clip;
             _control.volume = _volume;
             Status = "Loading: " + FileName(u.Path) + (_volume < 0.01f ? " (note: Speech volume is 0)" : "");
-            if (ClipReady(u)) PlayNow(u);   // else Track() calls it the frame the clip has loaded
+            if (ClipReady(u, 0f)) PlayNow(u);   // else Track() calls it the frame the clip data has loaded
         }
 
+        /// <summary>
+        /// First try PlayNowClearQueue (FreeMMD L176: nothing queued on the head audio delays our clip), then, if the clip
+        /// still does not play, PlayNow (Dollmaster L246) and the storable action "PlayNow" with the clip (Breathe L209) in turn.
+        /// </summary>
         private void PlayNow(Utterance u)
         {
             u.Plays++;
             u.RetryTimer = 0f;
-            Log.Debug("PlayNow " + u.Id + ": " + u.Path);
-            _control.PlayNow(u.Clip);
+            string how;
+            if (u.Plays == 1) { _control.PlayNowClearQueue(u.Clip); how = "PlayNowClearQueue"; }
+            else if (u.Plays % 2 == 0) { _control.PlayNow(u.Clip); how = "PlayNow"; }
+            else if (_storable != null) { _storable.CallAction("PlayNow", u.Clip); how = "CallAction(\"PlayNow\", clip)"; }
+            else { _control.PlayNow(u.Clip); how = "PlayNow"; }
+            Log.Debug("[audio] " + u.Id + ": " + how + " (try " + u.Plays + ") -> " + SourceState() + ", " + ClipState(u.Clip));
         }
 
-        /// <summary>True once VaM has loaded the clip (sourceClip set, E33). A failing check counts as ready.</summary>
-        private static bool ClipReady(Utterance u)
+        /// <summary>
+        /// True once the clip's audio DATA is loaded: sourceClip set (E33) and sourceClip.loadState == Loaded (E36,
+        /// mmd2timeline L168-185). Unloaded: LoadAudioData() is asked again every RetryInterval. Failed: the error says so.
+        /// A check that throws counts as ready (the old behaviour).
+        /// </summary>
+        private bool ClipReady(Utterance u, float deltaTime)
         {
-            try { return u.Clip != null && u.Clip.sourceClip != null; }
-            catch (Exception) { return true; }
+            string state;
+            bool ready;
+            try
+            {
+                if (u.Clip == null) return false;
+                AudioClip source = u.Clip.sourceClip;
+                if (source == null) { state = "header not loaded yet (sourceClip null)"; ready = false; }
+                else
+                {
+                    AudioDataLoadState load = source.loadState;
+                    state = "loadState " + load;
+                    ready = load == AudioDataLoadState.Loaded;
+                    if (load == AudioDataLoadState.Unloaded)
+                    {
+                        u.LoadTimer += deltaTime;
+                        if (u.LoadTimer >= RetryInterval || u.LastState.Length == 0)
+                        {
+                            u.LoadTimer = 0f;
+                            source.LoadAudioData();
+                            state += ", LoadAudioData() called";
+                        }
+                    }
+                    else if (load == AudioDataLoadState.Failed)
+                    {
+                        u.LoadFailed = true;
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                state = "check failed (" + e.Message + "), trying to play anyway";
+                ready = true;
+            }
+            if (state != u.LastState)
+            {
+                u.LastState = state;
+                Log.Debug("[audio] " + u.Id + ": " + state);
+            }
+            return ready;
+        }
+
+        /// <summary>One line about the head AudioSource for the [audio] debug lines and the error text.</summary>
+        private string SourceState()
+        {
+            if (_audio == null) return "head AudioSource missing";
+            string text = "head audio playing=" + _audio.isPlaying;
+            try
+            {
+                AudioClip clip = _audio.clip;
+                text += ", clip=" + (clip != null ? clip.length.ToString("0.00") + " s, " + clip.loadState : "none")
+                    + ", time=" + _audio.time.ToString("0.00")
+                    + ", enabled=" + _audio.enabled + ", active=" + _audio.gameObject.activeInHierarchy
+                    + ", playingClip=" + (_control.playingClip == null ? "none" : _control.playingClip.uid)
+                    + ", volume=" + _control.volume.ToString("0.00");
+            }
+            catch (Exception e) { text += " (" + e.Message + ")"; }
+            return text;
+        }
+
+        private static string ClipState(NamedAudioClip c)
+        {
+            if (c == null) return "clip none";
+            try
+            {
+                return "clip " + c.uid + ": sourceClip=" + (c.sourceClip == null ? "null" : c.sourceClip.length.ToString("0.00") + " s " + c.sourceClip.loadState)
+                    + ", clipToPlay=" + (c.clipToPlay == null ? "null" : "set");
+            }
+            catch (Exception e) { return "clip state unknown (" + e.Message + ")"; }
+        }
+
+        /// <summary>Our clip is on the head audio and playing (E33 compare, E36 playingClip).</summary>
+        private bool OursPlaying(Utterance u)
+        {
+            if (!_audio.isPlaying || u.Clip == null) return false;
+            AudioClip clip = _audio.clip;
+            if (clip == null) return false;
+            if (clip == u.Clip.clipToPlay || clip == u.Clip.sourceClip) return true;
+            if (_control.playingClip == u.Clip) return true;
+            return clip != u.PreviousClip;   // the old test (a new clip is playing)
         }
 
         private void Track(float deltaTime)
@@ -324,34 +443,44 @@ namespace AIBody
             if (!u.Started)
             {
                 AudioClip clip = _audio.clip;
-                if (_audio.isPlaying && clip != null && clip != u.PreviousClip)
+                if (u.Plays > 0 && OursPlaying(u))
                 {
                     u.Started = true;
                     u.StartedClip = clip;
                     Status = "Speaking: " + FileName(u.Path) + " (" + clip.length.ToString("0.0") + " s"
                         + (_volume < 0.01f ? ", Speech volume is 0 – nothing audible" : "") + ")";
-                    Log.Debug("Speaking " + u.Id + " (" + clip.length.ToString("0.0") + " s, " + u.Plays + "x PlayNow)");
+                    Log.Debug("[audio] " + u.Id + ": playing (" + clip.length.ToString("0.0") + " s, " + u.Plays + " play call(s), " + u.PlayTime.ToString("0.00") + " s after the start)");
                     if (OnStarted != null) OnStarted(u.Id, clip.length);
+                    return;
+                }
+                if (u.LoadFailed)
+                {
+                    SetError("Unity could not decode the audio file " + u.Path + " (loadState Failed). It must be a normal PCM WAV; "
+                        + "see the companion log for how it was written. (" + ClipState(u.Clip) + ")");
+                    Fire(OnError, u.Id, "audio data could not be loaded (loadState Failed): " + u.Path);
+                    Finish("failed");
                     return;
                 }
                 if (u.PlayTime > StartTimeout)
                 {
                     SetError("The audio did not start playing within " + StartTimeout.ToString("0") + " s (" + u.Plays
-                        + " tries): " + u.Path + ". VaM loaded the file but never played it. Check that it is a valid WAV, that "
-                        + "the character's head audio is not muted or blocked, and that Speech volume (tab AI Character) is above 0. "
-                        + "(Head audio at that moment: playing=" + _audio.isPlaying + ", clip=" + (clip != null ? clip.length.ToString("0.0") + " s long" : "none") + ".)");
+                        + " play calls): " + u.Path + ". " + (u.Plays == 0 ? "Its audio data never finished loading. " : "")
+                        + "Check that it is a valid WAV, that the character's head audio is not muted or blocked, that VaM's "
+                        + "Freeze Motion/Sound is off, and that Speech volume (tab AI Character) is above 0. Switch on Verbose log "
+                        + "(tab Config) for the [audio] lines. (" + SourceState() + "; " + ClipState(u.Clip) + ".)");
                     Fire(OnError, u.Id, "did not start playing within " + StartTimeout.ToString("0") + " s: " + u.Path);
                     Finish("failed");
                     return;
                 }
                 if (u.Plays == 0)
                 {
-                    // Not handed to the head audio yet: start it the frame the clip is loaded.
-                    if (ClipReady(u) || u.PlayTime >= ReadyWaitMax) PlayNow(u);
+                    // Not handed to the head audio yet: start it the frame the clip DATA is loaded (no time cap any more:
+                    // playing a clip whose data is not loaded is exactly what never started).
+                    if (ClipReady(u, deltaTime)) PlayNow(u);
                     return;
                 }
                 u.RetryTimer += deltaTime;
-                if (u.RetryTimer >= RetryInterval) PlayNow(u);   // the clip may still have been loading
+                if (u.RetryTimer >= PlayRetryInterval) PlayNow(u);   // it did not start: the next of the three evidenced calls
                 return;
             }
             if (_audio.clip != u.StartedClip) Finish("interrupted");
@@ -375,7 +504,8 @@ namespace AIBody
 
         private static void Release(Utterance u)
         {
-            if (u.Clip != null) URLAudioClipManager.singleton.RemoveClip(u.Clip);
+            // A clip found with GetClip(path) belongs to whoever loaded it first (e.g. a scene's audio): not removed.
+            if (u.Clip != null && !u.Reused) URLAudioClipManager.singleton.RemoveClip(u.Clip);
             u.Clip = null;
         }
     }
