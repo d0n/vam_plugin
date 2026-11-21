@@ -8,24 +8,38 @@ More documents: [SPEC](docs/SPEC.md) (agreed scope) · [REQUIREMENTS](docs/REQUI
 
 ## Getting started
 
-The companion app runs **separately from VaM** and is **started by hand**: VaM does not start it, and without a running app there is no listening and no answers. Open a console window and enter:
+You start VaM as usual. AIBody has two parts:
+
+- **The plugin and the scene** come in one package, `d0n.AIBody.<N>.var`. Put it into `<VaM main folder>/AddonPackages/` (delete older `d0n.AIBody.*.var` files). In VaM both are found under the add-on packages: the scene via the main menu **Open Scene** > package `d0n.AIBody.<N>` > `AIBody` > **AI-Buddy**, the plugin via Person > tab **Plugins** > **Add Plugin** > `d0n.AIBody.<N>` > `AIBody.cslist`.
+- **AIBody Companion** is a small Windows app that runs in the background on the same computer and does the listening and talking: microphone, speech recognition, the AI (xAI) and the voice. VaM plugins run in a sandbox without internet, microphone access or the right to start programs, so this part cannot live inside VaM. The plugin connects to it by itself; you only start it.
+
+**Install AIBody Companion (once):**
+
+1. Download `AIBody Companion Setup.exe` from the [release](https://github.com/d0n/vam_plugin/releases) and double-click it. It installs for your user only, without admin rights, into `%LOCALAPPDATA%\Programs\AIBody Companion`.
+2. Windows SmartScreen may say "Windows protected your PC", because the installer is not signed: click **More info**, then **Run anyway**.
+3. Choose the options: a desktop shortcut (optional) and **Start with Windows** (off by default). At the end **Launch AIBody Companion now** starts it. Uninstall it like any app (Settings > Apps, or "Uninstall AIBody Companion" in the Start menu).
+
+**Every time:** start **AIBody Companion** from the Start menu (or let Windows start it). A small note says it is now running in the background, and an icon in the tray has **Quit**. Starting it again only shows the note. On the first start it looks for your VaM folder (the folder with `VaM.exe`) by itself; if it cannot find it, it asks once with a folder picker and remembers it. Then start VaM and load the AI-Buddy scene or add the plugin to a Person.
+
+What it uses on your computer: it listens only on `127.0.0.1` (this computer) for the plugin, and goes out only to the AI service (xAI; ElevenLabs only if you set it up). Its settings and log stay under `<VaM main folder>/Saves/PluginData/AIBody/`; the launcher only remembers the VaM folder in `%LOCALAPPDATA%\AIBody Companion`. The installer never contains an API key.
+
+### For developers: running the companion from source
+
+The companion app can also run from this repository (any OS with Python), **started by hand** in a console, **separately from VaM**:
 
 ```
 python -m aibody_companion --vam-root "D:\VaM"
 ```
 
-(Adjust the path to your own VaM folder, i.e. the folder with `VaM.exe`.) Keep the window open as long as VaM runs.
-
-- **Without typing (Windows, version 40):** double-click [`companion/start_companion.bat`](companion/start_companion.bat). It finds the VaM folder by itself when the repository sits inside it (a parent folder with `AddonPackages` and `Saves`); otherwise it asks once and remembers the answer in `companion/vam_root.txt` (not in git). You can also pass the folder: `start_companion.bat "D:\VaM"`. It uses `py -3` when the Python launcher is installed, else `python`, and keeps the window open with a hint if the app stops with an error.
-- **Why the app is still needed:** VaM 1.22 plugins run in a sandbox with no internet access, no microphone and no way to start programs (only the one loopback socket to this app). Speech recognition, the AI and the voice therefore run in the companion app; the plugin alone cannot listen or answer.
+(Adjust the path to your own VaM folder, i.e. the folder with `VaM.exe`.) Keep the window open as long as VaM runs. On Windows, [`companion/start_companion.bat`](companion/start_companion.bat) does the same by double-click and remembers the VaM folder in `companion/vam_root.txt` (not in git). The installer is built by `.github/workflows/companion-windows.yml` (PyInstaller + Inno Setup, with a `--selftest` of the built app).
 
 - **From which folder:** the command works when you are in the repository's `companion` folder (`cd companion`). Alternatively run `pip install -e .` once in the `companion` folder; then the same command works from any folder. If Python says `No module named aibody_companion`, you are in the wrong folder (and have not installed the package).
 - **Microphone:** `python -m pip install sounddevice` (or `python -m pip install -r requirements.txt` in the `companion` folder). Without `sounddevice` there is no listening (the app always records from the system's default input device; there is no microphone menu); typing in the console still works.
 - **Python:** version 3.10 or newer.
 - **xAI key:** in the plugin, tab **Voice** > *Companion connection*, field **XAI API Token** (below *API Reconnect*); on the very first start a short note at the top of the plugin asks for it. The token is then saved in `config.json` (`ai.xai.api_key`, **plain text**, see the security notice below); alternatively the environment variable `XAI_API_KEY` or `ai.xai.key_file`; more below.
 - **Plugin and scene, one download (version 39):** `d0n.AIBody.39.var` holds both, findable on their own: the **plugin** (Person > Plugins > Add Plugin > `d0n.AIBody.39:/Custom/Scripts/d0n/AIBody/AIBody.cslist`) and the **scene** (main menu Open Scene / Load Scene > package `d0n.AIBody.39` > `AIBody` > **AI-Buddy**, path in the package `Saves/scene/AIBody/AI-Buddy.json` with the preview `AI-Buddy.jpg`; it loads the plugin of the same package via `SELF:/`). The package also has the scene and the thumbnail as loose files `AI-Buddy.json` / `AI-Buddy.jpg` (optional): copy both to `<VaM main folder>/Saves/scene/AIBody/`. The scene uses third-party clothing, hair and morph packages listed in `meta.json` dependencies (VaM reports them if they are missing) and a few loose `Custom/` / `Saves/` files that need local content; see [`docs/SCENE_GREENSCREEN.md`](docs/SCENE_GREENSCREEN.md).
-- **First start (version 36):** the app asks two independent questions once in its console: "Do you want a greenscreen background?" (yes / no / abort; with yes "Set your color for transparency", default #00FF00) and "Choose what to use": **Scene** (the AI-Buddy scene, also in the package: VaM > Open Scene > `d0n.AIBody.<N>` > AI-Buddy) or **Plugin** (AIBody on a Person of your own scene). The background answer only switches the plugin's **Set background color** (tab Config) on with that color; the Scene / Plugin answer only decides whether the scene is written. `--setup` asks again, `--no-setup` never.
-- **Get a new version:** `git pull` in the repository folder, otherwise the app reports an old version (the app prints `AIBody companion <version>` on start).
+- **First start (version 36, from source only; the installed AIBody Companion has no console and skips these questions: switch the background in the plugin, tab Config > Set background color, and load the scene from the package):** the app asks two independent questions once in its console: "Do you want a greenscreen background?" (yes / no / abort; with yes "Set your color for transparency", default #00FF00) and "Choose what to use": **Scene** (the AI-Buddy scene, also in the package: VaM > Open Scene > `d0n.AIBody.<N>` > AI-Buddy) or **Plugin** (AIBody on a Person of your own scene). The background answer only switches the plugin's **Set background color** (tab Config) on with that color; the Scene / Plugin answer only decides whether the scene is written. `--setup` asks again, `--no-setup` never.
+- **Get a new version:** install the new `AIBody Companion Setup.exe` over the old one (from source: `git pull` in the repository folder, otherwise the app reports an old version; the app prints `AIBody companion <version>` on start).
 - **Remote control (version 31, optional):** a local web page / HTTP API and OSC for this one character, off by default, `127.0.0.1` only: [docs/REMOTE.md](docs/REMOTE.md). **Plugin preset:** the package also holds `Custom/Atom/Person/Plugins/AIBody/Preset_AIBody.vap`, which adds the plugin to a Person (Person > Plugins > Load Preset; not yet tested in VaM).
 - **Network:** the plugin and the app talk through files and, by default, through a loopback socket (toggle **Network Active**, see below). The socket needs VaM's global setting *User Preferences > Security > Allow Plugins Network Access*; without it everything still works through the files.
 

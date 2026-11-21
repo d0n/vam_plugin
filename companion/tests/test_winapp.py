@@ -38,15 +38,15 @@ class DetectTests(TestCase):
             inside = vam / "Tools" / "AIBody Companion"
             inside.mkdir(parents=True)
             self.assertEqual(winapp.detect_vam_root(inside, str(other), []), (other, "remembered"))
-            self.assertEqual(winapp.detect_vam_root(inside, None, [other])[0], vam)
+            self.assertEqual(winapp.detect_vam_root(inside, None, [other])[0].resolve(), vam.resolve())
             self.assertEqual(winapp.detect_vam_root(t / "nowhere", None, [t / "x", other]), (other, "found at a common place"))
             self.assertEqual(winapp.detect_vam_root(t / "nowhere", str(t / "gone"), []), (None, "not found"))
 
     def test_common_candidates_cover_drives_and_home(self):
-        c = [str(p) for p in winapp.common_candidates([Path("D:/")], env={"USERPROFILE": "/home/u"})]
-        self.assertTrue(any(s.endswith("VaM") and s.startswith("D:") for s in c))
-        self.assertTrue(any("Virt-A-Mate" in s for s in c))
-        self.assertTrue(any(s.startswith("/home/u") for s in c))
+        paths = winapp.common_candidates([Path("D:/")], env={"USERPROFILE": "/home/u"})
+        self.assertIn(Path("D:/") / "VaM", paths)
+        self.assertTrue(any(p.name == "Virt-A-Mate" for p in paths))
+        self.assertIn(Path("/home/u") / "VaM", paths)
 
 
 class SettingsTests(TestCase):
