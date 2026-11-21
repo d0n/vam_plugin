@@ -146,6 +146,17 @@ class PoseDecision:
         self.entry, self.ok, self.steps = entry, ok, steps
 
 
+def version_mismatch(plugin_version: Any, companion_version: str) -> str:
+    """Version 42 (Leon's v41 test: every log line said plugin=40): a scene saved with an older package keeps loading
+    THAT package (its plugin entry names d0n.AIBody.<n>), so a new companion ran with an old plugin. "" when they match."""
+    pv = str(plugin_version or "").strip()
+    if not pv.isdigit() or pv == companion_version:
+        return ""
+    return (f"The AIBody plugin in VaM is version {pv}, the companion app is version {companion_version}: the scene names "
+            f"the package d0n.AIBody.{pv}, so VaM loads that old plugin. Load the AI-Buddy scene from d0n.AIBody.{companion_version}, "
+            f"or in your scene remove AIBody (Plugins tab), add it again from d0n.AIBody.{companion_version} and save the scene.")
+
+
 class Companion:
     def __init__(
         self,
@@ -697,6 +708,10 @@ class Companion:
                     log.info("AIBody plugin ready on %r: plugin=%s channel=%s", event.get("atom"),
                              event.get("plugin_version"), event.get("channel"))
                     self._last_mic_state = None  # make sure the plugin gets a fresh mic_state
+                    note = version_mismatch(event.get("plugin_version"), __version__)
+                    if note:
+                        log.warning(note)
+                        self.turn_status = note
                 self.body_info = event
                 self._log_selftest(event.get("selftest"))
             elif type_ == "config":

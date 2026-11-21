@@ -83,6 +83,10 @@ class RealtimeVoice:
         self._parser: StreamParser | None = None
         self._nudge_pending = False  # next response.created answers a nudge
         self._nudge_response: str | None = None
+        # After version 41 (Leon's companion.log 21.11.2026 17:56-18:11): a response that was ONLY a tool call (express)
+        # ends with no audio, and the server waits; then one response.create lets the model say its answer.
+        self._tool_call_rids: set[str] = set()
+        self._followups_this_turn = 0
         self._held: list[tuple[bytes, str]] = []  # nudge segments held until it is clearly not silent
         self._last_instructions = 0.0
         self._response_started = 0.0
@@ -240,6 +244,7 @@ class RealtimeVoice:
             self.refresh_instructions()  # the answer to this turn sees the current time
         elif type_ == "input_audio_buffer.speech_stopped":
             self.user_speaking = False
+            self._followups_this_turn = 0
             self._answered_since_stop = False
             self.c.on_user_activity()
             if self.turn is not None and self.turn.latency is None:
@@ -278,12 +283,20 @@ class RealtimeVoice:
             self._directives(delta)
             self._emit(self.assembler.feed_text(delta))
         elif type_ == "response.function_call_arguments.done":
+            if rid:
+                self._tool_call_rids.add(str(rid))
             self._function_call(event)
         elif type_ in ("response.output_audio.done", "response.done"):
             if self._current(rid):
                 self._emit(self.assembler.finish(), final=True)
             if type_ == "response.done":
+                silent_tool_only = bool(rid) and str(rid) in self._tool_call_rids and self._audio_bytes == 0 \
+                    and rid not in self.cancelled \
+                    and not (self._nudge_response and self._nudge_response == rid)
+                self._tool_call_rids.discard(str(rid))
                 self._finish_response(rid)
+                if silent_tool_only:
+                    self._follow_up_after_tool_call()
         elif type_ == "error":
             err = event.get("error") or {}
             log.warning("Realtime error: %s", err.get("message") if isinstance(err, dict) else err)
@@ -344,6 +357,17 @@ class RealtimeVoice:
         self._parser = StreamParser(expressions, gestures)
         self._nudge_response = self.response_id if self._nudge_pending else None
         self._nudge_pending = False
+
+    MAX_FOLLOWUPS_PER_TURN = 1
+
+    def _follow_up_after_tool_call(self) -> None:
+        """The response was only a tool call and said nothing: ask once for the spoken answer (never in a loop)."""
+        if self._followups_this_turn >= self.MAX_FOLLOWUPS_PER_TURN:
+            log.info("Realtime: the answer was only a tool call again; not asking a second time this turn")
+            return
+        self._followups_this_turn += 1
+        if self.client.send({"type": "response.create"}):
+            log.info("Realtime: the answer was only a tool call (no audio); asked the model for its spoken answer")
 
     def _finish_response(self, rid: str | None) -> None:
         if rid and rid in self.cancelled:
