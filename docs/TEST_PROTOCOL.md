@@ -507,7 +507,7 @@ Report: screenshot, whether the anchor holds, where you start in VR.
 1. Start `python -m aibody_companion --vam-root "D:\VaM" --setup` in a console. First question: "Do you want a greenscreen background? [yes/no/abort]". Answer `abort`: the app says nothing was changed; start again with `--setup`.
 2. Answer `yes`, then "Set your color for transparency [#00FF00]": type `#800080` (purple), then "Choose what to use": `plugin`. No scene is written. In VaM (your own scene with AIBody, T40): within a few seconds after the app connects (or with Reload Config JSON) Set background color switches ON and the color picker shows purple.
 3. Switch it OFF in VaM, restart the app normally: it stays OFF (applied once).
-4. `--setup` again: `no`, `scene`: `Saves/scene/AIBody/AIBody_Example.json` is written; load it: the scene without background color, Set background color OFF.
+4. `--setup` again: `no`, `scene`: `Saves/scene/AIBody/AI-Buddy.json` is written; load it: the scene without background color, Set background color OFF.
 5. `--setup` again: `yes`, Enter (green), `scene`: the scene loads with the green background ON.
 
 Report: the console output of each run and the tab Config after each step.
@@ -528,6 +528,8 @@ Report: the console output of each run and the tab Config after each step.
 
 ## T44 – Example scene thumbnail and AIBody on the female (version 37)
 
+Historical for the v37 release name `AIBody_Example`. After 21.11.2026 the shipped scene is **AI-Buddy**; use T46 for a current build.
+
 1. VaM > **Open Scene** / **Load Scene** > package `d0n.AIBody.37` > folder `AIBody` > **AIBody_Example**. The preview thumbnail of the two characters is visible in the scene list next to the name (the package has `Saves/scene/AIBody/AIBody_Example.jpg` beside the `.json`).
 2. Load the scene: two people, no question about a missing package. Select the female atom `Person` > tab **Plugins**: AIBody of this package (`SELF:/Custom/Scripts/d0n/AIBody/AIBody.cslist` or the equivalent package path). The male atom `BryanGosling` has no AIBody plugin. Tab Config: **Set background color** is OFF unless you turned it on yourself.
 3. Optional: copy the release assets `AIBody_Example.json` and `AIBody_Example.jpg` together to `Saves/scene/AIBody/` and open that copy from the browser; the same thumbnail and the same plugin load (the loose scene references `d0n.AIBody.37:/…`).
@@ -542,3 +544,12 @@ Report: screenshot of the Load Scene list with the thumbnail, and of the loaded 
 4. Optional: with the companion app connected, ask the AI how it sees the two characters; the answer should match the recorded genders.
 
 Report: short note that the gate, the skip path and both gender menus behaved as above, and that clothing stayed a VaM Clothing-tab choice.
+
+## T46 – AI-Buddy scene: original look, plugin, background, dependencies (after version 37)
+
+1. VaM > **Open Scene** / **Load Scene** > package `d0n.AIBody.37` > folder `AIBody` > **AI-Buddy**. The preview thumbnail of the two characters is visible in the scene list next to the name (the package has `Saves/scene/AIBody/AI-Buddy.jpg` beside the `.json`).
+2. Load the scene. It should not hang. If a declared third-party package is missing, VaM should show a missing-package notice and still load. Two people with clothing: female `Person` in the Pro Court shorts and Nico tanktop, male `BryanGosling` in the police pants and hoodie (the hoodie is loose local content and may be missing). Select `Person` > tab **Plugins**: AIBody of this package (`SELF:/Custom/Scripts/d0n/AIBody/AIBody.cslist` or the equivalent package path). The male atom `BryanGosling` has no AIBody plugin and no Improved PoV. There are no Dollmaster atoms (`Doll SFX Person`, `Thrust AP Person`). Tab Config: **Set background color** is ON, color #00FF00, unless you changed it.
+3. Optional: copy `AI-Buddy.json` and `AI-Buddy.jpg` together to `Saves/scene/AIBody/` and open that copy from the browser; the same thumbnail and the same plugin load (the loose scene references `d0n.AIBody.37:/…`).
+4. Missing loose files listed in `docs/SCENE_GREENSCREEN.md` as needs local content (morphs, N3DX textures, tan-line decals, scamp THEV hair, PositiveResult hoodie, Bryan Gosling morph/face texture) should be skipped, not crash the load.
+
+Report: screenshot of the Load Scene list with the thumbnail, of the loaded scene with clothing, and of the plugin on `Person` with Set background color on. Note any missing-package or missing-file messages.

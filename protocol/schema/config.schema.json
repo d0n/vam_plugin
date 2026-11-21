@@ -724,7 +724,7 @@
             "scene",
             "plugin"
           ],
-          "description": "Answer to 'Choose what to use': scene = the app wrote Saves/scene/AIBody/AIBody_Example.json; plugin = nothing written; empty = not answered yet"
+          "description": "Answer to 'Choose what to use': scene = the app wrote Saves/scene/AIBody/AI-Buddy.json; plugin = nothing written; empty = not answered yet"
         },
         "revision": {
           "anyOf": [

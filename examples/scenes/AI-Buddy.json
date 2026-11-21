@@ -805,15 +805,6 @@
                }
             },
             {
-               "id": "plugin#0_AIBody.AIBodyPlugin",
-               "Set background color": "false",
-               "Background color": {
-                  "h": "0.3333333",
-                  "s": "1",
-                  "v": "1"
-               }
-            },
-            {
                "id": "hip",
                "relativeRootPosition": {
                   "x": "3.369487E-05",
@@ -1977,9 +1968,56 @@
             {
                "id": "geometry",
                "character": "Female 1",
-               "clothing": [],
-               "hair": [],
+               "clothing": [
+                  {
+                     "id": "EuLinRabei.ProCourt_Outfit.3:/Custom/Clothing/Female/EuLinRabei/Pro Court Short F/Pro Court Short F.vam",
+                     "internalId": "EuLinRabei:Pro Court Short F",
+                     "enabled": "true"
+                  },
+                  {
+                     "id": "paledriver.Nico.2:/Custom/Clothing/Female/paledriver/Nico/Nico Tanktop.vam",
+                     "internalId": "paledriver:Nico Tanktop",
+                     "enabled": "true"
+                  }
+               ],
+               "hair": [
+                  {
+                     "id": "NoStage3.Hair_Long_Backswept_Pony.1:/Custom/Hair/Female/NoStage3/Long Backswept Pony/Long Backswept.vam",
+                     "internalId": "NoStage3:Long Backswept",
+                     "enabled": "true"
+                  },
+                  {
+                     "id": "NoStage3.Hair_Long_Backswept_Pony.1:/Custom/Hair/Female/NoStage3/Long Backswept Pony/Back Pony.vam",
+                     "internalId": "NoStage3:Back Pony",
+                     "enabled": "true"
+                  },
+                  {
+                     "id": "Custom/Hair/Female/scamp/Samples/THEV.vam",
+                     "internalId": "scamp:THEV",
+                     "enabled": "true"
+                  }
+               ],
                "morphs": [
+                  {
+                     "uid": "Ark1F1.Olivia_McAllister.1:/Custom/Atom/Person/Morphs/female/AUTO/FHMBat.vmi",
+                     "name": "Bat Head",
+                     "value": "1.212797E-05"
+                  },
+                  {
+                     "uid": "Wolverine333.LAUREN_4.1:/Custom/Atom/Person/Morphs/female/AUTO/FHMChimp.vmi",
+                     "name": "Chimp Head",
+                     "value": "1.940475E-05"
+                  },
+                  {
+                     "uid": "Ark1F1.Olivia_McAllister.1:/Custom/Atom/Person/Morphs/female/AUTO/FHMChimp.vmi",
+                     "name": "Chimp Head",
+                     "value": "1.940475E-05"
+                  },
+                  {
+                     "uid": "Custom/Atom/Person/Morphs/female/CTRLFitness.vmi",
+                     "name": "Fitness",
+                     "value": "0.003005124"
+                  },
                   {
                      "uid": "Fitness Details",
                      "name": "Fitness Details",
@@ -1989,6 +2027,11 @@
                      "uid": "Fitness Size",
                      "name": "Fitness Size",
                      "value": "0.003005124"
+                  },
+                  {
+                     "uid": "Ark1F1.Olivia_McAllister.1:/Custom/Atom/Person/Morphs/female/!Custom/FBMTeenEllieBody.vmi",
+                     "name": "Teen Ellie Body",
+                     "value": "7.093618E-05"
                   },
                   {
                      "uid": "Breasts Gone",
@@ -2346,6 +2389,16 @@
                      "value": "0.001453866"
                   },
                   {
+                     "uid": "Custom/Atom/Person/Morphs/female/AUTO/PHMGiselleEyelashes.vmi",
+                     "name": "Giselle 6 Eyelashes",
+                     "value": "0.005115212"
+                  },
+                  {
+                     "uid": "mopedlampe.Morwyn.1:/Custom/Atom/Person/Morphs/female/AUTO/PHMGiselleIrisSize.vmi",
+                     "name": "Giselle 6 Iris Size",
+                     "value": "-0.01023043"
+                  },
+                  {
                      "uid": "Lacrimals Size",
                      "name": "Lacrimals Size",
                      "value": "-0.01023043"
@@ -2701,6 +2754,11 @@
                      "value": "0.01112924"
                   },
                   {
+                     "uid": "Custom/Atom/Person/Morphs/female/AUTO/FHMGiselle.vmi",
+                     "name": "Giselle 6 Head",
+                     "value": "0.005115212"
+                  },
+                  {
                      "uid": "Mei Lin 6 Head",
                      "name": "Mei Lin 6 Head",
                      "value": "0.0001291444"
@@ -2709,6 +2767,16 @@
                      "uid": "Monique 6 Head",
                      "name": "Monique 6 Head",
                      "value": "0.0009286723"
+                  },
+                  {
+                     "uid": "Custom/Atom/Person/Morphs/female/AUTO/FHMShaneka.vmi",
+                     "name": "Shaneka Head",
+                     "value": "0.001688495"
+                  },
+                  {
+                     "uid": "Ark1F1.Olivia_McAllister.1:/Custom/Atom/Person/Morphs/female/!Custom/FHMTeenEllieHead.vmi",
+                     "name": "Teen Ellie Head",
+                     "value": "7.093618E-05"
                   },
                   {
                      "uid": "Glute Crease Left",
@@ -2724,6 +2792,11 @@
                      "uid": "Navel",
                      "name": "Navel",
                      "value": "0"
+                  },
+                  {
+                     "uid": "Custom/Atom/Person/Morphs/female/Claire 0401 Alt-cc2d3570.vmi",
+                     "name": "Claire 0401 Alt",
+                     "value": "1"
                   },
                   {
                      "uid": "Brow Down",
@@ -2851,6 +2924,11 @@
                      "value": "0.0001738689"
                   },
                   {
+                     "uid": "particle pinnacle.missing_morphs.1:/Custom/Atom/Person/Morphs/female/particlepinnacle/eye morphs/CTRLEyesUpDown.vmi",
+                     "name": "Eyes Up-Down",
+                     "value": "1.555609E-05"
+                  },
+                  {
                      "uid": "Jaw In-Out",
                      "name": "Jaw In-Out",
                      "value": "-5.211224E-05"
@@ -2976,6 +3054,15 @@
                "Irises": "Color 34"
             },
             {
+               "id": "plugin#0_AIBody.AIBodyPlugin",
+               "Set background color": "true",
+               "Background color": {
+                  "h": "0.3333333",
+                  "s": "1",
+                  "v": "1"
+               }
+            },
+            {
                "id": "skin",
                "Diffuse Texture Offset": "0.04213607",
                "Diffuse Bumpiness": "0",
@@ -2994,6 +3081,106 @@
                   "h": "0.06976748",
                   "s": "0.1869566",
                   "v": "0.9019608"
+               }
+            },
+            {
+               "id": "textures",
+               "autoBlendGenitalTextures": "true",
+               "faceDiffuseUrl": "Custom/Atom/Person/Textures/N3DX/0329/0329_face v5.jpg",
+               "torsoDiffuseUrl": "Custom/Atom/Person/Textures/N3DX/0329/0329_torso.jpg",
+               "limbsDiffuseUrl": "Custom/Atom/Person/Textures/N3DX/0329/0329_limbs.jpg",
+               "torsoDecalUrl": "Custom/Atom/Person/Textures/Tan Lines (Decals)/Base Female/6%/String Bikini (select)/torsoDecal.png",
+               "genitalsDecalUrl": "Custom/Atom/Person/Textures/Tan Lines (Decals)/Base Female/6%/String Bikini (select)/genitalsDecal.png"
+            },
+            {
+               "id": "NoStage3:Long BacksweptSim",
+               "colorRolloff": "0.4480375",
+               "diffuseSoftness": "0.04670385",
+               "secondarySpecularSharpness": "20.02297",
+               "specularShift": "0.4681535",
+               "fresnelPower": "0.6804466",
+               "fresnelAttenuation": "0.8601252",
+               "randomColorPower": "1.997213",
+               "randomColorOffset": "0.5252416",
+               "IBLFactor": "0.9503933",
+               "normalRandomize": "0.2118453",
+               "rootColor": {
+                  "h": "0.04193893",
+                  "s": "0.9242701",
+                  "v": "0.0249874"
+               },
+               "tipColor": {
+                  "h": "0.0442245",
+                  "s": "0.6962133",
+                  "v": "0.2958673"
+               },
+               "specularColor": {
+                  "h": "0.05011664",
+                  "s": "0.3912659",
+                  "v": "0.4820584"
+               }
+            },
+            {
+               "id": "NoStage3:Long BacksweptLeytonScalpMaterial",
+               "Specular Intensity": "2.165589",
+               "Diffuse Texture Offset": "0.2611009",
+               "Diffuse Color": {
+                  "h": "0.06265146",
+                  "s": "0.6920789",
+                  "v": "0.1624046"
+               },
+               "Specular Color": {
+                  "h": "0.06265146",
+                  "s": "0",
+                  "v": "0"
+               },
+               "Subsurface Color": {
+                  "h": "0",
+                  "s": "0",
+                  "v": "0"
+               }
+            },
+            {
+               "id": "NoStage3:Back PonySim",
+               "colorRolloff": "0.1529436",
+               "diffuseSoftness": "0.04670385",
+               "secondarySpecularSharpness": "20.02297",
+               "specularShift": "0.4681535",
+               "fresnelPower": "0.5181513",
+               "fresnelAttenuation": "0.8601252",
+               "randomColorPower": "1.997213",
+               "randomColorOffset": "0.5252416",
+               "IBLFactor": "0.9503933",
+               "normalRandomize": "0.2118453",
+               "rootColor": {
+                  "h": "0.04193893",
+                  "s": "0.9242701",
+                  "v": "0.0249874"
+               },
+               "tipColor": {
+                  "h": "0.0442245",
+                  "s": "0.6962133",
+                  "v": "0.2958673"
+               },
+               "specularColor": {
+                  "h": "0.05011664",
+                  "s": "0.6671525",
+                  "v": "0.8668066"
+               }
+            },
+            {
+               "id": "NoStage3:Back PonySoleilScalpMaterial",
+               "Specular Intensity": "2.165589",
+               "Diffuse Texture Offset": "0.2611009",
+               "Diffuse Color": {
+                  "h": "0.06265146",
+                  "s": "0.7363513",
+                  "v": "0.2360521"
+               },
+               "Specular Color": {
+                  "h": "0.06265146",
+                  "s": "0",
+                  "v": "0"
                }
             }
          ]
@@ -4728,7 +4915,18 @@
             {
                "id": "geometry",
                "character": "Male 4",
-               "clothing": [],
+               "clothing": [
+                  {
+                     "id": "Molmark.Police_uniform.2:/Custom/Clothing/Male/Molmark/Police uniform/police_male_pants.vam",
+                     "internalId": "Molmark:police_male_pants",
+                     "enabled": "true"
+                  },
+                  {
+                     "id": "Custom/Clothing/Male/PositiveResult/HoodieMale/HoodieMale_Down.vam",
+                     "internalId": "PositiveResult:HoodieMale_Down",
+                     "enabled": "true"
+                  }
+               ],
                "hair": [
                   {
                      "id": "No Hair",
@@ -4736,6 +4934,16 @@
                   }
                ],
                "morphs": [
+                  {
+                     "uid": "Custom/Atom/Person/Morphs/male/AUTO/RG InOut.vmi",
+                     "name": "RG InOut",
+                     "value": "-0.01621902"
+                  },
+                  {
+                     "uid": "Custom/Atom/Person/Morphs/male/AUTO/RG Side2Side.vmi",
+                     "name": "RG Side2Side",
+                     "value": "0.0006002188"
+                  },
                   {
                      "uid": "Body Size",
                      "name": "Body Size",
@@ -4790,6 +4998,11 @@
                      "uid": "Michael 6 Head",
                      "name": "Michael 6 Head",
                      "value": "0"
+                  },
+                  {
+                     "uid": "Custom/Atom/Person/Morphs/male/Bryan Gosling.vmi",
+                     "name": "Bryan Gosling",
+                     "value": "1.150257"
                   }
                ]
             },
@@ -4804,6 +5017,10 @@
             {
                "id": "AutoExpressions",
                "enabled": "false"
+            },
+            {
+               "id": "textures",
+               "faceDiffuseUrl": "Saves/scene/Tiseb29/RetroGlide/RetroSlinger_RyanG/BryanGoslingFace.jpg"
             }
          ]
       }

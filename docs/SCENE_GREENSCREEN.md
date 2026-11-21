@@ -1,35 +1,73 @@
-# AIBody example scene (and greenscreen background)
+# AI-Buddy example scene (and greenscreen background)
 
-Status 20.11.2026 (version 37) · Leon's two-character example of 20.11.2026 · File: [`examples/scenes/AIBody_Example.json`](../examples/scenes/AIBody_Example.json) with preview [`examples/scenes/AIBody_Example.jpg`](../examples/scenes/AIBody_Example.jpg) · in the package: `Saves/scene/AIBody/AIBody_Example.json` and `Saves/scene/AIBody/AIBody_Example.jpg`
+Status 21.11.2026 (after version 37, no version bump) · Leon's original two-character scene of 20.11.2026, named **AI-Buddy**, with clothing and looks kept · File: [`examples/scenes/AI-Buddy.json`](../examples/scenes/AI-Buddy.json) with preview [`examples/scenes/AI-Buddy.jpg`](../examples/scenes/AI-Buddy.jpg) · in the package: `Saves/scene/AIBody/AI-Buddy.json` and `Saves/scene/AIBody/AI-Buddy.jpg`
 
-Two people, no third-party package (`meta.json` dependencies `{}`):
+Two people. AIBody is only on the female. Dollmaster, Improved PoV and the Dollmaster animation/audio atoms are not in the scene (they conflict with AIBody and were the likely cause of a complete load hang). Explicit genital morphs are removed. **Set background color** is on (#00FF00).
 
-1. Atom `Person` (Person, female: `geometry.character` = `Female 1`), root slightly to the right of the origin. Plugins tab of the Person: **AIBody** `d0n.AIBody.37:/Custom/Scripts/d0n/AIBody/AIBody.cslist` (inside the package: `SELF:/Custom/Scripts/d0n/AIBody/AIBody.cslist`) with saved values `Set background color` = false and `Background color` = #00FF00 (the default color if you switch it on).
-2. Atom `BryanGosling` (Person, male: `geometry.character` = `Male 4`), at the origin. No plugin.
-3. `[CameraRig]`, `WindowCamera`, `PlayerNavigationPanel`, `CoreControl`. No scene plugin, no clothes (no evidenced built-in clothing ids; looks without fixed clothing, as before).
+1. Atom `Person` (Person, female: `geometry.character` = `Female 1`), root slightly to the right of the origin. Plugins tab of the Person: **AIBody** `d0n.AIBody.37:/Custom/Scripts/d0n/AIBody/AIBody.cslist` (inside the package: `SELF:/Custom/Scripts/d0n/AIBody/AIBody.cslist`) with saved values `Set background color` = true and `Background color` = #00FF00. Clothing: Pro Court Short F (`EuLinRabei.ProCourt_Outfit.3`) and Nico Tanktop (`paledriver.Nico.2`). Hair: Long Backswept Pony (`NoStage3.Hair_Long_Backswept_Pony.1`) plus a loose scamp THEV hair (see local content below). Face and body morphs from the original look, including package morphs from `Ark1F1.Olivia_McAllister.1`, `Wolverine333.LAUREN_4.1`, `mopedlampe.Morwyn.1` and `particle pinnacle.missing_morphs.1`.
+2. Atom `BryanGosling` (Person, male: `geometry.character` = `Male 4`), at the origin. No plugin. Clothing: police pants (`Molmark.Police_uniform.2`) and a loose PositiveResult hoodie. Built-in hair entry `No Hair`. Face texture and the Bryan Gosling morph are loose local files.
+3. `[CameraRig]`, `WindowCamera`, `PlayerNavigationPanel`, `CoreControl`. No scene plugin.
 
 Roles:
 - `Person` is the AI's body (AIBody). One character only: do not add AIBody to `BryanGosling`.
 - `BryanGosling` is the second figure in the example. Microphone, push-to-talk and text input run through the companion app and the tab *Client Character* in the AIBody plugin on the female.
 
-**Background / greenscreen (optional):** the scene ships with **Set background color** off, so the packaged look matches the thumbnail. Switch it on in tab Config > Background if you want a plain chroma color (default #00FF00). VaM does **not** make the background transparent. VaM only shows a uniform color. Transparency is made by the headset or the streaming program through a chroma key on exactly the same color, e.g. Quest 3 with Virtual Desktop.
+**Background / greenscreen:** the packaged scene ships with **Set background color** on (default color #00FF00). Switch it off in tab Config > Background if you want the room sky instead. VaM does **not** make the background transparent. VaM only shows a uniform color. Transparency is made by the headset or the streaming program through a chroma key on exactly the same color, e.g. Quest 3 with Virtual Desktop. The companion's first-start setup can still write a loose copy of the scene with the toggle on or off from your answer.
 
 ## Choose what to use
 
-- **Scene:** ONE download is enough: the scene is inside `d0n.AIBody.37.var` at `Saves/scene/AIBody/AIBody_Example.json` (plugin entry `SELF:/Custom/Scripts/d0n/AIBody/AIBody.cslist` = the plugin of the same package, so it never points at another version) with the preview `Saves/scene/AIBody/AIBody_Example.jpg` (same base name: VaM's Load Scene menu can show the thumbnail). VaM's scene browser (main menu **Open Scene** / **Load Scene**) lists scenes of packages that lie below `Saves/scene/`: open the package `d0n.AIBody.37` (package filter / shortcut on the left of the browser), folder `AIBody`, file **AIBody_Example**. TODO(verify) in VaM 1.22: the thumbnail in the list (T44).
-- Optional loose copy (release assets `AIBody_Example.json` and `AIBody_Example.jpg`, also what the companion's setup writes when you choose Scene there, with your background answer): put both at `<VaM main folder>/Saves/scene/AIBody/`; the JSON references `d0n.AIBody.37:/Custom/Scripts/d0n/AIBody/AIBody.cslist` (SELF: only works inside a package).
+- **Scene:** ONE download of `d0n.AIBody.37.var` plus the third-party packages listed below: the scene is inside the package at `Saves/scene/AIBody/AI-Buddy.json` (plugin entry `SELF:/Custom/Scripts/d0n/AIBody/AIBody.cslist` = the plugin of the same package, so it never points at another version) with the preview `Saves/scene/AIBody/AI-Buddy.jpg` (same base name: VaM's Load Scene menu can show the thumbnail). VaM's scene browser (main menu **Open Scene** / **Load Scene**) lists scenes of packages that lie below `Saves/scene/`: open the package `d0n.AIBody.37` (package filter / shortcut on the left of the browser), folder `AIBody`, file **AI-Buddy**. TODO(verify) in VaM 1.22: the thumbnail in the list and a clean load (T46).
+- Optional loose copy (what the companion's setup writes when you choose Scene there, with your background answer): put `AI-Buddy.json` and `AI-Buddy.jpg` at `<VaM main folder>/Saves/scene/AIBody/`; the JSON references `d0n.AIBody.37:/Custom/Scripts/d0n/AIBody/AIBody.cslist` (SELF: only works inside a package).
 - **Plugin:** add AIBody to a Person of your own scene (Plugins > Add Plugin, or the plugin preset). Switch **Set background color** on in tab Config if you want the plain color; the companion's setup does it for you when you answered yes there.
+
+## Third-party packages (`meta.json` dependencies)
+
+These packages stay referenced in the scene, so they are declared in `packaging/meta.json` `dependencies` in VaM's format (package id, `licenseType` when a Hub lookup found one, nested `dependencies`). VaM can then show a missing-package notice. License types were read from the Hub `getResourceDetail` API on 21.11.2026; the packages themselves were not downloaded. Two packages were not on the Hub, so `licenseType` is omitted rather than invented. Our own package `licenseType` stays `FC` and is not changed.
+
+- `Ark1F1.Olivia_McAllister.1` — not found on the Hub (a later, different package `Ark1F1.Olivia_Look_+_Futa_Final_Update.1` exists; the scene still points at this older name)
+- `EuLinRabei.ProCourt_Outfit.3` — CC BY-SA
+- `Molmark.Police_uniform.2` — CC BY
+- `NoStage3.Hair_Long_Backswept_Pony.1` — CC BY
+- `Wolverine333.LAUREN_4.1` — CC BY
+- `mopedlampe.Morwyn.1` — CC BY
+- `paledriver.Nico.2` — CC BY-NC-ND
+- `particle pinnacle.missing_morphs.1` — not found on the Hub
+
+`WeebU.Amy_Demon_futa_scenes.2` (Improved PoV) and `JoyBoy.Andi_Collection.2` (the AG2_M_OpenXXL genital morph) are no longer referenced and are not dependencies.
+
+## Needs local content
+
+The following items need local content (loose files that this package does not ship):
+
+These paths are loose files under `Custom/` or `Saves/`, not inside a `.var`. They cannot be redistributed with this package. They resolve on the author's PC; elsewhere VaM skips the missing morph, texture, hair or clothing and still loads the scene. This list needs local content:
+
+- `Custom/Atom/Person/Morphs/female/AUTO/FHMGiselle.vmi`
+- `Custom/Atom/Person/Morphs/female/AUTO/FHMShaneka.vmi`
+- `Custom/Atom/Person/Morphs/female/AUTO/PHMGiselleEyelashes.vmi`
+- `Custom/Atom/Person/Morphs/female/CTRLFitness.vmi`
+- `Custom/Atom/Person/Morphs/female/Claire 0401 Alt-cc2d3570.vmi`
+- `Custom/Atom/Person/Morphs/male/AUTO/RG InOut.vmi`
+- `Custom/Atom/Person/Morphs/male/AUTO/RG Side2Side.vmi`
+- `Custom/Atom/Person/Morphs/male/Bryan Gosling.vmi`
+- `Custom/Atom/Person/Textures/N3DX/0329/0329_face v5.jpg`
+- `Custom/Atom/Person/Textures/N3DX/0329/0329_limbs.jpg`
+- `Custom/Atom/Person/Textures/N3DX/0329/0329_torso.jpg`
+- `Custom/Atom/Person/Textures/Tan Lines (Decals)/Base Female/6%/String Bikini (select)/genitalsDecal.png`
+- `Custom/Atom/Person/Textures/Tan Lines (Decals)/Base Female/6%/String Bikini (select)/torsoDecal.png`
+- `Custom/Clothing/Male/PositiveResult/HoodieMale/HoodieMale_Down.vam`
+- `Custom/Hair/Female/scamp/Samples/THEV.vam`
+- `Saves/scene/Tiseb29/RetroGlide/RetroSlinger_RyanG/BryanGoslingFace.jpg`
 
 ## What you need
 
-- `d0n.AIBody.37.var` – [release v37](https://github.com/d0n/vam_plugin/releases/tag/v37), into `<VaM main folder>/AddonPackages/`. Nothing else.
+- `d0n.AIBody.37.var` — into `<VaM main folder>/AddonPackages/`. The third-party packages above, if you want the full look. The loose local files above, if you have them.
 
 ## Checking
 
-1. Open the scene (see above) and confirm the thumbnail in the Load Scene list. Select `Person` > tab **Plugins**: `SELF:/Custom/Scripts/d0n/AIBody/AIBody.cslist` (or the package path); plugin window > tab **Config** > Background: Set background color OFF unless you turned it on.
-2. Start the companion app (see README). For a greenscreen, switch Set background color on and set the chroma key in the headset to the same color.
+1. Open the scene (see above) and confirm the thumbnail in the Load Scene list. If a listed dependency is missing, VaM should mention it rather than hang. Select `Person` > tab **Plugins**: `SELF:/Custom/Scripts/d0n/AIBody/AIBody.cslist` (or the package path); plugin window > tab **Config** > Background: Set background color ON, color #00FF00 unless you changed it. `BryanGosling` has no AIBody plugin.
+2. Start the companion app (see README). For a greenscreen, keep Set background color on and set the chroma key in the headset to the same color.
 
-Afterwards please send a screenshot (the Load Scene list with the thumbnail, the scene, and the plugin's tab Config) and all red lines with "AIBody:" from the error log. Test steps: `docs/TEST_PROTOCOL.md` T38 (background) and T44 (thumbnail and plugin on the female).
+Afterwards please send a screenshot (the Load Scene list with the thumbnail, the scene, and the plugin's tab Config) and all red lines with "AIBody:" from the error log. Test steps: `docs/TEST_PROTOCOL.md` T38 (background) and T46 (AI-Buddy thumbnail, plugin, clothing, background on).
 
 ## How AIBody makes the background (version 36)
 

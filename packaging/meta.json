@@ -10,7 +10,38 @@
   "promotionalLink": "https://github.com/d0n/vam_plugin",
   "programVersion": "1.22.0.3",
   "contentList": [],
-  "dependencies": {},
+  "dependencies": {
+    "Ark1F1.Olivia_McAllister.1": {
+      "dependencies": {}
+    },
+    "EuLinRabei.ProCourt_Outfit.3": {
+      "licenseType": "CC BY-SA",
+      "dependencies": {}
+    },
+    "Molmark.Police_uniform.2": {
+      "licenseType": "CC BY",
+      "dependencies": {}
+    },
+    "NoStage3.Hair_Long_Backswept_Pony.1": {
+      "licenseType": "CC BY",
+      "dependencies": {}
+    },
+    "Wolverine333.LAUREN_4.1": {
+      "licenseType": "CC BY",
+      "dependencies": {}
+    },
+    "mopedlampe.Morwyn.1": {
+      "licenseType": "CC BY",
+      "dependencies": {}
+    },
+    "paledriver.Nico.2": {
+      "licenseType": "CC BY-NC-ND",
+      "dependencies": {}
+    },
+    "particle pinnacle.missing_morphs.1": {
+      "dependencies": {}
+    }
+  },
   "customOptions": {
     "preloadMorphs": "false"
   },

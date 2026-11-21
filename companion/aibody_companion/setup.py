@@ -12,12 +12,13 @@ Asked once when the app starts for the first time (config.json "setup.asked" is 
               (start, Reload Config JSON, or when this app connects) - in whatever scene it runs, scene or not.
        no  -> setup.background = false; the plugin's toggle stays as it is (OFF by default).
   2. "Choose what to use": Scene or Plugin (either / or).
-       Scene  -> the app writes the AIBody scene to <VaM>/Saves/scene/AIBody/AIBody_Example.json (an existing file is
-                 kept as .bak) and the preview thumbnail AIBody_Example.jpg next to it: two people, female Person
-                 (Female 1) with AIBody of this version, male BryanGosling (Male 4) without a plugin, no third-party
-                 package. The scene carries the background answer of point 1 for AIBody (toggle and color) and
+       Scene  -> the app writes the AIBody scene to <VaM>/Saves/scene/AIBody/AI-Buddy.json (an existing file is
+                 kept as .bak) and the preview thumbnail AI-Buddy.jpg next to it: two people, female Person
+                 (Female 1) with AIBody of this version, male BryanGosling (Male 4) without a plugin, clothing and
+                 looks from the original scene (third-party packages listed in meta.json dependencies).
+                 The scene carries the background answer of point 1 for AIBody (toggle and color) and
                  nothing else; the same scene and thumbnail ship in the package (VaM: Open Scene >
-                 d0n.AIBody.<n> > AIBody_Example).
+                 d0n.AIBody.<n> > AI-Buddy).
        Plugin -> nothing is written; the app says how to add the plugin to your own Person atom.
 
 The answers are stored in config.json "setup" (companion category; the plugin only reads it). setup.revision grows by
@@ -48,9 +49,9 @@ QUESTION_CHOICE = "Choose what to use"
 DEFAULT_COLOR = "#00FF00"
 CHOICE_SCENE = "scene"
 CHOICE_PLUGIN = "plugin"
-TEMPLATE = Path(__file__).resolve().parents[2] / "examples" / "scenes" / "AIBody_Example.json"
-SCENE_REL = "Saves/scene/AIBody/AIBody_Example.json"
-THUMB_REL = "Saves/scene/AIBody/AIBody_Example.jpg"
+TEMPLATE = Path(__file__).resolve().parents[2] / "examples" / "scenes" / "AI-Buddy.json"
+SCENE_REL = "Saves/scene/AIBody/AI-Buddy.json"
+THUMB_REL = "Saves/scene/AIBody/AI-Buddy.jpg"
 AIBODY_SCRIPT = "/Custom/Scripts/d0n/AIBody/AIBody.cslist"
 AIBODY_STORABLE = "plugin#0_AIBody.AIBodyPlugin"  # "<plugin id>_<namespace>.<class>", like VamTimeline.AtomPlugin (E8)
 TOGGLE_NAME = "Set background color"  # AIBodyPlugin.BackgroundToggleName
@@ -205,7 +206,7 @@ def run(vam_root: str | Path, ask: Callable[[str], str] = input, say: Callable[[
             path = write_scene(vam_root, background, color, template)
             result["scene_path"] = str(path)
             say(f"Scene written: {path}. In VaM: Open Scene > {SCENE_REL} "
-                f"(the same scene is in the package: d0n.AIBody.{__version__} > AIBody_Example).")
+                f"(the same scene is in the package: d0n.AIBody.{__version__} > AI-Buddy).")
         except (OSError, ValueError) as e:
             say(f"The scene could not be written ({e}). The template is {template}.")
             log.warning("Setup: scene not written: %s", e)

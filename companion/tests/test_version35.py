@@ -148,7 +148,11 @@ class OwnIdleMotionTests(unittest.TestCase):
             for word in ("MacGruber", "IdleMover", "Idle Mover"):
                 self.assertNotIn(word, text, f"{name}: {word}")
         meta = json.loads((ROOT / "packaging/meta.json").read_text(encoding="utf-8"))
-        self.assertEqual(meta.get("dependencies", {}), {})
+        self.assertEqual(meta.get("licenseType"), "FC")
+        # Idle motion / breathing still adds no plugin package of its own (no MacGruber / Idle Mover).
+        # meta.json "dependencies" now lists third-party content used by the AI-Buddy example scene, not the plugin.
+        self.assertNotIn("MacGruber", json.dumps(meta.get("dependencies", {})))
+        self.assertNotIn("IdleMover", json.dumps(meta.get("dependencies", {})))
 
 
 # -- 4. voice pose commands ---------------------------------------------------------------------------------------

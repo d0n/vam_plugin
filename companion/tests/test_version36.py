@@ -200,10 +200,10 @@ class SceneTests(unittest.TestCase):
         self.assertEqual(next(st for st in male["storables"] if st["id"] == "geometry")["character"], "Male 4")
         self.assertIn("[CameraRig]", [a["id"] for a in self.data["atoms"]])
 
-    def test_template_default_is_background_off(self):
+    def test_template_default_is_background_on(self):
         st = next(st for a in json.loads(first_start.TEMPLATE.read_text())["atoms"] for st in a["storables"]
                   if st["id"] == first_start.AIBODY_STORABLE)
-        self.assertEqual(st[first_start.TOGGLE_NAME], "false")
+        self.assertEqual(st[first_start.TOGGLE_NAME], "true")
         self.assertEqual(st[first_start.COLOR_NAME], GREEN)
 
     def test_hsv_matches_vam_format(self):
@@ -215,36 +215,46 @@ class SceneTests(unittest.TestCase):
 
 
 class VarTests(unittest.TestCase):
-    def test_var_contains_the_scene_and_no_dependency(self):
+    def test_var_contains_the_scene_and_declares_scene_dependencies(self):
         import importlib.util
         spec = importlib.util.spec_from_file_location("build_var36", ROOT / "tools" / "build_var.py")
         build = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(build)
         loose_path = ROOT / "dist" / build.LOOSE_SCENE
+        loose_thumb = ROOT / "dist" / build.LOOSE_THUMB
         kept = loose_path.read_bytes() if loose_path.exists() else None
+        kept_thumb = loose_thumb.read_bytes() if loose_thumb.exists() else None
+        expected_deps = json.loads((ROOT / "packaging" / "meta.json").read_text(encoding="utf-8"))["dependencies"]
         out = build.build(version_override=9036)
         try:
             with zipfile.ZipFile(out) as z:
                 meta = json.loads(z.read("meta.json"))
                 self.assertIn(build.SCENE_PATH, z.namelist())
                 self.assertIn(build.SCENE_PATH, meta["contentList"])
-                self.assertEqual(meta.get("dependencies", {}), {})
+                self.assertEqual(meta.get("licenseType"), "FC")
+                self.assertEqual(meta.get("dependencies"), expected_deps)
                 scene = z.read(build.SCENE_PATH).decode("utf-8")
-                self.assertEqual(build.SCENE_PATH, "Saves/scene/AIBody/AIBody_Example.json")
+                self.assertEqual(build.SCENE_PATH, "Saves/scene/AIBody/AI-Buddy.json")
                 plugins = [p for a in json.loads(scene)["atoms"] for st in a["storables"]
                            if st["id"] == "PluginManager" for p in st["plugins"].values()]
                 self.assertEqual(plugins, ["SELF:/Custom/Scripts/d0n/AIBody/AIBody.cslist"])
                 self.assertIn(plugins[0][len("SELF:/"):], z.namelist(), "SELF: resolves to the .cslist in the VAR")
                 self.assertNotIn("Sally", scene)
+                self.assertNotIn("Dollmaster", scene)
+                self.assertNotIn("ImprovedPoV", scene)
                 self.assertNotIn("9036", scene, "no version inside the package scene")
             loose = json.loads((out.parent / build.LOOSE_SCENE).read_text(encoding="utf-8"))
             self.assertIn("d0n.AIBody.9036:/Custom/Scripts/d0n/AIBody/AIBody.cslist", json.dumps(loose))
         finally:
             out.unlink()
             if kept is None:
-                loose_path.unlink()
+                loose_path.unlink(missing_ok=True)
             else:
                 loose_path.write_bytes(kept)
+            if kept_thumb is None:
+                loose_thumb.unlink(missing_ok=True)
+            else:
+                loose_thumb.write_bytes(kept_thumb)
 
 
 class PluginSetupSourceTests(unittest.TestCase):

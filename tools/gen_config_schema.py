@@ -47,7 +47,7 @@ DESCRIPTIONS = {
     ("setup", "background"): "Answer to 'Do you want a greenscreen background?': true = the plugin switches its toggle "
                              "'Set background color' (tab Config) on with background_color, once per revision",
     ("setup", "background_color"): "Answer to 'Set your color for transparency' as #RRGGBB (default #00FF00, green)",
-    ("setup", "choice"): "Answer to 'Choose what to use': scene = the app wrote Saves/scene/AIBody/AIBody_Example.json; "
+    ("setup", "choice"): "Answer to 'Choose what to use': scene = the app wrote Saves/scene/AIBody/AI-Buddy.json; "
                          "plugin = nothing written; empty = not answered yet",
     ("setup", "revision"): "Grows by one with every answered setup; the plugin applies a background answer once per revision",
     ("characters",): "Tab 'AI Character', section 'Characters' (after version 37): answers of the character "

@@ -6,14 +6,14 @@
     Custom/Scripts/d0n/AIBody/AIBody.cslist   (+ the .cs files it lists, same folder)
     Custom/Scripts/d0n/AIBody/AIBodyTest.wav  (test tone for the plugin's "Play test tone")
     Custom/Atom/Person/Plugins/AIBody/Preset_AIBody.vap  (plugin preset, version 31: adds the plugin to a Person)
-    Saves/scene/AIBody/AIBody_Example.json     (the AIBody scene = the "Scene" choice; VaM's scene browser lists
+    Saves/scene/AIBody/AI-Buddy.json     (the AIBody scene = the "Scene" choice; VaM's scene browser lists
                                                 scenes of packages below Saves/scene/; the plugin is referenced as
                                                 "SELF:/Custom/Scripts/d0n/AIBody/AIBody.cslist" = this package)
-    Saves/scene/AIBody/AIBody_Example.jpg      (version 37: preview thumbnail next to the scene, same base name, so
+    Saves/scene/AIBody/AI-Buddy.jpg      (version 37: preview thumbnail next to the scene, same base name, so
                                                 VaM's Load Scene menu can show it)
-  dist/AIBody_Example.json                     (optional loose copy for <VaM>/Saves/scene/AIBody/, release asset; it
+  dist/AI-Buddy.json                     (optional loose copy for <VaM>/Saves/scene/AIBody/, release asset; it
                                                 references "d0n.AIBody.<N>:/..." because SELF: only works in a package)
-  dist/AIBody_Example.jpg                      (the same thumbnail next to the loose scene)
+  dist/AI-Buddy.jpg                      (the same thumbnail next to the loose scene)
 
 meta.json is packaging/meta.json (unchanged, incl. licenseType) with the overrides from
 packaging/AIBody.json, which also sets the package version <N>. The script folder is assembled by
@@ -42,20 +42,24 @@ TEST_TONE = "AIBodyTest.wav"  # Body.TestToneFile
 PRESET_PATH = "Custom/Atom/Person/Plugins/AIBody/Preset_AIBody.vap"  # VaM's folder for Person plugin presets
 
 
-SCENE_PATH = "Saves/scene/AIBody/AIBody_Example.json"
-SCENE_THUMB_PATH = "Saves/scene/AIBody/AIBody_Example.jpg"
-SCENE_TEMPLATE = ROOT / "examples" / "scenes" / "AIBody_Example.json"
+SCENE_PATH = "Saves/scene/AIBody/AI-Buddy.json"
+SCENE_THUMB_PATH = "Saves/scene/AIBody/AI-Buddy.jpg"
+SCENE_TEMPLATE = ROOT / "examples" / "scenes" / "AI-Buddy.json"
 SCENE_THUMB = SCENE_TEMPLATE.with_suffix(".jpg")
 
-LOOSE_SCENE = "AIBody_Example.json"
-LOOSE_THUMB = "AIBody_Example.jpg"
+LOOSE_SCENE = "AI-Buddy.json"
+LOOSE_THUMB = "AI-Buddy.jpg"
 
 
 def example_scene(creator: str, package: str, version: int, script_dir: str, inside_package: bool = True) -> str:
-    """The scene template with AIBody (no other package is referenced: meta dependencies stay {}). Inside the package
-    the plugin is "SELF:/<script_dir>/AIBody.cslist" (VaM's prefix for content of the same package, E34), so the
-    scene never points at another version; the loose copy uses "<creator>.<package>.<version>:/...".
-    TODO(verify) in VaM: the scene is listed by Open Scene, and PluginManager resolves SELF: in a package scene."""
+    """The AI-Buddy scene template with AIBody on the female Person. Third-party clothing, hair and morph packages
+    stay in the scene and are declared in packaging/meta.json "dependencies" (VaM format: package id -> licenseType
+    when known from a Hub lookup, plus nested dependencies). Loose Custom/ and Saves/ paths stay in the scene too
+    (they resolve on the author's PC; VaM skips them elsewhere) and are not packaged. Inside the package the plugin
+    is "SELF:/<script_dir>/AIBody.cslist" (VaM's prefix for content of the same package, E34), so the scene never
+    points at another version; the loose copy uses "<creator>.<package>.<version>:/...".
+    TODO(verify) in VaM: the scene is listed by Open Scene, PluginManager resolves SELF:, and missing dependencies
+    are shown."""
     data = json.loads(SCENE_TEMPLATE.read_text(encoding="utf-8"))
     prefix = "SELF" if inside_package else f"{creator}.{package}.{version}"
     cslist = f"{prefix}:/{script_dir}/AIBody.cslist"

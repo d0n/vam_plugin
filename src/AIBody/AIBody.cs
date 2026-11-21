@@ -309,7 +309,7 @@ namespace AIBody
                 + BackgroundColorName + "</b> instead of the room's sky, it is saved with the scene and switching it off restores the old "
                 + "background, and a 'yes' in the companion's setup switches it on once with the color chosen there. "
                 + "For a ready scene open VaM > Open Scene > d0n.AIBody." + PluginVersion
-                + " > AIBody_Example (the AI Character anchored at a fixed spot, green background on); otherwise this plugin runs "
+                + " > AI-Buddy (two people, AIBody on the female, green background on); otherwise this plugin runs "
                 + "on your own Person atom in your own scene.\n";
         }
 
