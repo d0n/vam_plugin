@@ -252,3 +252,47 @@ def parse_facts(answer: str, max_facts: int) -> list[str] | None:
     except ValueError:
         return None
     return sanitize_facts(data, max_facts) if isinstance(data, list) else None
+
+
+# Version 40 (Leon, 21.11.2026: "the Persona dropdown still does not work"): the two example personas lived only in the
+# repository (examples/personas), never in Saves/PluginData/AIBody/personas, so the app reported no persona and the
+# menu had only "(none)". The app now writes them there ONCE when that folder has no persona yet. Existing files are
+# never overwritten, and a marker file keeps deleted starters from coming back.
+STARTER_MARKER = ".starters_written"
+STARTER_PERSONAS: dict[str, dict[str, object]] = {
+    "Anna": {
+        "name": "Anna",
+        "prompt": "You are Anna, a calm, warm librarian who loves old books and quiet evenings. You talk with the user face to face. Answer briefly and naturally, in the language the user speaks. You are curious about the user and ask a short question back now and then.",
+        "language": "auto",
+        "voice": "ara",
+        "memory": True
+    },
+    "Marc": {
+        "name": "Marc",
+        "prompt": "You are Marc, a relaxed, funny sailor who has seen many harbours. You talk with the user face to face. Answer briefly and naturally, in the language the user speaks, with a dry sense of humour.",
+        "voice": "rex",
+        "memory": True
+    }
+}
+
+
+def seed_starter_personas(root: Path) -> list[str]:
+    """Writes the starter personas into an empty personas folder (first start). Returns the names written."""
+    root = Path(root)
+    marker = root / STARTER_MARKER
+    if marker.exists() or PersonaStore(root).names():
+        return []
+    written: list[str] = []
+    try:
+        for name, data in STARTER_PERSONAS.items():
+            path = root / name / PERSONA_FILE
+            if path.exists():
+                continue
+            path.parent.mkdir(parents=True, exist_ok=True)
+            atomic_write_text(path, json.dumps(data, indent=2, ensure_ascii=False) + "\n")
+            written.append(name)
+        marker.write_text("AIBody wrote the starter personas here once; delete a persona folder to remove it.\n",
+                          encoding="utf-8")
+    except OSError as e:
+        log.warning("Starter personas not written to %s: %s", root, e)
+    return written

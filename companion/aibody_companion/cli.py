@@ -6,12 +6,14 @@ import logging
 import queue
 import sys
 import threading
+from pathlib import Path
 
 from . import __version__, logsetup, settings_file
 from . import setup as first_start
+from . import personas as personas_module
 from . import wakeup
 from .audio import EchoGate, MicController
-from .config import Config, load_config
+from .config import PLUGIN_DATA_SUBDIR, Config, load_config
 from .orchestrator import Companion
 from .remote import RemoteControl
 from .pipeline.engines import KEY_HINT, EngineSet
@@ -170,6 +172,10 @@ def main(argv: list[str] | None = None) -> int:
         log.warning("config.json: %s", problem)
     logsetup.set_verbose(cfg.verbose_log)
     maybe_ask_setup(cfg.vam_root, args)
+    seeded = personas_module.seed_starter_personas(
+        Path(cfg.vam_root) / PLUGIN_DATA_SUBDIR / personas_module.PERSONAS_SUBDIR)
+    if seeded:
+        log.info("Starter personas written for the Persona menu: %s", ", ".join(seeded))
     errors = cfg.validate()  # re-check after config.json (engines)
     if errors:
         for e in errors:

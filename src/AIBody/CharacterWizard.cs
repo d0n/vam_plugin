@@ -53,9 +53,12 @@ namespace AIBody
 
         public void CreateStorables()
         {
-            _askedJson = new JSONStorableBool(AskedName, false, (bool v) => { });
+            // Version 40: the two answers rebuild the section when they change from OUTSIDE the buttons too (VaM restoring
+            // the scene's saved values after Init, Reload Config JSON, the config.json seed of a new scene). Before, the
+            // callbacks were empty, so a tab built before that kept showing the old step (e.g. the gate although answered).
+            _askedJson = new JSONStorableBool(AskedName, false, (bool v) => RequestTabRebuild());
             _plugin.RegisterBool(_askedJson);
-            _wantedJson = new JSONStorableBool(WantedName, false, (bool v) => { });
+            _wantedJson = new JSONStorableBool(WantedName, false, (bool v) => RequestTabRebuild());
             _plugin.RegisterBool(_wantedJson);
             List<string> genders = new List<string>();
             genders.Add("");
@@ -74,6 +77,18 @@ namespace AIBody
             if (_onChanged != null) _onChanged();
         }
 
+        private void RequestTabRebuild()
+        {
+            if (RequestRebuild != null) RequestRebuild();
+        }
+
+        /// <summary>Which part of the section is shown: 0 = gate (Yes / No), 1 = skipped (Configure characters), 2 = steps.</summary>
+        public static int Stage(bool answered, bool wanted)
+        {
+            if (!answered) return 0;
+            return wanted ? 2 : 1;
+        }
+
         private void Rebuild()
         {
             if (RequestRebuild != null) RequestRebuild();
@@ -84,13 +99,17 @@ namespace AIBody
         public void Build(UiPage page)
         {
             page.Header("<b>Characters</b>");
-            if (_askedJson == null || !_askedJson.val)
+            int stage = Stage(_askedJson != null && _askedJson.val, _wantedJson != null && _wantedJson.val);
+            if (stage == 0)
             {
+                // Version 40: the question stands right above its two buttons as their label (before, it was only in the
+                // long left info field, so the right column showed a bare Yes / No under "Characters").
+                page.Header(GateQuestion);
                 page.Button("Yes", OnYes);
                 page.Button("No", OnNo);
                 return;
             }
-            if (!_wantedJson.val)
+            if (stage == 1)
             {
                 page.Button("Configure characters", OnReopen);
                 return;
@@ -166,10 +185,11 @@ namespace AIBody
             if (root == null) return;
             JSONClass characters = root["characters"] as JSONClass;
             if (characters == null) return;
-            if (_askedJson != null)
-                _askedJson.val = Protocol.GetBool(characters, "setup_answered", _askedJson.val);
-            if (_wantedJson != null)
-                _wantedJson.val = Protocol.GetBool(characters, "setup_wanted", _wantedJson.val);
+            // Version 40 (root cause of "the wizard shows no question at all", Leon 21.11.2026): the gate answer was also
+            // read from the ONE global config.json. A scene without saved AIBody values (e.g. AI-Buddy) is seeded from
+            // that file, so one Yes / No in any scene marked every later scene as answered and the question never came.
+            // The answer now belongs to the scene only (storables "Character setup answered" / "... wanted");
+            // config.json still gets it written for the companion, but it is never read back. The genders are kept.
             ApplyRecordedGender(_aiGenderJson, Protocol.GetString(characters, "ai_gender", GenderValue(_aiGenderJson)));
             ApplyRecordedGender(_userGenderJson, Protocol.GetString(characters, "user_gender", GenderValue(_userGenderJson)));
         }

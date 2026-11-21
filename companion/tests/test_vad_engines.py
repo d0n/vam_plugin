@@ -385,7 +385,7 @@ class PluginVadMenuTests(unittest.TestCase):
 
     def test_help_and_status_texts_are_plain(self):
         mic = source("MicConfig.cs")
-        for text in ("python -m pip install webrtcvad-wheels", "the microphone is muted on purpose so the ",
+        for text in ("the microphone is muted on purpose so the ",
                      "Voice detection: ", '"vad_note"'):
             self.assertIn(text, mic)
 

@@ -547,7 +547,8 @@ class MenuLayoutTests(unittest.TestCase):
         self.assertEqual(idx, sorted(idx), parts)
 
     def test_right_column_has_only_headers_and_controls(self):
-        allowed_labels = {"XaiTokenLabel", "BreathMorphLabel", "NewPoseCommandLabel"}
+        # GateQuestion (version 40, Leon: "the wizard shows no question at all") is the label of the Yes / No pair below it
+        allowed_labels = {"XaiTokenLabel", "BreathMorphLabel", "NewPoseCommandLabel", "GateQuestion"}
         for file, sig in self.RIGHT:
             body = method_body(source(file), sig)
             self.assertNotRegex(body, r"\bpage\.(Text|Note)\(", f"{file} {sig}")

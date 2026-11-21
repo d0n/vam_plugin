@@ -312,7 +312,7 @@ class NoMicSelectionTests(unittest.TestCase):
         mic = source("MicConfig.cs")
         update = method_body(mic, "public void Update(float deltaTime, bool connected, bool appRunning, bool linkActive)")
         self.assertIn('"Companion app: not connected"', update)
-        self.assertIn('Log.Info("Companion app not connected. Start it in a console', update)
+        self.assertIn('Log.Info("Companion app not connected: " + StartHint + ".");', update)
         plugin = "".join(source(f.name) for f in sorted((ROOT / "src/AIBody").glob("*.cs")))
         self.assertNotIn("nothing is heard or spoken", plugin)
         self.assertNotIn("<color=red>Companion app", plugin)

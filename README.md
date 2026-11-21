@@ -16,6 +16,9 @@ python -m aibody_companion --vam-root "D:\VaM"
 
 (Adjust the path to your own VaM folder, i.e. the folder with `VaM.exe`.) Keep the window open as long as VaM runs.
 
+- **Without typing (Windows, version 40):** double-click [`companion/start_companion.bat`](companion/start_companion.bat). It finds the VaM folder by itself when the repository sits inside it (a parent folder with `AddonPackages` and `Saves`); otherwise it asks once and remembers the answer in `companion/vam_root.txt` (not in git). You can also pass the folder: `start_companion.bat "D:\VaM"`. It uses `py -3` when the Python launcher is installed, else `python`, and keeps the window open with a hint if the app stops with an error.
+- **Why the app is still needed:** VaM 1.22 plugins run in a sandbox with no internet access, no microphone and no way to start programs (only the one loopback socket to this app). Speech recognition, the AI and the voice therefore run in the companion app; the plugin alone cannot listen or answer.
+
 - **From which folder:** the command works when you are in the repository's `companion` folder (`cd companion`). Alternatively run `pip install -e .` once in the `companion` folder; then the same command works from any folder. If Python says `No module named aibody_companion`, you are in the wrong folder (and have not installed the package).
 - **Microphone:** `python -m pip install sounddevice` (or `python -m pip install -r requirements.txt` in the `companion` folder). Without `sounddevice` there is no listening (the app always records from the system's default input device; there is no microphone menu); typing in the console still works.
 - **Python:** version 3.10 or newer.

@@ -27,8 +27,11 @@ namespace AIBody
 
         /// <summary>Start command of the companion app: written to the VaM log once when the app is not running (version 35:
         /// no longer in the menu, Leon 20.11.2026).</summary>
-        public const string StartHint = "python -m aibody_companion --vam-root \"D:\\VaM\"";
-        private bool _startHintLogged;
+        // Leon, 21.11.2026: users install the companion with "AIBody Companion Setup.exe" and start it from the Start menu;
+        // no Python or console command in user-facing plugin text.
+        public const string StartHint = "start 'AIBody Companion' from the Windows Start menu (installed with 'AIBody Companion Setup.exe'); it then runs in the background";
+        // Version 40: static = once per VaM session, not once per plugin instance or scene load.
+        private static bool _startHintLogged;
 
         private readonly MVRScript _plugin;
         private readonly Action<JSONClass> _send;
@@ -106,7 +109,7 @@ namespace AIBody
                 + "from triggers or keys, and <b>Push-to-talk interrupts speech</b> stops the character when you start talking. "
                 + "The microphone is always the system default input (change it in your system sound settings), <b>Input gain</b> amplifies it and "
                 + "<b>Show level meter</b> shows its level here. <b>VAD engine</b> decides how speech is told from noise: 'Auto' uses Silero if its model "
-                + "file is installed (docs/TECHNICAL.md), else WebRTC if the companion app has it (python -m pip install webrtcvad-wheels), otherwise "
+                + "file is installed (docs/TECHNICAL.md), else WebRTC (part of the installed AIBody Companion), otherwise "
                 + "the built-in detector. A higher <b>VAD strictness</b> (0-3) ignores more background noise, <b>VAD threshold</b> is the quietest level "
                 + "that can count as speech, <b>Silence timeout (ms)</b> ends an utterance and <b>Min utterance (ms)</b> and <b>Max utterance (ms)</b> "
                 + "limit its length. While the character talks, and for <b>Echo gate tail (s)</b> afterwards, the microphone is muted on purpose so the "
@@ -185,7 +188,7 @@ namespace AIBody
             if (linkActive && !appRunning && !_startHintLogged)
             {
                 _startHintLogged = true;
-                Log.Info("Companion app not connected. Start it in a console, in the 'companion' folder: " + StartHint);
+                Log.Info("Companion app not connected: " + StartHint + ".");
             }
             // Debounce slider drags: send 0.3 s after the last change.
             if (_dirty && connected && _sinceChange > 0.3f) SendConfig();

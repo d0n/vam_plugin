@@ -572,7 +572,8 @@ namespace AIBody
         }
 
         private string _testToneStatus;
-        private bool _testTonePending;    // pressed while the app was not connected: sent as soon as it connects
+        private bool _testTonePending;    // pressed while the app was not connected: sent as soon as it connects (at most one)
+        private static bool _testToneWaitLogged;   // version 40: the "not connected yet" log line once per VaM session
         private bool _testToneWaiting;    // sent: waiting for the app's speak "Test tone"
         private float _testToneAge;
         public const float TestToneWait = 60f;      // a press waits this long for the app to connect
@@ -586,15 +587,28 @@ namespace AIBody
         /// </summary>
         public void RequestTestTone()
         {
-            _testToneAge = 0f;
             if (!_appAlive)
             {
+                // Version 40 (Leon, 21.11.2026: six presses gave six log lines): at most ONE request waits; more presses
+                // only say so in the left info field, and the VaM log gets this line once per VaM session.
+                if (_testTonePending)
+                {
+                    _testToneStatus = "Test tone via companion: already waiting for the companion app (not connected); one request is kept and sent as soon as the app connects.";
+                    return;
+                }
+                _testToneAge = 0f;
                 _testTonePending = true;
                 _testToneWaiting = false;
                 _testToneStatus = "Test tone via companion: waiting for the companion app (not connected). It is sent as soon as the app connects (up to " + TestToneWait.ToString("0") + " s).";
-                Log.Info("Test tone via companion: the companion app is not connected yet; the request waits for it.");
+                if (!_testToneWaitLogged)
+                {
+                    _testToneWaitLogged = true;
+                    Log.Info("Test tone via companion: the companion app is not connected yet; one request waits for it.");
+                }
+                else Log.Debug("Test tone via companion: waiting for the companion app.");
                 return;
             }
+            _testToneAge = 0f;
             SendTestTone();
         }
 
@@ -676,7 +690,9 @@ namespace AIBody
         {
             string text = "The <b>Persona</b> menu " + (_personaListSeen
                 ? "lists " + _personaNames.Count + " persona(s) from the companion app" + (_personaNames.Count == 0 ? " (only '(none)', because no folder in Saves/PluginData/AIBody/personas has a persona.json yet)" : "")
-                : "shows '(none)' until the companion app reports its personas") + ". ";
+                : "shows only '(none)' because the companion app has not connected yet: the list comes from the app, so start it "
+                  + "from the Windows Start menu ('AIBody Companion') and it lists its personas, including the starters "
+                  + "Anna and Marc it writes on its first start") + ". ";   // version 40
             if (PersonaName.Length == 0) text += "No persona is chosen, so the text ai.persona from config.json is used; personas are folders in Saves/PluginData/AIBody/personas/<name>/ with a persona.json (docs/PERSONAS.md) that you pick in <b>Persona</b>.\n";
             else if (_appAlive && _personaInUse != PersonaName) text += "The persona '" + PersonaName + "' is not in use: " + (_personaNote.Length > 0 ? _personaNote : "the companion app has not confirmed it yet") + "\n";
             else text += "The persona " + PersonaName + " is in use, and its prompt, language and voice replace ai.persona, the config.json language and <b>Voice</b>.\n";
@@ -1052,7 +1068,8 @@ namespace AIBody
 
         private void SetPersona(string name)
         {
-            if (string.IsNullOrEmpty(name)) return;
+            // Version 40: an empty ai.persona_name means "(none)"; before, it was ignored and the old choice stayed.
+            if (string.IsNullOrEmpty(name)) name = PersonaNone;
             if (!_personaJson.choices.Contains(name))
             {
                 List<string> choices = new List<string>(_personaJson.choices);
@@ -1086,6 +1103,8 @@ namespace AIBody
         private void RefreshPersonaChoices()
         {
             if (_personaJson == null) return;
+            // Version 40: an empty value (old scene or config) is "(none)", never a blank menu entry.
+            if (string.IsNullOrEmpty(_personaJson.val)) _personaJson.val = PersonaNone;
             List<string> choices = new List<string> { PersonaNone };
             for (int i = 0; i < _personaNames.Count; i++) if (!choices.Contains(_personaNames[i])) choices.Add(_personaNames[i]);
             if (!choices.Contains(_personaJson.val)) choices.Add(_personaJson.val);

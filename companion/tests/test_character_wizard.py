@@ -47,7 +47,7 @@ class GateTests(unittest.TestCase):
 
     def test_gate_shows_yes_and_no_until_answered(self):
         # Unanswered: only the Yes / No buttons, no gender popups yet.
-        unanswered = method_body(self.build, "if (_askedJson == null || !_askedJson.val)")
+        unanswered = method_body(self.build, "if (stage == 0)")
         self.assertIn('page.Button("Yes", OnYes)', unanswered)
         self.assertIn('page.Button("No", OnNo)', unanswered)
         self.assertNotIn("page.Popup", unanswered)
@@ -69,12 +69,12 @@ class SkipPathTests(unittest.TestCase):
         no = method_body(self.cs, "private void OnNo()")
         self.assertIn("_askedJson.val = true;", no)
         self.assertIn("_wantedJson.val = false;", no)
-        skipped = method_body(self.build, "if (!_wantedJson.val)")
+        skipped = method_body(self.build, "if (stage == 1)")
         self.assertIn('page.Button("Configure characters", OnReopen)', skipped)
         self.assertNotIn("page.Popup", skipped)
         self.assertNotIn('page.Button("Yes"', skipped)
         # After No the gender steps are not in the skip branch; they only follow when wanted.
-        self.assertLess(self.build.index("if (!_wantedJson.val)"), self.build.index("page.Popup(_aiGenderJson)"))
+        self.assertLess(self.build.index("if (stage == 1)"), self.build.index("page.Popup(_aiGenderJson)"))
         self.assertIn("return;", skipped)
 
     def test_configure_characters_reopens_the_gate(self):
