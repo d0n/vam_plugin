@@ -137,6 +137,17 @@ begin
   Result := '';
 end;
 
+{ Detection must never stop the setup: any error is logged and the field stays empty (the user browses). }
+function SafeDetectVamDir(): String;
+begin
+  try
+    Result := DetectVamDir();
+  except
+    Log('VaM folder detection failed: ' + GetExceptionMessage());
+    Result := '';
+  end;
+end;
+
 function InitializeSetup(): Boolean;
 begin
   Result := True;
@@ -160,7 +171,8 @@ begin
     'You can change it later by running this setup again.',
     False, '');
   VamPage.Add('VaM folder (the folder with VaM.exe):');
-  if VamDirParam <> '' then Found := VamDirParam else Found := DetectVamDir();
+  if VamDirParam <> '' then Found := VamDirParam else Found := SafeDetectVamDir();
+  Log('VaM folder prefilled: ' + Found);
   VamPage.Values[0] := Found;
 end;
 
@@ -179,7 +191,7 @@ function ChosenVamDir(): String;
 begin
   if WizardSilent() then
   begin
-    if VamDirParam <> '' then Result := VamDirParam else Result := DetectVamDir();
+    if VamDirParam <> '' then Result := VamDirParam else Result := SafeDetectVamDir();
   end
   else
     Result := Trim(VamPage.Values[0]);
