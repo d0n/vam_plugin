@@ -20,7 +20,7 @@ def source(name: str) -> str:
 
 class VersionTests(TestCase):
     def test_version_41_is_historical(self):
-        """Historical: version 41 sources are gone after the v42 bump; consistency is test_version44."""
+        """Historical: version 41 sources are gone after the v42 bump; consistency is test_version45."""
         self.assertTrue((ROOT / "companion" / "tests" / "test_version42.py").is_file())
         spec = (ROOT / "docs" / "SPEC.md").read_text(encoding="utf-8")
         self.assertIn("(version 41, release; Leon, calls 17:01-17:27, GO for v41 at 17:19): package `d0n.AIBody.41.var`, tag `v41`", spec)
