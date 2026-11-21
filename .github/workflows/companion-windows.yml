@@ -1,7 +1,8 @@
 name: Companion Windows installer
 
 # Builds "AIBody Companion Setup.exe": PyInstaller (windowed, onedir) around aibody_companion/winapp.py, wrapped by
-# Inno Setup (per-user install). Runs the launcher's --selftest on the frozen exe, installs silently, self-tests the
+# Inno Setup (per-user install). Runs the launcher's --selftest on the frozen exe, checks that /VAMDIR= without VaM.exe
+# is refused, installs silently with /VAMDIR= (fake VaM folder), checks launcher.json and --check-vam-root, self-tests the
 # installed copy, uninstalls, scans for keys and uploads the installer as an artifact. Releases attach it by hand.
 on:
   workflow_dispatch:
@@ -75,25 +76,53 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "ISCC failed" }
           Get-ChildItem dist\installer | Format-Table Name, Length
 
-      - name: Silent install, self-test of the installed copy, uninstall
+      - name: Silent install with /VAMDIR=, launcher.json, self-test of the installed copy, uninstall
         shell: pwsh
         run: |
           $setup = Resolve-Path "dist\installer\AIBody Companion Setup.exe"
-          $p = Start-Process -FilePath $setup -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART","/CURRENTUSER" -Wait -PassThru
-          if ($p.ExitCode -ne 0) { throw "setup exit code $($p.ExitCode)" }
           $app = Join-Path $env:LOCALAPPDATA "Programs\AIBody Companion"
           $exe = Join-Path $app "AIBody Companion.exe"
+          $json = Join-Path $env:LOCALAPPDATA "AIBody Companion\launcher.json"
+          $log = Join-Path $env:RUNNER_TEMP "setup.log"
+          # 1. a /VAMDIR= folder without VaM.exe must stop the setup before anything is installed
+          $bad = Join-Path $env:RUNNER_TEMP "Not VaM"
+          New-Item -ItemType Directory -Force $bad | Out-Null
+          $p = Start-Process -FilePath $setup -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART","/CURRENTUSER","/VAMDIR=`"$bad`"" -Wait -PassThru
+          if ($p.ExitCode -eq 0) { throw "setup accepted a VAMDIR without VaM.exe" }
+          if (Test-Path $exe) { throw "installed although VAMDIR had no VaM.exe" }
+          Write-Host "invalid VAMDIR refused (exit code $($p.ExitCode))"
+          # 2. a fake VaM folder (only VaM.exe, a space in its path), outside the install folder
+          $vam = Join-Path $env:RUNNER_TEMP "Fake VaM"
+          New-Item -ItemType Directory -Force $vam | Out-Null
+          New-Item -ItemType File -Force (Join-Path $vam "VaM.exe") | Out-Null
+          $p = Start-Process -FilePath $setup -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART","/CURRENTUSER","/VAMDIR=`"$vam`"","/LOG=`"$log`"" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { Get-Content $log; throw "setup exit code $($p.ExitCode)" }
+          Select-String -Path $log -Pattern "VaM folder|launcher.json" | ForEach-Object { $_.Line }
           if (-not (Test-Path $exe)) { throw "not installed at $exe" }
           $menu = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\AIBody Companion\AIBody Companion.lnk"
           if (-not (Test-Path $menu)) { throw "no Start menu shortcut at $menu" }
+          if (-not (Test-Path $json)) { throw "setup did not write $json" }
+          Get-Content $json
+          $cfg = Get-Content $json -Raw | ConvertFrom-Json
+          if ($cfg.vam_root -ne $vam) { throw "launcher.json vam_root '$($cfg.vam_root)' is not '$vam'" }
+          # 3. the installed app uses that folder (no picker, nothing started)
+          $chk = Join-Path $env:RUNNER_TEMP "check-vam-root.json"
+          $p = Start-Process -FilePath $exe -ArgumentList "--check-vam-root","--selftest-out","`"$chk`"" -Wait -PassThru
+          Get-Content $chk
+          if ($p.ExitCode -ne 0) { throw "the installed app found no VaM folder" }
+          $r = Get-Content $chk -Raw | ConvertFrom-Json
+          if ($r.vam_root -ne $vam -or $r.how -ne "remembered") { throw "the installed app uses '$($r.vam_root)' ($($r.how))" }
+          # 4. self-test of the installed copy
           $out = Join-Path $env:RUNNER_TEMP "selftest-installed.json"
           $p = Start-Process -FilePath $exe -ArgumentList "--selftest","--selftest-out","`"$out`"" -Wait -PassThru
           Get-Content $out
           if ($p.ExitCode -ne 0) { throw "installed self-test failed" }
+          # 5. uninstall removes the app and its launcher settings
           $p = Start-Process -FilePath (Join-Path $app "unins000.exe") -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART" -Wait -PassThru
           Start-Sleep -Seconds 3
           if (Test-Path $exe) { throw "uninstall left $exe" }
-          Write-Host "install / self-test / uninstall ok"
+          if (Test-Path $json) { throw "uninstall left $json" }
+          Write-Host "VAMDIR / launcher.json / install / self-test / uninstall ok"
 
       - name: Token scan
         run: python tools/scan_tokens.py "dist/AIBody Companion" dist/installer companion/aibody_companion
