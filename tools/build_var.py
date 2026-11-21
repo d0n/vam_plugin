@@ -48,8 +48,9 @@ SCENE_TEMPLATE = ROOT / "examples" / "scenes" / "AI-Buddy.json"
 SCENE_THUMB = SCENE_TEMPLATE.with_suffix(".jpg")
 
 LOOSE_SCENE = "AI-Buddy.json"
-# The one atom of the example scene that carries AIBody (Leon, 21.11.2026 17:02: the male, not the female "Person").
-AIBODY_ATOM = "BryanGosling"
+# The one atom of the example scene that carries AIBody: the user's own male "Client" (Leon, 21.11.2026 18:27; it drives
+# the female "AI", AIBodyPlugin.FindAiCharacter). Before: "BryanGosling" (17:02), the female "Person".
+AIBODY_ATOM = "Client"
 AIBODY_STORABLE = "plugin#0_AIBody.AIBodyPlugin"
 LOOSE_THUMB = "AI-Buddy.jpg"
 
@@ -71,7 +72,7 @@ def check_aibody_atom(data: dict) -> None:
 
 
 def example_scene(creator: str, package: str, version: int, script_dir: str, inside_package: bool = True) -> str:
-    """The AI-Buddy scene template with AIBody on the male BryanGosling (since 21.11.2026, after v40; before: the female Person). Third-party clothing, hair and morph packages
+    """The AI-Buddy scene template (Leon's scene of 21.11.2026 18:27) with AIBody on the male "Client", which drives the female "AI". Third-party clothing, hair and morph packages
     stay in the scene and are declared in packaging/meta.json "dependencies" (VaM format: package id -> licenseType
     when known from a Hub lookup, plus nested dependencies). Loose Custom/ and Saves/ paths stay in the scene too
     (they resolve on the author's PC; VaM skips them elsewhere) and are not packaged. Inside the package the plugin
