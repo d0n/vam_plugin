@@ -84,6 +84,17 @@ jobs:
           $exe = Join-Path $app "AIBody Companion.exe"
           $json = Join-Path $env:LOCALAPPDATA "AIBody Companion\launcher.json"
           $log = Join-Path $env:RUNNER_TEMP "setup.log"
+          # 0. no /VAMDIR= and no VaM on the runner: the setup runs its detection, installs, and writes no launcher.json
+          $log0 = Join-Path $env:RUNNER_TEMP "setup-detect.log"
+          $p = Start-Process -FilePath $setup -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART","/CURRENTUSER","/LOG=`"$log0`"" -Wait -PassThru
+          Select-String -Path $log0 -Pattern "VaM folder|launcher.json|Exception|Error|error" | ForEach-Object { $_.Line }
+          if ($p.ExitCode -ne 0) { Get-Content $log0 | Select-Object -Last 60; throw "setup without VAMDIR: exit code $($p.ExitCode)" }
+          if (-not (Test-Path $exe)) { throw "setup without VAMDIR: not installed at $exe" }
+          if (Test-Path $json) { throw "setup without VAMDIR wrote $json although there is no VaM" }
+          $p = Start-Process -FilePath (Join-Path $app "unins000.exe") -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART" -Wait -PassThru
+          Start-Sleep -Seconds 3
+          if (Test-Path $exe) { throw "uninstall left $exe" }
+          Write-Host "setup without VAMDIR ok (detection ran, nothing remembered)"
           # 1. a /VAMDIR= folder without VaM.exe must stop the setup before anything is installed
           $bad = Join-Path $env:RUNNER_TEMP "Not VaM"
           New-Item -ItemType Directory -Force $bad | Out-Null
