@@ -99,8 +99,9 @@ class Version16MenuTests(unittest.TestCase):
 
     def test_no_empty_pose_menu(self):
         body = method_body(source("Body.cs"), "public void BuildCharacterTab(UiPage page)")
-        guard = body.index("PoseNames.Count > 0")
-        self.assertLess(guard, body.index("page.ScrollablePopup(_poseChoiceJson)"))
+        # version 42: the Pose dropdown is gone; the Pose command menu is only built when there is a command
+        guard = body.index("_poses.Vocabulary.Count > 0")
+        self.assertLess(guard, body.index("page.ScrollablePopup(_poseCommandChoiceJson)"))
 
 
 class Version17MenuTests(unittest.TestCase):
@@ -160,7 +161,7 @@ class Version18MenuTests(unittest.TestCase):
 
     def test_menu_labels_are_english(self):
         body = method_body(source("Body.cs"), "public void BuildCharacterTab(UiPage page)")
-        for label in ('"Apply pose"', '"Reload poses"', '"Show expression"', '"Play gesture"'):
+        for label in ('"Add Pose"', '"Delete Pose"', '"Reset poses"', '"Reload poses"', '"Show expression"', '"Play gesture"'):
             self.assertIn(label, body)
         for german in ("Pose anwenden", "Ausdruck zeigen", "Geste abspielen", "Körper"):
             self.assertNotIn(german, body)
@@ -339,7 +340,7 @@ class Version31LayoutTests(unittest.TestCase):
 
     def test_poses_expression_gesture_and_body_are_in_the_ai_character_tab(self):
         tab = method_body(source("Body.cs"), "public void BuildCharacterTab(UiPage page)")
-        for needed in ("Apply pose", "Reload poses", "Show expression", "Play gesture", "_bodyControlJson"):
+        for needed in ("Add Pose", "Reset poses", "Reload poses", "Show expression", "Play gesture", "_bodyControlJson"):
             self.assertIn(needed, tab)
 
     def test_no_info_text_fields_in_the_right_hand_tabs(self):

@@ -31,6 +31,7 @@ SCENE_PACKAGES = {
     "mopedlampe.Morwyn.1",
     "paledriver.Nico.2",
     "particle pinnacle.missing_morphs.1",
+    "KdollMASTA.KDoll_Mk10.1",   # Leon's scene of 21.11.2026 18:27: the Breath1 morph (AIBody's default breath morph)
 }
 HUB_LICENSES = {
     "EuLinRabei.ProCourt_Outfit.3": "CC BY-SA",
@@ -40,10 +41,12 @@ HUB_LICENSES = {
     "mopedlampe.Morwyn.1": "CC BY",
     "paledriver.Nico.2": "CC BY-NC-ND",
 }
-# Looked up on the Hub 21.11.2026 (getResourceDetail, no download); these two packages were not on the Hub.
+# Looked up on the Hub 21.11.2026 (getResourceDetail, no download); these packages were not on the Hub
+# (KDoll_Mk10: version 42, Leon's scene of 18:27).
 HUB_LICENSE_UNKNOWN = {
     "Ark1F1.Olivia_McAllister.1",
     "particle pinnacle.missing_morphs.1",
+    "KdollMASTA.KDoll_Mk10.1",
 }
 GENITAL_MORPHS = {
     "Labia majora-relaxation", "Labia majora-spread-LLow", "Labia majora-spread-RLow",
@@ -121,23 +124,23 @@ class ExampleSceneTests(TestCase):
         self.assertTrue(REMOVED_ATOMS.isdisjoint(ids))
         self.assertEqual(
             {a["id"] for a in self.template["atoms"]},
-            {"WindowCamera", "PlayerNavigationPanel", "CoreControl", "[CameraRig]", "Person", "BryanGosling"},
+            {"WindowCamera", "PlayerNavigationPanel", "CoreControl", "[CameraRig]", "AI", "Client"},   # version 42: Leon's names,
         )
         core = next(a for a in self.template["atoms"] if a["id"] == "CoreControl")
-        clips = next(st for st in core["storables"] if st["id"] == "URLAudioClipManager").get("clips") or []
+        clips = next((st for st in core["storables"] if st["id"] == "URLAudioClipManager"), {}).get("clips") or []
         self.assertEqual(clips, [])
 
     def test_aibody_only_on_one_person_with_background_on(self):
-        """Since 21.11.2026 (after v40, Leon 17:02) AIBody is on the male BryanGosling; before it was on the female Person."""
+        """Version 42 (Leon 18:27): AIBody is on the male Client and drives the female AI; before on BryanGosling / Person."""
         plugins = []
         for atom in self.template["atoms"]:
             for st in atom.get("storables") or []:
                 if st.get("id") == "PluginManager":
                     for value in (st.get("plugins") or {}).values():
                         plugins.append((atom["id"], value))
-        self.assertEqual(plugins, [("BryanGosling", f"d0n.AIBody.{__version__}:/Custom/Scripts/d0n/AIBody/AIBody.cslist")])
-        female = next(a for a in self.template["atoms"] if a["id"] == "Person")
-        male = next(a for a in self.template["atoms"] if a["id"] == "BryanGosling")
+        self.assertEqual(plugins, [("Client", f"d0n.AIBody.{__version__}:/Custom/Scripts/d0n/AIBody/AIBody.cslist")])
+        female = next(a for a in self.template["atoms"] if a["id"] == "AI")
+        male = next(a for a in self.template["atoms"] if a["id"] == "Client")
         self.assertEqual(next(st for st in female["storables"] if st["id"] == "geometry")["character"], "Female 1")
         self.assertEqual(next(st for st in male["storables"] if st["id"] == "geometry")["character"], "Male 4")
         self.assertFalse(any(s["id"] == first_start.AIBODY_STORABLE for s in female["storables"]))
@@ -146,8 +149,8 @@ class ExampleSceneTests(TestCase):
         self.assertEqual(st["Background color"], {"h": "0.3333333", "s": "1", "v": "1"})
 
     def test_clothing_hair_and_normal_morphs_kept(self):
-        female = next(a for a in self.template["atoms"] if a["id"] == "Person")
-        male = next(a for a in self.template["atoms"] if a["id"] == "BryanGosling")
+        female = next(a for a in self.template["atoms"] if a["id"] == "AI")
+        male = next(a for a in self.template["atoms"] if a["id"] == "Client")
         fgeom = next(st for st in female["storables"] if st["id"] == "geometry")
         mgeom = next(st for st in male["storables"] if st["id"] == "geometry")
         self.assertEqual(

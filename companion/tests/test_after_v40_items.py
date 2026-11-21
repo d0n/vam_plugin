@@ -233,33 +233,21 @@ class PersonaListTests(TestCase):
 
 
 class PoseCommandTests(TestCase):
+    """v41 pose command menu; version 42 (Leon 18:27) replaced the Apply buttons: choosing applies (test_version42_items)."""
+
     def setUp(self):
         self.body = source("Body.cs")
 
-    def test_apply_pose_command_button_next_to_the_menu(self):
+    def test_pose_command_menu_is_scrollable(self):
         tab = method_body(self.body, "public void BuildCharacterTab(UiPage page)")
         self.assertIn("page.ScrollablePopup(_poseCommandChoiceJson);\n", tab.replace("\r\n", "\n"))
-        self.assertLess(tab.index("_poseCommandChoiceJson"), tab.index("ApplyPoseCommandLabel, ApplyChosenPoseCommand"))
-        self.assertIn('ApplyPoseCommandLabel = "Apply pose command"', self.body)
-        self.assertIn('page.Button("Apply pose", ApplyChosenPose);', tab)   # kept, it works
-        self.assertIn('page.Button("Add Pose", AddPoseCommand);', tab)
+        self.assertIn('page.Button("Add Pose", StartAddPose);', tab)
 
     def test_apply_logs_result_and_error(self):
-        apply = method_body(self.body, "private void ApplyChosenPoseCommand()")
+        apply = method_body(self.body, "private void OnPoseCommandChosen(string command)")
         self.assertIn("PoseVocabulary.Resolve(entry, _poses.PoseNames)", apply)
         self.assertIn("_poses.ApplyPose(pose)", apply)
-        self.assertIn('Log.Info("Pose command applied', apply)
-        self.assertIn('Log.Warn("Apply pose command', apply)
         self.assertIn("<color=red>", apply)
-
-    def test_add_pose_without_text_takes_the_pose_name_and_selects_it(self):
-        add = method_body(self.body, "private void AddPoseCommand()")
-        self.assertIn(": _poseChoiceJson.val;", add)
-        self.assertIn("_poseCommandChoiceJson.val = entry.Command", add)
-        self.assertIn("Log.Info(CharacterNote)", add)
-
-    def test_choosing_only_logs(self):
-        self.assertIn('Log.Debug("Pose command chosen:', self.body)
 
 
 class RightColumnTests(TestCase):

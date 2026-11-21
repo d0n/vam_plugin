@@ -88,7 +88,7 @@ class WizardTests(unittest.TestCase):
         result, _, _ = self.answer("yes", "#8000ff", "scene")
         self.assertEqual(result["choice"], "scene")
         holder, st = self.aibody_storable(self.scene())
-        self.assertEqual(holder, "BryanGosling")  # since 21.11.2026 (after v40): AIBody on the male
+        self.assertEqual(holder, "Client")  # version 42 (Leon 18:27): AIBody on the male Client, before on BryanGosling
         self.assertEqual(st[first_start.TOGGLE_NAME], "true")
         self.assertEqual(st[first_start.COLOR_NAME], first_start.hsv_of("#8000FF"))
         toggle, color = plugin_after(self.config(), st)
@@ -191,8 +191,8 @@ class SceneTests(unittest.TestCase):
         self.assertEqual(plugins, [f"d0n.AIBody.{__version__}:/Custom/Scripts/d0n/AIBody/AIBody.cslist"])
 
     def test_two_people_female_and_male(self):
-        female = self.atom("Person")
-        male = self.atom("BryanGosling")
+        female = self.atom("AI")       # version 42: Leon's scene, the female "AI" and the male "Client"
+        male = self.atom("Client")
         self.assertEqual(female["type"], "Person")
         self.assertEqual(male["type"], "Person")
         geom = {st["id"]: st for st in female["storables"]}
@@ -242,7 +242,7 @@ class VarTests(unittest.TestCase):
                 self.assertNotIn("Sally", scene)
                 self.assertNotIn("Dollmaster", scene)
                 self.assertNotIn("ImprovedPoV", scene)
-                self.assertNotIn("9036", scene, "no version inside the package scene")
+                self.assertNotIn("AIBody.9036", scene, "no version inside the package scene")
             loose = json.loads((out.parent / build.LOOSE_SCENE).read_text(encoding="utf-8"))
             self.assertIn("d0n.AIBody.9036:/Custom/Scripts/d0n/AIBody/AIBody.cslist", json.dumps(loose))
         finally:
@@ -594,7 +594,7 @@ class MenuLayoutTests(unittest.TestCase):
         link, body, mic, ai = source("AppLink.cs"), source("Body.cs"), source("MicConfig.cs"), source("AIBody.cs")
         wizard = source("CharacterWizard.cs")
         self.assertIn("<b>Breaths per minute</b> controls how fast", body)
-        for label in ("Body control", "Apply pose", "Idle head motion", "Breathing", "Idle default pose", "Add Pose"):
+        for label in ("Body control", "Pose command", "Idle head motion", "Breathing", "Idle default pose", "Add Pose", "Reset poses"):
             self.assertIn(f"<b>{label}</b>", body)
         for label in ("Yes", "No", "Configure characters", "AI gender/body", "Your character gender", "Clothing"):
             self.assertIn(f"<b>{label}</b>", wizard)

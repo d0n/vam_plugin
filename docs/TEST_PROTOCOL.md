@@ -1,4 +1,4 @@
-# AIBody – test protocol for the first test in VaM 1.22 (from v0.6.3, now version 41; T9 from v0.7.2, T10 from v0.7.3, menu layout from version 15, T19–T21 from version 30, T22–T23 from version 31, T24–T29 from version 32, T38–T42 from version 36, T43 after version 36, T44 from version 37, T45 after version 37, T46 from version 38, T47 from version 39, T48–T51 from version 40, T52–T58 from version 41)
+# AIBody – test protocol for the first test in VaM 1.22 (from v0.6.3, now version 42; T9 from v0.7.2, T10 from v0.7.3, menu layout from version 15, T19–T21 from version 30, T22–T23 from version 31, T24–T29 from version 32, T38–T42 from version 36, T43 after version 36, T44 from version 37, T45 after version 37, T46 from version 38, T47 from version 39, T48–T51 from version 40, T52–T58 from version 41)
 
 Goal: the open "must do now" points that can only be checked in VaM. Please go through every point
 in order and enter the result (✅ / ❌ / unclear). Duration: about 20 minutes.
@@ -665,3 +665,47 @@ companion.log of 21.11.2026 showed the model sometimes writes its expression cal
 1. Talk for a few minutes (English and German). companion.log: no `Say (...)` line contains `tool_call`; when the model does it, the log says "The model wrote a tool call into its text (express); it is run, not spoken".
 
 Report: any `Say` line with `<`, `{` or `tool_call`.
+
+## T59 – Pose command applies on choosing, Add Pose with the file browser (version 42)
+
+Use `d0n.AIBody.42.var` and load **AI-Buddy from the package `d0n.AIBody.42`** (not a scene saved with an older version: a scene names its plugin package, and an old one keeps loading the old plugin).
+
+1. Tab AI Character > **Poses**: the order is **Pose command**, **Add Pose**, **Delete Pose**, **Reset poses**, **Restore starter poses**, **Reload poses**. There is no **Pose** dropdown, no **Apply pose** and no **Apply pose command**.
+2. Choose a command in **Pose command** (e.g. "Sit Down"): `AI` takes the pose at once; the left field starts with "Last action: Pose command ..." and VaM's log has the same line. A command marked UNAVAILABLE gives a red reason instead.
+3. **Add Pose**: VaM's file browser opens in `Custom/Atom/Person/Pose`. Choose a pose file: the label **New pose command** and a field appear, prefilled with the file name, with **Save pose command** and **Cancel Add Pose**. Type e.g. "wave hello" and press **Save pose command**: the command is in **Pose command**; choosing it applies that file.
+4. Reload the scene: "wave hello" is still there (`config.json` > `poses.commands`).
+
+Report: screenshot of the Poses section; the left-field and log lines of steps 2-3; whether the file browser opened.
+
+## T60 – Delete Pose (version 42)
+
+1. Choose "wave hello" in **Pose command**, press **Delete Pose**: it is gone from the menu.
+2. Reload the scene: still gone. **Restore starter poses** brings back deleted starters only.
+
+## T61 – Reset poses: AI first, then Client (version 42)
+
+1. Load AI-Buddy, wait 2 s. Pose `AI` (a pose command) and drag `Client` a bit.
+2. **Reset poses**: `AI` jumps back to where the scene placed it; about half a second later `Client` does too. They do not collide. The left field says "Reset poses: 'AI' back to the scene placement (N controllers), then 'Client' in 0.5 s."
+
+Report: did both go back, in that order?
+
+## T62 – AI-Buddy: AIBody on Client drives AI; version check (version 42)
+
+1. Load **AI-Buddy** from `d0n.AIBody.42`. Select `Client` > tab **Plugins**: AIBody (`SELF:/Custom/Scripts/d0n/AIBody/AIBody.cslist`); the info field starts with "AIBody 42 on 'Client', AI person 'AI'"; tab Config: **Set background color** on, #00FF00, green background. `AI` > tab **Plugins**: no AIBody.
+2. Talk: the voice comes from `AI`'s head, `AI`'s expressions, idle motion, breathing and poses move; `Client` stays still.
+3. companion.log: "AIBody plugin ready on 'Client': plugin=42". Then load one of your own scenes saved with version 40 or 41: the companion log and the plugin's status line say "The AIBody plugin in VaM is version 40, the companion app is version 42 ...".
+
+Report: screenshots; the "plugin ready" lines.
+
+## T63 – Speech audio in VaM, first real run of the v41 fix (version 42)
+
+Leon's v41 test ran the v40 plugin (every log line said plugin=40), so the v41 audio code has never run in VaM. Repeat T55 with the v42 scene of step T62.1 and **Verbose log** on, then copy every `AIBody: [audio]` line from VaM's own log (`output_log.txt` / message log; they are not in companion.log).
+
+Report: heard yes/no for **Play test tone**, **Test tone via companion** and one answer; the `[audio]` lines.
+
+## T64 – Voice menu shows all voices (version 42)
+
+1. Tab Voice > **Voice and sound** > **Voice**: the open menu scrolls; all 28 voices can be reached (e.g. the last ones alphabetically).
+2. companion.log: "Voices: 28 from xAI /tts/voices". With the companion stopped the menu still offers the 28 docs.x.ai voices.
+
+Report: screenshot of the scrolled menu.

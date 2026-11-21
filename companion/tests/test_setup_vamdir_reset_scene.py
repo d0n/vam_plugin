@@ -3,7 +3,8 @@
    it to the launcher's launcher.json, which the launcher reads first;
 2. tab Config > Reset: 'Reset to Default' with a confirm step resets every saved plugin setting, including the
    per-scene character wizard answers, and never the XAI API Token or the key file paths;
-3. the AI-Buddy scene carries AIBody on the male BryanGosling, not on the female Person.
+3. the AI-Buddy scene carries AIBody on the male BryanGosling, not on the female Person (version 42, Leon 18:27: his scene,
+   AIBody on the male "Client", which drives the female "AI").
 """
 from __future__ import annotations
 
@@ -183,11 +184,11 @@ class SceneHolderTests(TestCase):
                     holders.append((atom["id"], st["plugins"]))
                 if st["id"] == first_start.AIBODY_STORABLE:
                     settings.append((atom["id"], st))
-        self.assertEqual([h for h, _ in holders], ["BryanGosling"])
-        self.assertEqual([a for a, _ in settings], ["BryanGosling"])
+        self.assertEqual([h for h, _ in holders], ["Client"])
+        self.assertEqual([a for a, _ in settings], ["Client"])
         self.assertEqual(settings[0][1]["Set background color"], "true")
         self.assertEqual(settings[0][1]["Background color"], {"h": "0.3333333", "s": "1", "v": "1"})
-        female = next(a for a in data["atoms"] if a["id"] == "Person")
+        female = next(a for a in data["atoms"] if a["id"] == "AI")
         self.assertEqual(next(s for s in female["storables"] if s["id"] == "PluginManager")["plugins"], {})
 
     def test_build_var_checks_the_holder_and_keeps_self(self):
@@ -195,15 +196,15 @@ class SceneHolderTests(TestCase):
         spec = importlib.util.spec_from_file_location("build_var", ROOT / "tools" / "build_var.py")
         build = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(build)
-        self.assertEqual(build.AIBODY_ATOM, "BryanGosling")
+        self.assertEqual(build.AIBODY_ATOM, "Client")
         text = build.example_scene("d0n", "AIBody", 99, "Custom/Scripts/d0n/AIBody")
         data = json.loads(text)
-        bryan = next(a for a in data["atoms"] if a["id"] == "BryanGosling")
+        bryan = next(a for a in data["atoms"] if a["id"] == "Client")
         pm = next(s for s in bryan["storables"] if s["id"] == "PluginManager")
         self.assertEqual(pm["plugins"], {"plugin#0": "SELF:/Custom/Scripts/d0n/AIBody/AIBody.cslist"})
         moved = json.loads(first_start.TEMPLATE.read_text(encoding="utf-8"))
         for atom in moved["atoms"]:
-            if atom["id"] == "BryanGosling":
+            if atom["id"] == "Client":
                 atom["storables"] = [s for s in atom["storables"] if s["id"] != first_start.AIBODY_STORABLE]
         with self.assertRaises(SystemExit):
             build.check_aibody_atom(moved)
@@ -211,12 +212,12 @@ class SceneHolderTests(TestCase):
     def test_setup_scene_writes_aibody_on_bryan(self):
         data = first_start.scene_data(False)
         st = [(a["id"], s) for a in data["atoms"] for s in a["storables"] if s["id"] == first_start.AIBODY_STORABLE]
-        self.assertEqual([a for a, _ in st], ["BryanGosling"])
+        self.assertEqual([a for a, _ in st], ["Client"])
         self.assertEqual(st[0][1][first_start.TOGGLE_NAME], "false")
 
     def test_docs(self):
         g = (ROOT / "docs" / "SCENE_GREENSCREEN.md").read_text(encoding="utf-8")
-        self.assertIn("AIBody is only on the male `BryanGosling`", g)
-        self.assertIn("do not add AIBody to `Person`", g)
+        self.assertIn("AIBody is only on the male `Client`", g)
+        self.assertIn("do not add AIBody to `AI`", g)
         self.assertIn("## T54", (ROOT / "docs" / "TEST_PROTOCOL.md").read_text(encoding="utf-8"))
-        self.assertIn("AIBody on the male BryanGosling", source("AIBody.cs"))
+        self.assertIn("AIBody on the male Client, driving the female AI", source("AIBody.cs"))

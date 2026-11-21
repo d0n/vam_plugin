@@ -173,6 +173,16 @@ Status: 21.11.2026, version 41. Overview of what is done and what is open; updat
 - **Right column:** headers and controls only; no new info field without Leon's approval.
 - **No spoken tool calls:** `<tool_call>...</tool_call>` text from the model is run, not spoken. T58.
 
+### Version 42 (21.11.2026, Leon 18:27 and 18:33)
+- **Pose command applies on choosing**; the **Pose** dropdown, **Apply pose** and **Apply pose command** are gone. T59.
+- **Add Pose** asks for the pose file (VaM's file browser) and the spoken command; **Delete Pose** removes the chosen command; both are kept in `config.json` at once. T59/T60.
+- **Reset poses:** AI back to the scene placement first, Client 0.5 s later. T61.
+- **AI-Buddy is Leon's scene** (`AI`, `Client`, greenscreen kept): AIBody on `Client`, driving the Person named `AI` (speech, poses, expressions, idle motion). T62.
+- **Version check:** the companion warns when the scene loads an older plugin package (Leon's v41 test ran plugin 40: his scene pinned `d0n.AIBody.40`). T62.
+- **Audio:** v41's evidenced play sequence, still unverified in VaM (it never ran there); `[audio]` lines from VaM's log requested. T63.
+- **Voice menu scrolls**: all 28 xAI voices reachable (companion list from `GET /v1/tts/voices`, static fallback from docs.x.ai). T64.
+- **Realtime:** a response that was only a tool call is followed by one request for the spoken answer.
+
 ## 2. Still open / to do
 
 ### Next version
@@ -217,6 +227,7 @@ _Version 21 implemented the field "XAI API Token" and the button "Question and A
 - Visible height of the info field (1800) in VaM.
 
 ### Open questions for Leon
+- Version 42: the exact order of headers and buttons you want (no exact instruction was found; now by topic, Poses in your order of 18:27). Should **Reset poses** replace **Restore starter poses**? Which of your saved plugin values should the shipped AI-Buddy scene carry (now only greenscreen and the two genders)?
 - ~~A direct API key field in the plugin?~~ Decided 18.11.2026: yes, field "XAI API Token" (implemented in version 21, see AI and speech).
 - Key file path back in the menu (labeled)? Since version 15 only in config.json, because the fields appeared as empty boxes; see Backlog.
 - "Delay": what should be delayed? Placeholder removed from the menu since version 15, see Backlog.

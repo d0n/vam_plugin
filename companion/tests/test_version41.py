@@ -57,4 +57,5 @@ class VersionTests(TestCase):
             for st in atom.get("storables", []):
                 if st.get("id") == "PluginManager" and st.get("plugins"):
                     holders.append((atom["id"], dict(st["plugins"])))
-        self.assertEqual(holders, [("BryanGosling", {"plugin#0": "d0n.AIBody.41:/Custom/Scripts/d0n/AIBody/AIBody.cslist"})])
+        # version 42 (Leon 18:27): his scene, AIBody on "Client" (test_version42_items)
+        self.assertEqual([h for h, _ in holders], ["Client"])
