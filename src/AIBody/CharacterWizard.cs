@@ -57,19 +57,19 @@ namespace AIBody
             // the scene's saved values after Init, Reload Config JSON, the config.json seed of a new scene). Before, the
             // callbacks were empty, so a tab built before that kept showing the old step (e.g. the gate although answered).
             _askedJson = new JSONStorableBool(AskedName, false, (bool v) => RequestTabRebuild());
-            _plugin.RegisterBool(_askedJson);
+            SettingsDefaults.Bool(_plugin, _askedJson);
             _wantedJson = new JSONStorableBool(WantedName, false, (bool v) => RequestTabRebuild());
-            _plugin.RegisterBool(_wantedJson);
+            SettingsDefaults.Bool(_plugin, _wantedJson);
             List<string> genders = new List<string>();
             genders.Add("");
             genders.Add(Female);
             genders.Add(Male);
             _aiGenderJson = new JSONStorableStringChooser(AiGenderLabel, genders, "", AiGenderLabel,
                 (string v) => NotifyChanged());
-            _plugin.RegisterStringChooser(_aiGenderJson);
+            SettingsDefaults.Chooser(_plugin, _aiGenderJson);
             _userGenderJson = new JSONStorableStringChooser(UserGenderLabel, genders, "", UserGenderLabel,
                 (string v) => NotifyChanged());
-            _plugin.RegisterStringChooser(_userGenderJson);
+            SettingsDefaults.Chooser(_plugin, _userGenderJson);
         }
 
         private void NotifyChanged()

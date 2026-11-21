@@ -800,9 +800,7 @@
             },
             {
                "id": "PluginManager",
-               "plugins": {
-                  "plugin#0": "d0n.AIBody.40:/Custom/Scripts/d0n/AIBody/AIBody.cslist"
-               }
+               "plugins": {}
             },
             {
                "id": "hip",
@@ -3054,15 +3052,6 @@
                "Irises": "Color 34"
             },
             {
-               "id": "plugin#0_AIBody.AIBodyPlugin",
-               "Set background color": "true",
-               "Background color": {
-                  "h": "0.3333333",
-                  "s": "1",
-                  "v": "1"
-               }
-            },
-            {
                "id": "skin",
                "Diffuse Texture Offset": "0.04213607",
                "Diffuse Bumpiness": "0",
@@ -3756,7 +3745,9 @@
             },
             {
                "id": "PluginManager",
-               "plugins": {}
+               "plugins": {
+                  "plugin#0": "d0n.AIBody.40:/Custom/Scripts/d0n/AIBody/AIBody.cslist"
+               }
             },
             {
                "id": "hip",
@@ -5017,6 +5008,15 @@
             {
                "id": "AutoExpressions",
                "enabled": "false"
+            },
+            {
+               "id": "plugin#0_AIBody.AIBodyPlugin",
+               "Set background color": "true",
+               "Background color": {
+                  "h": "0.3333333",
+                  "s": "1",
+                  "v": "1"
+               }
             },
             {
                "id": "textures",

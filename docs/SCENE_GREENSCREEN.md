@@ -2,15 +2,15 @@
 
 Status 21.11.2026 (version 40) · Leon's original two-character scene of 20.11.2026, named **AI-Buddy**, with clothing and looks kept · File: [`examples/scenes/AI-Buddy.json`](../examples/scenes/AI-Buddy.json) with preview [`examples/scenes/AI-Buddy.jpg`](../examples/scenes/AI-Buddy.jpg) · in the package: `Saves/scene/AIBody/AI-Buddy.json` and `Saves/scene/AIBody/AI-Buddy.jpg`
 
-Two people. AIBody is only on the female. Dollmaster, Improved PoV and the Dollmaster animation/audio atoms are not in the scene (they conflict with AIBody and were the likely cause of a complete load hang). Explicit genital morphs are removed. **Set background color** is on (#00FF00).
+Two people. AIBody is only on the male `BryanGosling` (moved there from the female `Person` on 21.11.2026, Leon 17:02; not released yet). Dollmaster, Improved PoV and the Dollmaster animation/audio atoms are not in the scene (they conflict with AIBody and were the likely cause of a complete load hang). Explicit genital morphs are removed. **Set background color** is on (#00FF00).
 
-1. Atom `Person` (Person, female: `geometry.character` = `Female 1`), root slightly to the right of the origin. Plugins tab of the Person: **AIBody** `d0n.AIBody.40:/Custom/Scripts/d0n/AIBody/AIBody.cslist` (inside the package: `SELF:/Custom/Scripts/d0n/AIBody/AIBody.cslist`) with saved values `Set background color` = true and `Background color` = #00FF00. Clothing: Pro Court Short F (`EuLinRabei.ProCourt_Outfit.3`) and Nico Tanktop (`paledriver.Nico.2`). Hair: Long Backswept Pony (`NoStage3.Hair_Long_Backswept_Pony.1`) plus a loose scamp THEV hair (see local content below). Face and body morphs from the original look, including package morphs from `Ark1F1.Olivia_McAllister.1`, `Wolverine333.LAUREN_4.1`, `mopedlampe.Morwyn.1` and `particle pinnacle.missing_morphs.1`.
-2. Atom `BryanGosling` (Person, male: `geometry.character` = `Male 4`), at the origin. No plugin. Clothing: police pants (`Molmark.Police_uniform.2`) and a loose PositiveResult hoodie. Built-in hair entry `No Hair`. Face texture and the Bryan Gosling morph are loose local files.
+1. Atom `Person` (Person, female: `geometry.character` = `Female 1`), root slightly to the right of the origin. No plugin. Clothing: Pro Court Short F (`EuLinRabei.ProCourt_Outfit.3`) and Nico Tanktop (`paledriver.Nico.2`). Hair: Long Backswept Pony (`NoStage3.Hair_Long_Backswept_Pony.1`) plus a loose scamp THEV hair (see local content below). Face and body morphs from the original look, including package morphs from `Ark1F1.Olivia_McAllister.1`, `Wolverine333.LAUREN_4.1`, `mopedlampe.Morwyn.1` and `particle pinnacle.missing_morphs.1`.
+2. Atom `BryanGosling` (Person, male: `geometry.character` = `Male 4`), at the origin. Plugins tab of `BryanGosling`: **AIBody** `d0n.AIBody.40:/Custom/Scripts/d0n/AIBody/AIBody.cslist` (inside the package: `SELF:/Custom/Scripts/d0n/AIBody/AIBody.cslist`) with saved values `Set background color` = true and `Background color` = #00FF00. Clothing: police pants (`Molmark.Police_uniform.2`) and a loose PositiveResult hoodie. Built-in hair entry `No Hair`. Face texture and the Bryan Gosling morph are loose local files.
 3. `[CameraRig]`, `WindowCamera`, `PlayerNavigationPanel`, `CoreControl`. No scene plugin.
 
 Roles:
-- `Person` is the AI's body (AIBody). One character only: do not add AIBody to `BryanGosling`.
-- `BryanGosling` is the second figure in the example. Microphone, push-to-talk and text input run through the companion app and the tab *Client Character* in the AIBody plugin on the female.
+- `BryanGosling` is the AI's body (AIBody). One character only: do not add AIBody to `Person`.
+- `Person` (female) is the second figure in the example. Microphone, push-to-talk and text input run through the companion app and the tab *Client Character* in the AIBody plugin on `BryanGosling`.
 
 **Background / greenscreen:** the packaged scene ships with **Set background color** on (default color #00FF00). Switch it off in tab Config > Background if you want the room sky instead. VaM does **not** make the background transparent. VaM only shows a uniform color. Transparency is made by the headset or the streaming program through a chroma key on exactly the same color, e.g. Quest 3 with Virtual Desktop. The companion's first-start setup can still write a loose copy of the scene with the toggle on or off from your answer.
 
@@ -64,7 +64,7 @@ These paths are loose files under `Custom/` or `Saves/`, not inside a `.var`. Th
 
 ## Checking
 
-1. Open the scene (see above) and confirm the thumbnail in the Load Scene list. If a listed dependency is missing, VaM should mention it rather than hang. Select `Person` > tab **Plugins**: `SELF:/Custom/Scripts/d0n/AIBody/AIBody.cslist` (or the package path); plugin window > tab **Config** > Background: Set background color ON, color #00FF00 unless you changed it. `BryanGosling` has no AIBody plugin.
+1. Open the scene (see above) and confirm the thumbnail in the Load Scene list. If a listed dependency is missing, VaM should mention it rather than hang. Select `BryanGosling` > tab **Plugins**: `SELF:/Custom/Scripts/d0n/AIBody/AIBody.cslist` (or the package path); plugin window > tab **Config** > Background: Set background color ON, color #00FF00 unless you changed it. `Person` (the female) has no AIBody plugin.
 2. Start the companion app (see README). For a greenscreen, keep Set background color on and set the chroma key in the headset to the same color.
 
 Afterwards please send a screenshot (the Load Scene list with the thumbnail, the scene, and the plugin's tab Config) and all red lines with "AIBody:" from the error log. Test steps: `docs/TEST_PROTOCOL.md` T38 (background) and T46 (AI-Buddy thumbnail, plugin, clothing, background on).

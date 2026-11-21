@@ -166,34 +166,34 @@ namespace AIBody
             {
                 if (!v && _expressions != null) _expressions.Reset(0.4f);
             });
-            _plugin.RegisterBool(_bodyControlJson);
+            SettingsDefaults.Bool(_plugin, _bodyControlJson);
             _volumeJson = new JSONStorableFloat("Speech volume", 1f, (float v) => { if (_speech != null) _speech.Volume = v; }, 0f, 1f);
-            _plugin.RegisterFloat(_volumeJson);
+            SettingsDefaults.Float(_plugin, _volumeJson);
             _idleJson = new JSONStorableBool("Idle head motion", true, (bool v) => { if (_idle != null) _idle.Enabled = v; });
-            _plugin.RegisterBool(_idleJson);
+            SettingsDefaults.Bool(_plugin, _idleJson);
             _idleIntensityJson = new JSONStorableFloat("Idle intensity", 0.5f, (float v) => { if (_idle != null) _idle.Intensity = v; }, 0f, 1f);
-            _plugin.RegisterFloat(_idleIntensityJson);
+            SettingsDefaults.Float(_plugin, _idleIntensityJson);
             _breathingJson = new JSONStorableBool("Breathing", true, (bool v) => { if (_breathing != null) _breathing.Enabled = v; });
-            _plugin.RegisterBool(_breathingJson);
+            SettingsDefaults.Bool(_plugin, _breathingJson);
             _breathRateJson = new JSONStorableFloat("Breaths per minute", 14f, (float v) => { if (_breathing != null) _breathing.Rate = v; }, 4f, 40f);
-            _plugin.RegisterFloat(_breathRateJson);
+            SettingsDefaults.Float(_plugin, _breathRateJson);
             _breathDepthJson = new JSONStorableFloat("Breath depth", 0.35f, (float v) => { if (_breathing != null) _breathing.Depth = v; }, 0f, 1f);
-            _plugin.RegisterFloat(_breathDepthJson);
+            SettingsDefaults.Float(_plugin, _breathDepthJson);
             // TODO(verify): choose a chest morph that exists on the character.
             _breathMorphJson = new JSONStorableString("Breath morph", "Breath1", (string v) => { if (_breathing != null) _breathing.SetMorph(v); _selfTestAge = 999f; });
-            _plugin.RegisterString(_breathMorphJson);
+            SettingsDefaults.Text(_plugin, _breathMorphJson);
             _idlePosesJson = new JSONStorableBool("Idle poses", true, (bool v) => { if (_idlePoses != null) _idlePoses.Enabled = v; });
-            _plugin.RegisterBool(_idlePosesJson);
+            SettingsDefaults.Bool(_plugin, _idlePosesJson);
             _idlePoseMinJson = new JSONStorableFloat("Idle pose min wait (s)", IdlePoseScheduler.DefaultMinSeconds,
                 (float v) => { if (_idlePoses != null) _idlePoses.MinSeconds = v; }, IdlePoseScheduler.LowestSeconds, IdlePoseScheduler.HighestSeconds);
-            _plugin.RegisterFloat(_idlePoseMinJson);
+            SettingsDefaults.Float(_plugin, _idlePoseMinJson);
             _idlePoseMaxJson = new JSONStorableFloat("Idle pose max wait (s)", IdlePoseScheduler.DefaultMaxSeconds,
                 (float v) => { if (_idlePoses != null) _idlePoses.MaxSeconds = v; }, IdlePoseScheduler.LowestSeconds, IdlePoseScheduler.HighestSeconds);
-            _plugin.RegisterFloat(_idlePoseMaxJson);
+            SettingsDefaults.Float(_plugin, _idlePoseMaxJson);
             _idlePoseDefaultJson = new JSONStorableStringChooser("Idle default pose", new List<string> { IdlePoseScheduler.DefaultIdlePose },
                 IdlePoseScheduler.DefaultIdlePose, "Idle default pose", (string v) => { if (_idlePoses != null) _idlePoses.DefaultPose = v; });
             _idlePoseDefaultJson.popupOpenCallback = RefreshCharacterChoices;
-            _plugin.RegisterStringChooser(_idlePoseDefaultJson);
+            SettingsDefaults.Chooser(_plugin, _idlePoseDefaultJson);
 
             Characters = new CharacterWizard(_plugin, () => { if (OnSettingsChanged != null) OnSettingsChanged(); });
             Characters.RequestRebuild = () => { RebuildTab = true; };

@@ -17,11 +17,12 @@ You start VaM as usual. AIBody has two parts:
 
 1. Download `AIBody Companion Setup.exe` from the [release](https://github.com/d0n/vam_plugin/releases) and double-click it. It installs for your user only, without admin rights, into `%LOCALAPPDATA%\Programs\AIBody Companion`.
 2. Windows SmartScreen may say "Windows protected your PC", because the installer is not signed: click **More info**, then **Run anyway**.
-3. Choose the options: a desktop shortcut (optional) and **Start with Windows** (off by default). At the end **Launch AIBody Companion now** starts it. Uninstall it like any app (Settings > Apps, or "Uninstall AIBody Companion" in the Start menu).
+3. Choose the options: a desktop shortcut (optional) and **Start with Windows** (off by default).
+4. Page **Your VaM folder**: the setup has already looked for your VaM folder and filled it in; check it or click **Browse** and choose the folder that contains `VaM.exe` (a folder without `VaM.exe` is not accepted). AIBody Companion uses this folder from now on; to change it, run the setup again. At the end **Launch AIBody Companion now** starts it. Uninstall it like any app (Settings > Apps, or "Uninstall AIBody Companion" in the Start menu).
 
-**Every time:** start **AIBody Companion** from the Start menu (or let Windows start it). A small note says it is now running in the background, and an icon in the tray has **Quit**. Starting it again only shows the note. On the first start it looks for your VaM folder (the folder with `VaM.exe`) by itself; if it cannot find it, it asks once with a folder picker and remembers it. Then start VaM and load the AI-Buddy scene or add the plugin to a Person.
+**Every time:** start **AIBody Companion** from the Start menu (or let Windows start it). A small note says it is now running in the background, and an icon in the tray has **Quit**. Starting it again only shows the note. It uses the VaM folder chosen during setup; only if that folder is gone (for example VaM was moved) it looks for VaM by itself and, failing that, asks once with a folder picker and remembers the answer. Then start VaM and load the AI-Buddy scene or add the plugin to a Person.
 
-What it uses on your computer: it listens only on `127.0.0.1` (this computer) for the plugin, and goes out only to the AI service (xAI; ElevenLabs only if you set it up). Its settings and log stay under `<VaM main folder>/Saves/PluginData/AIBody/`; the launcher only remembers the VaM folder in `%LOCALAPPDATA%\AIBody Companion`. The installer never contains an API key.
+What it uses on your computer: it listens only on `127.0.0.1` (this computer) for the plugin, and goes out only to the AI service (xAI; ElevenLabs only if you set it up). Its settings and log stay under `<VaM main folder>/Saves/PluginData/AIBody/`; the VaM folder chosen during setup is kept in `%LOCALAPPDATA%\AIBody Companion\launcher.json`. The installer never contains an API key.
 
 ### For developers: running the companion from source
 
@@ -55,7 +56,7 @@ python -m aibody_companion --vam-root "D:\VaM"
 
 ## 2. What it is designed for / specification
 
-- Bundled scene: [`examples/scenes/AI-Buddy.json`](examples/scenes/AI-Buddy.json) with the preview [`examples/scenes/AI-Buddy.jpg`](examples/scenes/AI-Buddy.jpg) (in the package as `Saves/scene/AIBody/AI-Buddy.json` and `AI-Buddy.jpg`), guide [`docs/SCENE_GREENSCREEN.md`](docs/SCENE_GREENSCREEN.md). Content (version 40): two people, `Person` (female, VaM figure `Female 1`) with AIBody in the Plugins tab and **Set background color** on (#00FF00), and `BryanGosling` (male, `Male 4`, no plugin); clothing, hair and looks from the original scene; no scene plugin. Third-party packages are declared in `meta.json` dependencies. An optional greenscreen is AIBody's own function (tab Config > Background). The headset / streaming program makes a chosen color transparent by chroma key; VaM itself only shows the color. Not tested in VaM.
+- Bundled scene: [`examples/scenes/AI-Buddy.json`](examples/scenes/AI-Buddy.json) with the preview [`examples/scenes/AI-Buddy.jpg`](examples/scenes/AI-Buddy.jpg) (in the package as `Saves/scene/AIBody/AI-Buddy.json` and `AI-Buddy.jpg`), guide [`docs/SCENE_GREENSCREEN.md`](docs/SCENE_GREENSCREEN.md). Content (version 40): two people, `BryanGosling` (male, VaM figure `Male 4`) with AIBody in the Plugins tab and **Set background color** on (#00FF00), and `Person` (female, `Female 1`, no plugin; on main since 21.11.2026, the released v40 package still has AIBody on the female); clothing, hair and looks from the original scene; no scene plugin. Third-party packages are declared in `meta.json` dependencies. An optional greenscreen is AIBody's own function (tab Config > Background). The headset / streaming program makes a chosen color transparent by chroma key; VaM itself only shows the color. Not tested in VaM.
 - AIBody also works in other scenes, as long as it sits on the AI's Person.
 - Short version of the specification (complete: [SPEC.md](docs/SPEC.md)):
   - VaM sandbox: no `UnityWebRequest` / internet, `System.IO`, reflection or microphone code in the plugin; only evidenced APIs; file access only through `FileManagerSecure`; sockets only in the one file `SocketLink.cs` (loopback only).
@@ -72,7 +73,7 @@ python -m aibody_companion --vam-root "D:\VaM"
 
 - AI Character = the AI's body: the Person the plugin is loaded on. Tab *AI Character*: AI mode, voice, poses, expressions, gestures, body.
 - Client Character = the human user who talks to the AI. Tab *Client Character*: microphone (recorded by the companion app on the PC), push-to-talk, voice barge-in.
-- In the bundled scene each role is its own Person: `AI Character` (female, carries AIBody) and `Client Character` (male, the user's visible body, carries the background plugin Camera Background Color).
+- In the bundled scene each role is its own Person: the AI character `BryanGosling` (male, carries AIBody with the background color) and the second figure `Person` (female, no plugin).
 - Implementation: AIBody sits only on the AI Person and knows no client atom; the settings of both roles live in this one plugin. The user's input still comes through the microphone / push-to-talk or text input in the companion app's console, not through the client atom.
 - **One AI character per app.** A second AI character is not supported (the multi-character feature of version 28 was removed in version 30); for another one run a second VaM instance with its own companion app.
 - Not intended and not tested:

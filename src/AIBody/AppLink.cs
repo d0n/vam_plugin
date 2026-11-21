@@ -218,14 +218,14 @@ namespace AIBody
         public void CreateStorables()
         {
             _activeJson = new JSONStorableBool("Active", true, (bool v) => Restart());
-            _plugin.RegisterBool(_activeJson);
+            SettingsDefaults.Bool(_plugin, _activeJson);
 
             // Version 30: loopback socket to the companion app, files as the fallback. Default on; off = no network code at all.
             _hintTokenJson = new JSONStorableString("First run token", "", OnHintEdited);
             _networkJson = new JSONStorableBool("Network Active", true, (bool v) => Restart());
-            _plugin.RegisterBool(_networkJson);
+            SettingsDefaults.Bool(_plugin, _networkJson);
             _filePollJson = new JSONStorableFloat("File poll interval (s)", 0.1f, (float v) => Restart(), 0.02f, 2f);
-            _plugin.RegisterFloat(_filePollJson);
+            SettingsDefaults.Float(_plugin, _filePollJson);
             // Engine choices are refreshed from the companion app's companion_heartbeat.
             _sttJson = Engine("Speech-to-text", "null");
             _llmJson = Engine("Language model", "echo");
@@ -234,32 +234,33 @@ namespace AIBody
             // auto = realtime voice if the companion has an xAI key, else the chain
             _aiModeJson = new JSONStorableStringChooser("AI mode", new List<string> { ModeQa, "auto", "realtime", "chain" },
                 ModeQa, "AI mode", (string v) => { SyncRealtimeToggle(); MarkConfigDirty(); });
-            _plugin.RegisterStringChooser(_aiModeJson);
+            SettingsDefaults.Chooser(_plugin, _aiModeJson);
             // Not registered: only a view of "AI mode" (on = auto, off = qa), so nothing new is saved.
             _realtimeJson = new JSONStorableBool("Use realtime voice", false, SetRealtime);   // not registered (not saved)
             _proactiveJson = new JSONStorableBool("Proactive talking", true, (bool v) => MarkConfigDirty());   // config.json key ai.proactive.enabled; was "Proactive" up to version 22
-            _plugin.RegisterBool(_proactiveJson);
+            SettingsDefaults.Bool(_plugin, _proactiveJson);
             _proactiveIdleJson = new JSONStorableFloat("Speech delay timer (s)", 90f, (float v) => MarkConfigDirty(), 0f, 3600f);   // 0 = proactive speech off; config.json key ai.proactive.idle_seconds; was "Proactive idle (s)" up to version 22
-            _plugin.RegisterFloat(_proactiveIdleJson);
+            SettingsDefaults.Float(_plugin, _proactiveIdleJson);
             _bargeInJson = new JSONStorableBool("Voice barge-in (headphones)", false, (bool v) => MarkConfigDirty());
-            _plugin.RegisterBool(_bargeInJson);
+            SettingsDefaults.Bool(_plugin, _bargeInJson);
             // xAI voices (docs.x.ai: same roster for speech-to-speech and TTS); a custom id from config.json is kept.
             _voiceJson = new JSONStorableStringChooser("Voice", new List<string> { "eve", "ara", "rex", "sal", "leo" },
                 "eve", "Voice", (string v) => MarkConfigDirty());
-            _plugin.RegisterStringChooser(_voiceJson);
+            SettingsDefaults.Chooser(_plugin, _voiceJson);
             // The persona list comes from the companion app's heartbeat; "(none)" = the plain ai.persona text of config.json.
             _personaJson = new JSONStorableStringChooser("Persona", new List<string> { PersonaNone }, PersonaNone, "Persona",
                 (string v) => MarkConfigDirty());
             // Version 35: the menu is refilled from the last list the companion app reported each time it opens, so it
             // always shows at least "(none)" and the app's personas (E25).
             _personaJson.popupOpenCallback = RefreshPersonaChoices;
-            _plugin.RegisterStringChooser(_personaJson);
+            SettingsDefaults.Chooser(_plugin, _personaJson);
             _memoryJson = new JSONStorableBool("Memory", false, (bool v) => MarkConfigDirty());
-            _plugin.RegisterBool(_memoryJson);
+            SettingsDefaults.Bool(_plugin, _memoryJson);
             // No format check on purpose (Leon, 18.11.2026): whatever is typed or pasted is sent as is.
             // Not registered (version 31): same as the first-run note's field; the token lives in config.json only.
             _xaiTokenJson = new JSONStorableString(XaiTokenLabel, "", OnTokenEdited);
             _xaiKeyFileJson = new JSONStorableString("xAI key file", "", (string v) => CheckKeyFile(_xaiKeyFileJson, v));
+            // Not reset by 'Reset to Default' (plain RegisterString): the key file paths point to the user's keys.
             _plugin.RegisterString(_xaiKeyFileJson);
             _elevenKeyFileJson = new JSONStorableString("ElevenLabs key file", "", (string v) => CheckKeyFile(_elevenKeyFileJson, v));
             _plugin.RegisterString(_elevenKeyFileJson);
@@ -421,7 +422,7 @@ namespace AIBody
         {
             JSONStorableStringChooser c = new JSONStorableStringChooser(name, new List<string> { defaultValue },
                 defaultValue, name, (string v) => MarkConfigDirty());
-            _plugin.RegisterStringChooser(c);
+            SettingsDefaults.Chooser(_plugin, c);
             return c;
         }
 

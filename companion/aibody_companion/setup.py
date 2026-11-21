@@ -13,8 +13,8 @@ Asked once when the app starts for the first time (config.json "setup.asked" is 
        no  -> setup.background = false; the plugin's toggle stays as it is (OFF by default).
   2. "Choose what to use": Scene or Plugin (either / or).
        Scene  -> the app writes the AIBody scene to <VaM>/Saves/scene/AIBody/AI-Buddy.json (an existing file is
-                 kept as .bak) and the preview thumbnail AI-Buddy.jpg next to it: two people, female Person
-                 (Female 1) with AIBody of this version, male BryanGosling (Male 4) without a plugin, clothing and
+                 kept as .bak) and the preview thumbnail AI-Buddy.jpg next to it: two people, male BryanGosling
+                 (Male 4) with AIBody of this version, female Person (Female 1) without a plugin, clothing and
                  looks from the original scene (third-party packages listed in meta.json dependencies).
                  The scene carries the background answer of point 1 for AIBody (toggle and color) and
                  nothing else; the same scene and thumbnail ship in the package (VaM: Open Scene >

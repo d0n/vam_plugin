@@ -173,4 +173,112 @@ namespace AIBody
             _colors.Clear();
         }
     }
+
+    /// <summary>
+    /// 'Reset to Default' (Config > Reset, Leon 21.11.2026 17:01): every saved plugin setting is registered through these
+    /// helpers, which remember the value the storable was created with (its default) before VaM restores the scene's saved
+    /// values. ResetAll sets each one back with .val (as everywhere in the plugin), so its own callback runs (restart of the
+    /// link, config.json write-back, the wizard's tab rebuild). Not registered here on purpose, so never reset:
+    /// "Settings initialized", the xAI / ElevenLabs key file paths and the scene hooks (AI speaking, ...), which are not saved.
+    /// Plain lists and for loops only (sandbox rules: no dictionaries iterated, no reflection).
+    /// </summary>
+    public class SettingsDefaults
+    {
+        private readonly List<JSONStorableBool> _bools = new List<JSONStorableBool>();
+        private readonly List<bool> _boolDefaults = new List<bool>();
+        private readonly List<JSONStorableFloat> _floats = new List<JSONStorableFloat>();
+        private readonly List<float> _floatDefaults = new List<float>();
+        private readonly List<JSONStorableString> _strings = new List<JSONStorableString>();
+        private readonly List<string> _stringDefaults = new List<string>();
+        private readonly List<JSONStorableStringChooser> _choosers = new List<JSONStorableStringChooser>();
+        private readonly List<string> _chooserDefaults = new List<string>();
+        private readonly List<string> _colorNames = new List<string>();
+        private readonly List<HSVColor> _colorDefaults = new List<HSVColor>();
+
+        public int Count
+        {
+            get { return _bools.Count + _floats.Count + _strings.Count + _choosers.Count + _colorNames.Count; }
+        }
+
+        private static SettingsDefaults Of(MVRScript plugin)
+        {
+            AIBodyPlugin owner = plugin as AIBodyPlugin;
+            return owner != null ? owner.Defaults : null;
+        }
+
+        public static JSONStorableBool Bool(MVRScript plugin, JSONStorableBool p)
+        {
+            plugin.RegisterBool(p);
+            SettingsDefaults d = Of(plugin);
+            if (d != null) { d._bools.Add(p); d._boolDefaults.Add(p.val); }
+            return p;
+        }
+
+        public static JSONStorableFloat Float(MVRScript plugin, JSONStorableFloat p)
+        {
+            plugin.RegisterFloat(p);
+            SettingsDefaults d = Of(plugin);
+            if (d != null) { d._floats.Add(p); d._floatDefaults.Add(p.val); }
+            return p;
+        }
+
+        public static JSONStorableString Text(MVRScript plugin, JSONStorableString p)
+        {
+            plugin.RegisterString(p);
+            SettingsDefaults d = Of(plugin);
+            if (d != null) { d._strings.Add(p); d._stringDefaults.Add(p.val); }
+            return p;
+        }
+
+        public static JSONStorableStringChooser Chooser(MVRScript plugin, JSONStorableStringChooser p)
+        {
+            plugin.RegisterStringChooser(p);
+            SettingsDefaults d = Of(plugin);
+            if (d != null) { d._choosers.Add(p); d._chooserDefaults.Add(p.val); }
+            return p;
+        }
+
+        /// <summary>A colour is reset with SetColorParamValue (E32), by its storable name.</summary>
+        public void TrackColor(string name, HSVColor value)
+        {
+            _colorNames.Add(name);
+            _colorDefaults.Add(value);
+        }
+
+        /// <summary>Sets every tracked setting back to its default; returns how many settings were changed.</summary>
+        public int ResetAll(MVRScript plugin)
+        {
+            int changed = 0;
+            for (int i = 0; i < _bools.Count; i++)
+            {
+                if (_bools[i].val == _boolDefaults[i]) continue;
+                _bools[i].val = _boolDefaults[i];
+                changed++;
+            }
+            for (int i = 0; i < _floats.Count; i++)
+            {
+                if (_floats[i].val == _floatDefaults[i]) continue;
+                _floats[i].val = _floatDefaults[i];
+                changed++;
+            }
+            for (int i = 0; i < _strings.Count; i++)
+            {
+                if (_strings[i].val == _stringDefaults[i]) continue;
+                _strings[i].val = _stringDefaults[i];
+                changed++;
+            }
+            for (int i = 0; i < _choosers.Count; i++)
+            {
+                if (_choosers[i].val == _chooserDefaults[i]) continue;
+                _choosers[i].val = _chooserDefaults[i];
+                changed++;
+            }
+            for (int i = 0; i < _colorNames.Count; i++)
+            {
+                plugin.SetColorParamValue(_colorNames[i], _colorDefaults[i]);
+                changed++;
+            }
+            return changed;
+        }
+    }
 }

@@ -50,6 +50,15 @@ namespace AIBody
         private JSONStorableString _statusJson;
         private Diag _diag;
 
+        // 'Reset to Default' (tab Config > Reset, Leon 21.11.2026 17:01): the defaults of every saved setting, filled while
+        // the components register their storables (UiHelper.cs, SettingsDefaults), and the two-step confirmation.
+        public const string ResetButtonLabel = "Reset to Default";
+        public const string ResetConfirmLabel = "Confirm Reset to Default";
+        public const string ResetCancelLabel = "Cancel";
+        public readonly SettingsDefaults Defaults = new SettingsDefaults();
+        private bool _resetPending;
+        private bool _rebuildTabNextFrame;
+
         // Version 36: scene background colour (saved with the scene, not in config.json: it belongs to the scene).
         public const string BackgroundToggleName = "Set background color";
         public const string BackgroundColorName = "Background color";
@@ -165,7 +174,7 @@ namespace AIBody
                     Log.Verbose = v;
                     if (_link != null) _link.MarkConfigDirty();   // tells the companion (config event "advanced")
                 });
-                RegisterBool(_verboseJson);
+                SettingsDefaults.Bool(this, _verboseJson);
                 _settingsInitJson = new JSONStorableBool("Settings initialized", false, (bool v) => { });
                 RegisterBool(_settingsInitJson);
             });
@@ -227,11 +236,12 @@ namespace AIBody
         {
             _background = new BackgroundController();
             _backgroundJson = new JSONStorableBool(BackgroundToggleName, false, (bool v) => ApplyBackground());
-            RegisterBool(_backgroundJson);
+            SettingsDefaults.Bool(this, _backgroundJson);
             // Default green #00FF00 (Leon): high contrast against a room with many dark / blue things.
             _backgroundColorJson = new JSONStorableColor(BackgroundColorName, HSVColorPicker.RGBToHSV(0f, 1f, 0f),
                 (JSONStorableColor c) => ApplyBackground());
             RegisterColor(_backgroundColorJson);
+            Defaults.TrackColor(BackgroundColorName, _backgroundColorJson.val);
             ApplyBackground();
         }
 
@@ -309,8 +319,68 @@ namespace AIBody
                 + BackgroundColorName + "</b> instead of the room's sky, it is saved with the scene and switching it off restores the old "
                 + "background, and a 'yes' in the companion's setup switches it on once with the color chosen there. "
                 + "For a ready scene open VaM > Open Scene > d0n.AIBody." + PluginVersion
-                + " > AI-Buddy (two people, AIBody on the female, green background on); otherwise this plugin runs "
+                + " > AI-Buddy (two people, AIBody on the male BryanGosling, green background on); otherwise this plugin runs "
                 + "on your own Person atom in your own scene.\n";
+        }
+
+        // ---------------------------------------------------------------- reset to default
+
+        /// <summary>Tab Config > Reset: one button, then (after pressing it) the confirm and cancel buttons.</summary>
+        private void BuildResetSection()
+        {
+            if (!_resetPending)
+            {
+                _page.Button(ResetButtonLabel, () => { _resetPending = true; _rebuildTabNextFrame = true; });
+                return;
+            }
+            _page.Button(ResetConfirmLabel, ConfirmReset);
+            _page.Button(ResetCancelLabel, () =>
+            {
+                _resetPending = false;
+                _configStatus = "Reset to Default cancelled; nothing changed.";
+                _rebuildTabNextFrame = true;
+            });
+        }
+
+        /// <summary>Sets every saved plugin setting of this scene back to its default and writes the result to config.json.</summary>
+        private void ConfirmReset()
+        {
+            _resetPending = false;
+            _rebuildTabNextFrame = true;
+            try
+            {
+                int changed = Defaults.ResetAll(this);
+                ApplyBackground();
+                if (_link != null) _link.MarkConfigDirty();
+                if (_body != null && _body.OnSettingsChanged != null) _body.OnSettingsChanged();
+                if (_body != null) _body.RebuildTab = true;
+                _configStatus = "Reset to Default done (" + DateTime.Now.ToString("HH:mm:ss") + "): " + changed + " of "
+                    + Defaults.Count + " settings changed back to their defaults. Kept: the XAI API Token, the key file paths, "
+                    + "the pose commands and the companion's own settings in config.json.";
+                _diag.Step("Reset to Default: " + changed + " setting(s) back to default");
+            }
+            catch (Exception e)
+            {
+                _configStatus = "Reset to Default failed: " + Diag.Describe(e);
+                _diag.Fail("Reset to Default", e);
+            }
+        }
+
+        /// <summary>Info prose of the tab Config about the reset (exact labels in bold).</summary>
+        private string ResetInfo()
+        {
+            string text = "<b>" + ResetButtonLabel + "</b> sets every AIBody setting of this scene back to the value a new scene starts "
+                + "with: all tabs (connection, AI mode, voice, persona, microphone, body, idle poses, breathing, logging and "
+                + "<b>" + BackgroundToggleName + "</b> with its color) and the character wizard, which then asks "
+                + "<b>" + CharacterWizard.GateQuestion + "</b> again. It asks first: press <b>" + ResetConfirmLabel + "</b> to do it "
+                + "or <b>" + ResetCancelLabel + "</b> to keep everything. It never deletes your <b>XAI API Token</b>, and it keeps the "
+                + "<b>xAI key file</b> and <b>ElevenLabs key file</b> paths, your pose commands, your personas and the companion's own "
+                + "settings (engine details, remote control, its setup answers); the reset values are written to config.json as usual. "
+                + "Save the scene afterwards to keep the reset in the scene.\n";
+            if (_resetPending)
+                text = "<color=orange>Reset to Default is waiting for your confirmation</color>: press <b>" + ResetConfirmLabel
+                    + "</b> or <b>" + ResetCancelLabel + "</b>.\n" + text;
+            return text;
         }
 
         // ---------------------------------------------------------------- tabs
@@ -321,6 +391,7 @@ namespace AIBody
             string name = Tabs[index];
             try { _page.Clear(); }
             catch (Exception e) { _diag.Fail("Switch tab (remove old controls)", e); }
+            if (index != _tab) _resetPending = false;   // leaving the tab Config cancels a pending reset
             _tab = index;
             try
             {
@@ -348,6 +419,8 @@ namespace AIBody
                         _page.Toggle(_verboseJson);
                         _page.Header("<b>Background</b>");
                         BuildBackgroundSection();
+                        _page.Header("<b>Reset</b>");
+                        BuildResetSection();
                         break;
                 }
                 RefreshStatus();
@@ -538,6 +611,7 @@ namespace AIBody
                                 + _link.FilePollInfoText() + "\n" : "")
                             + (_configStatus.Length > 0 ? _configStatus + "\n" : "")
                             + BackgroundInfo()
+                            + ResetInfo()
                             + SelfTest()
                             + (Log.Verbose && Log.RecentText().Length > 0 ? "<b>Recent events</b> (Verbose log)\n" + Log.RecentText() : "")
                             + "<b>Startup log</b>\n" + (_diag != null ? _diag.Text : "");
@@ -615,6 +689,12 @@ namespace AIBody
             bool appSeen = _link != null && _link.AppSeen;
             if (appSeen && !_appWasSeen && _settingsChecked) CheckBackgroundSetup();
             _appWasSeen = appSeen;
+
+            if (_rebuildTabNextFrame)
+            {
+                _rebuildTabNextFrame = false;   // next frame, not inside the button's own click handler
+                ShowTab(_tab);
+            }
 
             if (_body != null && _body.RebuildTab)
             {

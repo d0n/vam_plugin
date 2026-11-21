@@ -1,4 +1,4 @@
-# AIBody – test protocol for the first test in VaM 1.22 (from v0.6.3, now version 40; T9 from v0.7.2, T10 from v0.7.3, menu layout from version 15, T19–T21 from version 30, T22–T23 from version 31, T24–T29 from version 32, T38–T42 from version 36, T43 after version 36, T44 from version 37, T45 after version 37, T46 from version 38, T47 from version 39, T48–T51 from version 40)
+# AIBody – test protocol for the first test in VaM 1.22 (from v0.6.3, now version 40; T9 from v0.7.2, T10 from v0.7.3, menu layout from version 15, T19–T21 from version 30, T22–T23 from version 31, T24–T29 from version 32, T38–T42 from version 36, T43 after version 36, T44 from version 37, T45 after version 37, T46 from version 38, T47 from version 39, T48–T51 from version 40, T52–T54 on main after version 40)
 
 Goal: the open "must do now" points that can only be checked in VaM. Please go through every point
 in order and enter the result (✅ / ❌ / unclear). Duration: about 20 minutes.
@@ -596,3 +596,36 @@ Report: the AIBody lines of the VaM log.
 5. Tray > **Quit**: the plugin reports the companion as not connected. Settings > Apps > AIBody Companion > Uninstall: the folder `%LOCALAPPDATA%\Programs\AIBody Companion` and the shortcuts are gone.
 
 Report: screenshots of the note, the tray menu and the Voice tab; anything SmartScreen or an antivirus said.
+
+## T52 – Installer asks for the VaM folder (on main after version 40, Windows)
+
+Use an `AIBody Companion Setup.exe` built from main (GitHub Actions artifact of the workflow "Companion Windows installer"), until the next release ships it.
+
+1. Run the setup. After the options page comes **Your VaM folder**: the field already shows your VaM folder (the folder of the last setup, the remembered folder, or a VaM folder found on any drive, e.g. `D:\VaM`). If it is empty or wrong, click **Browse** and choose the folder with `VaM.exe`.
+2. Choose a folder without `VaM.exe` (e.g. your Desktop) and click **Next**: a message says there is no VaM.exe in this folder and the page stays. Choose the right folder again: **Next** works.
+3. Finish with **Launch AIBody Companion now**: no folder picker appears; the note says the app runs in the background. `%LOCALAPPDATA%\AIBody Companion\launcher.json` contains your folder as `vam_root` and `"vam_root_set_by": "setup"`.
+4. Run the setup again: the page shows the folder from step 1. Choose another VaM folder if you have one, finish, quit and start AIBody Companion from the Start menu: it uses the new folder (its log is under that folder's `Saves/PluginData/AIBody/logs/`).
+5. Fallback: quit the app, rename the chosen VaM folder for a moment, start AIBody Companion: it looks for VaM itself and, if it finds nothing, asks once with its folder picker. Rename the folder back.
+
+Report: screenshot of the **Your VaM folder** page and of the error message from step 2; the content of `launcher.json`.
+
+## T53 – Reset to Default (on main after version 40)
+
+1. Load AI-Buddy. Change a few settings in different tabs: tab Voice **Voice** = rex, **Proactive talking** off; tab Client Character **Mic mode** = Push-to-talk; tab AI Character: answer the wizard with **Yes** and choose **AI gender/body**; tab Config **Verbose log** on, **Set background color** off.
+2. Tab Config: below **Background** is the header **Reset** with the button **Reset to Default**. The left info field explains what it resets and what it keeps. Press it: instead of it there are **Confirm Reset to Default** and **Cancel**, and the left field says the reset waits for your confirmation. Press **Cancel**: nothing changed, the left field says so.
+3. Press **Reset to Default**, switch to another tab and back: the plain **Reset to Default** button is shown again (switching tabs cancels). Press it and then **Confirm Reset to Default**: the left field says how many settings went back to their defaults. Check: Voice = eve, Proactive talking on, Mic mode = Voice activation, Verbose log off, Set background color off (the color is back to #00FF00); tab AI Character asks **Do you want to configure your characters?** again with **Yes** / **No**.
+4. The **XAI API Token** still works (the AI answers; tab Voice shows the masked token), the **xAI key file** path and the pose commands are unchanged. `Saves/PluginData/AIBody/config.json` still has `ai.xai.api_key` and the reset values (e.g. `"voice": "eve"`).
+5. Save the scene under a new name and reload it: the reset values are kept.
+
+Report: screenshots of the Config tab before and after pressing **Reset to Default**, and of the AI Character tab after the reset; any red `AIBody:` log line.
+
+## T54 – AI-Buddy: AIBody on the male BryanGosling (on main after version 40)
+
+Use a package built from main (`python tools/build_var.py`) until the next release.
+
+1. Load **AI-Buddy**. Select the male atom `BryanGosling` > tab **Plugins**: AIBody (`SELF:/Custom/Scripts/d0n/AIBody/AIBody.cslist`) is there; its tab Config shows **Set background color** on with #00FF00, and the background is green.
+2. Select the female atom `Person` > tab **Plugins**: no AIBody plugin.
+3. Talk to the character: the male speaks (lip sync on his head audio), his expressions and idle motion move. Clothing, hair and looks of both people are as before.
+
+Report: screenshots of both Plugins tabs; anything that looks different from the v40 scene apart from the plugin.
+

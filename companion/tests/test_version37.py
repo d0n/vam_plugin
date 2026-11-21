@@ -127,19 +127,21 @@ class ExampleSceneTests(TestCase):
         clips = next(st for st in core["storables"] if st["id"] == "URLAudioClipManager").get("clips") or []
         self.assertEqual(clips, [])
 
-    def test_aibody_only_on_the_female_person_with_background_on(self):
+    def test_aibody_only_on_one_person_with_background_on(self):
+        """Since 21.11.2026 (after v40, Leon 17:02) AIBody is on the male BryanGosling; before it was on the female Person."""
         plugins = []
         for atom in self.template["atoms"]:
             for st in atom.get("storables") or []:
                 if st.get("id") == "PluginManager":
                     for value in (st.get("plugins") or {}).values():
                         plugins.append((atom["id"], value))
-        self.assertEqual(plugins, [("Person", f"d0n.AIBody.{__version__}:/Custom/Scripts/d0n/AIBody/AIBody.cslist")])
+        self.assertEqual(plugins, [("BryanGosling", f"d0n.AIBody.{__version__}:/Custom/Scripts/d0n/AIBody/AIBody.cslist")])
         female = next(a for a in self.template["atoms"] if a["id"] == "Person")
         male = next(a for a in self.template["atoms"] if a["id"] == "BryanGosling")
         self.assertEqual(next(st for st in female["storables"] if st["id"] == "geometry")["character"], "Female 1")
         self.assertEqual(next(st for st in male["storables"] if st["id"] == "geometry")["character"], "Male 4")
-        st = next(s for s in female["storables"] if s["id"] == first_start.AIBODY_STORABLE)
+        self.assertFalse(any(s["id"] == first_start.AIBODY_STORABLE for s in female["storables"]))
+        st = next(s for s in male["storables"] if s["id"] == first_start.AIBODY_STORABLE)
         self.assertEqual(st["Set background color"], "true")
         self.assertEqual(st["Background color"], {"h": "0.3333333", "s": "1", "v": "1"})
 

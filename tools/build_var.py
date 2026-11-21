@@ -48,11 +48,30 @@ SCENE_TEMPLATE = ROOT / "examples" / "scenes" / "AI-Buddy.json"
 SCENE_THUMB = SCENE_TEMPLATE.with_suffix(".jpg")
 
 LOOSE_SCENE = "AI-Buddy.json"
+# The one atom of the example scene that carries AIBody (Leon, 21.11.2026 17:02: the male, not the female "Person").
+AIBODY_ATOM = "BryanGosling"
+AIBODY_STORABLE = "plugin#0_AIBody.AIBodyPlugin"
 LOOSE_THUMB = "AI-Buddy.jpg"
 
 
+def check_aibody_atom(data: dict) -> None:
+    """AIBody (PluginManager entry and its saved values) on AIBODY_ATOM only; the scene's saved background is on."""
+    holders, settings = [], []
+    for atom in data.get("atoms", []):
+        for st in atom.get("storables", []):
+            if st.get("id") == "PluginManager" and st.get("plugins"):
+                holders.append(atom.get("id"))
+            if st.get("id") == AIBODY_STORABLE:
+                settings.append((atom.get("id"), st))
+    if holders != [AIBODY_ATOM] or [a for a, _ in settings] != [AIBODY_ATOM]:
+        raise SystemExit(f"scene template: AIBody must be on {AIBODY_ATOM} only (plugin on {holders}, "
+                         f"settings on {[a for a, _ in settings]})")
+    if settings[0][1].get("Set background color") != "true":
+        raise SystemExit("scene template: 'Set background color' of AIBody must be on")
+
+
 def example_scene(creator: str, package: str, version: int, script_dir: str, inside_package: bool = True) -> str:
-    """The AI-Buddy scene template with AIBody on the female Person. Third-party clothing, hair and morph packages
+    """The AI-Buddy scene template with AIBody on the male BryanGosling (since 21.11.2026, after v40; before: the female Person). Third-party clothing, hair and morph packages
     stay in the scene and are declared in packaging/meta.json "dependencies" (VaM format: package id -> licenseType
     when known from a Hub lookup, plus nested dependencies). Loose Custom/ and Saves/ paths stay in the scene too
     (they resolve on the author's PC; VaM skips them elsewhere) and are not packaged. Inside the package the plugin
@@ -71,6 +90,7 @@ def example_scene(creator: str, package: str, version: int, script_dir: str, ins
                         st["plugins"][key] = cslist
                     else:
                         raise SystemExit(f"scene template references another plugin: {value}")
+    check_aibody_atom(data)
     return json.dumps(data, indent=3) + "\n"
 
 

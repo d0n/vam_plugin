@@ -88,7 +88,7 @@ class WizardTests(unittest.TestCase):
         result, _, _ = self.answer("yes", "#8000ff", "scene")
         self.assertEqual(result["choice"], "scene")
         holder, st = self.aibody_storable(self.scene())
-        self.assertEqual(holder, "Person")
+        self.assertEqual(holder, "BryanGosling")  # since 21.11.2026 (after v40): AIBody on the male
         self.assertEqual(st[first_start.TOGGLE_NAME], "true")
         self.assertEqual(st[first_start.COLOR_NAME], first_start.hsv_of("#8000FF"))
         toggle, color = plugin_after(self.config(), st)
@@ -190,7 +190,7 @@ class SceneTests(unittest.TestCase):
                    for p in st["plugins"].values()]
         self.assertEqual(plugins, [f"d0n.AIBody.{__version__}:/Custom/Scripts/d0n/AIBody/AIBody.cslist"])
 
-    def test_two_people_aibody_only_on_the_female(self):
+    def test_two_people_female_and_male(self):
         female = self.atom("Person")
         male = self.atom("BryanGosling")
         self.assertEqual(female["type"], "Person")
@@ -626,7 +626,7 @@ class MenuLayoutTests(unittest.TestCase):
         headers = {"Companion connection", "AI", "Voice and sound", "Logging", "Background", "Body control", "Idle poses",
                    "Idle motion and breathing", "Expression and gesture", "Poses", "Microphone", "Push-to-talk",
                    "Voice detection", "Echo and barge-in", "Config file", "Connection", "First start: XAI API Token",
-                   "Self-test", "Recent events", "Startup log", "Engine status", "Info: ", "Characters", "Clothing"}
+                   "Self-test", "Recent events", "Startup log", "Engine status", "Info: ", "Characters", "Clothing", "Reset"}
         unknown = sorted(x for x in labels if x not in known and x not in headers and not x.startswith(("AIBody", "Info")))
         self.assertEqual(unknown, [], "bold text that is neither a control label nor a section title")
 

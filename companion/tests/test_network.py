@@ -285,7 +285,7 @@ class PluginSourceTests(unittest.TestCase):
     def test_the_toggle_exists_default_on_and_is_saved_and_mirrored(self):
         link = self.src("AppLink.cs")
         self.assertIn('new JSONStorableBool("Network Active", true, (bool v) => Restart())', link)
-        self.assertIn("RegisterBool(_networkJson)", link)
+        self.assertIn("SettingsDefaults.Bool(_plugin, _networkJson)", link)  # RegisterBool + default for Reset to Default
         self.assertIn('connection["network_active"].AsBool = NetworkActive;', link)
         self.assertIn("page.Toggle(_networkJson);", link)
 

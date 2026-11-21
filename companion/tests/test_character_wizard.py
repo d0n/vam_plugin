@@ -143,10 +143,10 @@ class StepTests(unittest.TestCase):
         self.assertNotIn("page.Toggle", wanted_tail)
 
     def test_answers_are_registered_and_written_with_the_scene_and_config(self):
-        self.assertIn("RegisterBool(_askedJson)", self.create)
-        self.assertIn("RegisterBool(_wantedJson)", self.create)
-        self.assertIn("RegisterStringChooser(_aiGenderJson)", self.create)
-        self.assertIn("RegisterStringChooser(_userGenderJson)", self.create)
+        self.assertIn("SettingsDefaults.Bool(_plugin, _askedJson)", self.create)  # registers it and remembers its default
+        self.assertIn("SettingsDefaults.Bool(_plugin, _wantedJson)", self.create)  # registers it and remembers its default
+        self.assertIn("SettingsDefaults.Chooser(_plugin, _aiGenderJson)", self.create)  # registers it and remembers its default
+        self.assertIn("SettingsDefaults.Chooser(_plugin, _userGenderJson)", self.create)  # registers it and remembers its default
         write = method_body(self.cs, "public void WriteSettings(JSONClass root)")
         self.assertIn('characters["setup_answered"]', write)
         self.assertIn('characters["setup_wanted"]', write)

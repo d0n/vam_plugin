@@ -82,13 +82,13 @@ namespace AIBody
             Enabled = Reg(new JSONStorableBool("Mic enabled", true, (bool v) => MarkDirty()));
             Mode = new JSONStorableStringChooser("Mic mode", new List<string> { ModeVad, ModePtt }, ModeVad, "Mic mode",
                 (string v) => MarkDirty());
-            _plugin.RegisterStringChooser(Mode);
+            SettingsDefaults.Chooser(_plugin, Mode);
             // RMS level (0..1) above which a frame counts as speech.
             Threshold = Reg(new JSONStorableFloat("VAD threshold", 0.01f, (float v) => MarkDirty(), 0.001f, 0.5f));
             // Voice detector: Auto = WebRTC if the companion app has it installed, else the built-in one.
             VadEngine = new JSONStorableStringChooser("VAD engine", new List<string> { VadAuto, VadBuiltIn, VadWebRtc, VadSilero }, VadAuto,
                 "VAD engine", (string v) => MarkDirty());
-            _plugin.RegisterStringChooser(VadEngine);
+            SettingsDefaults.Chooser(_plugin, VadEngine);
             // 0..3: higher = ignores more background noise.
             VadStrictness = Reg(new JSONStorableFloat("VAD strictness", 2f, (float v) => MarkDirty(), 0f, 3f));
             SilenceMs = Reg(new JSONStorableFloat("Silence timeout (ms)", 700f, (float v) => MarkDirty(), 200f, 5000f));
@@ -120,8 +120,8 @@ namespace AIBody
             _plugin.RegisterAction(new JSONStorableAction("Push-to-talk toggle", () => _pttActive.val = !_pttActive.val));
         }
 
-        private JSONStorableBool Reg(JSONStorableBool p) { _plugin.RegisterBool(p); return p; }
-        private JSONStorableFloat Reg(JSONStorableFloat p) { _plugin.RegisterFloat(p); return p; }
+        private JSONStorableBool Reg(JSONStorableBool p) { return SettingsDefaults.Bool(_plugin, p); }
+        private JSONStorableFloat Reg(JSONStorableFloat p) { return SettingsDefaults.Float(_plugin, p); }
 
         /// <summary>Microphone and push-to-talk controls of the tab Client Character.</summary>
         public void BuildTab(UiPage page, JSONStorableBool bargeIn)

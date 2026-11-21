@@ -4,9 +4,11 @@ The installer ("AIBody Companion Setup.exe", Inno Setup around a PyInstaller bui
 %LOCALAPPDATA%\\Programs\\AIBody Companion with a Start menu entry. Starting it:
 
 1. Single instance: a second start only shows the short note "already running" and ends.
-2. Finds the VaM folder without typing: the remembered folder, a parent folder of the exe (installed inside VaM),
-   common folders on every drive (X:\\VaM, X:\\Virt-A-Mate, X:\\Games\\VaM, ...); VaM has no installer, registry key
-   or Steam entry to read, so none is used. Otherwise it asks once with a folder picker and remembers the answer.
+2. Finds the VaM folder: first the remembered folder in launcher.json, which the installer writes from its wizard page
+   "Your VaM folder" (Leon, 21.11.2026 17:01: chosen during setup, prefilled by auto-detection, VaM.exe required), so
+   the companion never has to sit inside the VaM folder; then a parent folder of the exe and common folders on every
+   drive (X:\\VaM, X:\\Virt-A-Mate, X:\\Games\\VaM, ...); VaM has no installer, registry key or Steam entry to read.
+   Only as the last fallback (no folder from setup, or VaM moved) it asks once with a folder picker and remembers it.
 3. Runs the companion app (cli.main with --no-stdin --no-setup) in the background, shows a small note that closes
    by itself ("AIBody Companion is now running in the background") and puts an icon with Quit in the tray.
 
@@ -88,7 +90,8 @@ def common_candidates(roots: Iterable[Path] | None = None, env: dict[str, str] |
 
 def load_settings(folder: Path) -> dict[str, Any]:
     try:
-        data = json.loads((folder / SETTINGS_FILE).read_text(encoding="utf-8"))
+        # utf-8-sig: the installer writes launcher.json with a byte order mark (Inno Setup SaveStringsToUTF8File)
+        data = json.loads((folder / SETTINGS_FILE).read_text(encoding="utf-8-sig"))
         return data if isinstance(data, dict) else {}
     except (OSError, ValueError):
         return {}
@@ -317,17 +320,36 @@ def redirect_output(folder: Path) -> None:
         sys.stderr = stream
 
 
+def check_vam_root(folder: Path, out: Path | None) -> int:
+    """--check-vam-root (CI after a silent install with /VAMDIR=): the folder from launcher.json / detection, no picker."""
+    settings = load_settings(folder)
+    root, how = detect_vam_root(exe_dir(), settings.get("vam_root"), common_candidates())
+    report = {"vam_root": str(root) if root else None, "how": how, "settings_file": str(folder / SETTINGS_FILE),
+              "set_by": settings.get("vam_root_set_by")}
+    text = json.dumps(report, indent=2)
+    if out is not None:
+        out.write_text(text, encoding="utf-8")
+    if sys.stdout is not None:
+        print(text, flush=True)
+    return 0 if root else 1
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog=APP_NAME)
     p.add_argument("--selftest", action="store_true", help="check the bundled parts and exit (0 = ok)")
     p.add_argument("--selftest-out", type=Path, help="write the self-test report to this file")
     p.add_argument("--vam-root", dest="vam_root", help="use this VaM folder (and remember it)")
     p.add_argument("--choose-vam-folder", action="store_true", help="ask for the VaM folder again")
+    p.add_argument("--check-vam-root", action="store_true",
+                   help="print the VaM folder the app would use (no picker, nothing started) and exit (0 = found)")
     args = p.parse_args(argv)
     folder = data_dir()
     if args.selftest:
         code = selftest(args.selftest_out)
         os._exit(code)  # the companion thread of the self-test is still running
+    if args.check_vam_root:
+        code = check_vam_root(folder, args.selftest_out)
+        os._exit(code)
     redirect_output(folder)
     instance = SingleInstance()
     if not instance.acquire():
