@@ -257,7 +257,7 @@ class PlainEnglishTextTests(unittest.TestCase):
 
     def test_plugin_help_texts_are_plain(self):
         link, plugin, mic = source("AppLink.cs"), source("AIBody.cs"), source("MicConfig.cs")
-        self.assertIn("the character only speaks Grok's answer", plugin)
+        self.assertIn("with <b>Proactive talking</b> off the character only speaks when you ask it something", link)
         self.assertIn("With <b>Proactive talking</b> on, the AI may start talking by itself after a quiet moment", link)
         self.assertIn("paste your xAI API key (from console.x.ai) into <b>", link)
         self.assertIn("The microphone is always the system default input", mic)

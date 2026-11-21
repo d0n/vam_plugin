@@ -330,22 +330,15 @@ class PluginSourceTests(unittest.TestCase):
                           ("AppLink.cs", "public void BuildVoiceSection(UiPage page)")):
             self.assertNotIn("Eleven", method_body(source(file), sig))
 
-    def test_question_and_answer_button_is_centered_on_two_lines(self):
+    def test_question_and_answer_button_is_gone(self):
+        """Version 39 (Leon): the button was removed; the two-line button helper stays for other buttons."""
         plugin = source("AIBody.cs")
-        self.assertIn('QaButtonLabel = "Question\\n& Answer"', plugin)
-        voice = method_body(plugin, "private void ShowTab(int index)")
-        self.assertIn("_page.Button(QaButtonLabel, ", voice)
-        self.assertNotIn("Simple Q&A mode", voice)
+        self.assertNotIn("QaButtonLabel", plugin)
+        self.assertNotIn("EnableSimpleQa", plugin)
+        self.assertNotIn("SetSimpleQa", source("AppLink.cs"))
         helper = source("UiHelper.cs")
         two_line = method_body(helper, "public void Button(string label, float height, UnityEngine.Events.UnityAction onClick)")
         self.assertIn("buttonText.alignment = UnityEngine.TextAnchor.MiddleCenter", two_line)
-        self.assertIn("b.height = height", two_line)
-        self.assertIn("EnableSimpleQa", voice, "function unchanged: same handler")
-        enable = method_body(plugin, "private void EnableSimpleQa()")
-        self.assertIn("_link.SetSimpleQa()", enable)
-        self.assertIn("SetBodyControl(false)", enable)
-        self.assertIn("_aiModeJson.val = ModeQa", method_body(source("AppLink.cs"), "public void SetSimpleQa()"))
-
 
 if __name__ == "__main__":
     unittest.main()

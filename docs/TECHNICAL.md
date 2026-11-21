@@ -27,8 +27,9 @@ sync. Speech only, no expressions or gestures, no proactive remarks. A few secon
    field **XAI API Token** (plain text; version 21). It reaches the running app within a second.
    Alternatively start the app with the key in the environment (`set XAI_API_KEY=xai-...`, Windows
    `cmd`; PowerShell: `$env:XAI_API_KEY="xai-..."`); the field wins when both are set.
-   Then press **Question and Answer** (until version 20 "Simple Q&A mode"; sets AI mode `qa` and Body
-   control off; scenes from 0.7.1 still have `auto`).
+   AI mode `qa` (simple Q&A) is the default; the button **Question and Answer** was removed in
+   version 39: with **Proactive talking** off the character only answers when asked, and Body
+   control is not touched (scenes from 0.7.1 still have `auto`).
 4. **Play test tone** (tone from the package) and **Test tone via companion** (tone through the
    app's audio folder): both must be heard.
 5. Ask a question, or type `Hallo` + Enter in the companion console (same path without the mic).
@@ -193,7 +194,7 @@ left column (the header line above it is gone). First line: version and start re
 (failures red), then the tab's info. Self test, recent events and start log are in the tab *Config*,
 the connection lines (*Connection*) in *Voice*, the body lines (*Body*) in *AI Character*. It shows:
 
-- **Info: <tab>**: help and status for the open tab (Voice: Q&A and AI mode help, key and engine
+- **Info: <tab>**: help and status for the open tab (Voice: AI mode help, key and engine
   status; AI Character: pose count; Client Character: push-to-talk help, microphone status;
   Config: config.json path, channel, result of Reload Config JSON).
 

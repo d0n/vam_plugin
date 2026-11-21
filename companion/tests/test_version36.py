@@ -494,8 +494,8 @@ class EyesBelongToVaMTests(unittest.TestCase):
 
 
 class BodyControlDefaultTests(unittest.TestCase):
-    """Leon: Body control is ON for a fresh install, a fresh scene and a missing key; only the Question and Answer
-    button switches it off (on purpose, unchanged)."""
+    """Leon: Body control is ON for a fresh install, a fresh scene and a missing key; since version 39 nothing in
+    AIBody switches it off by itself (the Question and Answer button that did is gone)."""
 
     def test_every_default_is_on(self):
         body = source("Body.cs")
@@ -508,11 +508,9 @@ class BodyControlDefaultTests(unittest.TestCase):
         data, _ = settings_file.validate({"body": {}})
         self.assertTrue(data["body"]["body_control"])
 
-    def test_only_the_question_and_answer_button_switches_it_off(self):
-        hits = [p.name for p in SRC.glob("*.cs") if "SetBodyControl(false)" in p.read_text()]
-        self.assertEqual(hits, ["AIBody.cs"])
-        self.assertIn("SetBodyControl(false)", method_body(source("AIBody.cs"), "private void EnableSimpleQa("))
+    def test_nothing_switches_it_off(self):
         for p in SRC.glob("*.cs"):
+            self.assertNotIn("SetBodyControl(", p.read_text())
             self.assertNotIn("_bodyControlJson.val = false", p.read_text())
 
     def test_scene_preset_and_setup_do_not_store_it_off(self):
@@ -566,7 +564,7 @@ class MenuLayoutTests(unittest.TestCase):
 
     def test_tabs_are_ordered_by_topic(self):
         show = method_body(source("AIBody.cs"), "private void ShowTab(int index)")
-        self.order(show, ['"<b>Companion connection</b>"', "BuildConnectionSection", '"<b>AI</b>"', "QaButtonLabel",
+        self.order(show, ['"<b>Companion connection</b>"', "BuildConnectionSection", '"<b>AI</b>"',
                           "BuildAiSection", '"<b>Voice and sound</b>"', "BuildVoiceSection", "BuildSoundSection",
                           "BuildConfigTab", '"<b>Logging</b>"', "_verboseJson", '"<b>Background</b>"', "BuildBackgroundSection"])
         char = method_body(source("Body.cs"), "public void BuildCharacterTab(UiPage page)")
@@ -603,7 +601,7 @@ class MenuLayoutTests(unittest.TestCase):
         self.assertIn('<b>" + XaiTokenLabel + "</b>', link)
         for label in ("Push-to-talk active", "Mic mode", "VAD engine", "VAD strictness", "VAD threshold", "Echo gate tail (s)"):
             self.assertIn(f"<b>{label}</b>", mic)
-        for label in ("Question & Answer", "AI mode", "Body control", "Play test tone", "Set background color"):
+        for label in ("Set background color",):
             self.assertIn(f"<b>{label}</b>", ai)
         # no "Label: explanation" boxes left in the explanations
         for old in ("Memory: off", "Persona: none", "Proactive talking: when on", "VAD strictness 0-3:",
@@ -621,7 +619,7 @@ class MenuLayoutTests(unittest.TestCase):
         cs = "".join(source(f) for f in ("AIBody.cs", "AppLink.cs", "Body.cs", "MicConfig.cs", "CharacterWizard.cs"))
         labels = set(re.findall(r"<b>([^<\"]+)</b>", cs))
         known = set(re.findall(r'new JSONStorable\w+\("([^"]+)"', cs)) | set(re.findall(r'Button\("([^"]+)"', cs))
-        known |= {"Question & Answer", "Breath morph (from the Morphs tab)", "Companion inbox poll interval (s)", "XAI API Token",
+        known |= {"Breath morph (from the Morphs tab)", "Companion inbox poll interval (s)", "XAI API Token",
                   "Background color", "Set background color", "Pose command", "Pose", "Language model", "Speech-to-text", "Text-to-speech", "Voice",
                   "AI gender/body", "Your character gender"}
         headers = {"Companion connection", "AI", "Voice and sound", "Logging", "Background", "Body control", "Idle poses",

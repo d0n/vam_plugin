@@ -553,3 +553,13 @@ Report: short note that the gate, the skip path and both gender menus behaved as
 4. Missing loose files listed in `docs/SCENE_GREENSCREEN.md` as needs local content (morphs, N3DX textures, tan-line decals, scamp THEV hair, PositiveResult hoodie, Bryan Gosling morph/face texture) should be skipped, not crash the load.
 
 Report: screenshot of the Load Scene list with the thumbnail, of the loaded scene with clothing, and of the plugin on `Person` with Set background color on. Note any missing-package or missing-file messages.
+
+## T47 – No Question and Answer button; Proactive talking only (version 39)
+
+1. Load an older scene that has AIBody on a Person (for example one saved with version 38, or `AI-Buddy` from `d0n.AIBody.38`), then switch the plugin to version 39 (or load `AI-Buddy` from `d0n.AIBody.39`). The scene loads without a red `AIBody:` error line.
+2. Tab **Voice** > section **AI**: there is no **Question and Answer** button. The section starts with **Use realtime voice**, then **AI mode** and the other controls; **Proactive talking** (on/off) and **Speech delay timer (s)** are still there.
+3. The left info field explains in prose that there is no separate Question and Answer button and that with **Proactive talking** off the character only speaks when asked.
+4. Switch **Proactive talking** off, ask a question (spoken or typed in the companion console): the character answers. Stay silent longer than **Speech delay timer (s)**: it does not start talking by itself.
+5. Tab **AI Character**: **Body control** keeps the value you set; nothing in step 2-4 switched it off.
+
+Report: screenshot of the Voice tab (AI section and left info field) and a short note on steps 1, 4 and 5.

@@ -290,11 +290,6 @@ namespace AIBody
 
         public bool BodyControl { get { return _bodyControlJson == null || _bodyControlJson.val; } }
 
-        public void SetBodyControl(bool on)
-        {
-            if (_bodyControlJson != null) _bodyControlJson.val = on;
-        }
-
         /// <summary>Set when the pose menu may have to appear or vanish; the plugin rebuilds the tab next frame.</summary>
         public bool RebuildTab;
 

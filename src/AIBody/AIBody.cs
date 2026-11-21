@@ -22,8 +22,8 @@
 // events and startup log in the tab Config), always visible. Right column = a row of tab buttons and below it ONLY
 // the controls of the active tab (no text fields; help and status go to the big field). Switching
 // tabs removes the old controls with the standard Remove* methods (UiPage, evidence E17/E18).
-// Tabs (ordered by topic, 20.11.2026): Voice (Companion connection: link, API Reconnect, token; AI: Question
-// and Answer, realtime, AI mode, language model, persona, memory, proactive; Voice and sound: voice, STT, TTS, sound
+// Tabs (ordered by topic, 20.11.2026): Voice (Companion connection: link, API Reconnect, token; AI:
+// realtime, AI mode, language model, persona, memory, proactive; Voice and sound: voice, STT, TTS, sound
 // tests, speech volume) | AI Character (Characters wizard, Body control, Idle poses, idle motion and breathing, expression and gesture,
 // poses) | Client Character (microphone, push-to-talk, voice detection, echo and barge-in) | Config (Reload Config
 // JSON; Network Active + Companion inbox poll interval = storable "File poll interval (s)"; verbose log; version 36:
@@ -331,7 +331,6 @@ namespace AIBody
                         _page.Header("<b>Companion connection</b>");
                         if (_link != null) _link.BuildConnectionSection(_page);
                         _page.Header("<b>AI</b>");
-                        _page.Button(QaButtonLabel, 90f, EnableSimpleQa);
                         if (_link != null) _link.BuildAiSection(_page);
                         _page.Header("<b>Voice and sound</b>");
                         if (_link != null) _link.BuildVoiceSection(_page);
@@ -361,29 +360,13 @@ namespace AIBody
 
         // ---------------------------------------------------------------- config.json
 
-        /// <summary>Version 21: shown on two centered lines (a newline in the button label).</summary>
-        public const string QaButtonLabel = "Question\n& Answer";
+        // Version 39 (Leon, call 21.11.2026 15:59): the button "Question and Answer" is gone. Answering
+        // questions is simply what the character does while Proactive talking is off; Body control is no longer touched.
 
         /// <summary>
         /// Button "Reload Config JSON": applies config.json to the UI (paths, connection, engines, mic,
         /// body, ai keys of the tabs) and pushes the result to the companion app.
         /// </summary>
-        private string _simpleQa = "<b>Question & Answer</b> sets <b>AI mode</b> to 'qa' and switches <b>Body control</b> off (tab AI Character), "
-            + "so you ask a question by speaking it or typing it into the companion app's console and the character only speaks Grok's answer; "
-            + "it needs an xAI API key.";
-
-        /// <summary>
-        /// Button "Question and Answer" (until version 20 "Simple Q&amp;A mode"): AI mode qa (STT -> Grok -> TTS, speech only) and body
-        /// control off, saved to config.json and sent to the companion app.
-        /// </summary>
-        private void EnableSimpleQa()
-        {
-            if (_link != null) _link.SetSimpleQa();
-            if (_body != null) _body.SetBodyControl(false);
-            _simpleQa = "Question and Answer is on since " + DateTime.Now.ToString("HH:mm:ss") + ": <b>AI mode</b> is 'qa' and <b>Body control</b> is off, "
-                + "so press <b>Play test tone</b> to check that you can hear the character and then ask a question.";
-        }
-
         private void ReloadConfigJson()
         {
             if (_link == null) return;
@@ -541,7 +524,7 @@ namespace AIBody
                     case 0:
                         // Version 35: the result of "Test tone via companion" first, where it is seen.
                         text = (_link != null && _link.TestToneStatus.Length > 0 ? "<b>" + _link.TestToneStatus + "</b>\n" : "")
-                            + (_simpleQa.Length > 0 ? _simpleQa + "\n" : "") + (_link != null ? _link.VoiceInfoText() : "")
+                            + (_link != null ? _link.VoiceInfoText() : "")
                             + Section("Connection", _linkLive);
                         break;
                     case 1:

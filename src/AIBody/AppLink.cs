@@ -733,9 +733,9 @@ namespace AIBody
             + "'auto' and 'realtime' let you talk to Grok Voice directly and fall back to 'chain' if that does not work, and 'chain' uses the engines "
             + "picked in <b>Language model</b>, <b>Speech-to-text</b> and <b>Text-to-speech</b>. <b>Use realtime voice</b> switches between 'auto' and 'qa'. "
             + "With <b>Proactive talking</b> on, the AI may start talking by itself after a quiet moment, and <b>Speech delay timer (s)</b> is how long it "
-            + "must be quiet first (0 = never), not how long the AI takes to answer.");
+            + "must be quiet first (0 = never), not how long the AI takes to answer. There is no separate Question and Answer button: "
+            + "with <b>Proactive talking</b> off the character only speaks when you ask it something, and <b>Body control</b> stays as you set it.");
 
-        /// <summary>Button "Question and Answer": AI mode qa (body control is switched off by the plugin).</summary>
         /// <summary>
         /// Voice > AI > "Use realtime voice": on = AI mode auto (Grok Voice, falls back to
         /// the chain), off = qa (the default). Shows on while AI mode is auto or realtime.
@@ -755,12 +755,6 @@ namespace AIBody
             _syncingRealtime = true;
             try { _realtimeJson.val = isOn; }
             finally { _syncingRealtime = false; }
-        }
-
-        public void SetSimpleQa()
-        {
-            _aiModeJson.val = ModeQa;
-            MarkConfigDirty();
         }
 
         /// <summary>Key status per provider from the companion heartbeat: configured / missing / rejected.</summary>
