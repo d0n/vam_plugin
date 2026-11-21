@@ -1,4 +1,4 @@
-# AIBody – test protocol for the first test in VaM 1.22 (from v0.6.3, now version 37; T9 from v0.7.2, T10 from v0.7.3, menu layout from version 15, T19–T21 from version 30, T22–T23 from version 31, T24–T29 from version 32, T38–T42 from version 36, T43 after version 36, T44 from version 37)
+# AIBody – test protocol for the first test in VaM 1.22 (from v0.6.3, now version 37; T9 from v0.7.2, T10 from v0.7.3, menu layout from version 15, T19–T21 from version 30, T22–T23 from version 31, T24–T29 from version 32, T38–T42 from version 36, T43 after version 36, T44 from version 37, T45 after version 37)
 
 Goal: the open "must do now" points that can only be checked in VaM. Please go through every point
 in order and enter the result (✅ / ❌ / unclear). Duration: about 20 minutes.
@@ -533,3 +533,12 @@ Report: the console output of each run and the tab Config after each step.
 3. Optional: copy the release assets `AIBody_Example.json` and `AIBody_Example.jpg` together to `Saves/scene/AIBody/` and open that copy from the browser; the same thumbnail and the same plugin load (the loose scene references `d0n.AIBody.37:/…`).
 
 Report: screenshot of the Load Scene list with the thumbnail, and of the loaded scene with the plugin on `Person`.
+
+## T45 – Character configuration wizard (after version 37)
+
+1. Fresh scene, add AIBody to one Person. Tab **AI Character**: the first section is **Characters**, before **Body control**. The left info field asks **Do you want to configure your characters?** and names the buttons **Yes** and **No**. The companion console setup (first start or `--setup`) still only asks about the background and Scene / Plugin, not about characters.
+2. Press **No**: the Yes / No buttons and the gender menus disappear; only **Configure characters** stays in that section. Reload the scene: it does not ask the question again. Press **Configure characters**: the question returns.
+3. Press **Yes**: **AI gender/body** and **Your character gender** appear (Female / Male, nothing applied to the Person's figure) and a **Clothing** header with no clothing list. The left field says the choices are recorded for the AI and that clothing is set in VaM's own Clothing tab. Pick Female for the AI and Male for your character, save the scene, reload: the same choices are still selected. The Person's body and clothing in VaM are unchanged.
+4. Optional: with the companion app connected, ask the AI how it sees the two characters; the answer should match the recorded genders.
+
+Report: short note that the gate, the skip path and both gender menus behaved as above, and that clothing stayed a VaM Clothing-tab choice.

@@ -50,6 +50,15 @@ DESCRIPTIONS = {
     ("setup", "choice"): "Answer to 'Choose what to use': scene = the app wrote Saves/scene/AIBody/AIBody_Example.json; "
                          "plugin = nothing written; empty = not answered yet",
     ("setup", "revision"): "Grows by one with every answered setup; the plugin applies a background answer once per revision",
+    ("characters",): "Tab 'AI Character', section 'Characters' (after version 37): answers of the character "
+                     "configuration wizard. Recorded as AI prompt context only; the plugin does not change a "
+                     "Person's gender, body or clothing (no evidenced API). Clothing is not stored.",
+    ("characters", "setup_answered"): "true = the gate 'Do you want to configure your characters?' was answered "
+                                      "(Yes or No). false = the question is shown again",
+    ("characters", "setup_wanted"): "true = the user chose Yes (the gender steps are shown). false after answering = "
+                                    "skipped, until 'Configure characters' is pressed",
+    ("characters", "ai_gender"): "Menu 'AI gender/body': Female, Male, or empty if not chosen yet",
+    ("characters", "user_gender"): "Menu 'Your character gender': Female, Male, or empty if not chosen yet",
     ("ui", "background_setup_applied"): "The setup.revision whose background answer the plugin has applied (version 36; "
                                         "written by the plugin)",
     ("body", "idle_poses"): "Toggle 'Idle poses' (version 35): when nothing happens for a while the character takes an "

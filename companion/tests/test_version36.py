@@ -530,6 +530,7 @@ class MenuLayoutTests(unittest.TestCase):
         ("AppLink.cs", "public void BuildConfigTab(UiPage page"),
         ("Body.cs", "public void BuildSoundSection(UiPage page)"),
         ("Body.cs", "public void BuildCharacterTab(UiPage page)"),
+        ("CharacterWizard.cs", "public void Build(UiPage page)"),
         ("MicConfig.cs", "public void BuildTab(UiPage page, JSONStorableBool bargeIn)"),
     ]
 
@@ -559,9 +560,12 @@ class MenuLayoutTests(unittest.TestCase):
                           "BuildAiSection", '"<b>Voice and sound</b>"', "BuildVoiceSection", "BuildSoundSection",
                           "BuildConfigTab", '"<b>Logging</b>"', "_verboseJson", '"<b>Background</b>"', "BuildBackgroundSection"])
         char = method_body(source("Body.cs"), "public void BuildCharacterTab(UiPage page)")
-        self.order(char, ['"<b>Body control</b>"', "_bodyControlJson", '"<b>Idle poses</b>"', "_idlePosesJson", "_idlePoseMaxJson",
+        self.order(char, ["Characters.Build(page)", '"<b>Body control</b>"', "_bodyControlJson", '"<b>Idle poses</b>"', "_idlePosesJson", "_idlePoseMaxJson",
                           '"<b>Idle motion and breathing</b>"', "_idleJson", "_breathingJson", "_breathRateJson", "_breathDepthJson",
                           "page.Header(BreathMorphLabel)", "_breathMorphJson", '"<b>Expression and gesture</b>"', '"<b>Poses</b>"'])
+        wizard = method_body(source("CharacterWizard.cs"), "public void Build(UiPage page)")
+        self.order(wizard, ['"<b>Characters</b>"', 'page.Button("Yes"', 'page.Button("No"',
+                            "page.Popup(_aiGenderJson)", "page.Popup(_userGenderJson)", '"<b>Clothing</b>"'])
         self.assertNotIn("_volumeJson", char)
         self.assertIn("page.Slider(_volumeJson);", method_body(source("Body.cs"), "public void BuildSoundSection(UiPage page)"))
         self.assertIn('BreathMorphLabel = "Breath morph (from the Morphs tab)"', source("Body.cs"))
@@ -577,9 +581,12 @@ class MenuLayoutTests(unittest.TestCase):
 
     def test_left_texts_are_prose_with_bold_labels(self):
         link, body, mic, ai = source("AppLink.cs"), source("Body.cs"), source("MicConfig.cs"), source("AIBody.cs")
+        wizard = source("CharacterWizard.cs")
         self.assertIn("<b>Breaths per minute</b> controls how fast", body)
         for label in ("Body control", "Apply pose", "Idle head motion", "Breathing", "Idle default pose", "Add Pose"):
             self.assertIn(f"<b>{label}</b>", body)
+        for label in ("Yes", "No", "Configure characters", "AI gender/body", "Your character gender", "Clothing"):
+            self.assertIn(f"<b>{label}</b>", wizard)
         for label in ("AI mode", "Use realtime voice", "Proactive talking", "Speech delay timer (s)", "Persona", "Memory",
                       "Forget memory", "Network Active", "Reload Config JSON", "XAI API Token"):
             self.assertIn(f"<b>{label}</b>", link)
@@ -601,15 +608,16 @@ class MenuLayoutTests(unittest.TestCase):
         self.assertIn("**Right column (Leon, 20.11.2026, standing rule):**", spec)
 
     def test_every_bold_label_names_a_real_control(self):
-        cs = "".join(source(f) for f in ("AIBody.cs", "AppLink.cs", "Body.cs", "MicConfig.cs"))
+        cs = "".join(source(f) for f in ("AIBody.cs", "AppLink.cs", "Body.cs", "MicConfig.cs", "CharacterWizard.cs"))
         labels = set(re.findall(r"<b>([^<\"]+)</b>", cs))
         known = set(re.findall(r'new JSONStorable\w+\("([^"]+)"', cs)) | set(re.findall(r'Button\("([^"]+)"', cs))
         known |= {"Question & Answer", "Breath morph (from the Morphs tab)", "Companion inbox poll interval (s)", "XAI API Token",
-                  "Background color", "Set background color", "Pose command", "Pose", "Language model", "Speech-to-text", "Text-to-speech", "Voice"}
+                  "Background color", "Set background color", "Pose command", "Pose", "Language model", "Speech-to-text", "Text-to-speech", "Voice",
+                  "AI gender/body", "Your character gender"}
         headers = {"Companion connection", "AI", "Voice and sound", "Logging", "Background", "Body control", "Idle poses",
                    "Idle motion and breathing", "Expression and gesture", "Poses", "Microphone", "Push-to-talk",
                    "Voice detection", "Echo and barge-in", "Config file", "Connection", "First start: XAI API Token",
-                   "Self-test", "Recent events", "Startup log", "Engine status", "Info: "}
+                   "Self-test", "Recent events", "Startup log", "Engine status", "Info: ", "Characters", "Clothing"}
         unknown = sorted(x for x in labels if x not in known and x not in headers and not x.startswith(("AIBody", "Info")))
         self.assertEqual(unknown, [], "bold text that is neither a control label nor a section title")
 

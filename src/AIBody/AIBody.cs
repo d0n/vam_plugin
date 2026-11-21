@@ -24,7 +24,7 @@
 // tabs removes the old controls with the standard Remove* methods (UiPage, evidence E17/E18).
 // Tabs (ordered by topic, 20.11.2026): Voice (Companion connection: link, API Reconnect, token; AI: Question
 // and Answer, realtime, AI mode, language model, persona, memory, proactive; Voice and sound: voice, STT, TTS, sound
-// tests, speech volume) | AI Character (Body control, Idle poses, idle motion and breathing, expression and gesture,
+// tests, speech volume) | AI Character (Characters wizard, Body control, Idle poses, idle motion and breathing, expression and gesture,
 // poses) | Client Character (microphone, push-to-talk, voice detection, echo and barge-in) | Config (Reload Config
 // JSON; Network Active + Companion inbox poll interval = storable "File poll interval (s)"; verbose log; version 36:
 // Set background color + colour picker, saved with the scene, see Background.cs). Right column: category headers and
@@ -145,6 +145,11 @@ namespace AIBody
                 };
                 _body.PluginFolder = FindPluginFolder;
                 _body.UserSpeaking = () => _link != null && _link.UserSpeaking;
+                _body.OnSettingsChanged = () => { if (_link != null) _link.MarkConfigDirty(); };
+                _link.AppendConfig = (JSONClass evt) =>
+                {
+                    if (_body != null && _body.Characters != null) _body.Characters.WriteSettings(evt);
+                };
                 _link.OnHintChanged = () => ShowTab(_tab);
                 _link.OnPathsChanged = () =>
                 {

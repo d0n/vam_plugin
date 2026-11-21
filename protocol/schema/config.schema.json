@@ -608,6 +608,69 @@
       },
       "description": "Tab 'AI Character', section 'Pose commands' (version 32): the ONLY way a pose is applied. A pose is applied only when the user's WHOLE input equals a command text (case, extra spaces and trailing . ! ? ignored; no substring or fuzzy match). Written by the plugin ('Add Pose' / 'Delete Pose')"
     },
+    "characters": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "setup_answered": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "true",
+                "false",
+                "True",
+                "False"
+              ]
+            }
+          ],
+          "default": false,
+          "description": "true = the gate 'Do you want to configure your characters?' was answered (Yes or No). false = the question is shown again"
+        },
+        "setup_wanted": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "true",
+                "false",
+                "True",
+                "False"
+              ]
+            }
+          ],
+          "default": false,
+          "description": "true = the user chose Yes (the gender steps are shown). false after answering = skipped, until 'Configure characters' is pressed"
+        },
+        "ai_gender": {
+          "type": "string",
+          "default": "",
+          "enum": [
+            "",
+            "Female",
+            "Male"
+          ],
+          "description": "Menu 'AI gender/body': Female, Male, or empty if not chosen yet"
+        },
+        "user_gender": {
+          "type": "string",
+          "default": "",
+          "enum": [
+            "",
+            "Female",
+            "Male"
+          ],
+          "description": "Menu 'Your character gender': Female, Male, or empty if not chosen yet"
+        }
+      },
+      "description": "Tab 'AI Character', section 'Characters' (after version 37): answers of the character configuration wizard. Recorded as AI prompt context only; the plugin does not change a Person's gender, body or clothing (no evidenced API). Clothing is not stored."
+    },
     "setup": {
       "type": "object",
       "additionalProperties": false,

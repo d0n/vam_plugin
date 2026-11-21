@@ -207,6 +207,8 @@ namespace AIBody
 
         /// <summary>Called when the companion app restarted (new session id): its old speech is void.</summary>
         public Action OnAppRestarted;
+        /// <summary>Adds extra objects to the config event (character setup answers).</summary>
+        public Action<JSONClass> AppendConfig;
 
         /// <summary>Outbox files kept while the companion app is away (it clears them on start).</summary>
         private const int MaxOutboxWhileAway = 20;
@@ -439,6 +441,7 @@ namespace AIBody
             JSONClass advanced = new JSONClass();
             advanced["verbose_log"].AsBool = Log.Verbose;   // Config > Verbose log: companion turn trace too
             configEvent["advanced"] = advanced;
+            if (AppendConfig != null) AppendConfig(configEvent);
         }
 
         /// <summary>The ai keys the plugin UI controls: mode, proactive on/off + idle, voice barge-in.</summary>

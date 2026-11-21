@@ -15,6 +15,8 @@ README.md section 4. Categories (kept from the first schema; they no longer matc
               plugin reads the companion inbox, not config.json), verbose_log (tab Config)
 
   poses       commands: [{command, pose}, ...] (version 32, tab AI Character: 'Add Pose' / 'Delete Pose'; a list)
+  characters  setup_answered, setup_wanted, ai_gender, user_gender (after version 37, tab AI Character >
+              Characters): answers of the character configuration wizard, recorded as AI context
 
 plus two categories this app owns (the plugin keeps them unchanged when it writes, except the "ai" keys
 it has controls for):
@@ -125,6 +127,15 @@ DEFAULTS: dict[str, dict[str, Any]] = {
     # Written by the plugin ('Add Pose' / 'Delete Pose'); a list. A missing "commands" key = the ten starter commands,
     # and (version 35) an empty or unusable list = the starters too. See docs/SPEC.md "Pose commands".
     "poses": {"commands": pose_commands.starter_entries()},
+    # Character configuration wizard (after version 37, tab AI Character > Characters). Recorded
+    # settings only: gender/body of the AI character and gender of the user's character, used as
+    # prompt context. Empty gender = not chosen yet. Clothing is not stored (free choice in VaM).
+    "characters": {
+        "setup_answered": False,
+        "setup_wanted": False,
+        "ai_gender": "",
+        "user_gender": "",
+    },
     # Remote control (version 31; this app only, file only, off by default): a local web page / HTTP API and an
     # optional OSC listener. Both bind 127.0.0.1 only. The HTTP API needs the token (generated into this file on
     # the first start with enabled = true); OSC has no token. Changes apply when the app starts. See docs/REMOTE.md.
@@ -284,6 +295,8 @@ RANGES: dict[tuple[str, str], tuple[float, float]] = {
 # Allowed values for some strings.
 CHOICES: dict[tuple[str, ...], tuple[str, ...]] = {
     ("setup", "choice"): ("", "scene", "plugin"),
+    ("characters", "ai_gender"): ("", "Female", "Male"),
+    ("characters", "user_gender"): ("", "Female", "Male"),
     ("ai", "mode"): ("qa", "auto", "realtime", "chain"),
     ("ai", "realtime", "sample_rate"): tuple(str(r) for r in PCM_RATES),
     ("ai", "realtime", "reasoning_effort"): ("none", "high"),
@@ -295,7 +308,7 @@ CHOICES: dict[tuple[str, ...], tuple[str, ...]] = {
 }
 
 CATEGORIES = tuple(DEFAULTS)
-PLUGIN_CATEGORIES = ("connection", "engines", "mic", "body", "advanced", "ui", "poses")  # written by the plugin
+PLUGIN_CATEGORIES = ("connection", "engines", "mic", "body", "advanced", "ui", "poses", "characters")  # written by the plugin
 COMPANION_CATEGORIES = ("ai", "remote", "setup")  # read only by this app, preserved by the plugin
 
 
@@ -559,6 +572,7 @@ def apply_to_config(cfg: Any) -> list[str]:
     cfg.ai = json.loads(json.dumps(data["ai"]))
     cfg.remote = dict(data["remote"])
     cfg.poses = json.loads(json.dumps(data["poses"]))
+    cfg.characters = json.loads(json.dumps(data["characters"]))
     add_secret(str(cfg.remote.get("token") or ""))
     cfg.verbose_log = bool(data["advanced"]["verbose_log"])
     add_secret(str(data["ai"]["xai"].get("api_key") or ""))  # before anything can log it

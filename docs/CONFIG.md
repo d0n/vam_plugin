@@ -22,6 +22,7 @@ and it is where AIBody's folder already is. It is global: one file for the one c
 | `ai` section | sets only its tab controls (`mode`, `proactive.enabled` / `idle_seconds`, `realtime.send_while_speaking` / `voice`, `xai.voice`; `xai.key_file` / `elevenlabs.key_file` are passed through from the file - no menu field since version 15, the file wins on every start), keeps the rest when writing the file | reads it (persona, language, fallback, engine settings); the tab controls also arrive live in the `config` event |
 | paths (`connection.paths`) | read from the file (no UI), on start and on **Reload Config JSON** (tab *Config*); `paths.audio` is kept unchanged | `paths.audio`: where it writes the speech WAVs |
 | `poses` section (version 32) | owns it: **Add Pose** / **Delete Pose** / **Restore starter poses** write `poses.commands`; read at start and on **Reload Config JSON** (a missing key, `[]` or a list without a usable entry = the 10 starters, version 35) | reads it as the pose vocabulary (the gate); also learns the live list from the plugin's status field `pose_commands` |
+| `characters` section (after version 37) | owns it: the character wizard answers (`setup_answered`, `setup_wanted`, `ai_gender`, `user_gender`), written with the scene and this file, also sent in the `config` event | reads it on start and live from the `config` event; adds the genders to the AI instructions |
 | `setup` section (version 35) | never touches it; keeps it when it writes the file | owns it: the answers of the first-start questions (`asked`, `green_background`, `example_scene`) |
 | tab *Config* > **Reload Config JSON** | applies the whole file to the UI (also for a saved scene) and sends it to the app | gets the new values live |
 
@@ -39,7 +40,7 @@ to win.
 One object per settings category. Since the menu restructure the categories no longer match
 the tabs one to one (kept for compatibility with existing files): `connection` = file only
 (network switch and port, paths; + *Voice > Companion connection* **Active**), `engines` = tab *Voice* (sections *AI* and *Voice and sound*), `mic` = tab *Client Character*, `body` = tab
-*AI Character*, `advanced` = tab *Config*, `ai` = companion settings plus the tab controls named
+*AI Character*, `characters` = tab *AI Character* > Characters (after version 37), `advanced` = tab *Config*, `ai` = companion settings plus the tab controls named
 below. Machine-readable:
 [protocol/schema/config.schema.json](../protocol/schema/config.schema.json), example:
 [examples/config.json](../examples/config.json).
@@ -225,3 +226,13 @@ had them). An old file that still holds them loads without a warning and the plu
 - `setup.asked` (false), `setup.background` (false), `setup.background_color` ("#00FF00"), `setup.choice` ("", "scene" or "plugin"), `setup.revision` (0): written by the companion app after the first-start questions (version 36: background yes / no / abort with "Set your color for transparency", then "Choose what to use"; Abort writes nothing). The plugin only reads `background`, `background_color` and `revision`: a new revision with `background` true switches "Set background color" ON with that color, once. The version 35 keys `setup.green_background` / `setup.example_scene` are ignored without a warning. `python -m aibody_companion --setup` asks again, `--no-setup` never asks. See SPEC.md "Scene".
 - `ui.background_setup_applied` (0, version 36): written by the plugin, the `setup.revision` it has applied.
 - `ai.proactive.idle_seconds` is the menu's *Speech delay timer (s)*: 0-3600, default 90, 0 = off.
+
+## Character configuration wizard (after version 37)
+
+Written by the plugin (tab AI Character > Characters). Recorded settings only, also sent in the live `config` event so the companion can add them to the AI instructions.
+
+- `characters.setup_answered` (false): true after the user answers the gate "Do you want to configure your characters?" with **Yes** or **No**. false = the question is shown (first visit, or after **Configure characters**).
+- `characters.setup_wanted` (false): true = the user chose **Yes** and the gender steps are shown. false after answering = skipped, until **Configure characters** is pressed.
+- `characters.ai_gender` (`""`, `Female` or `Male`): menu **AI gender/body**. Empty = not chosen yet. Used as prompt context ("The AI character's body is female."); the plugin does not change the Person's gender or body in VaM (no evidenced API).
+- `characters.user_gender` (`""`, `Female` or `Male`): menu **Your character gender**. Same recording rule for the user's own character (a separate atom AIBody does not drive).
+- Clothing is not a key: it is a free choice in VaM's own Clothing tab, with nothing predefined and no invented clothing ids.

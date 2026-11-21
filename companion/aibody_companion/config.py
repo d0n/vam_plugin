@@ -55,6 +55,8 @@ class Config:
     ai: dict[str, Any] = field(default_factory=dict)
     # "poses" section of the shared config.json (version 32): {"commands": [{"command", "pose"}, ...]}
     poses: dict[str, Any] = field(default_factory=dict)
+    # "characters" section (after version 37): recorded wizard answers (ai_gender, user_gender, ...)
+    characters: dict[str, Any] = field(default_factory=dict)
     # "remote" section of the shared config.json (version 31): enabled, http_port, osc_port, token (see remote/)
     remote: dict[str, Any] = field(default_factory=dict)
     extra: dict[str, Any] = field(default_factory=dict)

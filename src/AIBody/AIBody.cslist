@@ -18,5 +18,6 @@ IdlePoses.cs
 PoseController.cs
 CommandRouter.cs
 Background.cs
+CharacterWizard.cs
 Body.cs
 AIBody.cs

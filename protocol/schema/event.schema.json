@@ -226,6 +226,26 @@
         }
       }
     },
+    "characters": {
+      "type": "object",
+      "description": "config: character wizard answers (after version 37); recorded as AI prompt context only",
+      "properties": {
+        "setup_answered": {
+          "type": ["boolean", "string"]
+        },
+        "setup_wanted": {
+          "type": ["boolean", "string"]
+        },
+        "ai_gender": {
+          "type": "string",
+          "enum": ["", "Female", "Male"]
+        },
+        "user_gender": {
+          "type": "string",
+          "enum": ["", "Female", "Male"]
+        }
+      }
+    },
     "advanced": {
       "type": "object",
       "description": "config: the Erweitert tab (verbose_log = companion turn trace on/off)",

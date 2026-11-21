@@ -38,6 +38,7 @@ BUILDERS = [
     ("AppLink.cs", "public void BuildConfigTab(UiPage page"),
     ("Body.cs", "public void BuildSoundSection(UiPage page)"),
     ("Body.cs", "public void BuildCharacterTab(UiPage page)"),
+    ("CharacterWizard.cs", "public void Build(UiPage page)"),
     ("MicConfig.cs", "public void BuildTab(UiPage page, JSONStorableBool bargeIn)"),
 ]
 

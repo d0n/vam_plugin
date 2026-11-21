@@ -183,7 +183,7 @@ class SharedConfigTests(unittest.TestCase):
 
     def test_csharp_writes_the_same_categories(self):
         sources = "".join((ROOT / "src" / "AIBody" / n).read_text(encoding="utf-8")
-                          for n in ("AppLink.cs", "Body.cs", "AIBody.cs"))
+                          for n in ("AppLink.cs", "Body.cs", "AIBody.cs", "CharacterWizard.cs"))
         for cat in settings_file.PLUGIN_CATEGORIES:
             self.assertIn(f'root["{cat}"]', sources, cat)
         for cat in settings_file.COMPANION_CATEGORIES:  # preserved, not written from the UI

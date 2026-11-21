@@ -96,6 +96,12 @@
       }
     ]
   },
+  "characters": {
+    "setup_answered": false,
+    "setup_wanted": false,
+    "ai_gender": "",
+    "user_gender": ""
+  },
   "setup": {
     "asked": false,
     "background": false,

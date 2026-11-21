@@ -32,6 +32,7 @@ from ..config import ENGINES_AVAILABLE
 from . import elevenlabs, ollama, xai
 from .http import HttpClient, is_key_rejection
 from ..logsetup import add_secret
+from ..characters import context_text, normalize as normalize_characters
 from ..personas import Persona, memory_block
 from .keys import resolve_key
 from .llm import EchoLlm
@@ -88,6 +89,7 @@ class EngineSet:
         self.override: dict[str, str] | None = None  # kind -> engine run instead of the selection
         self.persona: Persona | None = None  # selected persona (personas.py); its prompt / language / voice win
         self.memory_facts: list[str] = []  # notes about the user (memory.json), put into the instructions
+        self.characters: dict[str, object] = normalize_characters(None)  # wizard answers, prompt context
         self._read_keys()
         for kind in KINDS:
             self.fallbacks[kind] = self._create(kind, self.fallback_name(kind))
@@ -163,11 +165,13 @@ class EngineSet:
     # -- persona (prompt, language and voice of the selected persona win over config.json) -----------------
 
     def persona_text(self) -> str:
-        """The AI's character text: persona prompt (or ai.persona), the name, and the memory notes."""
+        """The AI's character text: persona prompt (or ai.persona), the name, memory notes, and character setup."""
         p = self.persona
         base = (p.prompt if p and p.prompt else str(self.ai.get("persona") or "")).strip()
         parts = [f"Your name is {p.display_name}." if p and p.display_name else "", base,
-                 memory_block(self.memory_facts)]
+                 memory_block(self.memory_facts),
+                 context_text(str(self.characters.get("ai_gender") or ""),
+                              str(self.characters.get("user_gender") or ""))]
         return "\n\n".join(x for x in parts if x)
 
     def language(self) -> str:

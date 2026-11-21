@@ -31,6 +31,10 @@ namespace AIBody
         private JSONStorableFloat _idlePoseMaxJson;
         private JSONStorableStringChooser _idlePoseDefaultJson;
         private IdlePoseScheduler _idlePoses;
+        // Character configuration wizard (after version 37): gate + recorded gender settings.
+        public CharacterWizard Characters;
+        /// <summary>Called when a recorded character setting changes (the plugin marks config dirty).</summary>
+        public Action OnSettingsChanged;
         // Scene hooks (since version 26): values other plugins / triggers can read and set.
         private JSONStorableBool _aiSpeakingJson;
         private JSONStorableBool _userSpeakingJson;
@@ -191,6 +195,10 @@ namespace AIBody
             _idlePoseDefaultJson.popupOpenCallback = RefreshCharacterChoices;
             _plugin.RegisterStringChooser(_idlePoseDefaultJson);
 
+            Characters = new CharacterWizard(_plugin, () => { if (OnSettingsChanged != null) OnSettingsChanged(); });
+            Characters.RequestRebuild = () => { RebuildTab = true; };
+            Characters.CreateStorables();
+
             // Manual pose / expression / gesture menu (tab AI Character). Not registered: only the
             // choice in the menu, nothing new is saved with the scene. Lists refill on opening (E25).
             _poseChoiceJson = new JSONStorableStringChooser("Pose", new List<string>(), "", "Pose", (string v) => { });
@@ -295,6 +303,8 @@ namespace AIBody
         {
             RefreshCharacterChoices();
             // Leon (20.11.2026): ordered by topic, only category headers and controls (help and status: left field).
+            // Characters first: the optional setup wizard (gate, then gender steps and a clothing hint).
+            if (Characters != null) Characters.Build(page);
             page.Header("<b>Body control</b>");
             page.Toggle(_bodyControlJson);
             page.Header("<b>Idle poses</b>");
@@ -346,7 +356,8 @@ namespace AIBody
         /// <summary>Info for the tab "AI Character" in the big field on the left.</summary>
         public string CharacterInfoText()
         {
-            string text = "Poses: " + (_poses != null ? _poses.PoseNames.Count + " in the menu (" + _poses.PoseScanNote + ")" : "PoseController missing") + "\n";
+            string text = Characters != null ? Characters.InfoText() : "";
+            text += "Poses: " + (_poses != null ? _poses.PoseNames.Count + " in the menu (" + _poses.PoseScanNote + ")" : "PoseController missing") + "\n";
             text += PoseCommandsInfo();
             text += IdlePosesInfo();
             text += BodyControlHelp + "\n" + BreathingHelp + "\n";
@@ -618,10 +629,12 @@ namespace AIBody
             }
             poses["commands"] = commands;
             root["poses"] = poses;
+            if (Characters != null) Characters.WriteSettings(root);
         }
 
         public void ApplySettings(JSONClass root)
         {
+            if (Characters != null) Characters.ApplySettings(root);
             JSONClass body = root["body"] as JSONClass;
             if (body == null || _volumeJson == null) return;
             _volumeJson.val = Protocol.GetFloat(body, "speech_volume", _volumeJson.val);

@@ -63,6 +63,7 @@ from .pipeline.http import ApiError, HttpClient
 from .pipeline.realtime import KEY_REJECTED as REALTIME_KEY_REJECTED
 from .pipeline.tts import test_tone_pcm, write_pcm_wav
 from .pipeline.xai import ToolCall
+from . import characters as characters_module
 from . import personas as personas_module
 from .proactive import ProactiveTimer
 from .realtime_voice import RealtimeVoice
@@ -163,6 +164,7 @@ class Companion:
         self.transport = transport
         # Without an EngineSet only the offline engines exist (no keys are read).
         self.engine_set = engines or EngineSet(config.ai, env={})
+        self.engine_set.characters = characters_module.normalize(getattr(config, "characters", None))
         for kind in ("stt", "llm", "tts"):
             self.engine_set.select(kind, getattr(config, kind))
         for kind, instance in (("stt", stt), ("llm", llm), ("tts", tts)):
@@ -874,11 +876,25 @@ class Companion:
         logsetup.set_verbose(value)
         return []
 
+    def apply_characters(self, data: Any) -> list[str]:
+        """The plugin's character wizard answers (config event / config.json 'characters')."""
+        if data is None:
+            return []
+        if not isinstance(data, dict):
+            return ["characters: must be an object"]
+        new = characters_module.normalize(data)
+        if new == self.engine_set.characters:
+            return []
+        self.engine_set.characters = new
+        self.engine_set.rebuild("llm")  # the genders are part of the instructions
+        return []
+
     def handle_config(self, event: dict[str, Any]) -> None:
         settings, errors = apply_mic_config(self.mic_settings, event.get("mic"))
         errors += self.apply_keys(event.get("keys"))  # first: the engines below already use the new key
         errors = errors + self.apply_engines(event.get("engines")) + self.apply_ai(event.get("ai"))
         errors += self.apply_advanced(event.get("advanced"))
+        errors += self.apply_characters(event.get("characters"))
         self.mic_settings = settings
         self.input.apply(settings)
         if self.mic:
