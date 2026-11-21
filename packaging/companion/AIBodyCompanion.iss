@@ -172,7 +172,19 @@ begin
     False, '');
   VamPage.Add('VaM folder (the folder with VaM.exe):');
   if VamDirParam <> '' then Found := VamDirParam else Found := SafeDetectVamDir();
-  Log('VaM folder prefilled: ' + Found);
+  { The page refuses an empty field ("You must enter a full path with drive letter"), which aborts a silent setup.
+    Nothing found: suggest <system drive>\VaM; Next still accepts only a folder with VaM.exe, a silent setup then
+    writes nothing (ChosenVamDir checks VaM.exe again) and the app asks with its folder picker. }
+  if Found = '' then
+  begin
+    Found := ExpandConstant('{sd}') + '\VaM';
+    VamPage.SubCaptionLabel.Caption := 'Your VaM folder was not found automatically. ' +
+      'Click Browse and choose the folder that contains VaM.exe. ' +
+      'You can change it later by running this setup again.';
+    Log('VaM folder not found; suggested: ' + Found);
+  end
+  else
+    Log('VaM folder prefilled: ' + Found);
   VamPage.Values[0] := Found;
 end;
 
