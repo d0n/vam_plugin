@@ -19,36 +19,14 @@ def source(name: str) -> str:
 
 
 class VersionTests(TestCase):
-    def test_version_41_everywhere(self):
-        self.assertEqual(__version__, "41")
-        self.assertIn('PluginVersion = "41"', source("AIBody.cs"))
-        self.assertIn('version = "41"', (ROOT / "companion" / "pyproject.toml").read_text())
-        self.assertEqual(json.loads((ROOT / "packaging" / "AIBody.json").read_text())["version"], 41)
-        self.assertTrue(re.search(r"d0n\.AIBody\.41:", first_start.TEMPLATE.read_text()))
-        self.assertIn("AIBody companion app 41 (example)", (ROOT / "examples" / "config.json").read_text(encoding="utf-8"))
-        self.assertEqual(json.loads((ROOT / "packaging" / "meta.json").read_text())["licenseType"], "FC")
-
-    def test_docs(self):
-        readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertIn("Status: version 41, package `d0n.AIBody.41.var`, release `v41`", readme)
-        start = readme[readme.index("## Getting started"):readme.index("### For developers")]
-        for part in ("AIBody Companion Setup.exe", "More info", "Run anyway", "Start menu", "Start with Windows",
-                     "127.0.0.1", "Add Plugin"):
-            self.assertIn(part, start)
-        self.assertNotIn("python -m", start)
+    def test_version_41_is_historical(self):
+        """Historical: version 41 sources are gone after the v42 bump; consistency is test_version42."""
+        self.assertTrue((ROOT / "companion" / "tests" / "test_version42.py").is_file())
         spec = (ROOT / "docs" / "SPEC.md").read_text(encoding="utf-8")
         self.assertIn("(version 41, release; Leon, calls 17:01-17:27, GO for v41 at 17:19): package `d0n.AIBody.41.var`, tag `v41`", spec)
         tp = (ROOT / "docs" / "TEST_PROTOCOL.md").read_text(encoding="utf-8")
         for step in ("## T52", "## T53", "## T54", "## T55", "## T56", "## T57", "## T58"):
             self.assertIn(step, tp)
-
-    def test_release_notes(self):
-        notes = (ROOT / "docs" / "RELEASE_NOTES_NEXT.md").read_text(encoding="utf-8")
-        self.assertIn("**AIBody v41**", notes)
-        self.assertNotIn("<next>", notes)
-        for part in ("Speech audio never played", "Apply pose command", "28 built-in xAI voices", "(none), Anna, Marc",
-                     "wait for **OK**", "T52 to T58"):
-            self.assertIn(part, notes)
 
     def test_scene_plugin_on_bryan(self):
         scene = json.loads((ROOT / "examples" / "scenes" / "AI-Buddy.json").read_text(encoding="utf-8"))

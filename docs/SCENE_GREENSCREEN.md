@@ -16,8 +16,8 @@ Roles:
 
 ## Choose what to use
 
-- **Scene:** ONE download of `d0n.AIBody.41.var` plus the third-party packages listed below: the scene is inside the package at `Saves/scene/AIBody/AI-Buddy.json` (plugin entry `SELF:/Custom/Scripts/d0n/AIBody/AIBody.cslist` = the plugin of the same package, so it never points at another version) with the preview `Saves/scene/AIBody/AI-Buddy.jpg` (same base name: VaM's Load Scene menu can show the thumbnail). VaM's scene browser (main menu **Open Scene** / **Load Scene**) lists scenes of packages that lie below `Saves/scene/`: open the package `d0n.AIBody.40` (package filter / shortcut on the left of the browser), folder `AIBody`, file **AI-Buddy**. TODO(verify) in VaM 1.22: the thumbnail in the list and a clean load (T46).
-- Optional loose copy (what the companion's setup writes when you choose Scene there, with your background answer): put `AI-Buddy.json` and `AI-Buddy.jpg` at `<VaM main folder>/Saves/scene/AIBody/`; the JSON references `d0n.AIBody.41:/Custom/Scripts/d0n/AIBody/AIBody.cslist` (SELF: only works inside a package).
+- **Scene:** ONE download of `d0n.AIBody.42.var` plus the third-party packages listed below: the scene is inside the package at `Saves/scene/AIBody/AI-Buddy.json` (plugin entry `SELF:/Custom/Scripts/d0n/AIBody/AIBody.cslist` = the plugin of the same package, so it never points at another version) with the preview `Saves/scene/AIBody/AI-Buddy.jpg` (same base name: VaM's Load Scene menu can show the thumbnail). VaM's scene browser (main menu **Open Scene** / **Load Scene**) lists scenes of packages that lie below `Saves/scene/`: open the package `d0n.AIBody.42` (package filter / shortcut on the left of the browser), folder `AIBody`, file **AI-Buddy**. TODO(verify) in VaM 1.22: the thumbnail in the list and a clean load (T46).
+- Optional loose copy (what the companion's setup writes when you choose Scene there, with your background answer): put `AI-Buddy.json` and `AI-Buddy.jpg` at `<VaM main folder>/Saves/scene/AIBody/`; the JSON references `d0n.AIBody.42:/Custom/Scripts/d0n/AIBody/AIBody.cslist` (SELF: only works inside a package).
 - **Plugin:** add AIBody to a Person of your own scene (Plugins > Add Plugin, or the plugin preset). Switch **Set background color** on in tab Config if you want the plain color; the companion's setup does it for you when you answered yes there.
 
 ## Third-party packages (`meta.json` dependencies)
@@ -61,7 +61,7 @@ These paths are loose files under `Custom/` or `Saves/`, not inside a `.var`. Th
 
 ## What you need
 
-- `d0n.AIBody.41.var` — into `<VaM main folder>/AddonPackages/`. The third-party packages above, if you want the full look. The loose local files above, if you have them.
+- `d0n.AIBody.42.var` — into `<VaM main folder>/AddonPackages/`. The third-party packages above, if you want the full look. The loose local files above, if you have them.
 
 ## Checking
 

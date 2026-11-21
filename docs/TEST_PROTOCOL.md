@@ -15,7 +15,7 @@ in order and enter the result (✅ / ❌ / unclear). Duration: about 20 minutes.
 - Close VaM. In `<VaM main folder>/AddonPackages/` delete all old AIBody packages:
   `d0n.AIBody.1.var` to `d0n.AIBody.39.var`, `d0n.AIBodySession.*`, `d0n.AIBodyPerson.*`,
   `d0n.AIBodyPerson2.*`. Also remove loose files under `Custom/Scripts/d0n/AIBody/`.
-- Copy `d0n.AIBody.41.var` to `<VaM main folder>/AddonPackages/`.
+- Copy `d0n.AIBody.42.var` to `<VaM main folder>/AddonPackages/`.
 - Have the companion app ready (do **not** start it yet):
   `python -m aibody_companion --vam-root "D:\VaM"` (adjust the path to your own VaM folder).
   For T9 enter the xAI key in the plugin (tab **Voice** > field **XAI API Token**, from version 21) or set it before starting: `set XAI_API_KEY=xai-...` (cmd) or `$env:XAI_API_KEY="xai-..."` (PowerShell); the field wins.
@@ -26,7 +26,7 @@ in order and enter the result (✅ / ❌ / unclear). Duration: about 20 minutes.
 
 1. Start VaM, open a scene with a female standard figure (or a new scene + Person).
 2. Select the figure (Person atom) > tab **Plugins** > **Add Plugin** >
-   `AddonPackages > d0n.AIBody.41:/Custom/Scripts/d0n/AIBody/AIBody.cslist`.
+   `AddonPackages > d0n.AIBody.42:/Custom/Scripts/d0n/AIBody/AIBody.cslist`.
    **Not** under *Session Plugins* or *Scene Plugins*.
 3. If VaM asks whether to allow plugins from the package: allow it and note that it asked.
 4. Open **Open Custom UI** (plugin window).
@@ -547,7 +547,7 @@ Report: short note that the gate, the skip path and both gender menus behaved as
 
 ## T46 – AI-Buddy scene: original look, plugin, background, dependencies (version 38)
 
-1. VaM > **Open Scene** / **Load Scene** > package `d0n.AIBody.41` > folder `AIBody` > **AI-Buddy**. The preview thumbnail of the two characters is visible in the scene list next to the name (the package has `Saves/scene/AIBody/AI-Buddy.jpg` beside the `.json`).
+1. VaM > **Open Scene** / **Load Scene** > package `d0n.AIBody.42` > folder `AIBody` > **AI-Buddy**. The preview thumbnail of the two characters is visible in the scene list next to the name (the package has `Saves/scene/AIBody/AI-Buddy.jpg` beside the `.json`).
 2. Load the scene. It should not hang. If a declared third-party package is missing, VaM should show a missing-package notice and still load. Two people with clothing: female `Person` in the Pro Court shorts and Nico tanktop, male `BryanGosling` in the police pants and hoodie (the hoodie is loose local content and may be missing). Select `Person` > tab **Plugins**: AIBody of this package (`SELF:/Custom/Scripts/d0n/AIBody/AIBody.cslist` or the equivalent package path). The male atom `BryanGosling` has no AIBody plugin and no Improved PoV. There are no Dollmaster atoms (`Doll SFX Person`, `Thrust AP Person`). Tab Config: **Set background color** is ON, color #00FF00, unless you changed it.
 3. Optional: copy `AI-Buddy.json` and `AI-Buddy.jpg` together to `Saves/scene/AIBody/` and open that copy from the browser; the same thumbnail and the same plugin load (the loose scene references `d0n.AIBody.40:/…`).
 4. Missing loose files listed in `docs/SCENE_GREENSCREEN.md` as needs local content (morphs, N3DX textures, tan-line decals, scamp THEV hair, PositiveResult hoodie, Bryan Gosling morph/face texture) should be skipped, not crash the load.
@@ -566,7 +566,7 @@ Report: screenshot of the Voice tab (AI section and left info field) and a short
 
 ## T48 – Character wizard asks its question (version 40)
 
-1. Load **AI-Buddy** from `d0n.AIBody.41` (or a fresh scene with AIBody on a Person), even if you answered the wizard in an earlier scene. Tab **AI Character**: under **Characters** the line **Do you want to configure your characters?** stands right above **Yes** and **No**.
+1. Load **AI-Buddy** from `d0n.AIBody.42` (or a fresh scene with AIBody on a Person), even if you answered the wizard in an earlier scene. Tab **AI Character**: under **Characters** the line **Do you want to configure your characters?** stands right above **Yes** and **No**.
 2. Press **Yes**: **AI gender/body** and **Your character gender** appear. Save the scene, reload it: the steps are shown again (the answer is saved with the scene). Load a different new scene with AIBody: the question is asked there again.
 3. Press **No** in a scene: only **Configure characters** stays; it brings the question back.
 

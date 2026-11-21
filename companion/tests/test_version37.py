@@ -85,7 +85,7 @@ def scene_packages(text: str) -> set[str]:
 
 class VersionTests(TestCase):
     def test_version_37_everywhere(self):
-        """Historical: version 37 sources are gone after the v38 bump; consistency is test_version41."""
+        """Historical: version 37 sources are gone after the v38 bump; consistency is test_version42."""
         self.assertTrue((ROOT / "companion" / "tests" / "test_version37.py").is_file())
         self.assertEqual(first_start.TEMPLATE, ROOT / "examples" / "scenes" / "AI-Buddy.json")
         self.assertEqual(first_start.SCENE_REL, "Saves/scene/AIBody/AI-Buddy.json")

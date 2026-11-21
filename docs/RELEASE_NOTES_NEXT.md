@@ -1,28 +1,27 @@
-# Release notes of version 41 (21.11.2026)
+# Release notes of version 42 (21.11.2026)
 
-This text is the GitHub release v41.
+This text is the GitHub release v42.
 
-**AIBody v41**: two downloads, `d0n.AIBody.41.var` (the plugin and the AI-Buddy scene) and `AIBody Companion Setup.exe` (the background app that does the voice and the AI).
+**AIBody v42**: two downloads, `d0n.AIBody.42.var` (the plugin and the AI-Buddy scene) and `AIBody Companion Setup.exe` (the background app that does the voice and the AI).
 
-**1. Install the package:** put `d0n.AIBody.41.var` in `<VaM main folder>/AddonPackages/` and delete the old `d0n.AIBody.*.var` files.
+**1. Install the package:** put `d0n.AIBody.42.var` in `<VaM main folder>/AddonPackages/` and delete the old `d0n.AIBody.*.var` files.
 
-**2. Install AIBody Companion:** double-click `AIBody Companion Setup.exe` (for your Windows user, no admin). If Windows SmartScreen says "Windows protected your PC": **More info** > **Run anyway**. Choose the optional desktop shortcut and **Start with Windows**, then on the page **Your VaM folder** check the folder the setup found for you, or click **Browse** and choose the folder with `VaM.exe`. AIBody Companion uses that folder from then on; run the setup again to change it.
+**2. Install AIBody Companion:** double-click `AIBody Companion Setup.exe` (for your Windows user, no admin). If Windows SmartScreen says "Windows protected your PC": **More info** > **Run anyway**. Choose the optional desktop shortcut and **Start with Windows**, then on the page **Your VaM folder** check the folder the setup found for you, or click **Browse** and choose the folder with `VaM.exe`.
 
 **3. Use it:** start **AIBody Companion** from the Start menu, then start VaM as usual. It listens only on 127.0.0.1, connects out only to xAI and contains no key; enter your key in the plugin (tab Voice, **XAI API Token**).
 
-**Scene:** **Open Scene / Load Scene** > package `d0n.AIBody.41` > folder `AIBody` > **AI-Buddy**. AIBody now sits on the male `BryanGosling` (with the green background on); the female `Person` has no plugin.
+**Scene:** **Open Scene / Load Scene** > package `d0n.AIBody.42` > folder `AIBody` > **AI-Buddy**. This is now Leon's scene with the two people `AI` and `Client`. AIBody sits on `Client` (your own figure, with the green background on) and gives the voice, poses, expressions and idle motion to `AI`. The info field says "AIBody 42 on 'Client', AI person 'AI'".
 
-**Fixed**
-- **Speech audio never played.** The plugin started the sound before Unity had loaded its audio data, so nothing was heard ("did not start playing within 15 s"). It now waits until the sound is loaded and plays it the way known working VaM plugins do. With tab Config > **Verbose log** on, VaM's log shows every step as `AIBody: [audio]` lines; please send them if you still hear nothing (test step T55).
-- **Pose command did nothing.** Choosing an entry in **Pose command** only selected it and there was no button to apply it. New button **Apply pose command**; results and errors appear in the left field and in VaM's log. **Add Pose** without typed text now uses the pose name and selects the new entry.
-- The AI sometimes spoke its own expression command ("tool call ...") aloud; that text is now carried out, never spoken.
-- Setup messages ("running in the background", "already running") are now message boxes that wait for **OK**.
+**Important: a saved scene keeps its plugin version.** A scene names the exact package of its plugin (for example `d0n.AIBody.40`), and VaM loads that one, even when a newer package is installed. In the v41 test every companion log line said `plugin=40`, so the v41 plugin and its speech audio fix never ran. Load AI-Buddy from `d0n.AIBody.42`, or in your own scene remove AIBody and add it again from `d0n.AIBody.42`, then save. AIBody Companion now warns about this in its log and the plugin's status line.
 
-- **Your VaM folder** in the setup: found automatically, only a folder with `VaM.exe` is accepted; the app's own folder picker is only the fallback. Silent setup: `/VAMDIR="D:\VaM"`.
-- **Reset to Default** in tab Config > Reset, with **Confirm Reset to Default** / **Cancel**: all AIBody settings of the scene back to their defaults, including the character wizard, which asks its question again. Your XAI API Token, the key file paths, pose commands and personas are kept.
-- AI-Buddy: AIBody moved from the female to the male character.
-- **Voice** lists all 28 built-in xAI voices; with your key, AIBody Companion fetches xAI's current list and the menu shows it.
-- **Persona** lists every persona in the personas folder (also loose `<name>.json` files); the starters Anna and Marc are added next to your own. Only these two starters exist, so with no own persona you see three entries: (none), Anna, Marc.
-- Tab AI Character: the label above the breath morph field is just **Breath morph**.
+**Changed**
+- **Pose command:** choosing an entry applies its pose at once. The old **Pose** dropdown, **Apply pose** and **Apply pose command** are gone.
+- **Add Pose** opens VaM's file browser. Choose a pose file, type the spoken command in **New pose command** and press **Save pose command** (or **Cancel Add Pose**).
+- **Delete Pose** removes the chosen command. Added and deleted commands are now saved in `config.json` right away. Before, they were lost.
+- **Reset poses** (new): `AI` goes back to where the scene placed it, then `Client` half a second later, so they do not collide.
+- **Voice** is a scrollable menu, so all 28 xAI voices can be reached. The list comes from xAI (`GET /v1/tts/voices`) when AIBody Companion has your key, otherwise from the 28 voices on docs.x.ai.
+- **Realtime voice:** when the AI only made a gesture and said nothing, AIBody Companion now asks it once for its spoken answer.
 
-Test steps: `docs/TEST_PROTOCOL.md` T52 to T58.
+**Speech audio:** the play sequence is the one from v41, taken from Dollmaster, MacGruber and Timeline. It is not verified yet, because it never ran in VaM (see above). Please test with the v42 scene and send the `AIBody: [audio]` lines from VaM's log (test step T63).
+
+Test steps: `docs/TEST_PROTOCOL.md` T59 to T64.
