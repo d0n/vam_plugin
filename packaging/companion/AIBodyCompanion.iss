@@ -191,10 +191,13 @@ end;
 function NextButtonClick(CurPageID: Integer): Boolean;
 begin
   Result := True;
+  { Silent: no page check and never a message box (one hung the CI install); ChosenVamDir takes /VAMDIR or the
+    detection, and CurStepChanged writes launcher.json only for a folder with VaM.exe. }
+  if WizardSilent() then exit;
   if (VamPage <> nil) and (CurPageID = VamPage.ID) and not IsVamDir(VamPage.Values[0]) then
   begin
-    MsgBox('There is no VaM.exe in this folder:' + #13#10 + VamPage.Values[0] + #13#10#13#10 +
-      'Please choose the folder that contains VaM.exe (for example C:\VaM).', mbError, MB_OK);
+    SuppressibleMsgBox('There is no VaM.exe in this folder:' + #13#10 + VamPage.Values[0] + #13#10#13#10 +
+      'Please choose the folder that contains VaM.exe (for example C:\VaM).', mbError, MB_OK, IDOK);
     Result := False;
   end;
 end;
