@@ -713,7 +713,7 @@ namespace AIBody
         {
             UpdateKeyStatus();
             UpdateEngineInfo();
-            string text = XaiTokenWarning + "\n\n" + NetworkNotice + "\n\n" + _modeHelpJson.val + "\n\n" + XaiTokenHint + "\n" + _keyStatusJson.val + "\n" + PersonaInfoText();
+            string text = XaiTokenWarning + "\n\n" + NetworkNotice + "\n\n" + _modeHelpJson.val + "\n\n" + SpeechVolumeHelp + "\n\n" + XaiTokenHint + "\n" + _keyStatusJson.val + "\n" + PersonaInfoText();
             if (_engineStatus != null) text += _engineInfoJson.val;   // before the first heartbeat the connection section says "not seen yet"
             return text;
         }
@@ -745,6 +745,11 @@ namespace AIBody
         }
 
         public const string ModeQa = "qa";
+
+        /// <summary>Version 44 (Leon 21:01): Speech volume above 1.</summary>
+        public const string SpeechVolumeHelp = "<b>Speech volume</b> 1 is the full volume of the character's head audio. Above 1 (up to 3) the "
+            + "companion app makes its speech and <b>Test tone via companion</b> louder, with a limiter so it does not crackle, and "
+            + "<b>Play test tone</b> plays a louder copy of its tone.";
 
         private readonly JSONStorableString _modeHelpJson = new JSONStorableString("AI mode help",
             "With <b>AI mode</b> 'qa' your speech is turned into text, Grok answers and the character speaks (talking only); "

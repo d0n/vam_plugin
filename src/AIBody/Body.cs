@@ -49,6 +49,25 @@ namespace AIBody
         /// <summary>The test WAV shipped next to the .cslist (written by tools/build_var.py).</summary>
         public const string TestToneFile = "AIBodyTest.wav";
 
+        /// <summary>Version 44: louder copies of the bundled tone for Speech volume above 1 (tools/build_var.py writes them,
+        /// soft-limited like the companion's speech): 2x and 3x. Volume below 1.5 plays the normal tone (head audio at the
+        /// volume), 1.5 to 2.5 the 2x copy, from 2.5 the 3x copy (both at full head volume).</summary>
+        public static string TestToneFileFor(float volume)
+        {
+            if (volume >= 2.5f) return "AIBodyTest3.wav";
+            if (volume >= 1.5f) return "AIBodyTest2.wav";
+            return TestToneFile;
+        }
+
+        private void SetSpeechVolume(float v)
+        {
+            if (_speech != null) _speech.Volume = v;
+            if (OnSettingsChanged != null) OnSettingsChanged();   // the companion learns it from the config event "body"
+        }
+
+        /// <summary>Speech volume (0 to 3), sent to the companion in the config event "body".</summary>
+        public float SpeechVolume { get { return _volumeJson != null ? _volumeJson.val : 1f; } }
+
         /// <summary>Folder of AIBody.cslist ("d0n.AIBody.8:/Custom/Scripts/d0n/AIBody"); set by the plugin.</summary>
         public Func<string> PluginFolder;
 
@@ -177,7 +196,8 @@ namespace AIBody
                 if (!v && _expressions != null) _expressions.Reset(0.4f);
             });
             SettingsDefaults.Bool(_plugin, _bodyControlJson);
-            _volumeJson = new JSONStorableFloat("Speech volume", 1f, (float v) => { if (_speech != null) _speech.Volume = v; }, 0f, 1f);
+            // Version 44: up to 3 (above 1 the companion makes its speech louder; it learns the value from the config event "body").
+            _volumeJson = new JSONStorableFloat("Speech volume", 1f, (float v) => SetSpeechVolume(v), 0f, 3f);
             SettingsDefaults.Float(_plugin, _volumeJson);
             _idleJson = new JSONStorableBool("Idle head motion", true, (bool v) => { if (_idle != null) _idle.Enabled = v; });
             SettingsDefaults.Bool(_plugin, _idleJson);
@@ -814,7 +834,7 @@ namespace AIBody
             try { folder = PluginFolder != null ? PluginFolder() : null; }
             catch (Exception e) { return "Test tone: plugin folder not found (" + Diag.Describe(e) + ")"; }
             if (string.IsNullOrEmpty(folder)) return "Test tone: plugin folder not found";
-            string path = folder + "/" + TestToneFile;
+            string path = folder + "/" + TestToneFileFor(SpeechVolume);
             string error = _speech.Enqueue(LocalPrefix + "test-" + DateTime.UtcNow.Ticks, path, true);
             return error == null ? "Test tone: " + path : "Test tone: " + error;
         }

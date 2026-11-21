@@ -1,4 +1,4 @@
-# AIBody – test protocol for the first test in VaM 1.22 (from v0.6.3, now version 43; T9 from v0.7.2, T10 from v0.7.3, menu layout from version 15, T19–T21 from version 30, T22–T23 from version 31, T24–T29 from version 32, T38–T42 from version 36, T43 after version 36, T44 from version 37, T45 after version 37, T46 from version 38, T47 from version 39, T48–T51 from version 40, T52–T58 from version 41)
+# AIBody – test protocol for the first test in VaM 1.22 (from v0.6.3, now version 44; T9 from v0.7.2, T10 from v0.7.3, menu layout from version 15, T19–T21 from version 30, T22–T23 from version 31, T24–T29 from version 32, T38–T42 from version 36, T43 after version 36, T44 from version 37, T45 after version 37, T46 from version 38, T47 from version 39, T48–T51 from version 40, T52–T58 from version 41)
 
 Goal: the open "must do now" points that can only be checked in VaM. Please go through every point
 in order and enter the result (✅ / ❌ / unclear). Duration: about 20 minutes.
@@ -15,7 +15,7 @@ in order and enter the result (✅ / ❌ / unclear). Duration: about 20 minutes.
 - Close VaM. In `<VaM main folder>/AddonPackages/` delete all old AIBody packages:
   `d0n.AIBody.1.var` to `d0n.AIBody.39.var`, `d0n.AIBodySession.*`, `d0n.AIBodyPerson.*`,
   `d0n.AIBodyPerson2.*`. Also remove loose files under `Custom/Scripts/d0n/AIBody/`.
-- Copy `d0n.AIBody.43.var` to `<VaM main folder>/AddonPackages/`.
+- Copy `d0n.AIBody.44.var` to `<VaM main folder>/AddonPackages/`.
 - Have the companion app ready (do **not** start it yet):
   `python -m aibody_companion --vam-root "D:\VaM"` (adjust the path to your own VaM folder).
   For T9 enter the xAI key in the plugin (tab **Voice** > field **XAI API Token**, from version 21) or set it before starting: `set XAI_API_KEY=xai-...` (cmd) or `$env:XAI_API_KEY="xai-..."` (PowerShell); the field wins.
@@ -26,7 +26,7 @@ in order and enter the result (✅ / ❌ / unclear). Duration: about 20 minutes.
 
 1. Start VaM, open a scene with a female standard figure (or a new scene + Person).
 2. Select the figure (Person atom) > tab **Plugins** > **Add Plugin** >
-   `AddonPackages > d0n.AIBody.43:/Custom/Scripts/d0n/AIBody/AIBody.cslist`.
+   `AddonPackages > d0n.AIBody.44:/Custom/Scripts/d0n/AIBody/AIBody.cslist`.
    **Not** under *Session Plugins* or *Scene Plugins*.
 3. If VaM asks whether to allow plugins from the package: allow it and note that it asked.
 4. Open **Open Custom UI** (plugin window).
@@ -547,7 +547,7 @@ Report: short note that the gate, the skip path and both gender menus behaved as
 
 ## T46 – AI-Buddy scene: original look, plugin, background, dependencies (version 38)
 
-1. VaM > **Open Scene** / **Load Scene** > package `d0n.AIBody.43` > folder `AIBody` > **AI-Buddy**. The preview thumbnail of the two characters is visible in the scene list next to the name (the package has `Saves/scene/AIBody/AI-Buddy.jpg` beside the `.json`).
+1. VaM > **Open Scene** / **Load Scene** > package `d0n.AIBody.44` > folder `AIBody` > **AI-Buddy**. The preview thumbnail of the two characters is visible in the scene list next to the name (the package has `Saves/scene/AIBody/AI-Buddy.jpg` beside the `.json`).
 2. Load the scene. It should not hang. If a declared third-party package is missing, VaM should show a missing-package notice and still load. Two people with clothing: female `Person` in the Pro Court shorts and Nico tanktop, male `BryanGosling` in the police pants and hoodie (the hoodie is loose local content and may be missing). Select `Person` > tab **Plugins**: AIBody of this package (`SELF:/Custom/Scripts/d0n/AIBody/AIBody.cslist` or the equivalent package path). The male atom `BryanGosling` has no AIBody plugin and no Improved PoV. There are no Dollmaster atoms (`Doll SFX Person`, `Thrust AP Person`). Tab Config: **Set background color** is ON, color #00FF00, unless you changed it.
 3. Optional: copy `AI-Buddy.json` and `AI-Buddy.jpg` together to `Saves/scene/AIBody/` and open that copy from the browser; the same thumbnail and the same plugin load (the loose scene references `d0n.AIBody.40:/…`).
 4. Missing loose files listed in `docs/SCENE_GREENSCREEN.md` as needs local content (morphs, N3DX textures, tan-line decals, scamp THEV hair, PositiveResult hoodie, Bryan Gosling morph/face texture) should be skipped, not crash the load.
@@ -566,7 +566,7 @@ Report: screenshot of the Voice tab (AI section and left info field) and a short
 
 ## T48 – Character wizard asks its question (version 40)
 
-1. Load **AI-Buddy** from `d0n.AIBody.43` (or a fresh scene with AIBody on a Person), even if you answered the wizard in an earlier scene. Tab **AI Character**: under **Characters** the line **Do you want to configure your characters?** stands right above **Yes** and **No**.
+1. Load **AI-Buddy** from `d0n.AIBody.44` (or a fresh scene with AIBody on a Person), even if you answered the wizard in an earlier scene. Tab **AI Character**: under **Characters** the line **Do you want to configure your characters?** stands right above **Yes** and **No**.
 2. Press **Yes**: **AI gender/body** and **Your character gender** appear. Save the scene, reload it: the steps are shown again (the answer is saved with the scene). Load a different new scene with AIBody: the question is asked there again.
 3. Press **No** in a scene: only **Configure characters** stays; it brings the question back.
 
@@ -741,4 +741,39 @@ Report: the speech_ended lines.
 
 ## T69 – Installer of v43 (version 43, Windows)
 
-Leon reported "the v42 installer no longer works" without details. Run `AIBody Companion Setup.exe` of v43 and note exactly what happens: SmartScreen (**More info** > **Run anyway**), each wizard page, any message text, whether AIBody Companion starts afterwards. If it fails, send `%TEMP%\Setup Log *.txt` (newest) and `%LOCALAPPDATA%\AIBody Companion\launcher.log`.
+Leon reported "the v42 installer no longer works" without details. Run `AIBody Companion Setup.exe` of v43 and note exactly what happens: SmartScreen (**More info** > **Run anyway**), each wizard page, any message text, whether AIBody Companion starts afterwards. If it fails, send the setup log and `%LOCALAPPDATA%\AIBody Companion\launcher.log`.
+
+Correction (version 44): the v43 setup writes no log by itself. Start it from a command prompt with `"AIBody Companion Setup.exe" /LOG="%USERPROFILE%\Desktop\aibody-setup.log"` and send that file. Since v44 every setup run writes `%TEMP%\Setup Log <date> #<n>.txt` (`SetupLogging=yes`); send the newest one. Found cause of the v42/v43 failures: see T72.
+
+## T70 – The setup installs the package and removes older ones (version 44, Windows)
+
+1. In `<VaM>\AddonPackages` put an old `d0n.AIBody.42.var` (or keep your hand-copied one) and note the other packages there.
+2. Run `AIBody Companion Setup.exe` of v44. Page **Select Additional Tasks**: **Remove older AIBody packages (d0n.AIBody.<number>.var) from AddonPackages** is checked. Page **Your VaM folder**: your VaM folder (e.g. `D:\VaM`). Finish.
+3. `<VaM>\AddonPackages` now has `d0n.AIBody.44.var` (about 180 kB) and no other `d0n.AIBody.<number>.var`; every other package (also `d0n.AIBodySession.*`, VARs in subfolders) is still there.
+4. Repeat with the option unchecked: the older packages stay, `d0n.AIBody.44.var` is copied anyway.
+5. VaM (restart or **Rescan Add-on Packages**): **AI-Buddy** in package `d0n.AIBody.44` loads.
+Report: the file list of AddonPackages before / after, and the lines `Existing install`, `Remove older AIBody packages`, `Deleted`, `Package:` of `%TEMP%\Setup Log <date> #<n>.txt`.
+
+## T71 – Messages about an existing install (version 44, Windows)
+
+1. With v43 installed, run the v44 setup: first a box **Update from AIBody 43 to 44.** with what it will do (and the AIBody packages it found), **OK** continues, **Cancel** stops without changes.
+2. Run the v44 setup again (v44 installed): box **AIBody 44 is already installed (AIBody Companion 44 and the package d0n.AIBody.44.var in AddonPackages).** with **OK: reinstall / repair** and **Cancel**. Cancel: the setup ends, nothing changed. OK: the setup runs through and replaces the files and the package.
+3. Without a companion install but with `d0n.AIBody.44.var` copied by hand: the same "already installed" box names only the package.
+Report: the exact box texts (screenshots) and which button you pressed.
+
+## T72 – Setup over a running AIBody Companion (version 44, Windows)
+
+Cause of "the installer no longer works" (v41-v43): the setup asked Windows' Restart Manager to close the running companion; its tray windows refused, so the "files in use" dialog came back after every **Continue** / **Retry** and nothing was installed.
+1. Start AIBody Companion (tray icon visible), leave it running, run the v44 setup and click through.
+2. The tray icon disappears during the install, no "close applications" loop, the setup finishes; with **Launch AIBody Companion now** the new version starts.
+3. In the setup log: `Stop AIBody Companion: taskkill /F /T /IM "AIBody Companion.exe" exit code 0`.
+4. Optional: with the companion running, sign out of Windows: Windows no longer says AIBody Companion prevents it.
+Report: whether any dialog came up, and the `Stop AIBody Companion` lines of the log.
+
+## T73 – Speech volume above 1 (version 44)
+
+1. Tab **Voice** > *Voice and sound*: **Speech volume** goes from 0 to 3; default 1 (an existing scene keeps its value).
+2. At 1, **Play test tone** and **Test tone via companion** sound as in v43. At 2, then 3, both are clearly louder; no crackling or distortion. Speakers and headset.
+3. At 2 to 3 let the AI talk (a long answer): louder than at 1, clean. companion.log: `Speech volume 3.00: speech WAVs x3.00 with soft limiter`.
+4. Back to 0.5: quieter than 1 (VaM's head audio), companion.log `unchanged`.
+Report: the loudest setting that still sounds clean on speakers and on the headset.

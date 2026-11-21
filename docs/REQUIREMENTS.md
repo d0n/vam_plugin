@@ -1,10 +1,10 @@
 # AIBody – requirements catalog (status overview)
 
-Status: 21.11.2026, version 43. Overview of what is done and what is open; updated with every release.
+Status: 21.11.2026, version 44. Overview of what is done and what is open; updated with every release.
 - Agreed specification (what applies): [`docs/SPEC.md`](SPEC.md)
 - Deferred ideas / nice to have: [`docs/BACKLOG.md`](BACKLOG.md)
 - Test instructions in VaM: [`docs/TEST_PROTOCOL.md`](TEST_PROTOCOL.md) · API evidence: [`docs/API_AUDIT.md`](API_AUDIT.md)
-- Repo: https://github.com/d0n/vam_plugin · current package: `d0n.AIBody.43.var` (version = package number since 12)
+- Repo: https://github.com/d0n/vam_plugin · current package: `d0n.AIBody.44.var` (version = package number since 12)
 
 "Done" means: tested in code and against rebuilt counterparts. What has not yet been checked in VaM or against the real xAI APIs is listed again under 2.
 
@@ -189,6 +189,14 @@ Status: 21.11.2026, version 43. Overview of what is done and what is open; updat
 - **Uninstall removes our packages:** `d0n.AIBody.<n>.var` at the top of `<VaM>\AddonPackages`, nothing else. T67.
 - **speech_ended reason:** `completed` when a clip played to its end; `interrupted` only for a real barge-in or stop. T68.
 - **v42 installer "no longer works":** no regression found in the installer script, workflow or CI run (same toolchain, install / self-test / uninstall passed); details from Leon needed. T69.
+
+### Version 44 (21.11.2026, Leon 20:39-21:09)
+- **The setup installs the package:** `AIBody Companion Setup.exe` carries `d0n.AIBody.<v>.var` (built in CI before Inno Setup; the build fails without it) and copies it to `<VaM>\AddonPackages`. No earlier setup (v40-v43) ever did. T70.
+- **Every install removes the other `d0n.AIBody.<n>.var`** (also a first install over hand-placed packages), option **Remove older AIBody packages** on by default; nothing else is cleaned up (Leon 21:08). T70.
+- **Existing install reported:** same version: "already installed", OK = reinstall / repair, Cancel = stop; older: "Update from <old> to <new>". Silent setups never ask. T71.
+- **Running companion closed:** the setup ends it (taskkill) before replacing files; the companion now accepts Windows' close request (pystray's tray windows refused it, the v43 setup looped on "files in use"). Setup log always written. T72, T69.
+- **Speech volume up to 3:** above 1 the companion boosts its WAVs (soft limiter); **Play test tone** uses 2x / 3x copies. Default 1 unchanged. T73.
+- Not in v44 (v45): config-menu commands for the AI, post-command / Add Pose follow-ups.
 
 ## 2. Still open / to do
 

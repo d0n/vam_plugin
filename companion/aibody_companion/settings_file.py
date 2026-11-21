@@ -262,7 +262,7 @@ RANGES: dict[tuple[str, str], tuple[float, float]] = {
     ("connection", "network_port"): (0, 65535),
     ("remote", "http_port"): (1024, 65535),
     ("remote", "osc_port"): (0, 65535),
-    ("body", "speech_volume"): (0.0, 1.0),
+    ("body", "speech_volume"): (0.0, 3.0),  # version 44: above 1 the companion boosts its WAVs (pipeline/tts.py)
     ("body", "idle_intensity"): (0.0, 1.0),
     ("body", "breaths_per_minute"): (4.0, 40.0),
     ("body", "breath_depth"): (0.0, 1.0),
@@ -575,6 +575,10 @@ def apply_to_config(cfg: Any) -> list[str]:
     cfg.characters = json.loads(json.dumps(data["characters"]))
     add_secret(str(cfg.remote.get("token") or ""))
     cfg.verbose_log = bool(data["advanced"]["verbose_log"])
+    from .pipeline import tts  # version 44: Speech volume above 1 = louder WAVs from the first sentence on
+    gain = tts.set_output_gain(data["body"]["speech_volume"])
+    if gain != 1.0:
+        log.info("Speech volume %s from %s: speech WAVs x%.2f with soft limiter", data["body"]["speech_volume"], path, gain)
     add_secret(str(data["ai"]["xai"].get("api_key") or ""))  # before anything can log it
     log.info("Settings from %s: engines %s, mic mode %s", path, data["engines"], data["mic"]["mode"])
     return errors

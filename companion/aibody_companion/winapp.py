@@ -281,14 +281,52 @@ def run_tray(on_quit: Callable[[], None], log_folder: Path | None) -> bool:
     menu = pystray.Menu(pystray.MenuItem(f"{APP_NAME} is running", None, enabled=False),
                         pystray.MenuItem("Open log folder", open_logs),
                         pystray.MenuItem("Quit", quit_app))
-    pystray.Icon("AIBodyCompanion", tray_image(), APP_NAME, menu).run()
+    icon = pystray.Icon("AIBodyCompanion", tray_image(), APP_NAME, menu)
+    add_close_handlers(icon, on_quit)
+    icon.run()
+    return True
+
+
+# Window messages (winuser.h). Version 44 (Leon 21:01): pystray's hidden tray windows answer every message they do not
+# know with 0 - for WM_QUERYENDSESSION that means "refuse", so the setup's Restart Manager (and Windows logoff) could
+# not close the app and the v43 setup looped on its file-in-use dialog. Now: allow, and quit on WM_ENDSESSION/WM_CLOSE.
+WM_CLOSE = 0x0010
+WM_QUERYENDSESSION = 0x0011
+WM_ENDSESSION = 0x0016
+
+
+def add_close_handlers(icon: Any, on_quit: Callable[[], None]) -> bool:
+    """Adds the three handlers to pystray's private message table (pystray 0.19.5 on Windows: icon._message_handlers,
+    a dict message -> handler(wparam, lparam)). False when that table is missing (other pystray version or backend)."""
+    handlers = getattr(icon, "_message_handlers", None)
+    if not isinstance(handlers, dict):
+        return False
+
+    def query_end(wparam: int, lparam: int) -> int:
+        return 1                                   # TRUE: we may be closed
+
+    def end_session(wparam: int, lparam: int) -> int:
+        if wparam:                                 # the session (or Restart Manager) really ends us
+            on_quit()
+        return 0
+
+    def close(wparam: int, lparam: int) -> int:
+        on_quit()
+        return 0
+
+    handlers[WM_QUERYENDSESSION] = query_end
+    handlers[WM_ENDSESSION] = end_session
+    handlers[WM_CLOSE] = close
     return True
 
 
 # -- self-test -------------------------------------------------------------------------------------------------------
 
 def selftest(out: Path | None, run_seconds: float = 6.0) -> int:
-    report: dict[str, Any] = {"frozen": bool(getattr(sys, "frozen", False)), "python": sys.version, "checks": {}}
+    from . import __version__
+    # version 44: "version" lets the CI check that a reinstall really replaced the installed copy
+    report: dict[str, Any] = {"version": __version__, "frozen": bool(getattr(sys, "frozen", False)), "python": sys.version,
+                              "checks": {}}
     checks = report["checks"]
 
     def check(name: str, fn: Callable[[], Any], required: bool = True) -> None:

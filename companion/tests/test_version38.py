@@ -21,7 +21,7 @@ def source(name: str) -> str:
 
 class VersionTests(TestCase):
     def test_version_38_is_historical(self):
-        """Historical: version 38 sources are gone after the v39 bump; consistency is test_version43."""
+        """Historical: version 38 sources are gone after the v39 bump; consistency is test_version44."""
         self.assertTrue((ROOT / "companion" / "tests" / "test_version39.py").is_file())
         self.assertEqual(first_start.TEMPLATE, ROOT / "examples" / "scenes" / "AI-Buddy.json")
         self.assertEqual(json.loads((ROOT / "packaging" / "meta.json").read_text())["licenseType"], "FC")

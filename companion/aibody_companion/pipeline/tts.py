@@ -7,8 +7,10 @@ gets a complete WAV back writes it as it is (write_audio()).
 """
 from __future__ import annotations
 
+import array
 import io
 import math
+import sys
 import struct
 import time
 import wave
@@ -47,16 +49,83 @@ def test_tone_pcm(seconds: float = 1.5, rate: int = 22050) -> bytes:
     return bytes(frames)
 
 
+# -- output gain (version 44, Leon 21.11.2026 21:01) -------------------------------------------------------------
+# The plugin's Speech volume goes up to MAX_SPEECH_VOLUME. VaM's head audio stops at 1, so the part above 1 is applied
+# here to every WAV this app writes for the character (TTS, realtime voice, test tone). Samples above LIMIT_KNEE are
+# bent smoothly towards full scale (tanh), so a boosted sentence gets louder without clipping. Default 1 = unchanged.
+MAX_SPEECH_VOLUME = 3.0
+LIMIT_KNEE = 0.6
+_OUTPUT = {"gain": 1.0, "table": None}
+
+
+def output_gain_for(speech_volume: float) -> float:
+    """Speech volume 0..3 -> sample gain: 1 up to volume 1 (the head audio does that part), then the volume itself."""
+    try:
+        v = float(speech_volume)
+    except (TypeError, ValueError):
+        return 1.0
+    if math.isnan(v):
+        return 1.0
+    return max(1.0, min(MAX_SPEECH_VOLUME, v))
+
+
+def soft_limit(x: float) -> float:
+    """-1..1 in, -1..1 out: unchanged up to LIMIT_KNEE, then a tanh curve that never reaches full scale."""
+    a = abs(x)
+    if a <= LIMIT_KNEE:
+        return x
+    y = LIMIT_KNEE + (1.0 - LIMIT_KNEE) * math.tanh((a - LIMIT_KNEE) / (1.0 - LIMIT_KNEE))
+    return y if x > 0 else -y
+
+
+def gain_table(gain: float) -> list[int]:
+    """All 65536 16-bit sample values (index = value + 32768) after gain and soft limit."""
+    return [int(round(soft_limit(gain * (i - 32768) / 32768.0) * 32767)) for i in range(65536)]
+
+
+def set_output_gain(speech_volume: float) -> float:
+    """Called with the plugin's Speech volume (config event "body", config.json body.speech_volume)."""
+    gain = output_gain_for(speech_volume)
+    if gain != _OUTPUT["gain"]:
+        _OUTPUT["gain"] = gain
+        _OUTPUT["table"] = None if gain == 1.0 else gain_table(gain)
+    return gain
+
+
+def output_gain() -> float:
+    return _OUTPUT["gain"]
+
+
+def apply_gain(pcm16: bytes, gain: float | None = None) -> bytes:
+    """16-bit little-endian PCM with the output gain (or the given one) and the soft limiter; gain 1 = unchanged."""
+    if gain is None:
+        gain, table = _OUTPUT["gain"], _OUTPUT["table"]
+    else:
+        gain = output_gain_for(gain)
+        table = None if gain == 1.0 else gain_table(gain)
+    if gain == 1.0 or table is None or not pcm16:
+        return pcm16
+    samples = array.array("h")
+    samples.frombytes(pcm16[: len(pcm16) - len(pcm16) % 2])
+    if sys.byteorder != "little":
+        samples.byteswap()
+    out = array.array("h", [table[v + 32768] for v in samples])
+    if sys.byteorder != "little":
+        out.byteswap()
+    return out.tobytes()
+
+
 LAST_WRITE_S = {"s": 0.0}  # how long the last WAV write took (latency breakdown "file write")
 
 
 def write_pcm_wav(pcm16: bytes, sample_rate: int, out_path: Path, channels: int = 1) -> float:
-    """Wraps raw signed 16-bit little-endian PCM in a WAV file; returns its duration."""
+    """Wraps raw signed 16-bit little-endian PCM in a WAV file (with the output gain); returns its duration."""
     started = time.perf_counter()
     if len(pcm16) % (2 * channels):
         pcm16 = pcm16[: len(pcm16) - len(pcm16) % (2 * channels)]
     if not pcm16:
         raise ValueError("no audio data")
+    pcm16 = apply_gain(pcm16)
     buf = io.BytesIO()
     with wave.open(buf, "wb") as w:
         w.setnchannels(channels)
@@ -69,7 +138,15 @@ def write_pcm_wav(pcm16: bytes, sample_rate: int, out_path: Path, channels: int 
 
 
 def write_audio(data: bytes, sample_rate: int, out_path: Path) -> float:
-    """Writes a TTS answer: a complete WAV (starts with RIFF) as is, else raw 16-bit PCM."""
+    """Writes a TTS answer: a complete WAV (starts with RIFF) as is, else raw 16-bit PCM. With an output gain above 1
+    a 16-bit WAV is re-written with the gain (other sample formats stay as they are)."""
+    if data[:4] == b"RIFF" and _OUTPUT["gain"] != 1.0:
+        try:
+            with wave.open(io.BytesIO(data), "rb") as w:
+                if w.getsampwidth() == 2:
+                    return write_pcm_wav(w.readframes(w.getnframes()), w.getframerate(), out_path, w.getnchannels())
+        except (wave.Error, EOFError):
+            pass
     if data[:4] == b"RIFF":
         started = time.perf_counter()
         atomic_write_bytes(out_path, data, durable=False)

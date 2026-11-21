@@ -902,6 +902,29 @@ class Companion:
         logsetup.set_verbose(value)
         return []
 
+    def apply_body(self, data: Any) -> list[str]:
+        """Version 44: the plugin's Speech volume (0..3, config event "body"). Above 1 every WAV for the character gets
+        that gain (soft-limited, pipeline/tts.py); up to 1 the plugin's head audio does it alone."""
+        if data is None:
+            return []
+        if not isinstance(data, dict):
+            return ["body: must be an object"]
+        if "speech_volume" not in data:
+            return []
+        try:
+            value = float(data["speech_volume"])
+        except (TypeError, ValueError):
+            return [f"body.speech_volume: not a number: {data['speech_volume']!r}"]
+        lo, hi = RANGES[("body", "speech_volume")]
+        if not lo <= value <= hi:
+            return [f"body.speech_volume: {value} is outside {lo}..{hi}"]
+        before = tts_module.output_gain()
+        gain = tts_module.set_output_gain(value)
+        if gain != before:
+            log.info("Speech volume %.2f: speech WAVs %s", value,
+                     f"x{gain:.2f} with soft limiter" if gain > 1.0 else "unchanged (the plugin's head audio sets the volume)")
+        return []
+
     def apply_characters(self, data: Any) -> list[str]:
         """The plugin's character wizard answers (config event / config.json 'characters')."""
         if data is None:
@@ -921,6 +944,7 @@ class Companion:
         errors = errors + self.apply_engines(event.get("engines")) + self.apply_ai(event.get("ai"))
         errors += self.apply_advanced(event.get("advanced"))
         errors += self.apply_characters(event.get("characters"))
+        errors += self.apply_body(event.get("body"))
         self.mic_settings = settings
         self.input.apply(settings)
         if self.mic:

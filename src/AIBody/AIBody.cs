@@ -43,7 +43,7 @@ namespace AIBody
 {
     public class AIBodyPlugin : MVRScript
     {
-        public const string PluginVersion = "43";   // = package number d0n.AIBody.43.var (scheme since version 12)
+        public const string PluginVersion = "44";   // = package number d0n.AIBody.44.var (scheme since version 12)
 
         private AppLink _link;
         private Body _body;
@@ -164,6 +164,12 @@ namespace AIBody
                 _link.AppendConfig = (JSONClass evt) =>
                 {
                     if (_body != null && _body.Characters != null) _body.Characters.WriteSettings(evt);
+                    if (_body != null)
+                    {
+                        JSONClass body = new JSONClass();   // version 44: the companion boosts its WAVs above 1
+                        body["speech_volume"].AsFloat = _body.SpeechVolume;
+                        evt["body"] = body;
+                    }
                 };
                 _link.OnHintChanged = () => ShowTab(_tab);
                 _link.OnPathsChanged = () =>

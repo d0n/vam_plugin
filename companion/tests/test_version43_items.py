@@ -67,7 +67,7 @@ class UninstallTests(TestCase):
         self.assertIn("'Inno Setup CodeFile: VamDir'", iss)
         wf = (ROOT / ".github" / "workflows" / "companion-windows.yml").read_text(encoding="utf-8")
         self.assertIn('"d0n.AIBodySession.3.var","d0n.AIBody.x.var","other.AIBody.1.var","Sub\\d0n.AIBody.40.var"', wf)
-        self.assertIn("uninstall deleted d0n.AIBody.41/42.var only", wf)
+        self.assertIn("uninstall deleted d0n.AIBody.$v.var only", wf)   # version 44: the install already removed 41/42
 
 
 class SpeechEndedTests(TestCase):

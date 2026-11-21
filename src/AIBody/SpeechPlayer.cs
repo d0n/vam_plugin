@@ -151,7 +151,7 @@ namespace AIBody
                 _audio = _control != null ? _control.audioSource : null;
                 if (_audio != null)
                 {
-                    _control.volume = _volume;
+                    _control.volume = HeadVolume;
                     LookupError = null;
                     if (_warned) Log.Info("HeadAudioSource found; speech output enabled.");
                     Log.Debug("[audio] head audio of '" + _atom.uid + "': HeadAudioSource found, " + SourceState());
@@ -174,13 +174,21 @@ namespace AIBody
         public bool IsSpeaking { get { return _current != null; } }
         public int QueueLength { get { return _queue.Count; } }
 
+        /// <summary>Version 44 (Leon 21:01): Speech volume goes up to 3. VaM's head audio stops at 1 (full volume); the part
+        /// above 1 is added to the samples by the companion app (louder WAVs, soft limiter) and, for "Play test tone", by
+        /// a louder copy of the bundled tone (Body.TestToneFileFor).</summary>
+        public const float MaxVolume = 3f;
+
+        /// <summary>What the head AudioSourceControl gets: the volume, at most 1.</summary>
+        public float HeadVolume { get { return Mathf.Min(_volume, 1f); } }
+
         public float Volume
         {
             get { return _volume; }
             set
             {
-                _volume = Mathf.Clamp01(value);
-                if (_control != null) _control.volume = _volume;
+                _volume = Mathf.Max(0f, Mathf.Min(value, MaxVolume));
+                if (_control != null) _control.volume = HeadVolume;
             }
         }
 
@@ -329,7 +337,7 @@ namespace AIBody
         {
             _current = u;
             u.PreviousClip = _audio.clip;
-            _control.volume = _volume;
+            _control.volume = HeadVolume;
             Status = "Loading: " + FileName(u.Path) + (_volume < 0.01f ? " (note: Speech volume is 0)" : "");
             if (ClipReady(u, 0f)) PlayNow(u);   // else Track() calls it the frame the clip data has loaded
         }

@@ -153,7 +153,7 @@ class SharedConfigTests(unittest.TestCase):
             "mic": {"mode": "loud"},
             "extra": {},
         })
-        self.assertEqual(data["body"]["speech_volume"], 1.0)
+        self.assertEqual(data["body"]["speech_volume"], 3.0)  # version 44: clamped to the new maximum 3
         self.assertTrue(data["body"]["breathing"])
         self.assertEqual(data["connection"]["paths"]["gestures"], "Custom/x/g.json")
         self.assertEqual(data["connection"]["paths"]["expressions"], "Saves/PluginData/AIBody/expressions.json")
