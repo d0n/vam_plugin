@@ -4,13 +4,22 @@ name: Companion Windows installer
 # Inno Setup (per-user install). Runs the launcher's --selftest on the frozen exe, checks that /VAMDIR= without VaM.exe
 # is refused, installs silently with /VAMDIR= (fake VaM folder), checks launcher.json and --check-vam-root, self-tests the
 # installed copy, uninstalls, scans for keys and uploads the installer as an artifact. Releases attach it by hand.
+# Version 44: builds the package d0n.AIBody.<v>.var first (tools/build_var.py) and bundles it (/DVarFile, /DVarSha256);
+# checks that every install copies it to <VaM>\AddonPackages and removes the other d0n.AIBody.<n>.var (fresh install with
+# hand-placed old packages), that a same-version reinstall over a RUNNING companion ends it and replaces everything,
+# that an older installed version is reported as an update, and that the VAR is uploaded with the installer.
 on:
   workflow_dispatch:
   push:
     branches: [main]
     paths:
       - "companion/**"
-      - "packaging/companion/**"
+      - "packaging/**"
+      - "src/**"
+      - "examples/scenes/**"
+      - "tools/build_var.py"
+      - "tools/assemble_plugins.py"
+      - "tools/sandbox_rules.py"
       - "tools/scan_tokens.py"
       - ".github/workflows/companion-windows.yml"
 
@@ -31,7 +40,7 @@ jobs:
       - name: Tools and bundled dependencies (win_amd64 wheels only)
         run: |
           python -m pip install --upgrade pip
-          python -m pip install --only-binary=:all: pyinstaller sounddevice webrtcvad-wheels pystray pillow
+          python -m pip install --only-binary=:all: pyinstaller sounddevice webrtcvad-wheels pystray==0.19.5 pillow
 
       - name: Version
         id: ver
@@ -61,6 +70,18 @@ jobs:
           Get-Content $out
           if ($p.ExitCode -ne 0) { throw "self-test failed with exit code $($p.ExitCode)" }
 
+      - name: Package (VAR) for the installer
+        id: var
+        shell: pwsh
+        run: |
+          python tools/build_var.py --version ${{ steps.ver.outputs.version }}
+          if ($LASTEXITCODE -ne 0) { throw "build_var failed" }
+          $var = Resolve-Path "dist\d0n.AIBody.${{ steps.ver.outputs.version }}.var"
+          $sha = (Get-FileHash $var -Algorithm SHA256).Hash.ToLower()
+          "path=$var" >> $env:GITHUB_OUTPUT
+          "sha256=$sha" >> $env:GITHUB_OUTPUT
+          Write-Host "package $var sha256 $sha"
+
       - name: Inno Setup
         shell: pwsh
         run: |
@@ -72,7 +93,7 @@ jobs:
           $src = Resolve-Path "dist\AIBody Companion"
           New-Item -ItemType Directory -Force dist\installer | Out-Null
           $outdir = Resolve-Path "dist\installer"
-          & $iscc "/DAppVersion=${{ steps.ver.outputs.version }}" "/DSourceDir=$src" "/DOutputDir=$outdir" packaging\companion\AIBodyCompanion.iss
+          & $iscc "/DAppVersion=${{ steps.ver.outputs.version }}" "/DSourceDir=$src" "/DOutputDir=$outdir" "/DVarFile=${{ steps.var.outputs.path }}" "/DVarSha256=${{ steps.var.outputs.sha256 }}" packaging\companion\AIBodyCompanion.iss
           if ($LASTEXITCODE -ne 0) { throw "ISCC failed" }
           Get-ChildItem dist\installer | Format-Table Name, Length
 
@@ -106,7 +127,8 @@ jobs:
           $vam = Join-Path $env:RUNNER_TEMP "Fake VaM"
           New-Item -ItemType Directory -Force $vam | Out-Null
           New-Item -ItemType File -Force (Join-Path $vam "VaM.exe") | Out-Null
-          # version 43: the uninstaller deletes only our packages d0n.AIBody.<n>.var at the top of AddonPackages
+          # version 43/44: hand-placed old packages and decoys. A fresh install (nothing installed) removes exactly the
+          # d0n.AIBody.<digits>.var at the top of AddonPackages and copies the new one; the uninstaller removes ours only.
           $pk = Join-Path $vam "AddonPackages"
           New-Item -ItemType Directory -Force (Join-Path $pk "Sub") | Out-Null
           foreach ($n in "d0n.AIBody.41.var","d0n.AIBody.42.var","d0n.AIBodySession.3.var","d0n.AIBody.x.var","other.AIBody.1.var","Sub\d0n.AIBody.40.var") {
@@ -114,8 +136,23 @@ jobs:
           }
           $p = Start-Process -FilePath $setup -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART","/CURRENTUSER","/VAMDIR=`"$vam`"","/LOG=`"$log`"" -Wait -PassThru
           if ($p.ExitCode -ne 0) { Get-Content $log; throw "setup exit code $($p.ExitCode)" }
-          Select-String -Path $log -Pattern "VaM folder|launcher.json" | ForEach-Object { $_.Line }
+          Select-String -Path $log -Pattern "VaM folder|launcher.json|Existing install|Package:|Remove older|Deleted|taskkill" | ForEach-Object { $_.Line }
           if (-not (Test-Path $exe)) { throw "not installed at $exe" }
+          $v = "${{ steps.ver.outputs.version }}"
+          $newvar = Join-Path $pk "d0n.AIBody.$v.var"
+          $sha = "${{ steps.var.outputs.sha256 }}"
+          function Assert-Packages([string]$when) {
+            if (-not (Test-Path $newvar)) { throw "${when}: $newvar missing" }
+            $got = (Get-FileHash $newvar -Algorithm SHA256).Hash.ToLower()
+            if ($got -ne $sha) { throw "${when}: $newvar sha256 $got is not the bundled $sha" }
+            foreach ($n in "d0n.AIBody.41.var","d0n.AIBody.42.var") { if (Test-Path (Join-Path $pk $n)) { throw "${when}: $n not removed" } }
+            foreach ($n in "d0n.AIBodySession.3.var","d0n.AIBody.x.var","other.AIBody.1.var","Sub\d0n.AIBody.40.var","..\VaM.exe") {
+              if (-not (Test-Path (Join-Path $pk $n))) { throw "${when}: $n deleted (not ours)" }
+            }
+            Write-Host "${when}: d0n.AIBody.$v.var present (sha256 ok), d0n.AIBody.41/42.var removed, decoys kept"
+          }
+          if (-not (Select-String -Path $log -Pattern "Existing install: none \(new install\)" -Quiet)) { throw "fresh install not logged as new install" }
+          Assert-Packages "fresh install"
           $menu = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\AIBody Companion\AIBody Companion.lnk"
           if (-not (Test-Path $menu)) { throw "no Start menu shortcut at $menu" }
           if (-not (Test-Path $json)) { throw "setup did not write $json" }
@@ -134,23 +171,59 @@ jobs:
           $p = Start-Process -FilePath $exe -ArgumentList "--selftest","--selftest-out","`"$out`"" -Wait -PassThru
           Get-Content $out
           if ($p.ExitCode -ne 0) { throw "installed self-test failed" }
+          if ((Get-Content $out -Raw | ConvertFrom-Json).version -ne $v) { throw "installed self-test reports another version" }
+          # 4b. same-version reinstall over a RUNNING companion with an old package put back: no question (silent),
+          #     the companion is ended (taskkill), files replaced, old package removed, new one in place
+          New-Item -ItemType File -Force (Join-Path $pk "d0n.AIBody.42.var") | Out-Null
+          $running = Start-Process -FilePath $exe -PassThru
+          Start-Sleep -Seconds 6
+          if ($running.HasExited) { throw "the started companion ended by itself (exit code $($running.ExitCode)); cannot test the kill" }
+          $log2 = Join-Path $env:RUNNER_TEMP "setup-reinstall.log"
+          $p = Start-Process -FilePath $setup -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART","/CURRENTUSER","/VAMDIR=`"$vam`"","/LOG=`"$log2`"" -PassThru
+          if (-not $p.WaitForExit(180000)) { $p.Kill(); Get-Content $log2 | Select-Object -Last 60; throw "reinstall over the running companion hung (180 s)" }
+          Select-String -Path $log2 -Pattern "Existing install|Package:|Remove older|Deleted|taskkill|in use|Restart" | ForEach-Object { $_.Line }
+          if ($p.ExitCode -ne 0) { Get-Content $log2 | Select-Object -Last 60; throw "reinstall exit code $($p.ExitCode)" }
+          Start-Sleep -Seconds 2
+          if (-not $running.HasExited) { throw "the running companion was not ended by the reinstall" }
+          if (-not (Select-String -Path $log2 -Pattern "Existing install: same version $v" -Quiet)) { throw "same version not detected" }
+          if (-not (Select-String -Path $log2 -Pattern "silent setup, continuing without asking" -Quiet)) { throw "silent reinstall asked or stopped" }
+          if (-not (Select-String -Path $log2 -Pattern 'taskkill /F /T /IM "AIBody Companion.exe" exit code 0' -SimpleMatch -Quiet)) { throw "the companion was not ended by taskkill" }
+          Assert-Packages "same-version reinstall"
+          $p = Start-Process -FilePath $exe -ArgumentList "--selftest","--selftest-out","`"$out`"" -Wait -PassThru
+          if ($p.ExitCode -ne 0 -or (Get-Content $out -Raw | ConvertFrom-Json).version -ne $v) { throw "self-test after the reinstall failed" }
+          if ((Get-Content $json -Raw | ConvertFrom-Json).vam_root -ne $vam) { throw "launcher.json lost by the reinstall" }
+          Write-Host "reinstall over a running companion ok"
+          # 4c. an older installed version (recorded DisplayVersion set back) is reported as an update
+          $key = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\{7522ADEB-3287-40BF-92C0-136F44CA092B}_is1"
+          Set-ItemProperty -Path $key -Name DisplayVersion -Value "43"
+          $log3 = Join-Path $env:RUNNER_TEMP "setup-update.log"
+          $p = Start-Process -FilePath $setup -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART","/CURRENTUSER","/VAMDIR=`"$vam`"","/LOG=`"$log3`"" -PassThru
+          if (-not $p.WaitForExit(180000)) { $p.Kill(); throw "update setup hung (180 s)" }
+          Select-String -Path $log3 -Pattern "Existing install" | ForEach-Object { $_.Line }
+          if ($p.ExitCode -ne 0) { throw "update setup exit code $($p.ExitCode)" }
+          if (-not (Select-String -Path $log3 -Pattern "Update from AIBody 43 to $v" -SimpleMatch -Quiet)) { throw "update from 43 not detected" }
+          if ((Get-ItemProperty -Path $key).DisplayVersion -ne $v) { throw "DisplayVersion not back at $v" }
+          Assert-Packages "update from 43"
+          Write-Host "update detection ok"
           # 5. uninstall removes the app and its launcher settings
           $p = Start-Process -FilePath (Join-Path $app "unins000.exe") -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART" -Wait -PassThru
           Start-Sleep -Seconds 3
           if (Test-Path $exe) { throw "uninstall left $exe" }
           if (Test-Path $json) { throw "uninstall left $json" }
-          foreach ($n in "d0n.AIBody.41.var","d0n.AIBody.42.var") { if (Test-Path (Join-Path $pk $n)) { throw "uninstall left $n" } }
+          if (Test-Path $newvar) { throw "uninstall left $newvar" }
           foreach ($n in "d0n.AIBodySession.3.var","d0n.AIBody.x.var","other.AIBody.1.var","Sub\d0n.AIBody.40.var","..\VaM.exe") {
             if (-not (Test-Path (Join-Path $pk $n))) { throw "uninstall deleted $n (not ours)" }
           }
-          Write-Host "uninstall deleted d0n.AIBody.41/42.var only"
-          Write-Host "VAMDIR / launcher.json / install / self-test / uninstall (own VARs only) ok"
+          Write-Host "uninstall deleted d0n.AIBody.$v.var only"
+          Write-Host "VAMDIR / launcher.json / install / package / reinstall over running companion / update / self-test / uninstall (own VARs only) ok"
 
       - name: Token scan
-        run: python tools/scan_tokens.py "dist/AIBody Companion" dist/installer companion/aibody_companion
+        run: python tools/scan_tokens.py "dist/AIBody Companion" dist/installer companion/aibody_companion "dist/d0n.AIBody.${{ steps.ver.outputs.version }}.var"
 
       - uses: actions/upload-artifact@v4
         with:
           name: AIBody-Companion-Setup-${{ steps.ver.outputs.version }}
-          path: dist/installer/AIBody Companion Setup.exe
+          path: |
+            dist/installer/AIBody Companion Setup.exe
+            dist/d0n.AIBody.${{ steps.ver.outputs.version }}.var
           if-no-files-found: error
