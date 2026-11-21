@@ -8,6 +8,9 @@
 ; which the launcher reads first, so the companion never has to sit inside the VaM folder. Silent setup:
 ; /VAMDIR="D:\VaM" (must contain VaM.exe, else setup stops with an error); without it the detected folder is used,
 ; or none is written and the app asks once with its folder picker.
+; Uninstall (version 43, Leon 21.11.2026 20:05): also deletes our own packages <VaM>\AddonPackages\d0n.AIBody.<n>.var
+; (exactly that name pattern, top level of AddonPackages only; nothing else in the VaM folder is touched). The VaM
+; folder is the launcher's remembered one (launcher.json) or the one this setup recorded.
 #ifndef AppVersion
   #define AppVersion "0"
 #endif
@@ -253,4 +256,69 @@ end;
 procedure RegisterPreviousData(PreviousDataKey: Integer);
 begin
   SetPreviousData(PreviousDataKey, 'VamDir', ChosenVamDir());
+end;
+
+{ Version 43: our own package files only: "d0n.AIBody." + digits + ".var" (not d0n.AIBodySession.*, not other names). }
+function IsOwnVar(const Name: String): Boolean;
+var
+  Middle: String;
+  I: Integer;
+begin
+  Result := False;
+  if (Length(Name) <= Length('d0n.AIBody.') + Length('.var')) then exit;
+  if CompareText(Copy(Name, 1, Length('d0n.AIBody.')), 'd0n.AIBody.') <> 0 then exit;
+  if CompareText(Copy(Name, Length(Name) - 3, 4), '.var') <> 0 then exit;
+  Middle := Copy(Name, Length('d0n.AIBody.') + 1, Length(Name) - Length('d0n.AIBody.') - 4);
+  if Middle = '' then exit;
+  for I := 1 to Length(Middle) do
+    if (Middle[I] < '0') or (Middle[I] > '9') then exit;
+  Result := True;
+end;
+
+procedure DeleteOwnVars(const VamDir: String);
+var
+  Folder: String;
+  Rec: TFindRec;
+  Names: TArrayOfString;
+  I, N: Integer;
+begin
+  Folder := AddBackslash(Trim(VamDir)) + 'AddonPackages';
+  N := 0;
+  if FindFirst(Folder + '\d0n.AIBody.*.var', Rec) then
+  begin
+    try
+      repeat
+        if ((Rec.Attributes and FILE_ATTRIBUTE_DIRECTORY) = 0) and IsOwnVar(Rec.Name) then
+        begin
+          SetArrayLength(Names, N + 1);
+          Names[N] := Rec.Name;
+          N := N + 1;
+        end;
+      until not FindNext(Rec);
+    finally
+      FindClose(Rec);
+    end;
+  end;
+  for I := 0 to N - 1 do
+    if DeleteFile(Folder + '\' + Names[I]) then
+      Log('Deleted ' + Folder + '\' + Names[I])
+    else
+      Log('Could not delete ' + Folder + '\' + Names[I] + ' (VaM still running?)');
+  if N = 0 then Log('No d0n.AIBody.<n>.var in ' + Folder);
+end;
+
+{ Uninstall: the VaM folder from launcher.json (removed later by [UninstallDelete]) or the one the setup recorded. }
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+var
+  Dir: String;
+begin
+  if CurUninstallStep <> usUninstall then exit;
+  Dir := LauncherVamDir();
+  if not IsVamDir(Dir) then
+    if not RegQueryStringValue(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Uninstall\' + ExpandConstant('{#SetupSetting("AppId")}') + '_is1',
+                               'Inno Setup CodeFile: VamDir', Dir) then Dir := '';
+  if IsVamDir(Dir) then
+    DeleteOwnVars(Dir)
+  else
+    Log('Uninstall: no VaM folder known; no AIBody package deleted.');
 end;

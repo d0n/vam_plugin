@@ -20,32 +20,11 @@ def source(name: str) -> str:
 
 
 class VersionTests(TestCase):
-    def test_version_42_everywhere(self):
-        self.assertEqual(__version__, "42")
-        self.assertIn('PluginVersion = "42"', source("AIBody.cs"))
-        self.assertIn('version = "42"', (ROOT / "companion" / "pyproject.toml").read_text())
-        self.assertEqual(json.loads((ROOT / "packaging" / "AIBody.json").read_text())["version"], 42)
-        self.assertTrue(re.search(r"d0n\.AIBody\.42:", first_start.TEMPLATE.read_text()))
-        self.assertIn("AIBody companion app 42 (example)", (ROOT / "examples" / "config.json").read_text(encoding="utf-8"))
-        self.assertEqual(json.loads((ROOT / "packaging" / "meta.json").read_text())["licenseType"], "FC")
-
-    def test_docs(self):
-        readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertIn("Status: version 42, package `d0n.AIBody.42.var`, release `v42`", readme)
-        start = readme[readme.index("## Getting started"):readme.index("### For developers")]
-        for part in ("AIBody Companion Setup.exe", "More info", "Run anyway", "Start menu", "Start with Windows",
-                     "127.0.0.1", "Add Plugin"):
-            self.assertIn(part, start)
-        self.assertNotIn("python -m", start)
+    def test_version_42_is_historical(self):
+        """Historical: version 42 sources are gone after the v43 bump; consistency is test_version43."""
+        self.assertTrue((ROOT / "companion" / "tests" / "test_version43.py").is_file())
         spec = (ROOT / "docs" / "SPEC.md").read_text(encoding="utf-8")
         self.assertIn("(version 42, release; Leon, 18:27 and 18:33, GO for v42 at 18:33 once everything is done): package `d0n.AIBody.42.var`, tag `v42`", spec)
         tp = (ROOT / "docs" / "TEST_PROTOCOL.md").read_text(encoding="utf-8")
         for step in ("## T59", "## T60", "## T61", "## T62", "## T63", "## T64"):
             self.assertIn(step, tp)
-
-    def test_release_notes(self):
-        notes = (ROOT / "docs" / "RELEASE_NOTES_NEXT.md").read_text(encoding="utf-8")
-        self.assertIn("**AIBody v42**", notes)
-        self.assertNotIn("<next>", notes)
-        for part in ("plugin=40", "Reset poses", "Add Pose", "Delete Pose", "'Client'", "28", "T59 to T64", "not verified"):
-            self.assertIn(part, notes)

@@ -1,10 +1,10 @@
 # AIBody – requirements catalog (status overview)
 
-Status: 21.11.2026, version 42. Overview of what is done and what is open; updated with every release.
+Status: 21.11.2026, version 43. Overview of what is done and what is open; updated with every release.
 - Agreed specification (what applies): [`docs/SPEC.md`](SPEC.md)
 - Deferred ideas / nice to have: [`docs/BACKLOG.md`](BACKLOG.md)
 - Test instructions in VaM: [`docs/TEST_PROTOCOL.md`](TEST_PROTOCOL.md) · API evidence: [`docs/API_AUDIT.md`](API_AUDIT.md)
-- Repo: https://github.com/d0n/vam_plugin · current package: `d0n.AIBody.42.var` (version = package number since 12)
+- Repo: https://github.com/d0n/vam_plugin · current package: `d0n.AIBody.43.var` (version = package number since 12)
 
 "Done" means: tested in code and against rebuilt counterparts. What has not yet been checked in VaM or against the real xAI APIs is listed again under 2.
 
@@ -182,6 +182,13 @@ Status: 21.11.2026, version 42. Overview of what is done and what is open; updat
 - **Audio:** v41's evidenced play sequence, still unverified in VaM (it never ran there); `[audio]` lines from VaM's log requested. T63.
 - **Voice menu scrolls**: all 28 xAI voices reachable (companion list from `GET /v1/tts/voices`, static fallback from docs.x.ai). T64.
 - **Realtime:** a response that was only a tool call is followed by one request for the spoken answer.
+
+### Version 43 (21.11.2026, Leon 20:04-20:05)
+- **Test tone louder:** peak 0.70 of full scale (was 0.35, +6 dB), both the bundled WAV and the companion's tone. T65.
+- **Update notice:** the installed companion asks GitHub at start for a newer release and offers to open its page; silent offline. T66.
+- **Uninstall removes our packages:** `d0n.AIBody.<n>.var` at the top of `<VaM>\AddonPackages`, nothing else. T67.
+- **speech_ended reason:** `completed` when a clip played to its end; `interrupted` only for a real barge-in or stop. T68.
+- **v42 installer "no longer works":** no regression found in the installer script, workflow or CI run (same toolchain, install / self-test / uninstall passed); details from Leon needed. T69.
 
 ## 2. Still open / to do
 

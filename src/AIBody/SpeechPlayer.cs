@@ -59,6 +59,8 @@ namespace AIBody
             public bool Started;
             public AudioClip PreviousClip;   // what the head audio held before our PlayNow
             public AudioClip StartedClip;    // what it plays once our clip started
+            public float StartedAt;          // PlayTime when it started (version 43: completed vs interrupted)
+            public float Length;             // clip length in seconds when it started
             public float PlayTime;
             public float RetryTimer;
             public int Plays;                // PlayNow calls (first + retries)
@@ -447,6 +449,8 @@ namespace AIBody
                 {
                     u.Started = true;
                     u.StartedClip = clip;
+                    u.StartedAt = u.PlayTime;
+                    u.Length = clip.length;
                     Status = "Speaking: " + FileName(u.Path) + " (" + clip.length.ToString("0.0") + " s"
                         + (_volume < 0.01f ? ", Speech volume is 0 – nothing audible" : "") + ")";
                     Log.Debug("[audio] " + u.Id + ": playing (" + clip.length.ToString("0.0") + " s, " + u.Plays + " play call(s), " + u.PlayTime.ToString("0.00") + " s after the start)");
@@ -483,8 +487,18 @@ namespace AIBody
                 if (u.RetryTimer >= PlayRetryInterval) PlayNow(u);   // it did not start: the next of the three evidenced calls
                 return;
             }
-            if (_audio.clip != u.StartedClip) Finish("interrupted");
+            if (_audio.clip != u.StartedClip) Finish(PlayedToTheEnd(u) ? "completed" : "interrupted");
             else if (!_audio.isPlaying) Finish("completed");
+        }
+
+        /// <summary>Version 43 (Leon's v42 companion.log: every clip, also the 1.5 s test tone, ended "interrupted" exactly
+        /// after its length): at the natural end VaM's head audio leaves our clip (the clip changes), which is not an
+        /// interruption. Played to the end = at least the clip length minus EndTolerance since it started.</summary>
+        public const float EndTolerance = 0.25f;
+
+        private static bool PlayedToTheEnd(Utterance u)
+        {
+            return u.Length > 0f && u.PlayTime - u.StartedAt >= u.Length - EndTolerance;
         }
 
         private void Finish(string reason)

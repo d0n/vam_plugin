@@ -138,6 +138,59 @@ def show_note(text: str, seconds: int = NOTE_SECONDS) -> None:
         pass
 
 
+def ask_yes_no(text: str) -> bool:
+    """A Yes / No message box (version 43: the update notice). False when no display is available."""
+    try:
+        import tkinter as tk
+        from tkinter import messagebox
+    except ImportError:
+        return False
+    try:
+        root = tk.Tk()
+        root.withdraw()
+        root.attributes("-topmost", True)
+        try:
+            return bool(messagebox.askyesno(APP_NAME, text, parent=root))
+        finally:
+            root.destroy()
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def start_update_check(settings: dict[str, Any]) -> Callable[[float], tuple[int, str] | None]:
+    """Version 43 (Leon 20:05): asks GitHub in the background at once; the returned function waits at most `wait`
+    seconds for the answer (None = nothing newer, offline, switched off or still waiting)."""
+    from . import __version__, update_check
+    if not update_check.enabled(settings):
+        print(f"{time.strftime('%Y-%m-%d %H:%M:%S')} update check: off (launcher.json)", flush=True)
+        return lambda wait: None
+    box: dict[str, Any] = {}
+
+    def run() -> None:
+        box["latest"] = update_check.newer_release(__version__)
+        latest = box["latest"]
+        print(f"{time.strftime('%Y-%m-%d %H:%M:%S')} update check: "
+              + (f"version {latest[0]} available ({latest[1]})" if latest else "nothing newer (or offline)"), flush=True)
+
+    worker = threading.Thread(target=run, name="update-check", daemon=True)
+    worker.start()
+
+    def result(wait: float) -> tuple[int, str] | None:
+        worker.join(wait)
+        return box.get("latest")
+    return result
+
+
+def offer_update(latest: tuple[int, str] | None) -> None:
+    from . import __version__, update_check
+    if latest and ask_yes_no(update_check.notice(__version__, latest)):
+        try:
+            import webbrowser
+            webbrowser.open(latest[1])
+        except Exception:  # noqa: BLE001
+            pass
+
+
 def ask_vam_folder() -> Path | None:
     """Folder picker, asked until a VaM folder is chosen or the user cancels."""
     try:
@@ -353,6 +406,7 @@ def main(argv: list[str] | None = None) -> int:
         show_note(ALREADY_NOTE)
         return 0
     settings = load_settings(folder)
+    update = start_update_check(settings)
     if args.vam_root and looks_like_vam(args.vam_root):
         root, how = Path(args.vam_root), "given on the command line"
     elif args.choose_vam_folder:
@@ -384,6 +438,8 @@ def main(argv: list[str] | None = None) -> int:
     worker.start()
     threading.Thread(target=show_note, args=(RUNNING_NOTE,), daemon=True).start() if os.name != "nt" else show_note(
         RUNNING_NOTE)
+    if os.name == "nt":
+        offer_update(update(3.0))   # on the main thread, after the OK of the running note (tkinter is not thread-safe)
 
     def quit_all() -> None:
         instance.release()
