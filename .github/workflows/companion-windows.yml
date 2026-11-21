@@ -106,6 +106,12 @@ jobs:
           $vam = Join-Path $env:RUNNER_TEMP "Fake VaM"
           New-Item -ItemType Directory -Force $vam | Out-Null
           New-Item -ItemType File -Force (Join-Path $vam "VaM.exe") | Out-Null
+          # version 43: the uninstaller deletes only our packages d0n.AIBody.<n>.var at the top of AddonPackages
+          $pk = Join-Path $vam "AddonPackages"
+          New-Item -ItemType Directory -Force (Join-Path $pk "Sub") | Out-Null
+          foreach ($n in "d0n.AIBody.41.var","d0n.AIBody.42.var","d0n.AIBodySession.3.var","d0n.AIBody.x.var","other.AIBody.1.var","Sub\d0n.AIBody.40.var") {
+            New-Item -ItemType File -Force (Join-Path $pk $n) | Out-Null
+          }
           $p = Start-Process -FilePath $setup -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART","/CURRENTUSER","/VAMDIR=`"$vam`"","/LOG=`"$log`"" -Wait -PassThru
           if ($p.ExitCode -ne 0) { Get-Content $log; throw "setup exit code $($p.ExitCode)" }
           Select-String -Path $log -Pattern "VaM folder|launcher.json" | ForEach-Object { $_.Line }
@@ -133,7 +139,12 @@ jobs:
           Start-Sleep -Seconds 3
           if (Test-Path $exe) { throw "uninstall left $exe" }
           if (Test-Path $json) { throw "uninstall left $json" }
-          Write-Host "VAMDIR / launcher.json / install / self-test / uninstall ok"
+          foreach ($n in "d0n.AIBody.41.var","d0n.AIBody.42.var") { if (Test-Path (Join-Path $pk $n)) { throw "uninstall left $n" } }
+          foreach ($n in "d0n.AIBodySession.3.var","d0n.AIBody.x.var","other.AIBody.1.var","Sub\d0n.AIBody.40.var","..\VaM.exe") {
+            if (-not (Test-Path (Join-Path $pk $n))) { throw "uninstall deleted $n (not ours)" }
+          }
+          Write-Host "uninstall deleted d0n.AIBody.41/42.var only"
+          Write-Host "VAMDIR / launcher.json / install / self-test / uninstall (own VARs only) ok"
 
       - name: Token scan
         run: python tools/scan_tokens.py "dist/AIBody Companion" dist/installer companion/aibody_companion
