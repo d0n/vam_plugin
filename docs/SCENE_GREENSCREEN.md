@@ -1,10 +1,10 @@
 # AI-Buddy example scene (and greenscreen background)
 
-Status 21.11.2026 (version 38) · Leon's original two-character scene of 20.11.2026, named **AI-Buddy**, with clothing and looks kept · File: [`examples/scenes/AI-Buddy.json`](../examples/scenes/AI-Buddy.json) with preview [`examples/scenes/AI-Buddy.jpg`](../examples/scenes/AI-Buddy.jpg) · in the package: `Saves/scene/AIBody/AI-Buddy.json` and `Saves/scene/AIBody/AI-Buddy.jpg`
+Status 21.11.2026 (version 39) · Leon's original two-character scene of 20.11.2026, named **AI-Buddy**, with clothing and looks kept · File: [`examples/scenes/AI-Buddy.json`](../examples/scenes/AI-Buddy.json) with preview [`examples/scenes/AI-Buddy.jpg`](../examples/scenes/AI-Buddy.jpg) · in the package: `Saves/scene/AIBody/AI-Buddy.json` and `Saves/scene/AIBody/AI-Buddy.jpg`
 
 Two people. AIBody is only on the female. Dollmaster, Improved PoV and the Dollmaster animation/audio atoms are not in the scene (they conflict with AIBody and were the likely cause of a complete load hang). Explicit genital morphs are removed. **Set background color** is on (#00FF00).
 
-1. Atom `Person` (Person, female: `geometry.character` = `Female 1`), root slightly to the right of the origin. Plugins tab of the Person: **AIBody** `d0n.AIBody.38:/Custom/Scripts/d0n/AIBody/AIBody.cslist` (inside the package: `SELF:/Custom/Scripts/d0n/AIBody/AIBody.cslist`) with saved values `Set background color` = true and `Background color` = #00FF00. Clothing: Pro Court Short F (`EuLinRabei.ProCourt_Outfit.3`) and Nico Tanktop (`paledriver.Nico.2`). Hair: Long Backswept Pony (`NoStage3.Hair_Long_Backswept_Pony.1`) plus a loose scamp THEV hair (see local content below). Face and body morphs from the original look, including package morphs from `Ark1F1.Olivia_McAllister.1`, `Wolverine333.LAUREN_4.1`, `mopedlampe.Morwyn.1` and `particle pinnacle.missing_morphs.1`.
+1. Atom `Person` (Person, female: `geometry.character` = `Female 1`), root slightly to the right of the origin. Plugins tab of the Person: **AIBody** `d0n.AIBody.39:/Custom/Scripts/d0n/AIBody/AIBody.cslist` (inside the package: `SELF:/Custom/Scripts/d0n/AIBody/AIBody.cslist`) with saved values `Set background color` = true and `Background color` = #00FF00. Clothing: Pro Court Short F (`EuLinRabei.ProCourt_Outfit.3`) and Nico Tanktop (`paledriver.Nico.2`). Hair: Long Backswept Pony (`NoStage3.Hair_Long_Backswept_Pony.1`) plus a loose scamp THEV hair (see local content below). Face and body morphs from the original look, including package morphs from `Ark1F1.Olivia_McAllister.1`, `Wolverine333.LAUREN_4.1`, `mopedlampe.Morwyn.1` and `particle pinnacle.missing_morphs.1`.
 2. Atom `BryanGosling` (Person, male: `geometry.character` = `Male 4`), at the origin. No plugin. Clothing: police pants (`Molmark.Police_uniform.2`) and a loose PositiveResult hoodie. Built-in hair entry `No Hair`. Face texture and the Bryan Gosling morph are loose local files.
 3. `[CameraRig]`, `WindowCamera`, `PlayerNavigationPanel`, `CoreControl`. No scene plugin.
 
@@ -16,8 +16,8 @@ Roles:
 
 ## Choose what to use
 
-- **Scene:** ONE download of `d0n.AIBody.38.var` plus the third-party packages listed below: the scene is inside the package at `Saves/scene/AIBody/AI-Buddy.json` (plugin entry `SELF:/Custom/Scripts/d0n/AIBody/AIBody.cslist` = the plugin of the same package, so it never points at another version) with the preview `Saves/scene/AIBody/AI-Buddy.jpg` (same base name: VaM's Load Scene menu can show the thumbnail). VaM's scene browser (main menu **Open Scene** / **Load Scene**) lists scenes of packages that lie below `Saves/scene/`: open the package `d0n.AIBody.38` (package filter / shortcut on the left of the browser), folder `AIBody`, file **AI-Buddy**. TODO(verify) in VaM 1.22: the thumbnail in the list and a clean load (T46).
-- Optional loose copy (what the companion's setup writes when you choose Scene there, with your background answer): put `AI-Buddy.json` and `AI-Buddy.jpg` at `<VaM main folder>/Saves/scene/AIBody/`; the JSON references `d0n.AIBody.38:/Custom/Scripts/d0n/AIBody/AIBody.cslist` (SELF: only works inside a package).
+- **Scene:** ONE download of `d0n.AIBody.39.var` plus the third-party packages listed below: the scene is inside the package at `Saves/scene/AIBody/AI-Buddy.json` (plugin entry `SELF:/Custom/Scripts/d0n/AIBody/AIBody.cslist` = the plugin of the same package, so it never points at another version) with the preview `Saves/scene/AIBody/AI-Buddy.jpg` (same base name: VaM's Load Scene menu can show the thumbnail). VaM's scene browser (main menu **Open Scene** / **Load Scene**) lists scenes of packages that lie below `Saves/scene/`: open the package `d0n.AIBody.39` (package filter / shortcut on the left of the browser), folder `AIBody`, file **AI-Buddy**. TODO(verify) in VaM 1.22: the thumbnail in the list and a clean load (T46).
+- Optional loose copy (what the companion's setup writes when you choose Scene there, with your background answer): put `AI-Buddy.json` and `AI-Buddy.jpg` at `<VaM main folder>/Saves/scene/AIBody/`; the JSON references `d0n.AIBody.39:/Custom/Scripts/d0n/AIBody/AIBody.cslist` (SELF: only works inside a package).
 - **Plugin:** add AIBody to a Person of your own scene (Plugins > Add Plugin, or the plugin preset). Switch **Set background color** on in tab Config if you want the plain color; the companion's setup does it for you when you answered yes there.
 
 ## Third-party packages (`meta.json` dependencies)
@@ -60,7 +60,7 @@ These paths are loose files under `Custom/` or `Saves/`, not inside a `.var`. Th
 
 ## What you need
 
-- `d0n.AIBody.38.var` — into `<VaM main folder>/AddonPackages/`. The third-party packages above, if you want the full look. The loose local files above, if you have them.
+- `d0n.AIBody.39.var` — into `<VaM main folder>/AddonPackages/`. The third-party packages above, if you want the full look. The loose local files above, if you have them.
 
 ## Checking
 

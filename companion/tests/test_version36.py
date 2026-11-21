@@ -522,7 +522,7 @@ class BodyControlDefaultTests(unittest.TestCase):
 
 class VersionTests(unittest.TestCase):
     def test_version_36_everywhere(self):
-        """Historical: version 36 sources are gone after the v37 bump; consistency is test_version38."""
+        """Historical: version 36 sources are gone after the v37 bump; consistency is test_version39."""
         self.assertTrue((ROOT / "companion" / "tests" / "test_version36.py").is_file())
 
 

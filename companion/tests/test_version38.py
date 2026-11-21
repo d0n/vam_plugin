@@ -20,12 +20,8 @@ def source(name: str) -> str:
 
 
 class VersionTests(TestCase):
-    def test_version_38_everywhere(self):
-        self.assertEqual(__version__, "38")
-        self.assertIn('PluginVersion = "38"', source("AIBody.cs"))
-        self.assertEqual(json.loads((ROOT / "packaging" / "AIBody.json").read_text())["version"], 38)
-        self.assertTrue(re.search(r"d0n\.AIBody\.38:", first_start.TEMPLATE.read_text()))
+    def test_version_38_is_historical(self):
+        """Historical: version 38 sources are gone after the v39 bump; consistency is test_version39."""
+        self.assertTrue((ROOT / "companion" / "tests" / "test_version39.py").is_file())
         self.assertEqual(first_start.TEMPLATE, ROOT / "examples" / "scenes" / "AI-Buddy.json")
-        self.assertIn("AIBody companion app 38 (example)",
-                      (ROOT / "examples" / "config.json").read_text(encoding="utf-8"))
         self.assertEqual(json.loads((ROOT / "packaging" / "meta.json").read_text())["licenseType"], "FC")

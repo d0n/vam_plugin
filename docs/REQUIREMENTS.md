@@ -1,10 +1,10 @@
 # AIBody – requirements catalog (status overview)
 
-Status: 20.11.2026, version 37. Overview of what is done and what is open; updated with every release.
+Status: 21.11.2026, version 39. Overview of what is done and what is open; updated with every release.
 - Agreed specification (what applies): [`docs/SPEC.md`](SPEC.md)
 - Deferred ideas / nice to have: [`docs/BACKLOG.md`](BACKLOG.md)
 - Test instructions in VaM: [`docs/TEST_PROTOCOL.md`](TEST_PROTOCOL.md) · API evidence: [`docs/API_AUDIT.md`](API_AUDIT.md)
-- Repo: https://github.com/d0n/vam_plugin · current package: `d0n.AIBody.38.var` (version = package number since 12)
+- Repo: https://github.com/d0n/vam_plugin · current package: `d0n.AIBody.39.var` (version = package number since 12)
 
 "Done" means: tested in code and against rebuilt counterparts. What has not yet been checked in VaM or against the real xAI APIs is listed again under 2.
 
@@ -148,6 +148,13 @@ Status: 20.11.2026, version 37. Overview of what is done and what is open; updat
 - **New example scene with preview thumbnail:** Leon's two-character scene (female `Person`, built-in `Female 1`, AIBody; male `BryanGosling`, built-in `Male 4`, no plugin) replaced the old greenscreen template in version 37 as `AIBody_Example`. On 21.11.2026 (no version bump) it was replaced by **AI-Buddy**: the original scene with clothing, hair, morphs and textures kept, Dollmaster and Improved PoV removed, explicit genital morphs removed, AIBody on the female, Set background color on. In the package as `Saves/scene/AIBody/AI-Buddy.json` plus `AI-Buddy.jpg`. Plugin entry `SELF:/` inside the package. Remaining third-party packages are declared in `meta.json` dependencies; loose `Custom/` / `Saves/` files need local content and are not redistributed. TODO(verify): T44 (historical name), T46.
 - **Menu rebuild from after version 36 included:** menus ordered by topic, Body control on by default, the gaze and blinking block removed, status in the left info fields with bold control labels (commit d431901). T43.
 
+### Version 38 (21.11.2026)
+- **Character configuration wizard** (tab AI Character, section Characters): gate "Do you want to configure your characters?", skip path, AI gender/body and your character gender recorded for the AI, clothing via VaM's Clothing tab. T45.
+- **AI-Buddy** example scene (Leon's original scene with clothing) replaces `AIBody_Example`. T46.
+
+### Version 39 (21.11.2026)
+- **Question and Answer button removed** (Leon, call 21.11.2026 15:59): with **Proactive talking** off the character only answers when asked; Body control is no longer switched off by any button. T47.
+
 ## 2. Still open / to do
 
 ### Next version
@@ -173,7 +180,7 @@ _Version 21 implemented the field "XAI API Token" and the button "Question and A
 - T13–T16, T18: voice detection and echo gate, gaze, natural gaze / blinking / scene hooks, emotions / personas / memory, local engines.
 - T19: Network Active (toggle on / off, VaM's network switch off → file fallback, companion not running).
 - T20: token masking by focus. T21: first-run note. T22: remote control (web page, HTTP, OSC). T23: plugin preset (Load Preset).
-- T38–T42: background color, scene from the package, setup Scene / Plugin, speech start (version 36). T43: eyes belong to VaM, Body control ON, menus by topic. T44: example scene thumbnail in Load Scene and AIBody on the female (version 37).
+- T38–T42: background color, scene from the package, setup Scene / Plugin, speech start (version 36). T43: eyes belong to VaM, Body control ON, menus by topic. T44: example scene thumbnail in Load Scene and AIBody on the female (version 37). T45: character wizard. T46: AI-Buddy scene (version 38). T47: no Question and Answer button (version 39).
 - The engines have never run against the real xAI / ElevenLabs APIs (only a rebuilt server).
 
 ### TODO(verify) in the code
@@ -183,7 +190,7 @@ _Version 21 implemented the field "XAI API Token" and the button "Question and A
 - Breath morph: no standard morph in VaM, choose a chest morph on the character.
 - Editable text field through `CreateTextField` (1.22); pasting with Ctrl+V into the field "XAI API Token".
 - Network: behavior of VaM with "Allow Plugins Network Access" off (exception caught, plugin refused, or a prompt); `InputField.isFocused` on VaM's text fields.
-- Button "Question and Answer": `buttonText.alignment` and `height` (90) visibly two lines, centered, not cut off in VaM (version 22).
+- ~~Button "Question and Answer": two lines, centered (version 22)~~: obsolete, the button is removed in version 39.
 - `GetFiles` on a `Custom/` folder in the sandbox (pose files).
 - Storable "PosePresets" follows the evidenced pattern (1.22).
 - Morph names for expressions on standard figures (female / male).
