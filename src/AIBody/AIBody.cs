@@ -34,6 +34,7 @@
 // app, one object per tab category (docs/CONFIG.md). The plugin UI (saved with the scene) wins
 // and is written back; a scene without saved AIBody settings is seeded from the file once.
 using System;
+using System.Collections.Generic;
 using SimpleJSON;
 using MVR.FileManagementSecure;
 using UnityEngine;
@@ -141,7 +142,12 @@ namespace AIBody
 
             // 3. Components and storables, each phase on its own.
             _diag.Run("Create AppLink", () => _link = new AppLink(this, PluginVersion, _diag));
-            _diag.Run("Create Body", () => _body = new Body(this, containingAtom, SendToApp, _diag));
+            // Version 42 (Leon 18:27): the plugin may sit on the client ('Client') and drive the AI person ('AI').
+            Atom aiAtom = null;
+            _diag.Run("Find the AI person", () => aiAtom = FindAiCharacter());
+            _diag.Run("Create Body", () => _body = new Body(this, aiAtom ?? containingAtom, SendToApp, _diag));
+            // On 'Client' without an 'AI' yet (scene still loading): the body waits up to TargetWaitSeconds for it.
+            _targetWait = aiAtom == null && containingAtom.uid == ClientAtomName ? TargetWaitSeconds : 0f;
             if (_link != null && _body != null)
             {
                 _link.OnBodyCommand = _body.Handle;
@@ -183,7 +189,9 @@ namespace AIBody
             if (_body != null)
             {
                 _diag.Run("Body.CreateStorables", _body.CreateStorables);
-                _diag.Run("Body.CreateControllers", _body.CreateControllers);
+                _body.ResetPosesRequested = ResetPoses;
+                if (_targetWait <= 0f) CreateBodyControllers();
+                else _diag.Step("AI person: no atom named 'AI' yet; waiting up to " + TargetWaitSeconds.ToString("0") + " s for it.");
             }
             if (_verboseJson != null) Log.Verbose = _verboseJson.val;
 
@@ -214,6 +222,110 @@ namespace AIBody
             _diag.Step(_diag.FailureCount == 0
                 ? "Init complete, no errors."
                 : "Init complete with " + _diag.FailureCount + " error(s): " + string.Join(", ", ToArray(_diag.FailedPhases)));
+        }
+
+        // ---------------------------------------------------------------- AI person and Reset poses (version 42)
+
+        /// <summary>The Person the AI speaks and moves with: the atom named 'AI'.</summary>
+        public const string AiAtomName = "AI";
+        /// <summary>The user's own Person in the AI-Buddy scene (the plugin's host there).</summary>
+        public const string ClientAtomName = "Client";
+        public const float TargetWaitSeconds = 5f;
+        /// <summary>Reset poses: the client follows the AI after this many seconds, so they do not collide.</summary>
+        public const float ClientResetDelay = 0.5f;
+        private float _targetWait;
+        private PlacementSnapshot _aiPlacement;
+        private PlacementSnapshot _clientPlacement;
+        private bool _placementTaken;
+        private float _clientResetIn = -1f;
+
+        /// <summary>The AI person: the host if it is named 'AI', else the Person atom named 'AI' (SuperController.GetAtoms, E12),
+        /// else - only on a host named 'Client' - the one other Person of the scene; null if none (then the host is used).</summary>
+        private Atom FindAiCharacter()
+        {
+            if (containingAtom == null) return null;
+            if (containingAtom.uid == AiAtomName) return containingAtom;
+            List<Atom> atoms = SuperController.singleton != null ? SuperController.singleton.GetAtoms() : null;
+            if (atoms == null) return null;
+            Atom other = null;
+            int others = 0;
+            for (int i = 0; i < atoms.Count; i++)
+            {
+                Atom a = atoms[i];
+                if (a == null || a.type != "Person" || a == containingAtom) continue;
+                if (a.uid == AiAtomName) return a;
+                other = a;
+                others++;
+            }
+            return containingAtom.uid == ClientAtomName && others == 1 ? other : null;
+        }
+
+        /// <summary>The client person for Reset poses: the host when the AI is another atom, else the Person named 'Client'.</summary>
+        private Atom FindClient(Atom ai)
+        {
+            if (containingAtom != null && containingAtom != ai) return containingAtom;
+            List<Atom> atoms = SuperController.singleton != null ? SuperController.singleton.GetAtoms() : null;
+            if (atoms == null) return null;
+            for (int i = 0; i < atoms.Count; i++)
+                if (atoms[i] != null && atoms[i].type == "Person" && atoms[i].uid == ClientAtomName && atoms[i] != ai) return atoms[i];
+            return null;
+        }
+
+        private void CreateBodyControllers()
+        {
+            if (_body == null) return;
+            Atom ai = _body.Atom;
+            _diag.Step("AI person: '" + (ai != null ? ai.uid : "?") + "'" + (ai != containingAtom ? " (the plugin runs on '" + containingAtom.uid + "')" : ""));
+            _diag.Run("Body.CreateControllers", _body.CreateControllers);
+        }
+
+        /// <summary>Waits for the 'AI' atom while the scene loads, then builds the body (Update).</summary>
+        private void UpdateTarget(float dt)
+        {
+            if (_targetWait <= 0f) return;
+            _targetWait -= dt;
+            Atom ai = FindAiCharacter();
+            if (ai == null && _targetWait > 0f) return;
+            _targetWait = 0f;
+            if (ai != null) _body.SetAtom(ai);
+            else _diag.Warn("No Person named 'AI' found: the AI speaks and moves with '" + containingAtom.uid + "' itself.");
+            CreateBodyControllers();
+            _rebuildTabNextFrame = true;
+        }
+
+        /// <summary>Takes the scene placement of both people once the scene has loaded (with the config.json check).</summary>
+        private void TakePlacement()
+        {
+            if (_placementTaken || !_settingsChecked || _targetWait > 0f || _body == null) return;
+            _placementTaken = true;
+            Atom ai = _body.Atom;
+            _aiPlacement = PlacementSnapshot.Take(ai);
+            _clientPlacement = PlacementSnapshot.Take(FindClient(ai));
+        }
+
+        /// <summary>Button "Reset poses": the AI first, the client ClientResetDelay later (Update), so they do not collide.</summary>
+        private string ResetPoses()
+        {
+            if (!_placementTaken) return "<color=red>Reset poses: the scene placement is not recorded yet; try again in a moment</color>";
+            if (_aiPlacement == null && _clientPlacement == null) return "<color=red>Reset poses: no person with controllers found</color>";
+            string text = "Reset poses: ";
+            if (_aiPlacement != null) text += "'" + _aiPlacement.Atom.uid + "' back to the scene placement (" + _aiPlacement.Restore() + " controllers)";
+            if (_clientPlacement != null)
+            {
+                _clientResetIn = ClientResetDelay;
+                text += (_aiPlacement != null ? ", then " : "") + "'" + _clientPlacement.Atom.uid + "' in " + ClientResetDelay.ToString("0.0") + " s";
+            }
+            return text + ".";
+        }
+
+        private void UpdateClientReset(float dt)
+        {
+            if (_clientResetIn < 0f) return;
+            _clientResetIn -= dt;
+            if (_clientResetIn > 0f) return;
+            _clientResetIn = -1f;
+            if (_clientPlacement != null)
+                Log.Info("Reset poses: '" + _clientPlacement.Atom.uid + "' back to the scene placement (" + _clientPlacement.Restore() + " controllers)");
         }
 
         /// <summary>
@@ -319,7 +431,7 @@ namespace AIBody
                 + BackgroundColorName + "</b> instead of the room's sky, it is saved with the scene and switching it off restores the old "
                 + "background, and a 'yes' in the companion's setup switches it on once with the color chosen there. "
                 + "For a ready scene open VaM > Open Scene > d0n.AIBody." + PluginVersion
-                + " > AI-Buddy (two people, AIBody on the male BryanGosling, green background on); otherwise this plugin runs "
+                + " > AI-Buddy (two people, AIBody on the male Client, driving the female AI, green background on); otherwise this plugin runs "
                 + "on your own Person atom in your own scene.\n";
         }
 
@@ -652,7 +764,8 @@ namespace AIBody
             try { if (containingAtom != null) uid = containingAtom.uid; }
             catch (Exception) { }
             // Version 16: only the open tab's info (self test, recent events and start log: tab Config).
-            string text = "<b>AIBody " + PluginVersion + "</b> on '" + uid + "' - " + StartLine() + TabInfo();
+            string ai = _body != null && _body.Atom != null && _body.Atom != containingAtom ? ", AI person '" + _body.Atom.uid + "'" : "";
+            string text = "<b>AIBody " + PluginVersion + "</b> on '" + uid + "'" + ai + " - " + StartLine() + TabInfo();
             // Version 36: assigning the field re-lays out a long rich text in Unity's UI; skip it when nothing changed.
             if (text == _lastStatusText) return;
             _lastStatusText = text;
@@ -683,6 +796,8 @@ namespace AIBody
 
             try { UpdateSettings(dt); }
             catch (Exception e) { _settingsChecked = true; _diag.Fail("config.json", e); }
+            try { UpdateTarget(dt); TakePlacement(); UpdateClientReset(dt); }
+            catch (Exception e) { _targetWait = 0f; _placementTaken = true; _clientResetIn = -1f; _diag.Fail("AI person / Reset poses", e); }
 
             if (_background != null) _background.Tick(dt);
             // The companion asks its setup questions when it starts: read its answer when it (re)connects.

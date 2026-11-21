@@ -675,7 +675,7 @@ namespace AIBody
         /// <summary>Tab "Voice", section "Voice and sound": the voice, speech-to-text, text-to-speech, the companion sound test.</summary>
         public void BuildVoiceSection(UiPage page)
         {
-            page.Popup(_voiceJson);
+            page.ScrollablePopup(_voiceJson);   // version 42: 28+ voices; the plain popup cannot scroll, so Leon saw only part of the list
             page.Popup(_sttJson);
             page.Popup(_ttsJson);
             page.Button("Test tone via companion", RequestTestTone);

@@ -22,7 +22,12 @@ public class SuperController : MonoBehaviour
     public string NormalizePath(string path) { return path; }         // E7 (preset browse path)
     public CameraTarget centerCameraTarget;                           // E12 L647 (the player's view; .transform)
     public List<Atom> GetAtoms() { return null; }                     // E12 L180, L759, L797
+    // E37 (vam-timeline ImportExportScreen.cs L200/L202): VaM's file browser; picks a file and calls back with its path.
+    public void GetMediaPathDialog(FileBrowserCallback callback, string filter = "", string suggestedFolder = null,
+        bool fullComputerBrowse = true, bool showDirs = true) { }
 }
+
+public delegate void FileBrowserCallback(string path);                // E37 (callback of GetMediaPathDialog)
 
 public class CameraTarget : MonoBehaviour                              // E12 L647
 {
@@ -196,6 +201,7 @@ namespace MVR.FileManagementSecure                                    // E15 (of
         public static void DeleteFile(string path) { }                                             // E10
         public static void CreateDirectory(string path) { }                                        // E10, E11
         public static string[] GetFiles(string dir) { return null; }                               // E11
+        public static string NormalizePath(string path) { return path; }                           // E37 (vam-timeline ImportExportScreen.cs L214)
     }
 }
 

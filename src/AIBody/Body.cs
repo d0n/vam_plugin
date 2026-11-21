@@ -1,19 +1,21 @@
 // Body: the AI character's body. A plain component owned by AIBodyPlugin, no MVRScript of its own
 // and no I/O: commands arrive in-process from the AppLink, events go out through the send callback.
 //
-//   - speech on the Person's head audio (VaM lip sync), morphs, expressions, gestures, poses,
+//   - speech on the AI person's head audio (VaM lip sync); since version 42 the AI person can be another atom than
+//     the plugin's host (AIBodyPlugin.FindAiCharacter: the Person named 'AI'), morphs, expressions, gestures, poses,
 //     idle head motion and breathing
 //   - per-character settings (volume, idle, breathing, ...) saved with the Person atom
 using System;
 using System.Collections.Generic;
 using SimpleJSON;
+using MVR.FileManagementSecure;
 
 namespace AIBody
 {
     public class Body
     {
         private readonly MVRScript _plugin;
-        private readonly Atom _atom;
+        private Atom _atom;   // the AI person; SetAtom before CreateControllers (version 42)
         private readonly Action<JSONClass> _send;
         private readonly Diag _diag;
 
@@ -59,11 +61,15 @@ namespace AIBody
         private BreathingController _breathing;
         private IdleController _idle;
         private PoseController _poses;
-        private JSONStorableStringChooser _poseChoiceJson;
         private JSONStorableStringChooser _expressionChoiceJson;
         private JSONStorableStringChooser _gestureChoiceJson;
-        private JSONStorableStringChooser _poseCommandChoiceJson;   // "Pose command": the vocabulary, for Delete Pose
-        private JSONStorableString _poseCommandTextJson;            // "New pose command": text for Add Pose
+        private JSONStorableStringChooser _poseCommandChoiceJson;   // "Pose command": choosing an entry applies its pose (v42)
+        private JSONStorableString _poseCommandTextJson;            // "New pose command": the spoken command for Add Pose
+        private bool _syncingPoseMenu;                              // true while code (not the user) sets the menu value
+        private string _addPosePose;                                // Add Pose step 2: the chosen pose (name or file path)
+        private string _addPoseFile;                                // ... and its file, for the left field
+        /// <summary>Reset poses (version 42): set by the plugin; restores the scene placement, AI first, then Client.</summary>
+        public Func<string> ResetPosesRequested;
         /// <summary>Last manual pose / expression / gesture result, shown in the status box (Live).</summary>
         public string CharacterNote = "";
         private CommandRouter _router;
@@ -77,6 +83,10 @@ namespace AIBody
             _send = send;
             _diag = diag ?? new Diag();
         }
+
+        /// <summary>The AI person (version 42: may differ from the plugin's host). Only before CreateControllers.</summary>
+        public Atom Atom { get { return _atom; } }
+        public void SetAtom(Atom atom) { if (atom != null && _speech == null && _poses == null) _atom = atom; }
 
         // Self test (looked up lazily, so these also turn true once VaM finished loading the atom).
         public bool SpeechAvailable { get { return _speech != null && _speech.Available; } }
@@ -201,11 +211,10 @@ namespace AIBody
 
             // Manual pose / expression / gesture menu (tab AI Character). Not registered: only the
             // choice in the menu, nothing new is saved with the scene. Lists refill on opening (E25).
-            _poseChoiceJson = new JSONStorableStringChooser("Pose", new List<string>(), "", "Pose", (string v) => { });
-            _poseChoiceJson.popupOpenCallback = RefreshCharacterChoices;
-            // After version 40 (Leon: "Pose Commands does nothing"): choosing only selects; Apply pose command applies it.
+            // Version 42 (Leon 18:27): choosing an entry in "Pose command" applies its pose at once; the old "Pose" menu and
+            // the Apply buttons are gone. Code that sets the value (menu refresh, Add Pose) never applies (_syncingPoseMenu).
             _poseCommandChoiceJson = new JSONStorableStringChooser("Pose command", new List<string>(), "", "Pose command",
-                (string v) => { if (!string.IsNullOrEmpty(v)) Log.Debug("Pose command chosen: '" + v + "' (press " + ApplyPoseCommandLabel + ")"); });
+                OnPoseCommandChosen);
             _poseCommandChoiceJson.popupOpenCallback = RefreshCharacterChoices;
             _poseCommandTextJson = new JSONStorableString("New pose command", "", (string v) => { });   // not registered: only typed text
             _expressionChoiceJson = new JSONStorableStringChooser("Expression", new List<string>(), "", "Expression", (string v) => { });
@@ -326,36 +335,37 @@ namespace AIBody
             page.Popup(_gestureChoiceJson);
             page.Button("Play gesture", PlayChosenGesture);
             page.Header("<b>Poses</b>");
-            // Pose commands (version 32): the vocabulary that is the only way the AI side applies a pose.
-            // No empty menu (version 16): the menus and buttons appear only when there is something to choose.
-            if (_poses != null && _poses.Vocabulary.Count > 0)
+            // Version 42 (Leon 18:27): Pose command (choosing applies), Add Pose, Delete Pose, Reset poses; then the list tools.
+            // No empty menu (version 16): the menu and Delete Pose appear only when there is a command.
+            if (_poses != null && _poses.Vocabulary.Count > 0) page.ScrollablePopup(_poseCommandChoiceJson);
+            page.Button("Add Pose", StartAddPose);
+            if (_addPosePose != null)
             {
-                page.ScrollablePopup(_poseCommandChoiceJson);
-                page.Button(ApplyPoseCommandLabel, ApplyChosenPoseCommand);
-                page.Button("Delete Pose", DeleteChosenPoseCommand);
-            }
-            page.Button("Restore starter poses", RestoreStarterPoses);
-            if (_poses != null && _poses.PoseNames.Count > 0)
-            {
-                page.ScrollablePopup(_poseChoiceJson);
-                page.Button("Apply pose", ApplyChosenPose);
                 page.Header(NewPoseCommandLabel);   // the label of the field below
                 if (!page.TextInput(_poseCommandTextJson))
                     _diag.Warn("Field 'New pose command' is read-only (InputField failed).");
-                page.Button("Add Pose", AddPoseCommand);
+                page.Button("Save pose command", SaveNewPoseCommand);
+                page.Button("Cancel Add Pose", CancelAddPose);
             }
+            if (_poses != null && _poses.Vocabulary.Count > 0) page.Button("Delete Pose", DeleteChosenPoseCommand);
+            page.Button("Reset poses", ResetPoses);
+            page.Button("Restore starter poses", RestoreStarterPoses);
             page.Button("Reload poses", () => { ReloadGestures(); RefreshCharacterChoices(); RebuildTab = true; });
         }
 
         /// <summary>Labels above the two input fields of the tab (an input field shows only its value).</summary>
         public const string BreathMorphLabel = "Breath morph";   // after version 40: "(from the Morphs tab)" is explained on the left (BreathingHelp)
         public const string NewPoseCommandLabel = "New pose command";
-        public const string ApplyPoseCommandLabel = "Apply pose command";
+        /// <summary>Where Add Pose opens VaM's file browser (VaM's own pose folder, PoseController.PoseFolders[0]).</summary>
+        public const string PoseBrowseFolder = "Custom/Atom/Person/Pose";
 
         /// <summary>Info for the tab "AI Character" in the big field on the left.</summary>
         public string CharacterInfoText()
         {
-            string text = Characters != null ? Characters.InfoText() : "";
+            // Version 42: the result of the last pose / expression button first, where it is seen (before, it was at the
+            // very end of this long text, so Add Pose / Delete Pose looked as if they did nothing).
+            string text = CharacterNote.Length > 0 ? "Last action: " + CharacterNote + "\n" : "";
+            text += Characters != null ? Characters.InfoText() : "";
             text += "Poses: " + (_poses != null ? _poses.PoseNames.Count + " in the menu (" + _poses.PoseScanNote + ")" : "PoseController missing") + "\n";
             text += PoseCommandsInfo();
             text += IdlePosesInfo();
@@ -366,7 +376,7 @@ namespace AIBody
         /// <summary>What the toggle "Body control" does (version 35, the same text as in docs/SPEC.md).</summary>
         public const string BodyControlHelp = "With <b>Body control</b> off the AI and the companion app cannot move the body: no poses (also no "
             + "spoken pose commands), gestures, expressions, morphs, triggers, idle or breathing commands and no idle poses, so "
-            + "the character only speaks. Your own buttons <b>Apply pose</b>, <b>Show expression</b> and <b>Play gesture</b> still work, and so do "
+            + "the character only speaks. Your own controls <b>Pose command</b>, <b>Reset poses</b>, <b>Show expression</b> and <b>Play gesture</b> still work, and so do "
             + "the plugin's own life signs, each with its own toggle: <b>Idle head motion</b> (with the chest weight shift) and <b>Breathing</b>.";
 
         /// <summary>The breathing controls in running prose (20.11.2026, Leon's style rule for the left fields).</summary>
@@ -464,12 +474,17 @@ namespace AIBody
         /// <summary>Fills the pose / expression / gesture menus from what this body really has.</summary>
         public void RefreshCharacterChoices()
         {
-            if (_poseChoiceJson == null) return;
+            if (_poseCommandChoiceJson == null) return;
             List<string> poses = _poses != null ? _poses.PoseNames : new List<string>();
-            SetMenu(_poseChoiceJson, poses);
             List<string> commands = new List<string>();
             if (_poses != null) for (int i = 0; i < _poses.Vocabulary.Count; i++) commands.Add(_poses.Vocabulary.Get(i).Command);
-            SetMenu(_poseCommandChoiceJson, commands);
+            _syncingPoseMenu = true;
+            try
+            {
+                _poseCommandChoiceJson.choices = commands;   // E9, E24, E25; no automatic first entry: choosing it must apply
+                if (!commands.Contains(_poseCommandChoiceJson.val)) _poseCommandChoiceJson.val = "";
+            }
+            finally { _syncingPoseMenu = false; }
             if (_idlePoseDefaultJson != null)
             {
                 List<string> homes = new List<string>(poses);
@@ -507,47 +522,128 @@ namespace AIBody
                 lines += "  " + v.Get(i).Command + (ok ? "" : "  - UNAVAILABLE: no pose '" + v.Get(i).Pose + "'") + "\n";
             }
             return "There are " + v.Count + " pose commands (" + ready + " available); say or type EXACTLY one of them, and a command without a pose "
-                + "is never applied. Choosing an entry in <b>Pose command</b> only selects it; <b>" + ApplyPoseCommandLabel + "</b> applies its pose "
-                + "(the result appears here and in the VaM log). To add one, choose the pose in <b>Pose</b>, type the words into <b>"
-                + NewPoseCommandLabel + "</b> (empty = the pose name) and press <b>Add Pose</b>; the new entry is then chosen in <b>Pose command</b>. "
-                + "<b>Delete Pose</b> removes the command chosen in <b>Pose command</b>, <b>Restore starter poses</b> brings back "
-                + "missing starters and <b>Apply pose</b> applies the chosen pose.\n" + lines;
+                + "is never applied. Choosing an entry in <b>Pose command</b> applies its pose at once (choose another one first to apply the "
+                + "same one again). <b>Add Pose</b> opens VaM's file browser in " + PoseBrowseFolder + ": choose the pose file, then type "
+                + "the spoken command into <b>New pose command</b> (it starts with the file name) and press <b>Save pose command</b>"
+                + " (<b>Cancel Add Pose</b> drops it). <b>Delete Pose</b> removes the command chosen in <b>Pose command</b>. "
+                + "<b>Reset poses</b> puts both people back where the scene placed them, first the AI, then the client. "
+                + "<b>Restore starter poses</b> brings back missing starter commands. Every change is saved in config.json at once.\n" + lines;
         }
 
-        private void AddPoseCommand()
+        /// <summary>Add Pose step 1 (version 42, Leon 18:27): VaM's file browser for the pose file (E37).</summary>
+        private void StartAddPose()
         {
-            if (_poses == null) { CharacterNote = "Add Pose: PoseController missing"; Log.Warn(CharacterNote); return; }
-            // After version 40: an empty text takes the pose name, so one click puts the pose into Pose command.
-            string typed = _poseCommandTextJson.val;
-            string command = PoseVocabulary.NormalizeInput(typed ?? "").Length > 0 ? typed : _poseChoiceJson.val;
-            string error = _poses.Vocabulary.Add(command, _poseChoiceJson.val);
-            if (error != null) { CharacterNote = "<color=red>Add Pose: " + error + "</color>"; Log.Warn("Add Pose: " + error); return; }
+            if (_poses == null) { Note("<color=red>Add Pose: PoseController missing</color>", true); return; }
+            try
+            {
+                // E37: vam-timeline calls GetMediaPathDialog(callback, ext, folder, false, true) on 1.20+; false = only
+                // VaM's folders and packages (a file outside VaM could not be loaded in the sandbox anyway).
+                SuperController.singleton.GetMediaPathDialog(OnPoseFileChosen, "vap", PoseBrowseFolder, false, true);
+                Note("Add Pose: choose the pose file in VaM's file browser (" + PoseBrowseFolder + ").", false);
+            }
+            catch (Exception e)
+            {
+                Note("<color=red>Add Pose: the file browser could not open: " + e.Message + "</color>", true);
+            }
+        }
+
+        /// <summary>Add Pose step 2: the file is chosen; the field asks for the spoken command.</summary>
+        private void OnPoseFileChosen(string path)
+        {
+            if (string.IsNullOrEmpty(path)) { Note("Add Pose cancelled (no file chosen).", false); return; }
+            try { path = FileManagerSecure.NormalizePath(path); }   // E37 (Timeline L214)
+            catch (Exception) { }
+            path = path.Replace('\\', '/');
+            string name = _poses != null ? _poses.PoseNameOfFile(path) : null;
+            _addPosePose = name ?? path;   // a listed pose keeps its name (the AI and the left field show it); else the path
+            _addPoseFile = path;
+            string label = path.Substring(path.LastIndexOf('/') + 1);
+            int dot = label.LastIndexOf('.');
+            if (dot > 0) label = label.Substring(0, dot);
+            if (label.StartsWith("Preset_")) label = label.Substring(7);
+            _poseCommandTextJson.val = label;
+            Note("Add Pose: pose file " + path + ". Type the spoken command into <b>New pose command</b> and press <b>Save pose command</b>"
+                + ".", false);
+            RebuildTab = true;
+        }
+
+        private void SaveNewPoseCommand()
+        {
+            if (_poses == null || _addPosePose == null) { Note("<color=red>Add Pose: choose a pose file first</color>", true); return; }
+            string command = _poseCommandTextJson.val;
+            string error = _poses.Vocabulary.Add(command, _addPosePose);
+            if (error != null) { Note("<color=red>Add Pose: " + error + "</color>", true); return; }
             string added = PoseVocabulary.Collapse(command);
-            CharacterNote = "Pose command added: '" + added + "' -> " + _poseChoiceJson.val;
-            Log.Info(CharacterNote);
+            Note("Pose command added: '" + added + "' -> " + _addPoseFile, false);
+            _addPosePose = null;
+            _addPoseFile = null;
             _poseCommandTextJson.val = "";
             RefreshCharacterChoices();
             PoseCommand entry = _poses.Vocabulary.Match(added);
-            if (entry != null) _poseCommandChoiceJson.val = entry.Command;   // the new entry is the chosen one
+            SelectPoseCommandQuietly(entry != null ? entry.Command : "");
+            PoseCommandsChanged();
+        }
+
+        private void CancelAddPose()
+        {
+            _addPosePose = null;
+            _addPoseFile = null;
+            _poseCommandTextJson.val = "";
+            Note("Add Pose cancelled.", false);
             RebuildTab = true;
         }
 
         private void DeleteChosenPoseCommand()
         {
-            if (_poses == null) { CharacterNote = "Delete Pose: PoseController missing"; return; }
+            if (_poses == null) { Note("<color=red>Delete Pose: PoseController missing</color>", true); return; }
             string command = _poseCommandChoiceJson.val;
-            CharacterNote = _poses.Vocabulary.Remove(command) ? "Pose command deleted: '" + command + "'" : "<color=red>Delete Pose: no command chosen</color>";
+            if (string.IsNullOrEmpty(command)) { Note("<color=red>Delete Pose: choose the command in <b>Pose command</b> first</color>", true); return; }
+            if (!_poses.Vocabulary.Remove(command)) { Note("<color=red>Delete Pose: '" + command + "' is not in the list</color>", true); return; }
+            Note("Pose command deleted: '" + command + "'", false);
             RefreshCharacterChoices();
-            RebuildTab = true;
+            SelectPoseCommandQuietly("");
+            PoseCommandsChanged();
         }
 
         private void RestoreStarterPoses()
         {
-            if (_poses == null) { CharacterNote = "Restore starter poses: PoseController missing"; return; }
+            if (_poses == null) { Note("<color=red>Restore starter poses: PoseController missing</color>", true); return; }
             int added = _poses.Vocabulary.RestoreStarters();
-            CharacterNote = added == 0 ? "All starter pose commands are already there" : added + " starter pose command(s) restored";
+            Note(added == 0 ? "All starter pose commands are already there" : added + " starter pose command(s) restored", false);
             RefreshCharacterChoices();
+            if (added > 0) PoseCommandsChanged();
+            else RebuildTab = true;
+        }
+
+        private void ResetPoses()
+        {
+            string result = ResetPosesRequested != null ? ResetPosesRequested() : "<color=red>Reset poses: not available</color>";
+            if (_idlePoses != null) _idlePoses.NoteUserPose();
+            if (_idle != null) _idle.Rebase();
+            Note(result, result.StartsWith("<color=red>"));
+        }
+
+        /// <summary>Version 42 (root cause of "Add / Delete Pose do nothing", part 2): a change of the list was never written
+        /// to config.json (no MarkConfigDirty), so it was lost with the next config.json load. Now written at once.</summary>
+        private void PoseCommandsChanged()
+        {
+            if (OnSettingsChanged != null) OnSettingsChanged();
             RebuildTab = true;
+        }
+
+        private void SelectPoseCommandQuietly(string command)
+        {
+            _syncingPoseMenu = true;
+            try { _poseCommandChoiceJson.val = command; }
+            finally { _syncingPoseMenu = false; }
+        }
+
+        /// <summary>The result of a pose button: in the left field (first line) and always in VaM's log.</summary>
+        private void Note(string text, bool problem)
+        {
+            CharacterNote = text;
+            string plain = text.Replace("<color=red>", "").Replace("</color>", "").Replace("<b>", "").Replace("</b>", "");
+            if (problem) Log.Warn(plain); else Log.Info(plain);
         }
 
         /// <summary>Reads config.json poses.commands. A missing key, an empty list or a list without one usable entry =
@@ -578,37 +674,25 @@ namespace AIBody
             RebuildTab = true;
         }
 
-        /// <summary>Applies the pose of the command chosen in "Pose command" (after version 40: there was no apply
-        /// button, so choosing an entry did nothing and said nothing). Works with Body control off, like Apply pose.</summary>
-        private void ApplyChosenPoseCommand()
+        /// <summary>Version 42 (Leon 18:27): choosing an entry in "Pose command" applies its pose. Values set by code never apply.
+        /// Works with Body control off (your own action, like Show expression).</summary>
+        private void OnPoseCommandChosen(string command)
         {
-            if (_poses == null) { CharacterNote = "<color=red>Apply pose command: PoseController missing</color>"; Log.Warn("Apply pose command: PoseController missing"); return; }
-            string command = _poseCommandChoiceJson.val;
-            PoseCommand entry = string.IsNullOrEmpty(command) ? null : _poses.Vocabulary.Match(command);
+            if (_syncingPoseMenu || string.IsNullOrEmpty(command)) return;
+            if (_poses == null) { Note("<color=red>Pose command: PoseController missing</color>", true); return; }
+            PoseCommand entry = _poses.Vocabulary.Match(command);
             string error = null;
             string pose = null;
-            if (entry == null) error = string.IsNullOrEmpty(command) ? "no pose command chosen" : "'" + command + "' is not in the list";
+            if (entry == null) error = "'" + command + "' is not in the list";
             else
             {
                 pose = PoseVocabulary.Resolve(entry, _poses.PoseNames);
-                if (pose == null) error = "this character has no pose '" + entry.Pose + "' (Reload poses, or Add Pose links it to another one)";
+                if (pose == null) error = "this character has no pose '" + entry.Pose + "' (Reload poses, or delete it and use Add Pose)";
                 else error = _poses.ApplyPose(pose);
             }
             if (error == null && _idlePoses != null) _idlePoses.NoteUserPose();
-            CharacterNote = error == null ? "Pose command applied: '" + command + "' -> " + pose
-                : "<color=red>Apply pose command '" + command + "': " + error + "</color>";
-            if (error == null) Log.Info("Pose command applied: '" + command + "' -> " + pose);
-            else Log.Warn("Apply pose command '" + command + "': " + error);
-        }
-
-        private void ApplyChosenPose()
-        {
-            if (_poses == null) { CharacterNote = "Pose: PoseController missing"; return; }
-            string name = _poseChoiceJson.val;
-            string error = _poses.ApplyPose(name);
-            if (error == null && _idlePoses != null) _idlePoses.NoteUserPose();
-            CharacterNote = error == null ? "Pose applied: " + name : "<color=red>Pose '" + name + "': " + error + "</color>";
-            Log.Debug(CharacterNote);
+            if (error == null) Note("Pose command applied: '" + command + "' -> " + pose, false);
+            else Note("<color=red>Pose command '" + command + "': " + error + "</color>", true);
         }
 
         private void ShowChosenExpression()
@@ -881,7 +965,6 @@ namespace AIBody
             }
             if (!BodyControl) text += "Body control: off (speech only; no poses, gestures, expressions or idle poses from the AI side)\n";
             if (_testStatus != null) text += _testStatus + "\n";
-            if (CharacterNote.Length > 0) text += CharacterNote + "\n";
             if (_expressions != null) text += "Expression: " + _expressions.Current + "\n";
             if (_breathing != null && _morphs != null)
                 text += "Breath morph: " + (_breathing.HasMorph ? _breathing.MorphName : "'" + _breathing.MorphName + "' not found") + "\n";

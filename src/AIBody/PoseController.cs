@@ -65,6 +65,16 @@ namespace AIBody
             }
         }
 
+        /// <summary>The menu name of a listed pose file (Add Pose, version 42), or null if the file is not in PoseFolders.</summary>
+        public string PoseNameOfFile(string path)
+        {
+            if (string.IsNullOrEmpty(path)) return null;
+            string want = path.Replace('\\', '/').ToLowerInvariant();
+            foreach (KeyValuePair<string, string> kv in _poseFiles)   // not the key collection (CS584 in VaM)
+                if (kv.Value.ToLowerInvariant() == want) return kv.Key;
+            return null;
+        }
+
         /// <summary>Lists the pose preset files (FileManagerSecure.GetFiles, E11).</summary>
         public void ScanPoseFiles()
         {
@@ -149,6 +159,7 @@ namespace AIBody
         public string ApplyPose(string name)
         {
             if (string.IsNullOrEmpty(name)) return "No pose selected";
+            if (PoseVocabulary.IsPosePath(name)) return LoadPose(name);   // a file chosen with Add Pose (version 42)
             JSONClass def;
             if (_gestures.TryGetValue(name, out def) && def["kind"].Value == "pose")
                 return LoadPose(Protocol.GetString(def, "path", ""));
@@ -326,6 +337,55 @@ namespace AIBody
                 if (ids[i].EndsWith(hint, StringComparison.Ordinal)) return _atom.GetStorableByID(ids[i]);
             }
             return null;
+        }
+    }
+    /// <summary>Reset poses (version 42, Leon 18:27): where a Person's controllers were when the scene had loaded, and
+    /// putting them back. Atom.freeControllers (E12, E28); FreeControllerV3.transform position / rotation read and set
+    /// like IdleController does (E6).</summary>
+    public class PlacementSnapshot
+    {
+        public readonly Atom Atom;
+        private readonly FreeControllerV3[] _controllers;
+        private readonly Vector3[] _positions;
+        private readonly Quaternion[] _rotations;
+
+        private PlacementSnapshot(Atom atom, FreeControllerV3[] controllers)
+        {
+            Atom = atom;
+            _controllers = controllers;
+            _positions = new Vector3[controllers.Length];
+            _rotations = new Quaternion[controllers.Length];
+            for (int i = 0; i < controllers.Length; i++)
+            {
+                if (controllers[i] == null) continue;
+                _positions[i] = controllers[i].transform.position;
+                _rotations[i] = controllers[i].transform.rotation;
+            }
+        }
+
+        public int Count { get { return _controllers.Length; } }
+
+        /// <summary>The placement of the atom now, or null without controllers.</summary>
+        public static PlacementSnapshot Take(Atom atom)
+        {
+            if (atom == null || atom.freeControllers == null || atom.freeControllers.Length == 0) return null;
+            FreeControllerV3[] copy = new FreeControllerV3[atom.freeControllers.Length];
+            for (int i = 0; i < copy.Length; i++) copy[i] = atom.freeControllers[i];
+            return new PlacementSnapshot(atom, copy);
+        }
+
+        /// <summary>Puts every controller back; returns how many were moved.</summary>
+        public int Restore()
+        {
+            int moved = 0;
+            for (int i = 0; i < _controllers.Length; i++)
+            {
+                if (_controllers[i] == null) continue;
+                _controllers[i].transform.position = _positions[i];
+                _controllers[i].transform.rotation = _rotations[i];
+                moved++;
+            }
+            return moved;
         }
     }
 }

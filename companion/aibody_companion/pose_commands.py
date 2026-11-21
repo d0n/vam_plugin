@@ -67,6 +67,12 @@ def pose_key(name: Any) -> str:
     return "".join(c for c in str(name).lower() if c.isalnum()) if isinstance(name, str) else ""
 
 
+def is_pose_path(pose: Any) -> bool:
+    """A pose file path (contains '/' and ends with .vap or .json); same rule as PoseVocabulary.IsPosePath."""
+    text = str(pose or "")
+    return "/" in text and text.lower().endswith((".vap", ".json"))
+
+
 def starter_entries() -> list[dict[str, str]]:
     return [{"command": c, "pose": c} for c in STARTER_COMMANDS]
 
@@ -122,7 +128,10 @@ class PoseVocabulary:
 
     @staticmethod
     def resolve(entry: dict[str, str], pose_names: list[str]) -> str | None:
-        """The character's pose that the command links to (its real name), or None if there is none."""
+        """The character's pose that the command links to (its real name), or None if there is none. A pose file path
+        (Add Pose since version 42, chosen in VaM's file browser) is its own pose."""
+        if is_pose_path(entry["pose"]):
+            return entry["pose"]
         key = pose_key(entry["pose"])
         for name in pose_names:
             if pose_key(name) == key:

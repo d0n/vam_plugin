@@ -146,10 +146,21 @@ namespace AIBody
         /// <summary>The character's pose (its real name) that the command links to, or null if there is none.</summary>
         public static string Resolve(PoseCommand entry, List<string> poseNames)
         {
-            if (entry == null || poseNames == null) return null;
+            if (entry == null) return null;
+            if (IsPosePath(entry.Pose)) return entry.Pose;   // since version 42: Add Pose links a file chosen in VaM's file browser
+            if (poseNames == null) return null;
             string key = PoseKey(entry.Pose);
             for (int i = 0; i < poseNames.Count; i++) if (PoseKey(poseNames[i]) == key) return poseNames[i];
             return null;
+        }
+
+        /// <summary>True for a pose file path (Add Pose since version 42): contains '/' and ends with .vap or .json.
+        /// Same rule as pose_commands.is_pose_path.</summary>
+        public static bool IsPosePath(string pose)
+        {
+            if (string.IsNullOrEmpty(pose) || pose.IndexOf('/') < 0) return false;
+            string lower = pose.ToLowerInvariant();
+            return lower.EndsWith(".vap") || lower.EndsWith(".json");
         }
 
         // ---------------------------------------------------------------- Add Pose / Delete Pose
