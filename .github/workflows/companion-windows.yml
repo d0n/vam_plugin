@@ -1,0 +1,105 @@
+name: Companion Windows installer
+
+# Builds "AIBody Companion Setup.exe": PyInstaller (windowed, onedir) around aibody_companion/winapp.py, wrapped by
+# Inno Setup (per-user install). Runs the launcher's --selftest on the frozen exe, installs silently, self-tests the
+# installed copy, uninstalls, scans for keys and uploads the installer as an artifact. Releases attach it by hand.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "companion/**"
+      - "packaging/companion/**"
+      - "tools/scan_tokens.py"
+      - ".github/workflows/companion-windows.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Tools and bundled dependencies (win_amd64 wheels only)
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --only-binary=:all: pyinstaller sounddevice webrtcvad-wheels pystray pillow
+
+      - name: Version
+        id: ver
+        shell: pwsh
+        run: |
+          $v = python -c "import sys; sys.path.insert(0, 'companion'); import aibody_companion as a; print(a.__version__)"
+          "version=$v" >> $env:GITHUB_OUTPUT
+          Write-Host "AIBody companion version $v"
+
+      - name: Launcher unit tests
+        working-directory: companion
+        run: python -m unittest tests.test_winapp -v
+
+      - name: PyInstaller (windowed, onedir)
+        run: >
+          pyinstaller --noconfirm --clean --windowed --name "AIBody Companion"
+          --paths companion --collect-submodules aibody_companion
+          --hidden-import webrtcvad --hidden-import pystray._win32
+          --distpath dist --workpath build/pyinstaller --specpath build/pyinstaller
+          packaging/companion/aibody_companion_app.py
+
+      - name: Self-test of the frozen exe
+        shell: pwsh
+        run: |
+          $out = Join-Path $env:RUNNER_TEMP "selftest.json"
+          $p = Start-Process -FilePath "dist\AIBody Companion\AIBody Companion.exe" -ArgumentList "--selftest","--selftest-out","`"$out`"" -Wait -PassThru
+          Get-Content $out
+          if ($p.ExitCode -ne 0) { throw "self-test failed with exit code $($p.ExitCode)" }
+
+      - name: Inno Setup
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            choco install innosetup -y --no-progress
+          }
+          if (-not (Test-Path $iscc)) { throw "ISCC.exe not found" }
+          $src = Resolve-Path "dist\AIBody Companion"
+          New-Item -ItemType Directory -Force dist\installer | Out-Null
+          $outdir = Resolve-Path "dist\installer"
+          & $iscc "/DAppVersion=${{ steps.ver.outputs.version }}" "/DSourceDir=$src" "/DOutputDir=$outdir" packaging\companion\AIBodyCompanion.iss
+          if ($LASTEXITCODE -ne 0) { throw "ISCC failed" }
+          Get-ChildItem dist\installer | Format-Table Name, Length
+
+      - name: Silent install, self-test of the installed copy, uninstall
+        shell: pwsh
+        run: |
+          $setup = Resolve-Path "dist\installer\AIBody Companion Setup.exe"
+          $p = Start-Process -FilePath $setup -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART","/CURRENTUSER" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "setup exit code $($p.ExitCode)" }
+          $app = Join-Path $env:LOCALAPPDATA "Programs\AIBody Companion"
+          $exe = Join-Path $app "AIBody Companion.exe"
+          if (-not (Test-Path $exe)) { throw "not installed at $exe" }
+          $menu = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\AIBody Companion\AIBody Companion.lnk"
+          if (-not (Test-Path $menu)) { throw "no Start menu shortcut at $menu" }
+          $out = Join-Path $env:RUNNER_TEMP "selftest-installed.json"
+          $p = Start-Process -FilePath $exe -ArgumentList "--selftest","--selftest-out","`"$out`"" -Wait -PassThru
+          Get-Content $out
+          if ($p.ExitCode -ne 0) { throw "installed self-test failed" }
+          $p = Start-Process -FilePath (Join-Path $app "unins000.exe") -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART" -Wait -PassThru
+          Start-Sleep -Seconds 3
+          if (Test-Path $exe) { throw "uninstall left $exe" }
+          Write-Host "install / self-test / uninstall ok"
+
+      - name: Token scan
+        run: python tools/scan_tokens.py "dist/AIBody Companion" dist/installer companion/aibody_companion
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AIBody-Companion-Setup-${{ steps.ver.outputs.version }}
+          path: dist/installer/AIBody Companion Setup.exe
+          if-no-files-found: error
