@@ -82,10 +82,8 @@ def scene_packages(text: str) -> set[str]:
 
 class VersionTests(TestCase):
     def test_version_37_everywhere(self):
-        self.assertEqual(__version__, "37")
-        self.assertIn('PluginVersion = "37"', source("AIBody.cs"))
-        self.assertEqual(json.loads((ROOT / "packaging" / "AIBody.json").read_text())["version"], 37)
-        self.assertTrue(re.search(r"d0n\.AIBody\.37:", first_start.TEMPLATE.read_text()))
+        """Historical: version 37 sources are gone after the v38 bump; consistency is test_version38."""
+        self.assertTrue((ROOT / "companion" / "tests" / "test_version37.py").is_file())
         self.assertEqual(first_start.TEMPLATE, ROOT / "examples" / "scenes" / "AI-Buddy.json")
         self.assertEqual(first_start.SCENE_REL, "Saves/scene/AIBody/AI-Buddy.json")
         self.assertEqual(first_start.THUMB_REL, "Saves/scene/AIBody/AI-Buddy.jpg")
@@ -136,7 +134,7 @@ class ExampleSceneTests(TestCase):
                 if st.get("id") == "PluginManager":
                     for value in (st.get("plugins") or {}).values():
                         plugins.append((atom["id"], value))
-        self.assertEqual(plugins, [("Person", "d0n.AIBody.37:/Custom/Scripts/d0n/AIBody/AIBody.cslist")])
+        self.assertEqual(plugins, [("Person", f"d0n.AIBody.{__version__}:/Custom/Scripts/d0n/AIBody/AIBody.cslist")])
         female = next(a for a in self.template["atoms"] if a["id"] == "Person")
         male = next(a for a in self.template["atoms"] if a["id"] == "BryanGosling")
         self.assertEqual(next(st for st in female["storables"] if st["id"] == "geometry")["character"], "Female 1")
