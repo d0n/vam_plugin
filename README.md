@@ -129,7 +129,7 @@ Column "Where": tab in the plugin menu; "file only" = no control. Range in squar
 | `mic.gain` | number | 1.0 | [0.1–8] | amplification before VAD and speech recognition | Client Character: **Input gain** |
 | `mic.ptt_interrupts` | bool | true | | pressing push-to-talk stops the running answer | Client Character: **Push-to-talk interrupts speech** |
 | `mic.level_meter` | bool | true | | level meter in the plugin | Client Character: **Show level meter** |
-| `body.speech_volume` | number | 1.0 | [0–3] | volume of the head audio source; above 1 (version 44) the companion makes its speech WAVs louder (soft limiter) and **Play test tone** uses a 2x or 3x copy | Voice > Voice and sound: **Speech volume** |
+| `body.speech_volume` | number | 1.0 | [0–3] | volume of the head audio source; above 1 (version 44) speech and test tones get louder by that factor (the companion multiplies its WAVs, plain linear gain, no limiter) and **Play test tone** uses a 2x or 3x copy | Voice > Voice and sound: **Speech volume** |
 | `body.body_control` | bool | true | | off = speech only: expression, morph, gesture, pose and trigger commands are ignored, the AI gets no body tools; the manual menus keep working | AI Character: **Body control** |
 | `body.idle_motion` | bool | true | | idle head motion | AI Character: **Idle head motion** |
 | `body.idle_intensity` | number | 0.5 | [0–1] | strength of the idle motion | AI Character: **Idle intensity** |

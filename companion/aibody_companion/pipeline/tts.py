@@ -51,10 +51,10 @@ def test_tone_pcm(seconds: float = 1.5, rate: int = 22050) -> bytes:
 
 # -- output gain (version 44, Leon 21.11.2026 21:01) -------------------------------------------------------------
 # The plugin's Speech volume goes up to MAX_SPEECH_VOLUME. VaM's head audio stops at 1, so the part above 1 is applied
-# here to every WAV this app writes for the character (TTS, realtime voice, test tone). Samples above LIMIT_KNEE are
-# bent smoothly towards full scale (tanh), so a boosted sentence gets louder without clipping. Default 1 = unchanged.
+# here to every WAV this app writes for the character (TTS, realtime voice, test tone): a plain linear gain, no limiter
+# or normalizing (Leon 21:16: the user decides how loud). Only samples beyond the 16-bit range are cut to it (a WAV
+# cannot hold more), so very loud settings may distort. Default 1 = unchanged bytes.
 MAX_SPEECH_VOLUME = 3.0
-LIMIT_KNEE = 0.6
 _OUTPUT = {"gain": 1.0, "table": None}
 
 
@@ -69,18 +69,14 @@ def output_gain_for(speech_volume: float) -> float:
     return max(1.0, min(MAX_SPEECH_VOLUME, v))
 
 
-def soft_limit(x: float) -> float:
-    """-1..1 in, -1..1 out: unchanged up to LIMIT_KNEE, then a tanh curve that never reaches full scale."""
-    a = abs(x)
-    if a <= LIMIT_KNEE:
-        return x
-    y = LIMIT_KNEE + (1.0 - LIMIT_KNEE) * math.tanh((a - LIMIT_KNEE) / (1.0 - LIMIT_KNEE))
-    return y if x > 0 else -y
+def gained_sample(value: int, gain: float) -> int:
+    """One 16-bit sample times the gain, cut only to the 16-bit range (no limiter)."""
+    return max(-32768, min(32767, int(round(value * gain))))
 
 
 def gain_table(gain: float) -> list[int]:
-    """All 65536 16-bit sample values (index = value + 32768) after gain and soft limit."""
-    return [int(round(soft_limit(gain * (i - 32768) / 32768.0) * 32767)) for i in range(65536)]
+    """All 65536 16-bit sample values (index = value + 32768) after the linear gain."""
+    return [gained_sample(i - 32768, gain) for i in range(65536)]
 
 
 def set_output_gain(speech_volume: float) -> float:
@@ -97,7 +93,7 @@ def output_gain() -> float:
 
 
 def apply_gain(pcm16: bytes, gain: float | None = None) -> bytes:
-    """16-bit little-endian PCM with the output gain (or the given one) and the soft limiter; gain 1 = unchanged."""
+    """16-bit little-endian PCM with the output gain (or the given one), linear; gain 1 = unchanged."""
     if gain is None:
         gain, table = _OUTPUT["gain"], _OUTPUT["table"]
     else:

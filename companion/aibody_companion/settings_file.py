@@ -578,7 +578,7 @@ def apply_to_config(cfg: Any) -> list[str]:
     from .pipeline import tts  # version 44: Speech volume above 1 = louder WAVs from the first sentence on
     gain = tts.set_output_gain(data["body"]["speech_volume"])
     if gain != 1.0:
-        log.info("Speech volume %s from %s: speech WAVs x%.2f with soft limiter", data["body"]["speech_volume"], path, gain)
+        log.info("Speech volume %s from %s: speech WAVs x%.2f (linear gain)", data["body"]["speech_volume"], path, gain)
     add_secret(str(data["ai"]["xai"].get("api_key") or ""))  # before anything can log it
     log.info("Settings from %s: engines %s, mic mode %s", path, data["engines"], data["mic"]["mode"])
     return errors

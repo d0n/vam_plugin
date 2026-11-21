@@ -49,8 +49,8 @@ namespace AIBody
         /// <summary>The test WAV shipped next to the .cslist (written by tools/build_var.py).</summary>
         public const string TestToneFile = "AIBodyTest.wav";
 
-        /// <summary>Version 44: louder copies of the bundled tone for Speech volume above 1 (tools/build_var.py writes them,
-        /// soft-limited like the companion's speech): 2x and 3x. Volume below 1.5 plays the normal tone (head audio at the
+        /// <summary>Version 44: louder copies of the bundled tone for Speech volume above 1 (tools/build_var.py writes them
+        /// with the same plain linear gain as the companion's speech, no limiter): 2x and 3x. Volume below 1.5 plays the normal tone (head audio at the
         /// volume), 1.5 to 2.5 the 2x copy, from 2.5 the 3x copy (both at full head volume).</summary>
         public static string TestToneFileFor(float volume)
         {

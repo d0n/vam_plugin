@@ -1,7 +1,7 @@
 """Version 44 (Leon, 21.11.2026 20:39-21:09): the setup carries and copies d0n.AIBody.<v>.var, removes the other
 d0n.AIBody.<n>.var on every install, says when the same / an older version is installed, ends a running companion
-before replacing its files (pystray refused Restart Manager), writes a log; Speech volume up to 3 with a soft-limited
-gain on the companion's WAVs and louder copies of the bundled test tone."""
+before replacing its files (pystray refused Restart Manager), writes a log; Speech volume up to 3 for speech and test tones:
+a plain linear gain on the companion's WAVs (no limiter, Leon 21:16) and louder copies of the bundled test tone."""
 from __future__ import annotations
 
 import array
@@ -58,19 +58,20 @@ class VolumeTests(TestCase):
         schema = json.loads((ROOT / "protocol" / "schema" / "config.schema.json").read_text(encoding="utf-8"))
         self.assertIn('"maximum": 3.0', json.dumps(schema["properties"]["body"]["properties"]["speech_volume"]))
 
-    def test_soft_limiter_never_clips_and_gets_louder(self):
-        pcm = sine(0.7)
+    def test_plain_linear_gain_without_limiter(self):
+        pcm = sine(0.2)
         self.assertEqual(tts.apply_gain(pcm, 1.0), pcm)                     # volume <= 1: unchanged bytes
         for gain in (1.5, 2.0, 3.0):
-            out = samples(tts.apply_gain(pcm, gain))
-            self.assertLessEqual(max(abs(x) for x in out), 32767)
-            self.assertLess(max(abs(x) for x in out), 32767)               # never full scale (no clipping)
-            self.assertGreater(rms(out), rms(samples(pcm)) * 1.25, gain)   # clearly louder
-        quiet = sine(0.1)
-        self.assertAlmostEqual(rms(samples(tts.apply_gain(quiet, 3.0))) / rms(samples(quiet)), 3.0, delta=0.05)
-        values = [tts.soft_limit(x / 100) for x in range(-300, 301)]
-        self.assertEqual(values, sorted(values))                           # monotonic
-        self.assertLess(max(abs(v) for v in values), 1.0)
+            out, src = samples(tts.apply_gain(pcm, gain)), samples(pcm)
+            self.assertEqual(list(out), [max(-32768, min(32767, int(round(x * gain)))) for x in src])   # exactly linear
+        loud = samples(tts.apply_gain(sine(0.7), 3.0))
+        self.assertEqual(max(loud), 32767)                                  # only cut to the 16-bit range
+        self.assertEqual(min(loud), -32768)
+        self.assertEqual((tts.gained_sample(1000, 2.5), tts.gained_sample(-20000, 2.0), tts.gained_sample(30000, 3.0)),
+                         (2500, -32768, 32767))
+        src = (ROOT / "companion" / "aibody_companion" / "pipeline" / "tts.py").read_text(encoding="utf-8")
+        self.assertNotIn("tanh", src)
+        self.assertNotIn("soft_limit", src)
 
     def test_every_written_wav_gets_the_gain(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -115,20 +116,22 @@ class VolumeTests(TestCase):
         self.assertIn('evt["body"] = body;', main)
         self.assertIn("<b>Speech volume</b> 1 is the full volume", (SRC / "AppLink.cs").read_text(encoding="utf-8"))
 
-    def test_louder_test_tone_copies_use_the_same_limiter(self):
+    def test_louder_test_tone_copies_use_the_same_linear_gain(self):
         bv = build_var_module()
-        self.assertEqual(bv.LIMIT_KNEE, tts.LIMIT_KNEE)
-        for x in (-2.5, -0.8, -0.3, 0.0, 0.59, 0.61, 0.9, 1.7, 3.0):
-            self.assertEqual(bv.soft_limit(x), tts.soft_limit(x))
+        for v, g in ((1000, 2), (-20000, 2), (30000, 3), (-5, 3)):
+            self.assertEqual(bv.gained_sample(v, g), tts.gained_sample(v, g))
         self.assertEqual(bv.LOUD_TEST_TONES, {2: "AIBodyTest2.wav", 3: "AIBodyTest3.wav"})
-        levels = []
+        self.assertNotIn("tanh", (ROOT / "tools" / "build_var.py").read_text(encoding="utf-8"))
+        tones = []
         for gain in (1, 2, 3):
             with wave.open(io.BytesIO(bv.test_tone_wav(gain=gain)), "rb") as w:
-                a = samples(w.readframes(w.getnframes()))
-            levels.append(rms(a))
-            self.assertLess(max(abs(x) for x in a), 32767)
-        self.assertLess(levels[0] * 1.4, levels[1])
-        self.assertLess(levels[1] * 1.05, levels[2])
+                tones.append(samples(w.readframes(w.getnframes())))
+        quiet = [i for i, x in enumerate(tones[0]) if abs(x) < 8000]       # no 16-bit cut there even at 3x
+        for i in quiet[:500]:
+            self.assertEqual(tones[1][i], tones[0][i] * 2)
+            self.assertEqual(tones[2][i], tones[0][i] * 3)
+        self.assertLess(rms(tones[0]) * 1.6, rms(tones[1]))
+        self.assertLess(rms(tones[1]) * 1.1, rms(tones[2]))
 
 
 class TrayCloseTests(TestCase):

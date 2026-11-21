@@ -13,6 +13,6 @@ This text is the GitHub release v44.
 - **Already installed / update:** the setup says when this version is already installed (**OK** reinstalls / repairs, **Cancel** stops) or shows "Update from AIBody <old> to <new>".
 - **Setup over a running AIBody Companion works:** v41 to v43 could not close it, and the "close applications" dialog came back again and again. The setup now closes it, and AIBody Companion accepts Windows' close request (also when you sign out).
 - **Setup log:** every setup run writes `%TEMP%\Setup Log <date> #<n>.txt`; send it if anything goes wrong.
-- **Louder speech possible:** **Speech volume** (tab Voice) now goes up to 3. Above 1 the companion makes the voice and **Test tone via companion** louder, with a limiter against crackling, and **Play test tone** uses a louder copy. The default stays 1.
+- **Louder speech possible:** **Speech volume** (tab Voice) now goes up to 3. Above 1 the voice and both test tones get louder by that factor (2 = twice as loud): the companion makes its speech and **Test tone via companion** louder, and **Play test tone** uses a louder copy. There is no limiter, so very high values can distort on your speakers; you decide. The default stays 1.
 
 Test steps: `docs/TEST_PROTOCOL.md` T70 to T73.

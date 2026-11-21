@@ -175,7 +175,7 @@ namespace AIBody
         public int QueueLength { get { return _queue.Count; } }
 
         /// <summary>Version 44 (Leon 21:01): Speech volume goes up to 3. VaM's head audio stops at 1 (full volume); the part
-        /// above 1 is added to the samples by the companion app (louder WAVs, soft limiter) and, for "Play test tone", by
+        /// above 1 is added to the samples by the companion app (louder WAVs, plain linear gain) and, for "Play test tone", by
         /// a louder copy of the bundled tone (Body.TestToneFileFor).</summary>
         public const float MaxVolume = 3f;
 

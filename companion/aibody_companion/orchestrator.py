@@ -904,7 +904,7 @@ class Companion:
 
     def apply_body(self, data: Any) -> list[str]:
         """Version 44: the plugin's Speech volume (0..3, config event "body"). Above 1 every WAV for the character gets
-        that gain (soft-limited, pipeline/tts.py); up to 1 the plugin's head audio does it alone."""
+        that linear gain (pipeline/tts.py, no limiter); up to 1 the plugin's head audio does it alone."""
         if data is None:
             return []
         if not isinstance(data, dict):
@@ -922,7 +922,7 @@ class Companion:
         gain = tts_module.set_output_gain(value)
         if gain != before:
             log.info("Speech volume %.2f: speech WAVs %s", value,
-                     f"x{gain:.2f} with soft limiter" if gain > 1.0 else "unchanged (the plugin's head audio sets the volume)")
+                     f"x{gain:.2f} (linear gain)" if gain > 1.0 else "unchanged (the plugin's head audio sets the volume)")
         return []
 
     def apply_characters(self, data: Any) -> list[str]:

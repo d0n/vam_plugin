@@ -773,7 +773,7 @@ Report: whether any dialog came up, and the `Stop AIBody Companion` lines of the
 ## T73 – Speech volume above 1 (version 44)
 
 1. Tab **Voice** > *Voice and sound*: **Speech volume** goes from 0 to 3; default 1 (an existing scene keeps its value).
-2. At 1, **Play test tone** and **Test tone via companion** sound as in v43. At 2, then 3, both are clearly louder; no crackling or distortion. Speakers and headset.
-3. At 2 to 3 let the AI talk (a long answer): louder than at 1, clean. companion.log: `Speech volume 3.00: speech WAVs x3.00 with soft limiter`.
+2. At 1, **Play test tone** and **Test tone via companion** sound as in v43. At 2, then 3, both are clearly louder (plain gain, no limiter: at 3 the test tone may start to sound harsh, that is expected). Speakers and headset.
+3. At 1.5, 2 and 3 let the AI talk (a long answer): the voice is clearly louder than at 1, at normal speaker volume; note from which value it distorts. companion.log: `Speech volume 2.00: speech WAVs x2.00 (linear gain)`.
 4. Back to 0.5: quieter than 1 (VaM's head audio), companion.log `unchanged`.
 Report: the loudest setting that still sounds clean on speakers and on the headset.

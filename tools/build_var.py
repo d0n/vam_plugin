@@ -5,7 +5,7 @@
     meta.json
     Custom/Scripts/d0n/AIBody/AIBody.cslist   (+ the .cs files it lists, same folder)
     Custom/Scripts/d0n/AIBody/AIBodyTest.wav  (test tone for the plugin's "Play test tone")
-    Custom/Scripts/d0n/AIBody/AIBodyTest2.wav, AIBodyTest3.wav  (version 44: 2x / 3x soft-limited copies, Speech volume > 1)
+    Custom/Scripts/d0n/AIBody/AIBodyTest2.wav, AIBodyTest3.wav  (version 44: 2x / 3x louder copies, Speech volume > 1)
     Custom/Atom/Person/Plugins/AIBody/Preset_AIBody.vap  (plugin preset, version 31: adds the plugin to a Person)
     Saves/scene/AIBody/AI-Buddy.json     (the AIBody scene = the "Scene" choice; VaM's scene browser lists
                                                 scenes of packages below Saves/scene/; the plugin is referenced as
@@ -110,22 +110,17 @@ def plugin_preset(creator: str, package: str, version: int, script_dir: str) -> 
 TEST_TONE_PEAK = 0.70
 
 
-# Version 44 (Leon 21:01): louder copies for Speech volume above 1 (VaM's head audio stops at 1). Same soft limiter as
-# the companion (pipeline/tts.py soft_limit, LIMIT_KNEE): unchanged up to the knee, then a tanh curve below full scale.
+# Version 44 (Leon 21:01/21:16): louder copies for Speech volume above 1 (VaM's head audio stops at 1). Same plain linear
+# gain as the companion (pipeline/tts.py gained_sample): no limiter, only cut to the 16-bit range.
 LOUD_TEST_TONES = {2: "AIBodyTest2.wav", 3: "AIBodyTest3.wav"}  # gain -> file (Body.TestToneFileFor)
-LIMIT_KNEE = 0.6
 
 
-def soft_limit(x: float) -> float:
-    a = abs(x)
-    if a <= LIMIT_KNEE:
-        return x
-    y = LIMIT_KNEE + (1.0 - LIMIT_KNEE) * math.tanh((a - LIMIT_KNEE) / (1.0 - LIMIT_KNEE))
-    return y if x > 0 else -y
+def gained_sample(value: int, gain: float) -> int:
+    return max(-32768, min(32767, int(round(value * gain))))
 
 
 def test_tone_wav(seconds: float = 1.5, rate: int = 22050, gain: float = 1.0) -> bytes:
-    """16-bit mono PCM WAV: a two-note chime with 4 "syllables" per second (the jaw moves); gain > 1 = soft-limited copy."""
+    """16-bit mono PCM WAV: a two-note chime with 4 "syllables" per second (the jaw moves); gain > 1 = louder copy."""
     frames = bytearray()
     for i in range(int(seconds * rate)):
         t = i / rate
@@ -134,7 +129,7 @@ def test_tone_wav(seconds: float = 1.5, rate: int = 22050, gain: float = 1.0) ->
         envelope = 0.55 + 0.45 * math.sin(2 * math.pi * 4 * t)
         sample = int(TEST_TONE_PEAK * fade * envelope * math.sin(2 * math.pi * freq * t) * 32767)
         if gain != 1.0:
-            sample = int(round(soft_limit(gain * sample / 32768.0) * 32767))
+            sample = gained_sample(sample, gain)
         frames += struct.pack("<h", sample)
     buf = io.BytesIO()
     with wave.open(buf, "wb") as w:
