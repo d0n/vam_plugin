@@ -8,6 +8,8 @@ name: Companion Windows installer
 # checks that every install copies it to <VaM>\AddonPackages and removes the other d0n.AIBody.<n>.var (fresh install with
 # hand-placed old packages), that a same-version reinstall over a RUNNING companion ends it and replaces everything,
 # that an older installed version is reported as an update, and that the VAR is uploaded with the installer.
+# After v44 (Leon 21:25): a failed install (companion file locked, /NOCLOSEAPPLICATIONS) keeps the older package; the
+# next run copies the new one first and removes the older ones after that.
 on:
   workflow_dispatch:
   push:
@@ -187,7 +189,7 @@ jobs:
           if (-not $running.HasExited) { throw "the running companion was not ended by the reinstall" }
           if (-not (Select-String -Path $log2 -Pattern "Existing install: same version $v" -Quiet)) { throw "same version not detected" }
           if (-not (Select-String -Path $log2 -Pattern "silent setup, continuing without asking" -Quiet)) { throw "silent reinstall asked or stopped" }
-          if (-not (Select-String -Path $log2 -Pattern 'taskkill /F /T /IM "AIBody Companion.exe" exit code 0' -SimpleMatch -Quiet)) { throw "the companion was not ended by taskkill" }
+          if (-not (Select-String -Path $log2 -Pattern 'taskkill /F /IM "AIBody Companion.exe" exit code 0' -SimpleMatch -Quiet)) { throw "the companion was not ended by taskkill" }
           Assert-Packages "same-version reinstall"
           $p = Start-Process -FilePath $exe -ArgumentList "--selftest","--selftest-out","`"$out`"" -Wait -PassThru
           if ($p.ExitCode -ne 0 -or (Get-Content $out -Raw | ConvertFrom-Json).version -ne $v) { throw "self-test after the reinstall failed" }
@@ -205,6 +207,39 @@ jobs:
           if ((Get-ItemProperty -Path $key).DisplayVersion -ne $v) { throw "DisplayVersion not back at $v" }
           Assert-Packages "update from 43"
           Write-Host "update detection ok"
+          # 4d. a failed install (a companion file locked, Restart Manager off) must keep the older package: v44 deleted it
+          #     before copying and the rollback then removed the new one too (Leon 21:25). Then a normal run places the
+          #     new package (bundled SHA-256) and only after that removes the old one.
+          Remove-Item $newvar -Force
+          New-Item -ItemType File -Force (Join-Path $pk "d0n.AIBody.42.var") | Out-Null
+          $lockFile = (Get-ChildItem (Join-Path $app "_internal") -Filter *.dll -File | Select-Object -First 1).FullName
+          $ready = Join-Path $env:RUNNER_TEMP "lock-ready.txt"
+          Remove-Item $ready -ErrorAction SilentlyContinue
+          $locker = Start-Process pwsh -PassThru -WindowStyle Hidden -ArgumentList "-NoProfile","-Command","`$f = [IO.File]::Open('$lockFile', 'Open', 'Read', 'None'); Set-Content '$ready' ok; Start-Sleep 600"
+          for ($i = 0; $i -lt 60 -and -not (Test-Path $ready); $i++) { Start-Sleep -Milliseconds 500 }
+          if (-not (Test-Path $ready)) { throw "could not lock $lockFile" }
+          Write-Host "locked $lockFile"
+          $log4 = Join-Path $env:RUNNER_TEMP "setup-failed.log"
+          $p = Start-Process -FilePath $setup -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NOCLOSEAPPLICATIONS","/NORESTART","/CURRENTUSER","/VAMDIR=`"$vam`"","/LOG=`"$log4`"" -PassThru
+          if (-not $p.WaitForExit(240000)) { $p.Kill(); Stop-Process -Id $locker.Id -Force; Get-Content $log4 | Select-Object -Last 60; throw "failed-install case hung (240 s)" }
+          Stop-Process -Id $locker.Id -Force
+          Start-Sleep -Seconds 2
+          Select-String -Path $log4 -Pattern "Package:|Remove older|Deleted|DeleteFile|in use|Defaulting|Rolling back|Installation process" | ForEach-Object { $_.Line }
+          if ($p.ExitCode -eq 0) { Get-Content $log4 | Select-Object -Last 60; throw "failed-install case: the setup did not fail (exit code 0); the lock did not work" }
+          if (-not (Test-Path (Join-Path $pk "d0n.AIBody.42.var"))) { throw "failed-install case: the older package was deleted although the install failed" }
+          if (Select-String -Path $log4 -Pattern "Remove older AIBody packages" -SimpleMatch -Quiet) { throw "failed-install case: old packages were handled before the install succeeded" }
+          Write-Host "failed install (exit code $($p.ExitCode)) kept d0n.AIBody.42.var"
+          $log5 = Join-Path $env:RUNNER_TEMP "setup-after-failed.log"
+          $p = Start-Process -FilePath $setup -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART","/CURRENTUSER","/VAMDIR=`"$vam`"","/LOG=`"$log5`"" -PassThru
+          if (-not $p.WaitForExit(180000)) { $p.Kill(); throw "setup after the failed install hung (180 s)" }
+          Select-String -Path $log5 -Pattern "Package:|Remove older|Deleted|Dest filename: .*AddonPackages" | ForEach-Object { $_.Line }
+          if ($p.ExitCode -ne 0) { Get-Content $log5 | Select-Object -Last 60; throw "setup after the failed install: exit code $($p.ExitCode)" }
+          Assert-Packages "after a failed install"
+          if (-not (Select-String -Path $log5 -Pattern "in place (SHA-256 checked)" -SimpleMatch -Quiet)) { throw "package check not logged" }
+          $copied = (Select-String -Path $log5 -Pattern "Dest filename: $newvar" -SimpleMatch | Select-Object -First 1).LineNumber
+          $removed = (Select-String -Path $log5 -Pattern "Remove older AIBody packages: found" -SimpleMatch | Select-Object -First 1).LineNumber
+          if (-not ($copied -and $removed -and $removed -gt $copied)) { throw "older packages must be removed after the new one was copied (lines $copied / $removed)" }
+          Write-Host "failed install keeps the old package; the next run places the new one first, then removes the old one"
           # 5. uninstall removes the app and its launcher settings
           $p = Start-Process -FilePath (Join-Path $app "unins000.exe") -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART" -Wait -PassThru
           Start-Sleep -Seconds 3
@@ -215,7 +250,7 @@ jobs:
             if (-not (Test-Path (Join-Path $pk $n))) { throw "uninstall deleted $n (not ours)" }
           }
           Write-Host "uninstall deleted d0n.AIBody.$v.var only"
-          Write-Host "VAMDIR / launcher.json / install / package / reinstall over running companion / update / self-test / uninstall (own VARs only) ok"
+          Write-Host "VAMDIR / launcher.json / install / package / reinstall over running companion / update / failed install keeps old package / self-test / uninstall (own VARs only) ok"
 
       - name: Token scan
         run: python tools/scan_tokens.py "dist/AIBody Companion" dist/installer companion/aibody_companion "dist/d0n.AIBody.${{ steps.ver.outputs.version }}.var"
