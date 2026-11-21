@@ -1,10 +1,10 @@
 # AIBody – requirements catalog (status overview)
 
-Status: 21.11.2026, version 39. Overview of what is done and what is open; updated with every release.
+Status: 21.11.2026, version 40. Overview of what is done and what is open; updated with every release.
 - Agreed specification (what applies): [`docs/SPEC.md`](SPEC.md)
 - Deferred ideas / nice to have: [`docs/BACKLOG.md`](BACKLOG.md)
 - Test instructions in VaM: [`docs/TEST_PROTOCOL.md`](TEST_PROTOCOL.md) · API evidence: [`docs/API_AUDIT.md`](API_AUDIT.md)
-- Repo: https://github.com/d0n/vam_plugin · current package: `d0n.AIBody.39.var` (version = package number since 12)
+- Repo: https://github.com/d0n/vam_plugin · current package: `d0n.AIBody.40.var` (version = package number since 12)
 
 "Done" means: tested in code and against rebuilt counterparts. What has not yet been checked in VaM or against the real xAI APIs is listed again under 2.
 
@@ -155,6 +155,12 @@ Status: 21.11.2026, version 39. Overview of what is done and what is open; updat
 ### Version 39 (21.11.2026)
 - **Question and Answer button removed** (Leon, call 21.11.2026 15:59): with **Proactive talking** off the character only answers when asked; Body control is no longer switched off by any button. T47.
 
+### Version 40 (21.11.2026)
+- **Character wizard shows its question again:** the gate answer is per scene (it was seeded from the global config.json into every new scene, so the question never came); the question stands above **Yes** / **No**; stored answers refresh the section. T48.
+- **Persona menu:** AIBody Companion writes the starter personas Anna and Marc once into an empty personas folder; an empty persona means "(none)". T49.
+- **Plugin log:** the "not connected" hint and the test-tone wait line once per VaM session, at most one waiting test tone; hints point to the Start menu entry **AIBody Companion**. T50.
+- **AIBody Companion Setup.exe:** per-user Windows installer (no admin), Start menu and optional desktop shortcut, optional Start with Windows, background note, tray Quit, single instance, VaM folder detection or a one-time folder picker, uninstaller; built and self-tested by GitHub Actions. T51.
+
 ## 2. Still open / to do
 
 ### Next version
@@ -180,7 +186,7 @@ _Version 21 implemented the field "XAI API Token" and the button "Question and A
 - T13–T16, T18: voice detection and echo gate, gaze, natural gaze / blinking / scene hooks, emotions / personas / memory, local engines.
 - T19: Network Active (toggle on / off, VaM's network switch off → file fallback, companion not running).
 - T20: token masking by focus. T21: first-run note. T22: remote control (web page, HTTP, OSC). T23: plugin preset (Load Preset).
-- T38–T42: background color, scene from the package, setup Scene / Plugin, speech start (version 36). T43: eyes belong to VaM, Body control ON, menus by topic. T44: example scene thumbnail in Load Scene and AIBody on the female (version 37). T45: character wizard. T46: AI-Buddy scene (version 38). T47: no Question and Answer button (version 39).
+- T38–T42: background color, scene from the package, setup Scene / Plugin, speech start (version 36). T43: eyes belong to VaM, Body control ON, menus by topic. T44: example scene thumbnail in Load Scene and AIBody on the female (version 37). T45: character wizard. T46: AI-Buddy scene (version 38). T47: no Question and Answer button (version 39). T48-T51: character wizard question, persona menu, companion log hints, AIBody Companion installer (version 40).
 - The engines have never run against the real xAI / ElevenLabs APIs (only a rebuilt server).
 
 ### TODO(verify) in the code

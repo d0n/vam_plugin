@@ -20,20 +20,7 @@ def source(name: str) -> str:
 
 
 class VersionTests(TestCase):
-    def test_version_39_everywhere(self):
-        self.assertEqual(__version__, "39")
-        self.assertIn('PluginVersion = "39"', source("AIBody.cs"))
-        self.assertIn('version = "39"', (ROOT / "companion" / "pyproject.toml").read_text())
-        self.assertEqual(json.loads((ROOT / "packaging" / "AIBody.json").read_text())["version"], 39)
-        self.assertTrue(re.search(r"d0n\.AIBody\.39:", first_start.TEMPLATE.read_text()))
+    def test_version_39_is_historical(self):
+        """Historical: version 39 sources are gone after the v40 bump; consistency is test_version40."""
+        self.assertTrue((ROOT / "companion" / "tests" / "test_version40.py").is_file())
         self.assertEqual(first_start.TEMPLATE, ROOT / "examples" / "scenes" / "AI-Buddy.json")
-        self.assertIn("AIBody companion app 39 (example)",
-                      (ROOT / "examples" / "config.json").read_text(encoding="utf-8"))
-        self.assertEqual(json.loads((ROOT / "packaging" / "meta.json").read_text())["licenseType"], "FC")
-
-    def test_docs_name_version_39(self):
-        self.assertIn("Status: version 39, package `d0n.AIBody.39.var`, release `v39`",
-                      (ROOT / "README.md").read_text(encoding="utf-8"))
-        spec = (ROOT / "docs" / "SPEC.md").read_text(encoding="utf-8")
-        self.assertIn("(version 39, release): package `d0n.AIBody.39.var`, tag `v39`", spec)
-        self.assertIn("now version 39;", (ROOT / "docs" / "TEST_PROTOCOL.md").read_text(encoding="utf-8"))

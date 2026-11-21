@@ -1,4 +1,4 @@
-# AIBody – test protocol for the first test in VaM 1.22 (from v0.6.3, now version 39; T9 from v0.7.2, T10 from v0.7.3, menu layout from version 15, T19–T21 from version 30, T22–T23 from version 31, T24–T29 from version 32, T38–T42 from version 36, T43 after version 36, T44 from version 37, T45 after version 37, T46 from version 38, T47 from version 39)
+# AIBody – test protocol for the first test in VaM 1.22 (from v0.6.3, now version 40; T9 from v0.7.2, T10 from v0.7.3, menu layout from version 15, T19–T21 from version 30, T22–T23 from version 31, T24–T29 from version 32, T38–T42 from version 36, T43 after version 36, T44 from version 37, T45 after version 37, T46 from version 38, T47 from version 39, T48–T51 from version 40)
 
 Goal: the open "must do now" points that can only be checked in VaM. Please go through every point
 in order and enter the result (✅ / ❌ / unclear). Duration: about 20 minutes.
@@ -13,9 +13,9 @@ in order and enter the result (✅ / ❌ / unclear). Duration: about 20 minutes.
 **Preparation**
 
 - Close VaM. In `<VaM main folder>/AddonPackages/` delete all old AIBody packages:
-  `d0n.AIBody.1.var` to `d0n.AIBody.38.var`, `d0n.AIBodySession.*`, `d0n.AIBodyPerson.*`,
+  `d0n.AIBody.1.var` to `d0n.AIBody.39.var`, `d0n.AIBodySession.*`, `d0n.AIBodyPerson.*`,
   `d0n.AIBodyPerson2.*`. Also remove loose files under `Custom/Scripts/d0n/AIBody/`.
-- Copy `d0n.AIBody.39.var` to `<VaM main folder>/AddonPackages/`.
+- Copy `d0n.AIBody.40.var` to `<VaM main folder>/AddonPackages/`.
 - Have the companion app ready (do **not** start it yet):
   `python -m aibody_companion --vam-root "D:\VaM"` (adjust the path to your own VaM folder).
   For T9 enter the xAI key in the plugin (tab **Voice** > field **XAI API Token**, from version 21) or set it before starting: `set XAI_API_KEY=xai-...` (cmd) or `$env:XAI_API_KEY="xai-..."` (PowerShell); the field wins.
@@ -26,7 +26,7 @@ in order and enter the result (✅ / ❌ / unclear). Duration: about 20 minutes.
 
 1. Start VaM, open a scene with a female standard figure (or a new scene + Person).
 2. Select the figure (Person atom) > tab **Plugins** > **Add Plugin** >
-   `AddonPackages > d0n.AIBody.39:/Custom/Scripts/d0n/AIBody/AIBody.cslist`.
+   `AddonPackages > d0n.AIBody.40:/Custom/Scripts/d0n/AIBody/AIBody.cslist`.
    **Not** under *Session Plugins* or *Scene Plugins*.
 3. If VaM asks whether to allow plugins from the package: allow it and note that it asked.
 4. Open **Open Custom UI** (plugin window).
@@ -547,9 +547,9 @@ Report: short note that the gate, the skip path and both gender menus behaved as
 
 ## T46 – AI-Buddy scene: original look, plugin, background, dependencies (version 38)
 
-1. VaM > **Open Scene** / **Load Scene** > package `d0n.AIBody.39` > folder `AIBody` > **AI-Buddy**. The preview thumbnail of the two characters is visible in the scene list next to the name (the package has `Saves/scene/AIBody/AI-Buddy.jpg` beside the `.json`).
+1. VaM > **Open Scene** / **Load Scene** > package `d0n.AIBody.40` > folder `AIBody` > **AI-Buddy**. The preview thumbnail of the two characters is visible in the scene list next to the name (the package has `Saves/scene/AIBody/AI-Buddy.jpg` beside the `.json`).
 2. Load the scene. It should not hang. If a declared third-party package is missing, VaM should show a missing-package notice and still load. Two people with clothing: female `Person` in the Pro Court shorts and Nico tanktop, male `BryanGosling` in the police pants and hoodie (the hoodie is loose local content and may be missing). Select `Person` > tab **Plugins**: AIBody of this package (`SELF:/Custom/Scripts/d0n/AIBody/AIBody.cslist` or the equivalent package path). The male atom `BryanGosling` has no AIBody plugin and no Improved PoV. There are no Dollmaster atoms (`Doll SFX Person`, `Thrust AP Person`). Tab Config: **Set background color** is ON, color #00FF00, unless you changed it.
-3. Optional: copy `AI-Buddy.json` and `AI-Buddy.jpg` together to `Saves/scene/AIBody/` and open that copy from the browser; the same thumbnail and the same plugin load (the loose scene references `d0n.AIBody.39:/…`).
+3. Optional: copy `AI-Buddy.json` and `AI-Buddy.jpg` together to `Saves/scene/AIBody/` and open that copy from the browser; the same thumbnail and the same plugin load (the loose scene references `d0n.AIBody.40:/…`).
 4. Missing loose files listed in `docs/SCENE_GREENSCREEN.md` as needs local content (morphs, N3DX textures, tan-line decals, scamp THEV hair, PositiveResult hoodie, Bryan Gosling morph/face texture) should be skipped, not crash the load.
 
 Report: screenshot of the Load Scene list with the thumbnail, of the loaded scene with clothing, and of the plugin on `Person` with Set background color on. Note any missing-package or missing-file messages.
@@ -563,3 +563,36 @@ Report: screenshot of the Load Scene list with the thumbnail, of the loaded scen
 5. Tab **AI Character**: **Body control** keeps the value you set; nothing in step 2-4 switched it off.
 
 Report: screenshot of the Voice tab (AI section and left info field) and a short note on steps 1, 4 and 5.
+
+## T48 – Character wizard asks its question (version 40)
+
+1. Load **AI-Buddy** from `d0n.AIBody.40` (or a fresh scene with AIBody on a Person), even if you answered the wizard in an earlier scene. Tab **AI Character**: under **Characters** the line **Do you want to configure your characters?** stands right above **Yes** and **No**.
+2. Press **Yes**: **AI gender/body** and **Your character gender** appear. Save the scene, reload it: the steps are shown again (the answer is saved with the scene). Load a different new scene with AIBody: the question is asked there again.
+3. Press **No** in a scene: only **Configure characters** stays; it brings the question back.
+
+Report: screenshot of the Characters section before and after Yes.
+
+## T49 – Persona menu (version 40)
+
+1. Install and start **AIBody Companion** (T51). Its first start writes `Saves/PluginData/AIBody/personas/Anna/persona.json` and `.../Marc/persona.json` (only if that folder had no persona yet).
+2. VaM, plugin tab **Voice** > **Persona**: the menu lists **(none)**, **Anna**, **Marc**. Pick **Anna**: the left info field says the persona is in use after a moment, and the AI answers as Anna.
+3. Quit AIBody Companion: the left field says the list comes from the running companion; the menu keeps the last list.
+
+Report: screenshot of the open Persona menu and of the left info field.
+
+## T50 – Quiet log while the companion is not running (version 40)
+
+1. Quit AIBody Companion, load a scene with AIBody. The VaM log shows `AIBody: Companion app not connected: start 'AIBody Companion' from the Windows Start menu ...` once, no Python command, no error popup.
+2. Tab **Voice** > **Test tone via companion** six times: the log has the "waits" line once; the left info field says one request is waiting. Start AIBody Companion: one test tone plays (not six).
+
+Report: the AIBody lines of the VaM log.
+
+## T51 – AIBody Companion installer (version 40, Windows)
+
+1. Download `AIBody Companion Setup.exe` from the v40 release, double-click. If SmartScreen shows "Windows protected your PC": **More info** > **Run anyway**. No admin prompt appears.
+2. Leave **Create a desktop shortcut** and **Start with Windows** as you like, finish with **Launch AIBody Companion now** checked. A small note says AIBody Companion is now running in the background; the tray has its icon with **Quit**. No console window.
+3. If your VaM folder is not found (the app looks at the remembered folder, a VaM folder around the app, and `X:\VaM`, `X:\Virt-A-Mate`, `X:\Games\VaM` ... on every drive), a folder picker asks once; choose the folder with `VaM.exe`. Start it again from the Start menu: only the "already running" note appears.
+4. Start VaM, load AI-Buddy: the plugin connects (tab Voice, left field: companion connected), the companion log is `<VaM>/Saves/PluginData/AIBody/logs/companion.log`.
+5. Tray > **Quit**: the plugin reports the companion as not connected. Settings > Apps > AIBody Companion > Uninstall: the folder `%LOCALAPPDATA%\Programs\AIBody Companion` and the shortcuts are gone.
+
+Report: screenshots of the note, the tray menu and the Voice tab; anything SmartScreen or an antivirus said.
