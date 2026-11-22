@@ -8,6 +8,7 @@
 using System;
 using System.Collections.Generic;
 using SimpleJSON;
+using UnityEngine;
 using MVR.FileManagementSecure;
 
 namespace AIBody
@@ -225,6 +226,12 @@ namespace AIBody
                 if (!v && _expressions != null) _expressions.Reset(0.4f);
             });
             SettingsDefaults.Bool(_plugin, _bodyControlJson);
+            // Body position (22.11.2026, Leon). Not registered on purpose: VaM saves the moved controllers with the scene, so a
+            // saved slider value would move the character a second time on load. The sliders show the offset since the
+            // plugin loaded; Reset body position takes it back.
+            _moveForwardJson = new JSONStorableFloat("Move forward / back (m)", 0f, (float v) => OnBodyMove(), -5f, 5f);
+            _moveRightJson = new JSONStorableFloat("Move right / left (m)", 0f, (float v) => OnBodyMove(), -5f, 5f);
+            _turnJson = new JSONStorableFloat("Turn (degrees)", 0f, (float v) => OnBodyMove(), -180f, 180f);
             // Version 44: up to 3 (above 1 the companion makes its speech louder; it learns the value from the config event "body").
             // 22.11.2026 (Leon 04:15/04:16): percent 0..1000, default 100; the old factor storable stays registered (no slider) so a
             // scene saved with "Speech volume": 1.0 loads as 100 %.
@@ -371,6 +378,11 @@ namespace AIBody
             if (Characters != null) Characters.Build(page);
             page.Header("<b>Body control</b>");
             page.Toggle(_bodyControlJson);
+            page.Header("<b>Body position</b>");
+            page.Slider(_moveForwardJson);
+            page.Slider(_moveRightJson);
+            page.Slider(_turnJson);
+            page.Button("Reset body position", ResetBodyPosition);
             page.Header("<b>Idle poses</b>");
             page.Toggle(_idlePosesJson);
             page.ScrollablePopup(_idlePoseDefaultJson);
@@ -432,7 +444,7 @@ namespace AIBody
             text += "Poses: " + (_poses != null ? _poses.PoseNames.Count + " in the menu (" + _poses.PoseScanNote + ")" : "PoseController missing") + "\n";
             text += PoseCommandsInfo();
             text += IdlePosesInfo();
-            text += BodyControlHelp + "\n" + BreathingHelp + "\n";
+            text += BodyControlHelp + "\n" + BodyPositionHelp + "\n" + BreathingHelp + "\n";
             return text;
         }
 
@@ -743,6 +755,52 @@ namespace AIBody
         {
             if (_syncingPoseMenu || string.IsNullOrEmpty(command)) return;
             ApplyPoseCommand(command);
+        }
+
+        // ---------------------------------------------------------------- body position (22.11.2026)
+
+        private JSONStorableFloat _moveForwardJson;
+        private JSONStorableFloat _moveRightJson;
+        private JSONStorableFloat _turnJson;
+        private float _movedForward, _movedRight, _turned;   // what the sliders have applied so far
+        private Vector3 _movedShift = Vector3.zero;          // the world shift of all moves (for Reset body position)
+        private bool _syncingMove;
+
+        public const string BodyPositionHelp = "<b>Body position</b> moves the whole AI character: <b>Move forward / back (m)</b> and "
+            + "<b>Move right / left (m)</b> go the way she faces, <b>Turn (degrees)</b> turns her on the spot, and <b>Reset body position</b> "
+            + "takes all of it back. Save the scene to keep the new place.";
+
+        /// <summary>A slider changed: apply only the difference to what was applied (a slider fires while it is dragged).</summary>
+        private void OnBodyMove()
+        {
+            if (_syncingMove || _atom == null) return;
+            float turn = _turnJson.val - _turned;
+            if (Math.Abs(turn) > 0.01f) { BodyMover.Turn(_atom, turn); _turned = _turnJson.val; }
+            float forward = _moveForwardJson.val - _movedForward;
+            float right = _moveRightJson.val - _movedRight;
+            if (Math.Abs(forward) > 0.0001f || Math.Abs(right) > 0.0001f)
+            {
+                Vector3 shift = BodyMover.ShiftFor(_atom, forward, right);
+                BodyMover.Shift(_atom, shift);
+                _movedShift = _movedShift + shift;
+                _movedForward = _moveForwardJson.val;
+                _movedRight = _moveRightJson.val;
+            }
+            if (_idle != null) _idle.Rebase();   // the idle head motion starts from the new place
+        }
+
+        /// <summary>Button "Reset body position": turn back, then move back; the sliders show 0 again.</summary>
+        private void ResetBodyPosition()
+        {
+            if (_atom == null) return;
+            if (Math.Abs(_turned) > 0.01f) BodyMover.Turn(_atom, -_turned);
+            BodyMover.Shift(_atom, _movedShift * -1f);
+            _turned = 0f; _movedForward = 0f; _movedRight = 0f; _movedShift = Vector3.zero;
+            _syncingMove = true;
+            try { _moveForwardJson.val = 0f; _moveRightJson.val = 0f; _turnJson.val = 0f; }
+            finally { _syncingMove = false; }
+            if (_idle != null) _idle.Rebase();
+            Note("Body position reset", false);
         }
 
         /// <summary>Button "Apply idle default pose" (22.11.2026, Leon: idle pose control in the menu): the pose chosen in

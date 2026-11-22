@@ -856,3 +856,12 @@ Report: screenshots of both boxes.
 1. Tab **AI Character** > *Idle poses*: **Idle poses**, **Idle default pose**, then the new button **Apply idle default pose**, then the two wait sliders.
 2. Choose a pose in **Idle default pose** and press **Apply idle default pose**: the character takes it at once ("Last action: Idle default pose applied: ..."), and the next idle pose comes only after the min wait.
 3. A default pose the character does not have: red note, nothing moves.
+
+## T83 – Body position (main after v48, Leon 22.11.2026 call)
+
+1. Tab **AI Character**: under *Body control* the new section *Body position*: **Move forward / back (m)**, **Move right / left (m)**, **Turn (degrees)**, **Reset body position**.
+2. Drag **Move forward / back (m)** to 0.5: the AI character moves half a metre the way she faces (whole body, no stretching); **Move right / left (m)** sideways; **Turn (degrees)** 90: she turns on the spot.
+3. **Reset body position**: she is back where she was, the sliders show 0.
+4. Move her, save the scene, reload: she stands at the new place and the sliders show 0 (they are not saved, so she is not moved twice).
+5. After a move: idle head motion, breathing, a pose command and an idle pose still work.
+Report: anything that stretched, fell or jumped back.

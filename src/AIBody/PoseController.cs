@@ -388,4 +388,60 @@ namespace AIBody
             return moved;
         }
     }
+
+    /// <summary>Body position (22.11.2026, Leon: body position control in the menu): moves the whole Person by moving every
+    /// controller, the same calls as PlacementSnapshot (Atom.freeControllers, E12/E28; FreeControllerV3.transform position /
+    /// rotation, E6). Forward / right follow the way the character faces (its main controller, flat); the turn is about the
+    /// vertical axis through the main controller.</summary>
+    public static class BodyMover
+    {
+        /// <summary>The flat facing direction of the atom (main controller forward without its up/down part).</summary>
+        public static Vector3 Facing(Atom atom)
+        {
+            if (atom == null || atom.mainController == null) return Vector3.forward;
+            Vector3 f = atom.mainController.transform.rotation * Vector3.forward;
+            f = new Vector3(f.x, 0f, f.z);
+            return f.magnitude < 0.001f ? Vector3.forward : f.normalized;
+        }
+
+        /// <summary>The world shift of a move of `forward` / `right` metres along the facing.</summary>
+        public static Vector3 ShiftFor(Atom atom, float forward, float right)
+        {
+            Vector3 f = Facing(atom);
+            return f * forward + Vector3.Cross(Vector3.up, f) * right;
+        }
+
+        /// <summary>Moves every controller by `shift`; returns how many moved.</summary>
+        public static int Shift(Atom atom, Vector3 shift)
+        {
+            if (atom == null || atom.freeControllers == null) return 0;
+            int moved = 0;
+            for (int i = 0; i < atom.freeControllers.Length; i++)
+            {
+                FreeControllerV3 c = atom.freeControllers[i];
+                if (c == null) continue;
+                c.transform.position = c.transform.position + shift;
+                moved++;
+            }
+            return moved;
+        }
+
+        /// <summary>Turns every controller by `degrees` about the vertical axis through the main controller.</summary>
+        public static int Turn(Atom atom, float degrees)
+        {
+            if (atom == null || atom.freeControllers == null || atom.mainController == null) return 0;
+            Vector3 pivot = atom.mainController.transform.position;
+            Quaternion turn = Quaternion.Euler(0f, degrees, 0f);
+            int moved = 0;
+            for (int i = 0; i < atom.freeControllers.Length; i++)
+            {
+                FreeControllerV3 c = atom.freeControllers[i];
+                if (c == null) continue;
+                c.transform.position = pivot + turn * (c.transform.position - pivot);
+                c.transform.rotation = turn * c.transform.rotation;
+                moved++;
+            }
+            return moved;
+        }
+    }
 }

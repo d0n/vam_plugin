@@ -628,7 +628,7 @@ class MenuLayoutTests(unittest.TestCase):
         known |= {"Breath morph", "Companion inbox poll interval (s)", "XAI API Token",
                   "Background color", "Set background color", "Pose command", "Pose", "Language model", "Speech-to-text", "Text-to-speech", "Voice",
                   "AI gender/body", "Your character gender"}
-        headers = {"Companion connection", "AI", "Voice and sound", "Logging", "Background", "Body control", "Idle poses",
+        headers = {"Companion connection", "AI", "Voice and sound", "Logging", "Background", "Body control", "Body position", "Idle poses",
                    "Idle motion and breathing", "Expression and gesture", "Poses", "Microphone", "Push-to-talk",
                    "Voice detection", "Echo and barge-in", "Config file", "Connection", "First start: XAI API Token",
                    "Self-test", "Recent events", "Startup log", "Engine status", "Info: ", "Characters", "Clothing", "Reset"}
