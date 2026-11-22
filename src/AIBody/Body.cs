@@ -22,6 +22,7 @@ namespace AIBody
         private JSONStorableFloat _volumeJson;         // "Speech volume (%)" 0..1000 (Leon 22.11.2026 04:15/04:16); the factor is _volumeJson.val / 100
         private JSONStorableFloat _legacyVolumeJson;   // "Speech volume" factor (0..3 up to v45, now 0..10): no slider, kept for saved scenes
         private bool _syncingVolume;
+        private JSONStorableFloat _distanceJson;   // version 48: "Full volume distance (m)", applied by SpeechPlayer.UpdateDistance from Update
         private JSONStorableBool _idleJson;
         private JSONStorableFloat _idleIntensityJson;
         private JSONStorableBool _breathingJson;
@@ -231,7 +232,10 @@ namespace AIBody
             SettingsDefaults.Float(_plugin, _volumeJson);
             _legacyVolumeJson = new JSONStorableFloat("Speech volume", 1f, (float v) => SetLegacySpeechVolume(v), 0f, 10f);   // = VolumePercentMax / 100
             SettingsDefaults.Float(_plugin, _legacyVolumeJson);
-            // v46's head audio distance slider (minDistance) is gone again in v47 (Leon 12:17: v45 sound was right).
+            // Version 48 (Leon 12:58): back, EasyMoan pattern. The callback only stores the value; Update applies it when idle.
+            _distanceJson = new JSONStorableFloat("Full volume distance (m)", SpeechPlayer.DefaultFullVolumeDistance,
+                (float v) => { if (OnSettingsChanged != null) OnSettingsChanged(); }, SpeechPlayer.MinFullVolumeDistance, SpeechPlayer.MaxFullVolumeDistance);
+            SettingsDefaults.Float(_plugin, _distanceJson);
             _idleJson = new JSONStorableBool("Idle head motion", true, (bool v) => { if (_idle != null) _idle.Enabled = v; });
             SettingsDefaults.Bool(_plugin, _idleJson);
             _idleIntensityJson = new JSONStorableFloat("Idle intensity", 0.5f, (float v) => { if (_idle != null) _idle.Intensity = v; }, 0f, 1f);
@@ -348,6 +352,7 @@ namespace AIBody
         public void BuildSoundSection(UiPage page)
         {
             page.Slider(_volumeJson);
+            page.Slider(_distanceJson);
             page.Button("Play test tone", () => { _testStatus = PlayTestTone(); });
             page.Button("Stop speaking", StopSpeaking);
         }
@@ -770,6 +775,7 @@ namespace AIBody
             if (_volumeJson == null) return;
             JSONClass body = new JSONClass();
             body["speech_volume"].AsFloat = SpeechVolume;   // config.json keeps the factor 0..10
+            if (_distanceJson != null) body["full_volume_distance"].AsFloat = _distanceJson.val;
             body["body_control"].AsBool = BodyControl;
             body["idle_motion"].AsBool = _idleJson.val;
             body["idle_intensity"].AsFloat = _idleIntensityJson.val;
@@ -805,6 +811,7 @@ namespace AIBody
             JSONClass body = root["body"] as JSONClass;
             if (body == null || _volumeJson == null) return;
             _volumeJson.val = PercentFromFactor(Protocol.GetFloat(body, "speech_volume", SpeechVolume));   // factor -> percent
+            if (_distanceJson != null) _distanceJson.val = Protocol.GetFloat(body, "full_volume_distance", _distanceJson.val);
             if (_bodyControlJson != null) _bodyControlJson.val = Protocol.GetBool(body, "body_control", _bodyControlJson.val);
             _idleJson.val = Protocol.GetBool(body, "idle_motion", _idleJson.val);
             _idleIntensityJson.val = Protocol.GetFloat(body, "idle_intensity", _idleIntensityJson.val);
@@ -959,7 +966,12 @@ namespace AIBody
             if (_idlePoses != null) _idlePoses.Describe = UiVisible;
             _lastCommandAge += dt;
             _selfTestAge += dt;
-            if (_speech != null) _speech.Update(dt);
+            if (_speech != null)
+            {
+                _speech.Update(dt);
+                // Version 48: the full volume distance only from here, only when it changed and nothing plays or waits.
+                _speech.UpdateDistance(_distanceJson != null ? _distanceJson.val : SpeechPlayer.DefaultFullVolumeDistance);
+            }
             bool speaking = _speech != null && _speech.IsSpeaking;
             if (_expressions != null) _expressions.Update(dt);
             if (_breathing != null) _breathing.Update(dt, speaking);
@@ -1012,6 +1024,9 @@ namespace AIBody
                 text += "Speaking: " + (_speech.IsSpeaking ? "yes" : "no") + ", queued: " + _speech.QueueLength
                     + (_volumeJson != null && _volumeJson.val < 1f ? " – Speech volume is 0 %!" : "") + "\n";
                 text += "Audio: " + (_speech.Status ?? "nothing played yet") + "\n";
+                if (_distanceJson != null && _speech.DistancePending(_distanceJson.val))
+                    text += "Full volume distance " + _distanceJson.val.ToString("0.0") + " m: applied as soon as the AI is not speaking\n";
+                else if (!string.IsNullOrEmpty(_speech.DistanceInfo)) text += _speech.DistanceInfo + "\n";
                 if (_speech.LastError != null && _speech.LastError != _speech.Status && _speech.LastErrorAge < 300f)
                     text += "<color=red>" + _speech.LastError + "</color> (" + _speech.LastErrorAge.ToString("0") + " s ago)\n";
             }
@@ -1026,7 +1041,7 @@ namespace AIBody
         /// <summary>Stops speech and returns every touched morph / bone to its original state.</summary>
         public void Restore()
         {
-            if (_speech != null) _speech.StopAll("stopped");
+            if (_speech != null) { _speech.StopAll("stopped"); _speech.RestoreDistance(); }   // Restore = plugin removed / disabled
             if (_expressions != null) _expressions.RestoreNow();
             if (_breathing != null) _breathing.RestoreNow();
             if (_idle != null) _idle.RestoreNow();

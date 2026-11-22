@@ -810,3 +810,13 @@ v46 wrote the head audio's "volume" / "minDistance" / "maxDistance" params befor
 7. Main menu > Open Scene: AI-Buddy of `d0n.AIBody.47` shows its thumbnail (two characters in T-pose on black).
 Report: companion.log and, if speech still fails, VaM's output_log.txt lines starting with `AIBody` (Verbose log on in tab Config for the `[audio]` lines).
 
+## T77 – Full volume distance (m) back, EasyMoan way (version 48, Leon 22.11.2026 12:58)
+
+Sound output: VaM plays on the Windows default output device that is active when VaM starts. With SteamVR / Oculus start the headset app first (or set the Windows sound output to the headset), then start VaM. companion.log shows `Windows default output device: ...` at start.
+1. Install v48 with the setup, start AIBody Companion, then VaM; load **AI-Buddy** from `d0n.AIBody.48`. Tab **Voice** > *Voice and sound*: **Speech volume (%)** 100, **Full volume distance (m)** 3 (default; range 0.3–10).
+2. Talk to the AI for a few turns: every answer is spoken (not only the test tone), like in v47. The left info field shows "Head audio: full volume within 3.0 m".
+3. Stand 1–2 m from the AI's head (VR or the desktop camera): clearly louder than v47 at the same distance (v47 kept the scene's 0.04 m).
+4. While the AI is speaking, move **Full volume distance (m)** to 1: the info field says "... applied as soon as the AI is not speaking"; the current sentence plays to the end and the next answers still start. After the speech it shows "full volume within 1.0 m" and the voice is quieter at 2 m. Set it back to 3 during a pause: applied at once.
+5. Save the scene, reload it: the slider keeps its value; config.json has `body.full_volume_distance`.
+6. Remove the AIBody plugin: the head audio's minDistance is the scene's value again (Client > Head audio, or save and look at `minDistance` 0.04).
+Report: companion.log and VaM's output_log.txt lines starting with `AIBody` (the line "Head audio of ... before AIBody: minDistance ...").

@@ -25,6 +25,21 @@ def _sounddevice():
         return None
 
 
+def default_output_device() -> str:
+    """Version 48 (Leon 22.11.2026 12:58), diagnostics only: the name of the Windows default OUTPUT device as PortAudio
+    reports it. The companion plays no sound itself (its WAVs are played by VaM's head audio), and VaM plays on the
+    Windows default output device that was active when VaM started; this line shows which one that is right now."""
+    sd = _sounddevice()
+    if sd is None:
+        return "unknown (sounddevice is not installed)"
+    try:
+        dev = sd.query_devices(kind="output")
+        name = dev.get("name") if isinstance(dev, dict) else None
+        return str(name) if name else "unknown"
+    except Exception as e:  # noqa: BLE001 - no output device, PortAudio errors: only a log line
+        return f"unknown ({e})"
+
+
 def _default_input(sd: Any) -> int:
     try:
         dev = sd.default.device

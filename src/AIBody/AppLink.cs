@@ -750,7 +750,9 @@ namespace AIBody
         public const string SpeechVolumeHelp = "<b>Speech volume (%)</b> 100 is the full volume of the character's head audio (0 to 1000, "
             + "default 100). Above 100 the companion app makes its speech and <b>Test tone via companion</b> louder by that factor (200 = "
             + "twice, 1000 = ten times; no limiter: very high values distort), and <b>Play test tone</b> plays a 2x copy from 150 and a "
-            + "3x copy from 250 (also above 300). A sound file cannot go above full scale, so above about 150 the voice mostly gets harsher, not louder.";
+            + "3x copy from 250 (also above 300). A sound file cannot go above full scale, so above about 150 the voice mostly gets harsher, not louder. "
+            + "<b>Full volume distance (m)</b>: up to this distance from the character's head the voice is at full volume, farther away "
+            + "VaM turns it down (default 3 m). A change is applied when the AI is not speaking.";
 
         private readonly JSONStorableString _modeHelpJson = new JSONStorableString("AI mode help",
             "With <b>AI mode</b> 'qa' your speech is turned into text, Grok answers and the character speaks (talking only); "

@@ -305,6 +305,20 @@
           ],
           "default": 1.0
         },
+        "full_volume_distance": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0.3,
+              "maximum": 10.0
+            },
+            {
+              "type": "string",
+              "pattern": "^\\s*-?[0-9]+(\\.[0-9]+)?([eE][-+]?[0-9]+)?\\s*$"
+            }
+          ],
+          "default": 3.0
+        },
         "body_control": {
           "anyOf": [
             {

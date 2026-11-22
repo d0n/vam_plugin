@@ -75,6 +75,7 @@ public class JSONStorable : MonoBehaviour
     public void RegisterColor(JSONStorableColor p) { }                // E32 (TemplateWithSamples L38, AmbientLightRig L131)
     public void SetColorParamValue(string n, HSVColor c) { }           // E32 (AmbientLightRig L214)
     public JSONStorableFloat GetFloatJSONParam(string n) { return null; }                 // E12
+    public void SetFloatParamValue(string n, float v) { }                                  // E38 (EasyMoan L1218-1219: head audio minDistance / maxDistance)
     public JSONStorableBool GetBoolJSONParam(string n) { return null; }                   // E12
     public JSONStorableString GetStringJSONParam(string n) { return null; }               // E13
     public JSONStorableStringChooser GetStringChooserJSONParam(string n) { return null; } // E13

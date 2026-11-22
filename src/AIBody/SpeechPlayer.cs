@@ -187,6 +187,93 @@ namespace AIBody
         /// <summary>What the head AudioSourceControl gets: the volume, at most 1.</summary>
         public float HeadVolume { get { return Mathf.Min(_volume, 1f); } }
 
+        // ---------------------------------------------------------------- full volume distance (version 48, Leon 22.11.2026 12:58)
+        // EasyMoan's pattern (docs/API_AUDIT.md E38, EasyMoan.cs L1215-1219): only "minDistance" (and "maxDistance" 500 when it is
+        // smaller) through SetFloatParamValue, only when the wanted value differs from the applied one, and only while nothing plays
+        // or waits (otherwise it waits until then). Driven by Body.Update alone: never in Resolve, the Volume setter, Play or
+        // PlayNow (v46 wrote volume / minDistance / maxDistance before every clip and clips stopped starting). The volume param is never
+        // written; the head volume stays _control.volume = HeadVolume as in v45. The scene's values are kept once and put back
+        // only when the plugin is removed or disabled (RestoreDistance).
+
+        public const float DefaultFullVolumeDistance = 3f;   // Leon 12:58: 3 m
+        public const float MinFullVolumeDistance = 0.3f;     // EasyMoan's range 0.3..10
+        public const float MaxFullVolumeDistance = 10f;
+        public const float FarDistance = 500f;               // EasyMoan: maxDistance 500
+
+        private float _appliedDistance = -1f;   // -1: not applied yet (or put back)
+        private bool _distanceSaved;
+        private float _savedMinDistance = -1f;
+        private float _savedMaxDistance = -1f;
+        private bool _distanceWarned;
+
+        /// <summary>One line for the left info field (empty until applied).</summary>
+        public string DistanceInfo { get; private set; }
+
+        /// <summary>True when no clip plays and none waits: the only time the distance is written.</summary>
+        public bool Idle { get { return _current == null && _queue.Count == 0; } }
+
+        /// <summary>A distance change that waits for the head audio or for the speech to end.</summary>
+        public bool DistancePending(float wanted)
+        {
+            return Math.Abs(ClampDistance(wanted) - _appliedDistance) > 0.001f;
+        }
+
+        public static float ClampDistance(float meters)
+        {
+            return Math.Max(MinFullVolumeDistance, Math.Min(meters, MaxFullVolumeDistance));
+        }
+
+        /// <summary>Called from Body.Update only. Writes minDistance (+ maxDistance 500 if smaller) when the value changed, the
+        /// head audio is found and nothing plays or waits; otherwise it does nothing and is asked again next frame.</summary>
+        public void UpdateDistance(float wanted)
+        {
+            if (_storable == null || _audio == null) return;   // head audio not found yet (Resolve keeps trying)
+            float d = ClampDistance(wanted);
+            if (!DistancePending(d)) return;
+            if (!Idle) return;                                  // deferred: never around a clip
+            _appliedDistance = d;                               // also on failure: no retry every frame
+            try
+            {
+                if (!_distanceSaved)
+                {
+                    JSONStorableFloat min = _storable.GetFloatJSONParam("minDistance");
+                    JSONStorableFloat max = _storable.GetFloatJSONParam("maxDistance");
+                    _savedMinDistance = min != null ? min.val : -1f;
+                    _savedMaxDistance = max != null ? max.val : -1f;
+                    _distanceSaved = true;
+                    Log.Info("Head audio of '" + _atom.uid + "' before AIBody: minDistance " + _savedMinDistance.ToString("0.00")
+                        + " m, maxDistance " + _savedMaxDistance.ToString("0.0") + " m (put back when AIBody is removed).");
+                }
+                _storable.SetFloatParamValue("minDistance", d);
+                JSONStorableFloat far = _storable.GetFloatJSONParam("maxDistance");
+                if (far != null && far.val < FarDistance) _storable.SetFloatParamValue("maxDistance", FarDistance);
+                DistanceInfo = "Head audio: full volume within " + d.ToString("0.0") + " m";
+            }
+            catch (Exception e)
+            {
+                DistanceInfo = "Head audio distance could not be set: " + Diag.Describe(e);
+                if (!_distanceWarned) { _distanceWarned = true; Log.Error(DistanceInfo); }
+            }
+        }
+
+        /// <summary>Plugin removed or disabled: the scene's minDistance / maxDistance back.</summary>
+        public void RestoreDistance()
+        {
+            if (!_distanceSaved || _storable == null) return;
+            try
+            {
+                if (_savedMinDistance >= 0f) _storable.SetFloatParamValue("minDistance", _savedMinDistance);
+                if (_savedMaxDistance >= 0f) _storable.SetFloatParamValue("maxDistance", _savedMaxDistance);
+            }
+            catch (Exception e)
+            {
+                Log.Error("Putting the head audio distance back failed: " + Diag.Describe(e));
+            }
+            _distanceSaved = false;
+            _appliedDistance = -1f;
+            DistanceInfo = null;
+        }
+
         public float Volume
         {
             get { return _volume; }

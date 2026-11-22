@@ -67,6 +67,13 @@ def build_stack(cfg: Config, use_mic: bool = True) -> Companion:
     companion = Companion(cfg, build_transport(cfg), gate=EchoGate(), mic=mic, engines=engines,
                           background_turns=True, voices=catalog)
     log.info("Mode: %s -> %s (%s)", companion.mode_requested, companion.active_mode, companion.mode_note)
+    try:  # version 48: diagnostics only, the companion selects no device
+        from .audio.capture import default_output_device
+        log.info("Windows default output device: %s (VaM plays on the default output device that was active when VaM "
+                 "started; with SteamVR / Oculus start the headset app first or set its audio to the headset, then VaM)",
+                 default_output_device())
+    except Exception as e:  # noqa: BLE001 - never stops the start
+        log.info("Windows default output device: unknown (%s)", e)
     log.info("Audio folder: %s%s", cfg.audio_rel_dir,
              " (automatic; switches once to Saves/PluginData if VaM cannot load from there)"
              if cfg.audio_auto else " (connection.paths.audio)")

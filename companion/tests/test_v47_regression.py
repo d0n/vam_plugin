@@ -5,7 +5,8 @@ same WAV bytes (only a level log was added), the percent slider maps 100 % to th
 playback changed in one place: SpeechPlayer.ApplyHeadAudio wrote the head AudioSourceControl's storable params
 "volume", "minDistance" (2 m) and "maxDistance" (500) when the head audio was found, on every volume change and
 before EVERY clip (Play), and the scene's HeadAudioSource minDistance went 0.04 -> 2. v47 goes back to v45 there:
-only _control.volume = HeadVolume, no distance params, scene minDistance 0.04, no "Full volume distance (m)" slider.
+only _control.volume = HeadVolume, no distance params, scene minDistance 0.04, no "Full volume distance (m)" slider
+(version 48 brings the slider back the EasyMoan way, outside the playback path: test_version48.py).
 Plus the two small items of the same test: no Breath morph / Breath1 boxes, the scene thumbnail always in the VAR."""
 from __future__ import annotations
 
@@ -35,11 +36,10 @@ def git_show(rev_path: str) -> str | None:
 
 class HeadAudioLikeV45Tests(TestCase):
     def test_player_writes_no_head_audio_params(self):
+        # version 48 brought a distance setting back (test_version48.py), but outside the v45 playback path
         sp = source("SpeechPlayer.cs")
-        for gone in ('GetFloatJSONParam("volume")', 'GetFloatJSONParam("minDistance")', 'GetFloatJSONParam("maxDistance")',
-                     "ApplyHeadAudio", "RestoreHeadAudio", "FullVolumeDistance", "minDistance =", "maxDistance ="):
+        for gone in ("ApplyHeadAudio", "RestoreHeadAudio", 'GetFloatJSONParam("volume")', 'SetFloatParamValue("volume"'):
             self.assertNotIn(gone, sp)
-        self.assertNotIn("RestoreHeadAudio", source("Body.cs"))
 
     def test_volume_is_set_exactly_like_v45(self):
         sp = source("SpeechPlayer.cs")
@@ -49,18 +49,15 @@ class HeadAudioLikeV45Tests(TestCase):
         self.assertIn("if (_control != null) _control.volume = HeadVolume;", sp)
         self.assertIn("public float HeadVolume { get { return Mathf.Min(_volume, 1f); } }", sp)
 
-    def test_speech_player_equals_v45_except_the_volume_range(self):
+    def test_v45_playback_functions_unchanged(self):
         old = git_show("169940c:src/AIBody/SpeechPlayer.cs")
         if old is None:
             self.skipTest("no git history")
         new = source("SpeechPlayer.cs")
-        old_lines = [l for l in old.splitlines() if l.strip()]
-        new_lines = [l for l in new.splitlines() if l.strip()]
-        added = [l for l in new_lines if l not in old_lines]
-        removed = [l for l in old_lines if l not in new_lines]
-        code_added = [l for l in added if not l.strip().startswith("//")]
-        self.assertEqual(len(removed), 3, removed)   # MaxVolume 3f, its doc line, the old tab name in the error text
-        self.assertEqual(len(code_added), 2, code_added)   # MaxVolume 10f, the error text
+        for start, end in (("private bool Resolve()", "public bool IsSpeaking"),
+                           ("private void Play(Utterance u)", "/// <summary>\n        /// True once the clip's audio DATA"),
+                           ("public void Update(float deltaTime)", "/// <summary>\n        /// Readiness signal")):
+            self.assertEqual(old[old.index(start):old.index(end)], new[new.index(start):new.index(end)], start)
 
     def test_scene_head_audio_back_to_v45(self):
         scene = json.loads((ROOT / "examples" / "scenes" / "AI-Buddy.json").read_text(encoding="utf-8"))
@@ -68,17 +65,6 @@ class HeadAudioLikeV45Tests(TestCase):
         head = [s for s in ai["storables"] if s["id"] == "HeadAudioSource"][0]
         self.assertEqual(head["minDistance"], "0.04")
         self.assertEqual(head["spatialize"], "false")
-
-    def test_no_distance_slider_or_config_key(self):
-        body = source("Body.cs")
-        self.assertNotIn("Full volume distance", body)
-        self.assertNotIn("Full volume distance", source("AppLink.cs"))
-        self.assertNotIn("full_volume_distance", body)
-        self.assertNotIn("full_volume_distance", settings_file.DEFAULTS["body"])
-        # a config.json written by v46 still loads without a warning
-        data, errors = settings_file.validate({"body": {"speech_volume": 1.0, "full_volume_distance": 2.0}})
-        self.assertEqual(errors, [])
-        self.assertNotIn("full_volume_distance", data["body"])
 
     def test_percent_100_is_v45_factor_1(self):
         body = source("Body.cs")
