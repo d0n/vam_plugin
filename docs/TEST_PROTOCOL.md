@@ -787,7 +787,7 @@ Leon's v44 test (21:25): the v44 setup removed the old VAR, but `d0n.AIBody.44.v
 4. Start AIBody Companion **as administrator** (right-click > **Run as administrator**), then run the setup: on **Preparing to Install** it says **AIBody Companion is still running and could not be closed ... Nothing was changed.** and stops; AddonPackages unchanged. Quit the companion from the tray and run the setup again: it goes through.
 Report: the AddonPackages file list after each step and the lines `Package:`, `Remove older`, `Deleted`, `Stop AIBody Companion`, `Rolling back` of `%TEMP%\Setup Log <date> #<n>.txt`.
 
-## T75 – Speech loudness: Full volume distance and Speech volume (after v45, Leon 22.11.2026 04:02)
+## T75 – Speech loudness: Full volume distance and Speech volume (%) (version 46, Leon 22.11.2026 04:02-04:15)
 
 Cause of "too quiet / much quieter away from the head": VaM's head audio is a 3D sound that is turned down beyond its minimum distance (Unity's logarithmic rolloff), and a sound file cannot go above full scale, so Speech volume above about 150 % mostly adds distortion.
 1. Load AI-Buddy, open tab **Voice** > *Voice and sound*: **Speech volume (%)** goes from 0 to 300, default 100 (an older scene saved with Speech volume 1 shows 100, not 1). Below it there is **Full volume distance (m)**, default 2. The left field shows a line `Head audio: volume 1.00, full volume within 2.0 m`.
