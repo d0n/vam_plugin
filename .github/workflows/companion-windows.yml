@@ -10,6 +10,7 @@ name: Companion Windows installer
 # that an older installed version is reported as an update, and that the VAR is uploaded with the installer.
 # After v44 (Leon 21:25): a failed install (companion file locked, /NOCLOSEAPPLICATIONS) keeps the older package; the
 # next run copies the new one first and removes the older ones after that.
+# Version 49 (Dollmaster tab): the VAR also packs assets/dollmaster, so changes there trigger the build too.
 on:
   workflow_dispatch:
   push:
@@ -19,6 +20,7 @@ on:
       - "packaging/**"
       - "src/**"
       - "examples/scenes/**"
+      - "assets/dollmaster/**"
       - "tools/build_var.py"
       - "tools/assemble_plugins.py"
       - "tools/sandbox_rules.py"
