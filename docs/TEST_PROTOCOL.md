@@ -786,3 +786,15 @@ Leon's v44 test (21:25): the v44 setup removed the old VAR, but `d0n.AIBody.44.v
 3. Put `d0n.AIBody.42.var` back, run the setup again and press **Cancel** on the page **Installing** while files are copied (or on the progress page as early as you can): `d0n.AIBody.42.var` is still there (with v44 it was gone and no package was left).
 4. Start AIBody Companion **as administrator** (right-click > **Run as administrator**), then run the setup: on **Preparing to Install** it says **AIBody Companion is still running and could not be closed ... Nothing was changed.** and stops; AddonPackages unchanged. Quit the companion from the tray and run the setup again: it goes through.
 Report: the AddonPackages file list after each step and the lines `Package:`, `Remove older`, `Deleted`, `Stop AIBody Companion`, `Rolling back` of `%TEMP%\Setup Log <date> #<n>.txt`.
+
+## T75 – Speech loudness: Full volume distance and Speech volume (after v45, Leon 22.11.2026 04:02)
+
+Cause of "too quiet / much quieter away from the head": VaM's head audio is a 3D sound that is turned down beyond its minimum distance (Unity's logarithmic rolloff), and a sound file cannot go above full scale, so Speech volume above about 150 % mostly adds distortion.
+1. Load AI-Buddy, open tab **Voice** > *Voice and sound*: **Speech volume (%)** goes from 0 to 300, default 100 (an older scene saved with Speech volume 1 shows 100, not 1). Below it there is **Full volume distance (m)**, default 2. The left field shows a line `Head audio: volume 1.00, full volume within 2.0 m`.
+2. Desktop, normal camera distance (about 1.5-2.5 m from the face), Speech volume (%) 100: let the AI talk. The voice is clearly audible, much louder than with the previous version at the same distance.
+3. Move the camera to about 4 m: quieter, but still audible. Raise **Full volume distance (m)** to 5: the voice is at full volume again there. Lower it to 0.3: the old behaviour (loud only right at the head).
+4. Headset: stand about 0.5 m in front of the character: full volume. Compare with a Steam game at the same Windows volume and note the difference.
+5. Speech volume (%) 100, 200, 300 at the same place: companion.log shows `Speech volume 200 % (factor 2.00): ...` and `Speech level: peak ... dBFS before the gain, gain x2.00 -> ..., ...% of the samples cut at full scale` once per change. If it says the file is at its limit, higher values only make the voice harsher.
+6. Remove the plugin (or disable it): the head audio's distance goes back to what the scene had (VaM log: `Head audio of 'AI' before AIBody: volume ..., minDistance ... m, maxDistance ... m` shows the values it restores).
+Report: from which distance the voice gets too quiet with the default 2 m, the `Head audio of ...` and `Speech level:` lines, and whether anything sounds distorted at 100 %. **Play test tone** at 200 % and 300 % plays the 2x / 3x copy (switch points 150 % and 250 %).
+

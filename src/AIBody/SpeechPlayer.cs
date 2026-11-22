@@ -151,7 +151,7 @@ namespace AIBody
                 _audio = _control != null ? _control.audioSource : null;
                 if (_audio != null)
                 {
-                    _control.volume = HeadVolume;
+                    ApplyHeadAudio();
                     LookupError = null;
                     if (_warned) Log.Info("HeadAudioSource found; speech output enabled.");
                     Log.Debug("[audio] head audio of '" + _atom.uid + "': HeadAudioSource found, " + SourceState());
@@ -188,8 +188,102 @@ namespace AIBody
             set
             {
                 _volume = Mathf.Max(0f, Mathf.Min(value, MaxVolume));
-                if (_control != null) _control.volume = HeadVolume;
+                ApplyHeadAudio();
             }
+        }
+
+        // ---------------------------------------------------------------- head audio distance (after v45, Leon 22.11.2026 04:02)
+        // VaM's head audio is a 3D sound: beyond its "minDistance" Unity turns it down with the distance (logarithmic
+        // rolloff: minDistance / distance). With VaM's default the voice was loud only right at the face and far quieter at a
+        // normal desktop camera distance; no sample gain can make up for that (a WAV cannot go above full scale). The plugin
+        // now sets the head audio's own storable params "minDistance" (full volume up to this distance) and "maxDistance"
+        // (as EasyMoan and VAMMoan do, docs/API_AUDIT.md E37) and puts the scene's values back when it is removed or disabled.
+        // The sound stays 3D (direction, lip sync); spatialBlend / rolloff mode are not touched (no evidenced param).
+
+        /// <summary>Default of the slider "Full volume distance (m)": a desktop camera is about 1-2 m from the face.</summary>
+        public const float DefaultFullVolumeDistance = 2f;
+        public const float MinFullVolumeDistance = 0.3f;    // EasyMoan's range 0.3..10
+        public const float MaxFullVolumeDistance = 10f;
+        /// <summary>maxDistance while AIBody runs: only the logarithmic curve matters, no cut-off nearby (EasyMoan: 500).</summary>
+        public const float FarDistance = 500f;
+
+        private float _fullVolumeDistance = DefaultFullVolumeDistance;
+        private JSONStorableFloat _volumeParam;
+        private JSONStorableFloat _minDistanceParam;
+        private JSONStorableFloat _maxDistanceParam;
+        private bool _headAudioSaved;
+        private float _savedVolume;
+        private float _savedMinDistance;
+        private float _savedMaxDistance;
+
+        /// <summary>One status line: what the head audio uses now (empty until it was found).</summary>
+        public string HeadAudioInfo { get; private set; }
+
+        /// <summary>Full volume up to this distance from the head (m); beyond it the voice gets quieter with the distance.</summary>
+        public float FullVolumeDistance
+        {
+            get { return _fullVolumeDistance; }
+            set
+            {
+                _fullVolumeDistance = Mathf.Max(MinFullVolumeDistance, Mathf.Min(value, MaxFullVolumeDistance));
+                ApplyHeadAudio();
+            }
+        }
+
+        /// <summary>Volume (at most 1), minDistance and maxDistance onto the head audio; the scene's values are kept once
+        /// for RestoreHeadAudio. Called when found, on every change and before every clip (a scene or plugin may reset them).</summary>
+        private void ApplyHeadAudio()
+        {
+            if (_control == null) return;
+            try
+            {
+                if (!_headAudioSaved)
+                {
+                    if (_storable != null)
+                    {
+                        _volumeParam = _storable.GetFloatJSONParam("volume");
+                        _minDistanceParam = _storable.GetFloatJSONParam("minDistance");
+                        _maxDistanceParam = _storable.GetFloatJSONParam("maxDistance");
+                    }
+                    _savedVolume = _volumeParam != null ? _volumeParam.val : _control.volume;
+                    _savedMinDistance = _minDistanceParam != null ? _minDistanceParam.val : -1f;
+                    _savedMaxDistance = _maxDistanceParam != null ? _maxDistanceParam.val : -1f;
+                    _headAudioSaved = true;
+                    Log.Info("Head audio of '" + _atom.uid + "' before AIBody: volume " + _savedVolume.ToString("0.00")
+                        + (_minDistanceParam != null ? ", minDistance " + _savedMinDistance.ToString("0.00") + " m" : ", no minDistance param")
+                        + (_maxDistanceParam != null ? ", maxDistance " + _savedMaxDistance.ToString("0.0") + " m" : ", no maxDistance param") + ".");
+                }
+                float v = HeadVolume;
+                if (_volumeParam != null) _volumeParam.val = v;
+                _control.volume = v;
+                if (_minDistanceParam != null) _minDistanceParam.val = _fullVolumeDistance;
+                if (_maxDistanceParam != null && _maxDistanceParam.val < FarDistance) _maxDistanceParam.val = FarDistance;
+                HeadAudioInfo = "Head audio: volume " + v.ToString("0.00")
+                    + (_minDistanceParam != null ? ", full volume within " + _minDistanceParam.val.ToString("0.0") + " m" : ", distance not adjustable here")
+                    + (_volume > 1f ? ", companion gain x" + _volume.ToString("0.00") : "");
+            }
+            catch (Exception e)
+            {
+                HeadAudioInfo = "Head audio settings failed: " + Diag.Describe(e);
+            }
+        }
+
+        /// <summary>Puts the head audio's volume and distances back to what the scene had before AIBody.</summary>
+        public void RestoreHeadAudio()
+        {
+            if (!_headAudioSaved) return;
+            try
+            {
+                if (_volumeParam != null) _volumeParam.val = _savedVolume;
+                if (_control != null) _control.volume = _savedVolume;
+                if (_minDistanceParam != null && _savedMinDistance >= 0f) _minDistanceParam.val = _savedMinDistance;
+                if (_maxDistanceParam != null && _savedMaxDistance >= 0f) _maxDistanceParam.val = _savedMaxDistance;
+            }
+            catch (Exception e)
+            {
+                Log.Error("Restoring the head audio settings failed: " + Diag.Describe(e));
+            }
+            _headAudioSaved = false;
         }
 
         /// <summary>
@@ -337,7 +431,7 @@ namespace AIBody
         {
             _current = u;
             u.PreviousClip = _audio.clip;
-            _control.volume = HeadVolume;
+            ApplyHeadAudio();
             Status = "Loading: " + FileName(u.Path) + (_volume < 0.01f ? " (note: Speech volume is 0)" : "");
             if (ClipReady(u, 0f)) PlayNow(u);   // else Track() calls it the frame the clip data has loaded
         }
@@ -478,7 +572,7 @@ namespace AIBody
                     SetError("The audio did not start playing within " + StartTimeout.ToString("0") + " s (" + u.Plays
                         + " play calls): " + u.Path + ". " + (u.Plays == 0 ? "Its audio data never finished loading. " : "")
                         + "Check that it is a valid WAV, that the character's head audio is not muted or blocked, that VaM's "
-                        + "Freeze Motion/Sound is off, and that Speech volume (tab AI Character) is above 0. Switch on Verbose log "
+                        + "Freeze Motion/Sound is off, and that Speech volume (%) (tab Voice) is above 0. Switch on Verbose log "
                         + "(tab Config) for the [audio] lines. (" + SourceState() + "; " + ClipState(u.Clip) + ".)");
                     Fire(OnError, u.Id, "did not start playing within " + StartTimeout.ToString("0") + " s: " + u.Path);
                     Finish("failed");

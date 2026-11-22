@@ -921,7 +921,7 @@ class Companion:
         before = tts_module.output_gain()
         gain = tts_module.set_output_gain(value)
         if gain != before:
-            log.info("Speech volume %.2f: speech WAVs %s", value,
+            log.info("Speech volume %.0f %% (factor %.2f): speech WAVs %s", value * 100, value,
                      f"x{gain:.2f} (linear gain)" if gain > 1.0 else "unchanged (the plugin's head audio sets the volume)")
         return []
 

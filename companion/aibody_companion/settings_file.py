@@ -8,7 +8,7 @@ README.md section 4. Categories (kept from the first schema; they no longer matc
               audio} (file only)
   engines     stt, llm, tts (tab Voice > AI Character)
   mic         microphone + push-to-talk settings (tab Client Character; audio/mic_settings.py)
-  body        speech_volume, body_control, idle_motion, idle_intensity, breathing,
+  body        speech_volume, full_volume_distance, body_control, idle_motion, idle_intensity, breathing,
               breaths_per_minute, breath_depth, breath_morph, idle_poses, idle_pose_min_s, idle_pose_max_s, idle_pose_default
               (tab AI Character)
   advanced    file_poll_interval_s (slider "Companion inbox poll interval (s)": how often the
@@ -103,6 +103,8 @@ DEFAULTS: dict[str, dict[str, Any]] = {
     "mic": MicSettings().to_dict(),
     "body": {
         "speech_volume": 1.0,
+        # after v45: the plugin sets its head audio minDistance to this (full volume up to here, 3D rolloff beyond)
+        "full_volume_distance": 2.0,
         "body_control": True,  # false = speech only, expressions / gestures / poses are ignored
         "idle_motion": True,
         "idle_intensity": 0.5,
@@ -263,6 +265,7 @@ RANGES: dict[tuple[str, str], tuple[float, float]] = {
     ("remote", "http_port"): (1024, 65535),
     ("remote", "osc_port"): (0, 65535),
     ("body", "speech_volume"): (0.0, 3.0),  # version 44: above 1 the companion boosts its WAVs (pipeline/tts.py)
+    ("body", "full_volume_distance"): (0.3, 10.0),  # after v45: the plugin's head audio minDistance (m)
     ("body", "idle_intensity"): (0.0, 1.0),
     ("body", "breaths_per_minute"): (4.0, 40.0),
     ("body", "breath_depth"): (0.0, 1.0),

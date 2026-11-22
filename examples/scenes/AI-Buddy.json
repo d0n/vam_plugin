@@ -1456,7 +1456,7 @@
             {
                "id": "HeadAudioSource",
                "spatialize": "false",
-               "minDistance": "0.04",
+               "minDistance": "2",
                "volumeTriggerQuickness": "20",
                "volumeTriggerMultiplier": "0"
             },

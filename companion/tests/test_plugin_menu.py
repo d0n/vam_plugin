@@ -243,7 +243,7 @@ class PlainEnglishTextTests(unittest.TestCase):
     def test_plugin_audio_errors_say_what_to_check(self):
         player = source("SpeechPlayer.cs")
         for part in ("The audio did not start playing within ", "Check that it is a valid WAV",
-                     "Speech volume (tab AI Character) is above 0", "the character's head audio is not muted or blocked",
+                     "Speech volume (%) (tab Voice) is above 0", "the character's head audio is not muted or blocked",
                      "make sure its --vam-root is the VaM folder you start VaM from",
                      "VaM would not load the audio file", "Press 'Play test tone' again",
                      "The character cannot speak yet", "Add AIBody to a Person atom"):

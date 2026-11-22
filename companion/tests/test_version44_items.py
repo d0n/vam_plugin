@@ -103,7 +103,9 @@ class VolumeTests(TestCase):
 
     def test_plugin_slider_head_volume_and_config_event(self):
         body = (SRC / "Body.cs").read_text(encoding="utf-8")
-        self.assertIn('new JSONStorableFloat("Speech volume", 1f, (float v) => SetSpeechVolume(v), 0f, 3f);', body)
+        # 22.11.2026 (Leon 04:15): percent slider 0..300; the factor storable stays (no slider) for saved scenes
+        self.assertIn('new JSONStorableFloat("Speech volume (%)", 100f, (float v) => SetSpeechVolume(v), 0f, VolumePercentMax);', body)
+        self.assertIn('new JSONStorableFloat("Speech volume", 1f, (float v) => SetLegacySpeechVolume(v), 0f, 3f);', body)
         self.assertIn("folder + \"/\" + TestToneFileFor(SpeechVolume)", body)
         self.assertIn('if (volume >= 2.5f) return "AIBodyTest3.wav";', body)
         self.assertIn('if (volume >= 1.5f) return "AIBodyTest2.wav";', body)
@@ -114,7 +116,7 @@ class VolumeTests(TestCase):
         main = (SRC / "AIBody.cs").read_text(encoding="utf-8")
         self.assertIn('body["speech_volume"].AsFloat = _body.SpeechVolume;', main)
         self.assertIn('evt["body"] = body;', main)
-        self.assertIn("<b>Speech volume</b> 1 is the full volume", (SRC / "AppLink.cs").read_text(encoding="utf-8"))
+        self.assertIn("<b>Speech volume (%)</b> 100 is the full volume", (SRC / "AppLink.cs").read_text(encoding="utf-8"))
 
     def test_louder_test_tone_copies_use_the_same_linear_gain(self):
         bv = build_var_module()

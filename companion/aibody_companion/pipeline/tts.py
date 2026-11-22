@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import array
 import io
+import logging
 import math
 import sys
 import struct
@@ -18,6 +19,8 @@ from pathlib import Path
 from typing import Protocol
 
 from ..atomicfile import atomic_write_bytes
+
+log = logging.getLogger(__name__)
 
 
 class TextToSpeech(Protocol):
@@ -113,6 +116,42 @@ def apply_gain(pcm16: bytes, gain: float | None = None) -> bytes:
 
 LAST_WRITE_S = {"s": 0.0}  # how long the last WAV write took (latency breakdown "file write")
 
+# After v45 (Leon 22.11.2026 04:02, "Speech volume 3 made no noticeable difference"): the first speech WAV, and the first
+# after every gain change, is measured and logged (INFO): its peak before the gain and how many samples the gain cuts at
+# full scale. A voice that already peaks near 0 dBFS cannot get much louder in the file; the log shows that plainly.
+_LEVEL = {"logged_gain": None}
+
+
+def level_report(pcm16: bytes, gain: float) -> dict:
+    """Peak (dBFS, before the gain), peak after the gain and the share of samples cut at full scale by the gain."""
+    samples = array.array("h")
+    samples.frombytes(pcm16[: len(pcm16) - len(pcm16) % 2])
+    if sys.byteorder != "little":
+        samples.byteswap()
+    if not samples:
+        return {"peak_dbfs": None, "gained_peak_dbfs": None, "clipped": 0.0}
+    peak = max(max(samples), -min(samples), 1)
+    clipped = 0.0
+    if gain > 1.0:
+        limit = 32767.0 / gain
+        clipped = sum(1 for v in samples if v > limit or v < -limit - 1) / len(samples)
+    return {"peak_dbfs": round(20 * math.log10(peak / 32768.0), 1),
+            "gained_peak_dbfs": round(20 * math.log10(min(32768.0, peak * gain) / 32768.0), 1),
+            "clipped": clipped}
+
+
+def log_level_once(pcm16: bytes) -> None:
+    gain = _OUTPUT["gain"]
+    if _LEVEL["logged_gain"] == gain:
+        return
+    _LEVEL["logged_gain"] = gain
+    r = level_report(pcm16, gain)
+    if r["peak_dbfs"] is None:
+        return
+    log.info("Speech level: peak %.1f dBFS before the gain, gain x%.2f -> peak %.1f dBFS, %.1f%% of the samples cut at "
+             "full scale%s", r["peak_dbfs"], gain, r["gained_peak_dbfs"], 100 * r["clipped"],
+             " (the file is at its limit: higher Speech volume only adds distortion)" if r["clipped"] > 0.01 else "")
+
 
 def write_pcm_wav(pcm16: bytes, sample_rate: int, out_path: Path, channels: int = 1) -> float:
     """Wraps raw signed 16-bit little-endian PCM in a WAV file (with the output gain); returns its duration."""
@@ -121,6 +160,7 @@ def write_pcm_wav(pcm16: bytes, sample_rate: int, out_path: Path, channels: int 
         pcm16 = pcm16[: len(pcm16) - len(pcm16) % (2 * channels)]
     if not pcm16:
         raise ValueError("no audio data")
+    log_level_once(pcm16)
     pcm16 = apply_gain(pcm16)
     buf = io.BytesIO()
     with wave.open(buf, "wb") as w:

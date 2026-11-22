@@ -19,7 +19,10 @@ namespace AIBody
         private readonly Action<JSONClass> _send;
         private readonly Diag _diag;
 
-        private JSONStorableFloat _volumeJson;
+        private JSONStorableFloat _volumeJson;         // "Speech volume (%)" 0..300 (Leon 22.11.2026 04:15); the factor is _volumeJson.val / 100
+        private JSONStorableFloat _legacyVolumeJson;   // "Speech volume" 0..3 (factor, up to v45): no slider, kept for saved scenes
+        private bool _syncingVolume;
+        private JSONStorableFloat _distanceJson;   // after v45: head audio minDistance (SpeechPlayer.FullVolumeDistance)
         private JSONStorableBool _idleJson;
         private JSONStorableFloat _idleIntensityJson;
         private JSONStorableBool _breathingJson;
@@ -50,8 +53,9 @@ namespace AIBody
         public const string TestToneFile = "AIBodyTest.wav";
 
         /// <summary>Version 44: louder copies of the bundled tone for Speech volume above 1 (tools/build_var.py writes them
-        /// with the same plain linear gain as the companion's speech, no limiter): 2x and 3x. Volume below 1.5 plays the normal tone (head audio at the
-        /// volume), 1.5 to 2.5 the 2x copy, from 2.5 the 3x copy (both at full head volume).</summary>
+        /// with the same plain linear gain as the companion's speech, no limiter): 2x and 3x. Takes the factor (percent / 100):
+        /// below 150 % the normal tone (head audio at the volume), 150 to 250 % the 2x copy, from 250 % the 3x copy (both at full
+        /// head volume), i.e. 200 % = 2x and 300 % = 3x.</summary>
         public static string TestToneFileFor(float volume)
         {
             if (volume >= 2.5f) return "AIBodyTest3.wav";
@@ -59,14 +63,39 @@ namespace AIBody
             return TestToneFile;
         }
 
-        private void SetSpeechVolume(float v)
+        /// <summary>Speech volume in percent (0..300, default 100) = the factor 0..3 the companion, config.json and the config
+        /// event keep using (Leon 22.11.2026 04:15).</summary>
+        public const float VolumePercentMax = 300f;
+        public const string SpeechVolumeLabel = "Speech volume (%)";
+
+        private void SetSpeechVolume(float percent)
         {
-            if (_speech != null) _speech.Volume = v;
+            if (!_syncingVolume && _legacyVolumeJson != null)
+            {
+                _syncingVolume = true;   // keeps the old factor storable equal (no valNoCallback, docs/API_AUDIT.md)
+                _legacyVolumeJson.val = percent / 100f;
+                _syncingVolume = false;
+            }
+            if (_speech != null) _speech.Volume = percent / 100f;
             if (OnSettingsChanged != null) OnSettingsChanged();   // the companion learns it from the config event "body"
         }
 
-        /// <summary>Speech volume (0 to 3), sent to the companion in the config event "body".</summary>
-        public float SpeechVolume { get { return _volumeJson != null ? _volumeJson.val : 1f; } }
+        /// <summary>A scene saved up to v45 has the factor in "Speech volume" (e.g. 1.0): shown as percent (100), not 1 %.</summary>
+        private void SetLegacySpeechVolume(float factor)
+        {
+            if (_syncingVolume || _volumeJson == null) return;
+            _syncingVolume = true;
+            _volumeJson.val = PercentFromFactor(factor);
+            _syncingVolume = false;
+        }
+
+        public static float PercentFromFactor(float factor)
+        {
+            return Math.Max(0f, Math.Min(factor, VolumePercentMax / 100f)) * 100f;
+        }
+
+        /// <summary>Speech volume as the factor 0..3, sent to the companion in the config event "body".</summary>
+        public float SpeechVolume { get { return _volumeJson != null ? _volumeJson.val / 100f : 1f; } }
 
         /// <summary>Folder of AIBody.cslist ("d0n.AIBody.8:/Custom/Scripts/d0n/AIBody"); set by the plugin.</summary>
         public Func<string> PluginFolder;
@@ -197,8 +226,16 @@ namespace AIBody
             });
             SettingsDefaults.Bool(_plugin, _bodyControlJson);
             // Version 44: up to 3 (above 1 the companion makes its speech louder; it learns the value from the config event "body").
-            _volumeJson = new JSONStorableFloat("Speech volume", 1f, (float v) => SetSpeechVolume(v), 0f, 3f);
+            // 22.11.2026 (Leon 04:15): percent 0..300, default 100; the old factor storable stays registered (no slider) so a
+            // scene saved with "Speech volume": 1.0 loads as 100 %.
+            _volumeJson = new JSONStorableFloat("Speech volume (%)", 100f, (float v) => SetSpeechVolume(v), 0f, VolumePercentMax);
             SettingsDefaults.Float(_plugin, _volumeJson);
+            _legacyVolumeJson = new JSONStorableFloat("Speech volume", 1f, (float v) => SetLegacySpeechVolume(v), 0f, 3f);
+            SettingsDefaults.Float(_plugin, _legacyVolumeJson);
+            // After v45 (Leon 22.11.2026 04:02: much quieter away from the head): full volume up to this distance.
+            _distanceJson = new JSONStorableFloat("Full volume distance (m)", SpeechPlayer.DefaultFullVolumeDistance,
+                (float v) => { if (_speech != null) _speech.FullVolumeDistance = v; }, SpeechPlayer.MinFullVolumeDistance, SpeechPlayer.MaxFullVolumeDistance);
+            SettingsDefaults.Float(_plugin, _distanceJson);
             _idleJson = new JSONStorableBool("Idle head motion", true, (bool v) => { if (_idle != null) _idle.Enabled = v; });
             SettingsDefaults.Bool(_plugin, _idleJson);
             _idleIntensityJson = new JSONStorableFloat("Idle intensity", 0.5f, (float v) => { if (_idle != null) _idle.Intensity = v; }, 0f, 1f);
@@ -261,7 +298,8 @@ namespace AIBody
                 {
                     if (!IsLocal(id)) _send(Protocol.NewError(id, "audio_failed", message));
                 };
-                speech.Volume = _volumeJson != null ? _volumeJson.val : 1f;
+                speech.Volume = SpeechVolume;
+                speech.FullVolumeDistance = _distanceJson != null ? _distanceJson.val : SpeechPlayer.DefaultFullVolumeDistance;
                 _speech = speech;
             });
             if (_morphs != null)
@@ -315,6 +353,7 @@ namespace AIBody
         public void BuildSoundSection(UiPage page)
         {
             page.Slider(_volumeJson);
+            page.Slider(_distanceJson);
             page.Button("Play test tone", () => { _testStatus = PlayTestTone(); });
             page.Button("Stop speaking", StopSpeaking);
         }
@@ -737,7 +776,8 @@ namespace AIBody
         {
             if (_volumeJson == null) return;
             JSONClass body = new JSONClass();
-            body["speech_volume"].AsFloat = _volumeJson.val;
+            body["speech_volume"].AsFloat = SpeechVolume;   // config.json keeps the factor 0..3
+            if (_distanceJson != null) body["full_volume_distance"].AsFloat = _distanceJson.val;
             body["body_control"].AsBool = BodyControl;
             body["idle_motion"].AsBool = _idleJson.val;
             body["idle_intensity"].AsFloat = _idleIntensityJson.val;
@@ -772,7 +812,8 @@ namespace AIBody
             if (Characters != null) Characters.ApplySettings(root);
             JSONClass body = root["body"] as JSONClass;
             if (body == null || _volumeJson == null) return;
-            _volumeJson.val = Protocol.GetFloat(body, "speech_volume", _volumeJson.val);
+            _volumeJson.val = PercentFromFactor(Protocol.GetFloat(body, "speech_volume", SpeechVolume));   // factor -> percent
+            if (_distanceJson != null) _distanceJson.val = Protocol.GetFloat(body, "full_volume_distance", _distanceJson.val);
             if (_bodyControlJson != null) _bodyControlJson.val = Protocol.GetBool(body, "body_control", _bodyControlJson.val);
             _idleJson.val = Protocol.GetBool(body, "idle_motion", _idleJson.val);
             _idleIntensityJson.val = Protocol.GetFloat(body, "idle_intensity", _idleIntensityJson.val);
@@ -978,8 +1019,9 @@ namespace AIBody
             if (_speech != null)
             {
                 text += "Speaking: " + (_speech.IsSpeaking ? "yes" : "no") + ", queued: " + _speech.QueueLength
-                    + (_volumeJson != null && _volumeJson.val < 0.01f ? " – Speech volume is 0!" : "") + "\n";
+                    + (_volumeJson != null && _volumeJson.val < 1f ? " – Speech volume is 0 %!" : "") + "\n";
                 text += "Audio: " + (_speech.Status ?? "nothing played yet") + "\n";
+                if (!string.IsNullOrEmpty(_speech.HeadAudioInfo)) text += _speech.HeadAudioInfo + "\n";
                 if (_speech.LastError != null && _speech.LastError != _speech.Status && _speech.LastErrorAge < 300f)
                     text += "<color=red>" + _speech.LastError + "</color> (" + _speech.LastErrorAge.ToString("0") + " s ago)\n";
             }
@@ -994,7 +1036,7 @@ namespace AIBody
         /// <summary>Stops speech and returns every touched morph / bone to its original state.</summary>
         public void Restore()
         {
-            if (_speech != null) _speech.StopAll("stopped");
+            if (_speech != null) { _speech.StopAll("stopped"); _speech.RestoreHeadAudio(); }
             if (_expressions != null) _expressions.RestoreNow();
             if (_breathing != null) _breathing.RestoreNow();
             if (_idle != null) _idle.RestoreNow();
