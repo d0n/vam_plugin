@@ -145,7 +145,9 @@ class ResetToDefaultTests(TestCase):
         registered = re.findall(r"Register(?:Bool|Float|String|StringChooser|Color)\((\w+)\)", self.all)
         self.assertEqual(sorted(registered), sorted(["_settingsInitJson", "_xaiKeyFileJson", "_elevenKeyFileJson",
                                                      "_aiSpeakingJson", "_userSpeakingJson", "_sceneEventJson",
-                                                     "_backgroundColorJson"]))
+                                                     "_backgroundColorJson",
+                                                     # tab Dollmaster: saved with the scene like the old plugin's settings
+                                                     "_dmActivateJson"]))
         self.assertIn("Defaults.TrackColor(BackgroundColorName, _backgroundColorJson.val);", self.plugin)
         wizard = source("CharacterWizard.cs")
         for name in ("_askedJson", "_wantedJson"):

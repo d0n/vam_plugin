@@ -83,7 +83,9 @@ namespace AIBody
 
         // Tab names: self-explanatory, never just "AI" / "Client" (Leon, 17.11.2026). The former tabs
         // AI, Post and Advanced are gone (docs/BACKLOG.md, removed menu entries).
-        private static readonly string[] Tabs = { "Voice", "AI Character", "Client Character", "Config" };
+        private static readonly string[] Tabs = { "Voice", "AI Character", "Client Character", "Dollmaster", "Config" };
+        /// <summary>Tab "Dollmaster" (22.11.2026, Leon): the ported Dollmaster, see DmPlugin.cs.</summary>
+        private const int DollmasterTab = 3;
         private string _configStatus = "";   // result of "Reload Config JSON", shown in the info field
         private UiPage _page;
         private int _tab = -1;
@@ -191,6 +193,7 @@ namespace AIBody
                 RegisterBool(_settingsInitJson);
             });
             _diag.Run("Background color", CreateBackground);
+            _diag.Run("Dollmaster Activate", CreateDollmasterStorable);
             if (_link != null) _diag.Run("AppLink.CreateStorables", _link.CreateStorables);
             if (_body != null)
             {
@@ -211,6 +214,7 @@ namespace AIBody
                     CreateButton(Tabs[i], true).button.onClick.AddListener(() => ShowTab(index));
                 }
             });
+            if (_targetWait <= 0f) _diag.Run("Dollmaster", CreateDollmaster);
             ShowTab(0);
 
             // 5. Start the link and run the self test.
@@ -296,6 +300,7 @@ namespace AIBody
             if (ai != null) _body.SetAtom(ai);
             else _diag.Warn("No Person named 'AI' found: the AI speaks and moves with '" + containingAtom.uid + "' itself.");
             CreateBodyControllers();
+            _diag.Run("Dollmaster", CreateDollmaster);
             _rebuildTabNextFrame = true;
         }
 
@@ -511,6 +516,7 @@ namespace AIBody
             catch (Exception e) { _diag.Fail("Switch tab (remove old controls)", e); }
             if (index != _tab) _resetPending = false;   // leaving the tab Config cancels a pending reset
             _tab = index;
+            ShowDollmasterMenu(index == DollmasterTab);
             try
             {
                 if (_link != null) _link.BuildFirstRunHint(_page);   // version 30: one short note while no xAI token exists
@@ -530,6 +536,8 @@ namespace AIBody
                         break;
                     case 2: // Client Character
                         if (_link != null) _link.BuildClientCharacterTab(_page);
+                        break;
+                    case DollmasterTab: // Dollmaster: its controls are made once (DmPlugin) and only shown here
                         break;
                     default: // Config (former Config + Advanced)
                         if (_link != null) _link.BuildConfigTab(_page, ReloadConfigJson);
@@ -724,6 +732,9 @@ namespace AIBody
                     case 2:
                         text = _link != null ? _link.ClientInfoText() : "";
                         break;
+                    case DollmasterTab:
+                        text = DollmasterInfoText();
+                        break;
                     default:
                         text = (_link != null ? "config.json: " + _link.SettingsPath + "\n" + _link.ChannelInfoText() + "\n" + _link.NetworkInfoText() + "\n"
                                 + _link.FilePollInfoText() + "\n" : "")
@@ -799,6 +810,7 @@ namespace AIBody
                 try { _body.Update(dt); }
                 catch (Exception e) { _bodyBroken = true; _diag.Fail("Body.Update (body stopped)", e); }
             }
+            if (_dm != null) _dm.Update();   // does nothing while Activate is off; catches its own errors
 
             try { UpdateSettings(dt); }
             catch (Exception e) { _settingsChecked = true; _diag.Fail("config.json", e); }
@@ -841,6 +853,13 @@ namespace AIBody
             }
         }
 
+        private void LateUpdate()
+        {
+            if (!_initialized || _dm == null) return;
+            try { _dm.LateUpdate(); }
+            catch (Exception e) { Log.Error("Dollmaster LateUpdate failed", e); }
+        }
+
         private bool UiVisible()
         {
             try { return UITransform != null && UITransform.gameObject.activeInHierarchy; }
@@ -872,6 +891,106 @@ namespace AIBody
         private void OnDestroy()
         {
             OnDisable();
+            try { if (_dm != null) _dm.OnDestroy(); }   // removes its helper atoms and its world panel
+            catch (Exception e) { Log.Error("OnDestroy: Dollmaster teardown failed", e); }
+        }
+
+        // ---------------------------------------------------------------- Dollmaster (22.11.2026, Leon)
+        // The old Dollmaster plugin (VAMDeluxe, MIT) ported into this plugin: tab "Dollmaster", checkbox "Activate"
+        // (off by default; off = nothing of it runs). It drives the AI character like the old plugin drove its Person.
+        // Ownership while it is active: Dollmaster owns the body (face expressions, breathing, head / eyes, poses,
+        // climax, kiss, clothes); AIBody keeps speech and lip sync and stops its own idle motion, breathing,
+        // expressions, gestures, idle poses and the AI's pose commands (as with Body control off). AIBody's speech
+        // owns the head audio: Dollmaster's voice clips wait while the AI speaks.
+
+        private JSONStorableBool _dmActivateJson;
+        private UIDynamicToggle _dmActivateToggle;
+        private DmPlugin _dm;
+        private bool _sceneRestored;
+        private JSONClass _restoredJson;
+
+        public const string DollmasterActivateName = "Activate";
+
+        private void CreateDollmasterStorable()
+        {
+            _dmActivateJson = new JSONStorableBool(DollmasterActivateName, false, (bool v) =>
+            {
+                if (_dm != null) _dm.SetActive(v);
+                _rebuildTabNextFrame = true;
+            });
+            RegisterBool(_dmActivateJson);   // saved with the scene, like Dollmaster's own settings
+        }
+
+        private void CreateDollmaster()
+        {
+            if (_dm != null || _body == null || _dmActivateJson == null) return;
+            Atom person = _body.Atom;
+            if (person == null || person.type != "Person")
+            {
+                _diag.Warn("Dollmaster: no Person for it (needs the AI character).");
+                return;
+            }
+            string folder = FindPluginFolder();
+            if (string.IsNullOrEmpty(folder))
+            {
+                _diag.Warn("Dollmaster: plugin folder not found, its assets cannot be loaded.");
+                return;
+            }
+            _dmActivateToggle = CreateToggle(_dmActivateJson, true);   // first control of the tab (made before Dollmaster's)
+            _dm = new DmPlugin(this, person, folder + "/" + DollmasterFolder);
+            _dm.HostSpeaking = () => _body != null && _body.IsSpeaking;
+            _dm.Init();
+            if (_sceneRestored && _restoredJson != null) _dm.RestoreLate(_restoredJson);   // made after VaM restored the scene
+            _dm.SetActive(_dmActivateJson.val);
+            _body.DollmasterOwnsBody = () => _dm != null && _dm.Active;
+            ShowDollmasterMenu(_tab == DollmasterTab);
+            _diag.Step("Dollmaster ready on '" + person.uid + "' (" + (_dmActivateJson.val ? "active" : "off") + ")"
+                + (_dm.Problem.Length > 0 ? ": " + _dm.Problem : ""));
+        }
+
+        /// <summary>Folder of the Dollmaster assets below the plugin folder (packed by tools/build_var.py).</summary>
+        public const string DollmasterFolder = "Dollmaster";
+
+        private void ShowDollmasterMenu(bool on)
+        {
+            if (_dmActivateToggle != null && _dmActivateToggle.gameObject != null) _dmActivateToggle.gameObject.SetActive(on);
+            if (_dm != null) _dm.ShowMenu(on);
+        }
+
+        private string DollmasterInfoText()
+        {
+            string text = "The old <b>Dollmaster</b> plugin by VAMDeluxe inside AIBody, on the AI character. "
+                + "<b>Activate</b> (off by default) starts it; off = nothing of it runs (no panel, no helper atoms, no sounds).\n"
+                + "While it is active Dollmaster owns the body: face expressions, breathing, head and eyes, poses (VAMasutra), "
+                + "climax, kiss and clothes. AIBody keeps speech and lip sync; its own idle motion, breathing, expressions, "
+                + "gestures, idle poses and the AI's pose commands pause (as with Body control off). Dollmaster's voice clips "
+                + "wait while the AI speaks.\n"
+                + "The controls on the right are the old Dollmaster menu, in the old order. Its own panel floats in front of you "
+                + "with VaM's main HUD, as before (arousal, thrust speed, personality, VAMasutra, Undress, Next Thruster).\n";
+            if (_dm == null) return text + "<color=red>Dollmaster is not available here (needs the AI character).</color>\n";
+            text += "<b>Status</b>\n" + (_dm.Active ? "Active" : "Off");
+            if (_dm.Active && _dm.arousal != null) text += ", arousal " + _dm.arousal.value.ToString("0.0");
+            if (_dm.personality != null) text += ", personality " + _dm.personality.name;
+            text += "\n";
+            if (_dm.Problem.Length > 0) text += "<color=red>" + _dm.Problem + "</color>\n";
+            return text;
+        }
+
+        /// <summary>Dollmaster's RestoreFromJSON / PostRestore hooks (Dollmaster.cs L148-158).</summary>
+        public override void RestoreFromJSON(JSONClass jc, bool restorePhysical = true, bool restoreAppearance = true, JSONArray presetAtoms = null, bool setMissingToDefault = true)
+        {
+            base.RestoreFromJSON(jc, restorePhysical, restoreAppearance, presetAtoms, setMissingToDefault);
+            _sceneRestored = true;
+            _restoredJson = jc;
+            try { if (_dm != null) _dm.RestoreFromJSON(jc); }
+            catch (Exception e) { Log.Error("Dollmaster restore failed", e); }
+        }
+
+        public override void PostRestore()
+        {
+            base.PostRestore();
+            try { if (_dm != null) _dm.PostRestore(); }
+            catch (Exception e) { Log.Error("Dollmaster PostRestore failed", e); }
         }
     }
 }

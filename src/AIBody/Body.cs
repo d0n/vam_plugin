@@ -364,7 +364,11 @@ namespace AIBody
             page.Button("Stop speaking", StopSpeaking);
         }
 
-        public bool BodyControl { get { return _bodyControlJson == null || _bodyControlJson.val; } }
+        public bool BodyControl { get { return (_bodyControlJson == null || _bodyControlJson.val) && !DollmasterOwns; } }
+        /// <summary>Tab Dollmaster, Activate on: Dollmaster owns the body (AIBody keeps speech; see AIBodyPlugin).</summary>
+        public Func<bool> DollmasterOwnsBody;
+        public bool DollmasterOwns { get { return DollmasterOwnsBody != null && DollmasterOwnsBody(); } }
+        public bool IsSpeaking { get { return _speech != null && (_speech.IsSpeaking || _speech.QueueLength > 0); } }
 
         /// <summary>Set when the pose menu may have to appear or vanish; the plugin rebuilds the tab next frame.</summary>
         public bool RebuildTab;
@@ -1062,6 +1066,11 @@ namespace AIBody
                 _speech.UpdateDistance(_distanceJson != null ? _distanceJson.val : SpeechPlayer.DefaultFullVolumeDistance);
             }
             bool speaking = _speech != null && _speech.IsSpeaking;
+            if (DollmasterOwns)
+            {
+                UpdateSceneState(speaking);   // Dollmaster owns expressions, breathing, idle motion and poses
+                return;
+            }
             if (_expressions != null) _expressions.Update(dt);
             if (_breathing != null) _breathing.Update(dt, speaking);
             UpdateSceneState(speaking);
@@ -1119,7 +1128,8 @@ namespace AIBody
                 if (_speech.LastError != null && _speech.LastError != _speech.Status && _speech.LastErrorAge < 300f)
                     text += "<color=red>" + _speech.LastError + "</color> (" + _speech.LastErrorAge.ToString("0") + " s ago)\n";
             }
-            if (!BodyControl) text += "Body control: off (speech only; no poses, gestures, expressions or idle poses from the AI side)\n";
+            if (DollmasterOwns) text += "Dollmaster is active (tab Dollmaster): it owns the body; AIBody only speaks\n";
+            else if (!BodyControl) text += "Body control: off (speech only; no poses, gestures, expressions or idle poses from the AI side)\n";
             if (_testStatus != null) text += _testStatus + "\n";
             if (_expressions != null) text += "Expression: " + _expressions.Current + "\n";
             if (_breathing != null && _morphs != null)

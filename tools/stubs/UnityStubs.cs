@@ -8,20 +8,20 @@ using System.Collections;
 namespace UnityEngine
 {
     public enum TextAnchor { UpperLeft, UpperCenter, UpperRight, MiddleLeft, MiddleCenter, MiddleRight, LowerLeft, LowerCenter, LowerRight }
-    public class Object { public string name; public static void Destroy(Object o) { } }   // name: E12 L164 (fc.name == ...)
-    public class Component : Object
+    public partial class Object { public string name; public static void Destroy(Object o) { } }   // name: E12 L164 (fc.name == ...)
+    public partial class Component : Object
     {
         public GameObject gameObject { get { return null; } }
         public Transform transform { get { return null; } }
     }
-    public class Behaviour : Component { public bool enabled; }
-    public class MonoBehaviour : Behaviour { }
-    public class GameObject : Object
+    public partial class Behaviour : Component { public bool enabled; }
+    public partial class MonoBehaviour : Behaviour { }
+    public partial class GameObject : Object
     {
         public T AddComponent<T>() where T : Component { return null; }
         public bool activeInHierarchy { get { return false; } }       // E12 L1271, E11 L206
     }
-    public struct Color                                                // E32 (AmbientLightRig L122, L181), E30 (AutoPupil L204)
+    public partial struct Color                                                // E32 (AmbientLightRig L122, L181), E30 (AutoPupil L204)
     {
         public float r, g, b, a;
         public Color(float r, float g, float b, float a) { this.r = r; this.g = g; this.b = b; this.a = a; }
@@ -29,17 +29,17 @@ namespace UnityEngine
         public static Color HSVToRGB(float h, float s, float v) { return new Color(); }   // E32 (AmbientLightRig L181)
     }
     public enum CameraClearFlags { Skybox = 1, SolidColor = 2, Depth = 3, Nothing = 4 }   // E30 (AutoPupil L203: SolidColor); the old value is only kept and restored
-    public class Camera : Behaviour                                    // E30 (AutoPupil L203-205)
+    public partial class Camera : Behaviour                                    // E30 (AutoPupil L203-205)
     {
         public CameraClearFlags clearFlags { get; set; }
         public Color backgroundColor { get; set; }
     }
-    public class Transform : Component
+    public partial class Transform : Component
     {
         public Quaternion rotation { get; set; }
         public Vector3 position { get; set; }
     }
-    public struct Vector3                                              // E12 L1182, E28 L187-209 (+, *, / float, forward, zero)
+    public partial struct Vector3                                              // E12 L1182, E28 L187-209 (+, *, / float, forward, zero)
     {
         public float x, y, z;
         public Vector3(float x, float y, float z) { this.x = x; this.y = y; this.z = z; }
@@ -53,7 +53,7 @@ namespace UnityEngine
         public static Vector3 operator +(Vector3 a, Vector3 b) { return a; }
         public static Vector3 operator *(Vector3 a, float d) { return a; }
     }
-    public struct Quaternion
+    public partial struct Quaternion
     {
         public static Quaternion identity { get { return new Quaternion(); } }
         public static Quaternion Euler(float x, float y, float z) { return new Quaternion(); }
@@ -61,7 +61,7 @@ namespace UnityEngine
         public static Quaternion operator *(Quaternion a, Quaternion b) { return a; }
         public static Vector3 operator *(Quaternion q, Vector3 v) { return v; }   // E12 L1182 (_head.rotation * ... * Vector3.forward)
     }
-    public static class Mathf
+    public static partial class Mathf
     {
         public const float PI = 3.14159265f;
         public static float Sin(float f) { return 0f; }
@@ -81,25 +81,25 @@ namespace UnityEngine
         public static int CeilToInt(float f) { return 0; }
         public static int RoundToInt(float f) { return 0; }
     }
-    public static class Time
+    public static partial class Time
     {
         public static float deltaTime { get { return 0f; } }
         public static float unscaledDeltaTime { get { return 0f; } }
         public static float time { get { return 0f; } }
     }
-    public static class Random
+    public static partial class Random
     {
         public static float Range(float a, float b) { return a; }
     }
     // loadState / LoadAudioData: mmd2timeline AudioClipHelper.cs L112, L168-185 (E3)
     public enum AudioDataLoadState { Unloaded, Loading, Loaded, Failed }
-    public class AudioClip : Object
+    public partial class AudioClip : Object
     {
         public float length { get { return 0f; } }
         public AudioDataLoadState loadState { get { return AudioDataLoadState.Loaded; } }
         public bool LoadAudioData() { return true; }
     }
-    public class AudioSource : Behaviour
+    public partial class AudioSource : Behaviour
     {
         // Read-only use: playback goes through AudioSourceControl (FreeMMD reads .audioSource).
         public bool isPlaying { get { return false; } }
@@ -111,18 +111,19 @@ namespace UnityEngine
 namespace UnityEngine.Events
 {
     public delegate void UnityAction();
-    public class UnityEvent { public void AddListener(UnityAction a) { } }
+    public partial class UnityEvent { public void AddListener(UnityAction a) { } }
 }
 
 namespace UnityEngine.UI
 {
-    public class Text : Component { public TextAnchor alignment; public string text; }   // E27; text: vam-timeline MocapScreen.cs (commit d6f7177c) sets buttonText.text
-    public class Button : Component
+    public partial class Text : MaskableGraphic {   // real hierarchy (DollmasterStubs, E39)
+        public TextAnchor alignment; public string text; }   // E27; text: vam-timeline MocapScreen.cs (commit d6f7177c) sets buttonText.text
+    public partial class Button : Selectable   // real hierarchy (DollmasterStubs, E39)
     {
-        public class ButtonClickedEvent : UnityEngine.Events.UnityEvent { }
+        public partial class ButtonClickedEvent : UnityEngine.Events.UnityEvent { }
         public ButtonClickedEvent onClick { get { return null; } }
     }
-    public class InputField : Component
+    public partial class InputField : Selectable   // real hierarchy (DollmasterStubs, E39)
     {
         public enum LineType { SingleLine, MultiLineSubmit, MultiLineNewline }
         public Text textComponent;

@@ -54,6 +54,14 @@ LOOSE_SCENE = "AI-Buddy.json"
 AIBODY_ATOM = "Client"
 AIBODY_STORABLE = "plugin#0_AIBody.AIBodyPlugin"
 LOOSE_THUMB = "AI-Buddy.jpg"
+# Tab Dollmaster (22.11.2026, Leon): the assets of the ported Dollmaster (VAMDeluxe, MIT) next to the plugin, as in the old
+# Dollmaster package: <script_dir>/Dollmaster/dollmaster_config.json and <script_dir>/Dollmaster/Assets/... (personas, sound
+# effects, expressions, VAMasutra poses). AIBodyPlugin.DollmasterFolder, DmPlugin.ASSETS_PATH.
+DOLLMASTER_ASSETS = ROOT / "assets" / "dollmaster"
+DOLLMASTER_FOLDER = "Dollmaster"
+# Text files of the package (scanned with the sandbox rules); audio and images are binary and only packed.
+TEXT_SUFFIXES = {".cs", ".cslist", ".json", ".vap", ".txt", ".md"}
+STORED_SUFFIXES = {".mp3", ".jpg", ".png", ".ogg"}   # already compressed
 
 
 def check_aibody_atom(data: dict) -> None:
@@ -152,8 +160,17 @@ def scan_var(path: Path) -> list[str]:
     rules = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(rules)
     with zipfile.ZipFile(path) as z:
-        items = [(f"{path.name}:{n}", z.read(n).decode("utf-8", "replace")) for n in z.namelist()]
+        items = [(f"{path.name}:{n}", z.read(n).decode("utf-8", "replace")) for n in z.namelist()
+                 if Path(n).suffix.lower() in TEXT_SUFFIXES]
     return rules.scan_files(items)
+
+
+def dollmaster_files() -> list[tuple[Path, str]]:
+    """(file, path below <script_dir>/Dollmaster) of every Dollmaster asset, sorted."""
+    if not DOLLMASTER_ASSETS.is_dir():
+        raise SystemExit(f"missing Dollmaster assets: {DOLLMASTER_ASSETS}")
+    files = sorted(p for p in DOLLMASTER_ASSETS.rglob("*") if p.is_file())
+    return [(p, p.relative_to(DOLLMASTER_ASSETS).as_posix()) for p in files]
 
 
 def build(version_override: int | None = None) -> Path:
@@ -177,7 +194,9 @@ def build(version_override: int | None = None) -> Path:
     if not SCENE_THUMB.is_file():
         raise SystemExit(f"missing scene thumbnail: {SCENE_THUMB}")
     packaged.append(SCENE_THUMB_PATH)
-    meta["contentList"] = [f"{script_dir}/{f}" for f in files] + packaged
+    dollmaster = dollmaster_files()
+    meta["contentList"] = ([f"{script_dir}/{f}" for f in files] + packaged
+                           + [f"{script_dir}/{DOLLMASTER_FOLDER}/{rel}" for _, rel in dollmaster])
     out = ROOT / "dist" / f"{creator}.{meta['packageName']}.{version}.var"
     out.parent.mkdir(exist_ok=True)
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
@@ -187,6 +206,9 @@ def build(version_override: int | None = None) -> Path:
         z.writestr(PRESET_PATH, plugin_preset(creator, meta["packageName"], version, script_dir))
         z.writestr(SCENE_PATH, example_scene(creator, meta["packageName"], version, script_dir))
         z.write(SCENE_THUMB, SCENE_THUMB_PATH)
+        for src, rel in dollmaster:
+            stored = src.suffix.lower() in STORED_SUFFIXES
+            z.write(src, f"{script_dir}/{DOLLMASTER_FOLDER}/{rel}", zipfile.ZIP_STORED if stored else zipfile.ZIP_DEFLATED)
     (out.parent / LOOSE_SCENE).write_text(example_scene(creator, meta["packageName"], version, script_dir, False),
                                           encoding="utf-8")
     (out.parent / LOOSE_THUMB).write_bytes(SCENE_THUMB.read_bytes())
@@ -198,7 +220,7 @@ def build(version_override: int | None = None) -> Path:
     if problems:
         out.unlink()
         raise SystemExit("forbidden APIs inside the .var (deleted):\n" + "\n".join(problems))
-    print(f"Wrote {out.relative_to(ROOT)} ({len(files) + 3} files); strict scan of the .var: 0 forbidden matches")
+    print(f"Wrote {out.relative_to(ROOT)} ({len(files) + 3} files + {len(dollmaster)} Dollmaster assets); strict scan of the .var: 0 forbidden matches")
     return out
 
 

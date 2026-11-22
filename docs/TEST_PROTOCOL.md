@@ -865,3 +865,15 @@ Report: screenshots of both boxes.
 4. Move her, save the scene, reload: she stands at the new place and the sliders show 0 (they are not saved, so she is not moved twice).
 5. After a move: idle head motion, breathing, a pose command and an idle pose still work.
 Report: anything that stretched, fell or jumped back.
+
+## T84 – Tab Dollmaster (main after v48, Leon 22.11.2026)
+
+1. Load AI-Buddy. New tab **Dollmaster** between *Client Character* and *Config*. At the top **Activate** (off); below it the old Dollmaster menu (Test Emotion Trigger, Test Climax Trigger, Zero Pose Morphs, Enable Arousal, ... Enable Sound Effects). The other tabs show none of these controls.
+2. With **Activate** off: no Dollmaster panel, no new atoms in the scene (no "Thrust AP", no "Doll SFX"), the AI speaks, breathes and moves as before.
+3. Turn **Activate** on: after about a second the atoms "Thrust AP AI" and "Doll SFX AI" appear and the floating Dollmaster panel shows with VaM's main HUD, as in the old plugin (heart slider, Thrust Speed, Personality, Select Person, Undress, VAMasutra, Next Thruster, Minimize UI). The info field says Dollmaster owns the body; AIBody's idle motion / breathing / expressions / idle poses stop.
+4. Move **Thrust Speed** up: moans of the chosen personality, arousal rises, face expressions and head follow, skin / insertion sounds play. **Test Climax Trigger**: climax voice and pose change. **VAMasutra** opens the pose browser on the shipped poses; a pose loads. **Undress** toggles the clothes. **Personality** switches the voice.
+5. Talk to the AI while active: she answers with AIBody's voice; no Dollmaster moan starts while she speaks.
+6. Turn **Activate** off: panel gone, "Doll SFX AI" and "Thrust AP AI" removed, blinking and eyes as before, AIBody's body control resumes. On again: everything comes back.
+7. Change some Dollmaster sliders, save the scene, reload: the values and Activate are kept.
+Report: any red line in the info field or the VaM log ("Dollmaster ..."), anything missing compared to the old Dollmaster.
+

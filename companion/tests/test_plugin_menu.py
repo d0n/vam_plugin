@@ -47,7 +47,7 @@ class PluginMenuTests(unittest.TestCase):
     def test_tabs(self):
         m = re.search(r"string\[\] Tabs = \{([^}]*)\}", source("AIBody.cs"))
         tabs = re.findall(r'"([^"]+)"', m.group(1))
-        self.assertEqual(tabs, ["Voice", "AI Character", "Client Character", "Config"])
+        self.assertEqual(tabs, ["Voice", "AI Character", "Client Character", "Dollmaster", "Config"])  # v49: Dollmaster tab
 
     def test_no_small_text_fields_in_tabs(self):
         for file, sig in BUILDERS:

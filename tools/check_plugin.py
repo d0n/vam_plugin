@@ -107,7 +107,7 @@ def compile_target() -> bool:
     name = "aibody"
     paths = [ASSEMBLED / f for f in cslist_files(ASSEMBLED, CSLIST)]
     files = paths
-    stubs = ["UnityStubs.cs", "VaMStubs.cs"]
+    stubs = ["UnityStubs.cs", "VaMStubs.cs", "DollmasterStubs.cs"]   # DollmasterStubs: E39 (the ported Dollmaster)
     items = "\n".join(f'    <Compile Include="{STUBS / s}" />' for s in stubs)
     items += "\n" + "\n".join(f'    <Compile Include="{p}" />' for p in paths)
     project = f"""<Project Sdk="Microsoft.NET.Sdk">

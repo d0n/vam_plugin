@@ -446,6 +446,10 @@ class EyesBelongToVaMTests(unittest.TestCase):
             text = path.read_text(encoding="utf-8")
             for word in self.GONE_UI:
                 self.assertNotIn(word, text, f"{word!r} in {path.name}")
+            if path.name.startswith("Dm"):
+                # Tab Dollmaster (22.11.2026, Leon: full port, nothing dropped): the old Dollmaster's head / eye look and
+                # its blink switch run only while its checkbox Activate is on (DmPlugin; Activate off by default).
+                continue
             for code in ("GazeController", "BlinkController", "_gaze", "_blink", "gaze_control", "gaze_default",
                          "gaze_atoms", "blink_control", "EyelidControl", "eyeTargetControl"):
                 self.assertNotIn(code, text, f"{code!r} in {path.name}")
@@ -627,11 +631,13 @@ class MenuLayoutTests(unittest.TestCase):
         known = set(re.findall(r'new JSONStorable\w+\("([^"]+)"', cs)) | set(re.findall(r'Button\("([^"]+)"', cs))
         known |= {"Breath morph", "Companion inbox poll interval (s)", "XAI API Token",
                   "Background color", "Set background color", "Pose command", "Pose", "Language model", "Speech-to-text", "Text-to-speech", "Voice",
-                  "AI gender/body", "Your character gender"}
+                  "AI gender/body", "Your character gender",
+                  "Activate"}   # tab Dollmaster: JSONStorableBool(DollmasterActivateName = "Activate")
         headers = {"Companion connection", "AI", "Voice and sound", "Logging", "Background", "Body control", "Body position", "Idle poses",
                    "Idle motion and breathing", "Expression and gesture", "Poses", "Microphone", "Push-to-talk",
                    "Voice detection", "Echo and barge-in", "Config file", "Connection", "First start: XAI API Token",
-                   "Self-test", "Recent events", "Startup log", "Engine status", "Info: ", "Characters", "Clothing", "Reset"}
+                   "Self-test", "Recent events", "Startup log", "Engine status", "Info: ", "Characters", "Clothing", "Reset",
+                   "Dollmaster", "Status"}
         unknown = sorted(x for x in labels if x not in known and x not in headers and not x.startswith(("AIBody", "Info")))
         self.assertEqual(unknown, [], "bold text that is neither a control label nor a section title")
 
