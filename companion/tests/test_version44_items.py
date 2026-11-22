@@ -51,12 +51,13 @@ class VolumeTests(TestCase):
         tts.set_output_gain(1.0)
 
     def test_gain_mapping_and_ranges(self):
-        self.assertEqual([tts.output_gain_for(v) for v in (0, 0.5, 1, 1.7, 3, 9, "x", float("nan"))],
-                         [1.0, 1.0, 1.0, 1.7, 3.0, 3.0, 1.0, 1.0])
-        self.assertEqual(settings_file.RANGES[("body", "speech_volume")], (0.0, 3.0))
+        # 22.11.2026 (Leon 04:16): the factor goes up to 10 (plugin 1000 %), plain linear gain
+        self.assertEqual([tts.output_gain_for(v) for v in (0, 0.5, 1, 1.7, 3, 9, 10, 12, "x", float("nan"))],
+                         [1.0, 1.0, 1.0, 1.7, 3.0, 9.0, 10.0, 10.0, 1.0, 1.0])
+        self.assertEqual(settings_file.RANGES[("body", "speech_volume")], (0.0, 10.0))
         self.assertEqual(settings_file.DEFAULTS["body"]["speech_volume"], 1.0)   # default unchanged
         schema = json.loads((ROOT / "protocol" / "schema" / "config.schema.json").read_text(encoding="utf-8"))
-        self.assertIn('"maximum": 3.0', json.dumps(schema["properties"]["body"]["properties"]["speech_volume"]))
+        self.assertIn('"maximum": 10.0', json.dumps(schema["properties"]["body"]["properties"]["speech_volume"]))
 
     def test_plain_linear_gain_without_limiter(self):
         pcm = sine(0.2)
@@ -93,7 +94,7 @@ class VolumeTests(TestCase):
         self.assertEqual(tts.output_gain(), 2.5)
         self.assertEqual(Orchestrator.apply_body(None, {"speech_volume": 0.4}), [])
         self.assertEqual(tts.output_gain(), 1.0)
-        self.assertTrue(Orchestrator.apply_body(None, {"speech_volume": 4}))
+        self.assertTrue(Orchestrator.apply_body(None, {"speech_volume": 11}))
         self.assertTrue(Orchestrator.apply_body(None, {"speech_volume": "loud"}))
         self.assertEqual(Orchestrator.apply_body(None, None), [])
         orch = (ROOT / "companion" / "aibody_companion" / "orchestrator.py").read_text(encoding="utf-8")
@@ -103,16 +104,16 @@ class VolumeTests(TestCase):
 
     def test_plugin_slider_head_volume_and_config_event(self):
         body = (SRC / "Body.cs").read_text(encoding="utf-8")
-        # 22.11.2026 (Leon 04:15): percent slider 0..300; the factor storable stays (no slider) for saved scenes
+        # 22.11.2026 (Leon 04:15/04:16): percent slider 0..1000; the factor storable stays (no slider) for saved scenes
         self.assertIn('new JSONStorableFloat("Speech volume (%)", 100f, (float v) => SetSpeechVolume(v), 0f, VolumePercentMax);', body)
-        self.assertIn('new JSONStorableFloat("Speech volume", 1f, (float v) => SetLegacySpeechVolume(v), 0f, 3f);', body)
+        self.assertIn('new JSONStorableFloat("Speech volume", 1f, (float v) => SetLegacySpeechVolume(v), 0f, 10f);', body)
         self.assertIn("folder + \"/\" + TestToneFileFor(SpeechVolume)", body)
         self.assertIn('if (volume >= 2.5f) return "AIBodyTest3.wav";', body)
         self.assertIn('if (volume >= 1.5f) return "AIBodyTest2.wav";', body)
         sp = (SRC / "SpeechPlayer.cs").read_text(encoding="utf-8")
         self.assertIn("public float HeadVolume { get { return Mathf.Min(_volume, 1f); } }", sp)
         self.assertNotIn("_control.volume = _volume;", sp)
-        self.assertIn("public const float MaxVolume = 3f;", sp)
+        self.assertIn("public const float MaxVolume = 10f;", sp)
         main = (SRC / "AIBody.cs").read_text(encoding="utf-8")
         self.assertIn('body["speech_volume"].AsFloat = _body.SpeechVolume;', main)
         self.assertIn('evt["body"] = body;', main)

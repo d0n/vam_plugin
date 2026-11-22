@@ -13,7 +13,7 @@ This text is the GitHub release v46.
 
 **New**
 - **Full volume distance (m)** (tab Voice > Voice and sound, below the volume, default 2, from 0.3 to 10): up to this distance from the head the voice is at full volume, and beyond it the voice gets quieter. Removing the plugin puts the scene's own value back.
-- **Speech volume (%)**: the volume slider now shows percent, from 0 to 300, default 100 (100 = the full volume, 200 = twice, 300 = three times). Scenes saved with the old slider keep their volume (1 becomes 100 %). Above about 150 % the voice mostly gets harsher rather than louder.
+- **Speech volume (%)**: the volume slider now shows percent, from 0 to 1000, default 100 (100 = the full volume, 200 = twice, 1000 = ten times; plain linear gain, no limiter). Scenes saved with the old slider keep their volume (1 becomes 100 %). Above about 150 % the voice mostly gets harsher rather than louder, and very high values distort. **Play test tone** uses its 2x copy from 150 % and its 3x copy from 250 % (also above 300 %).
 - companion.log shows the speech level once per volume change: the peak before and after the gain, and how much is cut at full scale.
 
 Test steps: `docs/TEST_PROTOCOL.md` T75.

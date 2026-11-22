@@ -149,11 +149,11 @@ class SharedConfigTests(unittest.TestCase):
     def test_validation_clamps_and_rejects(self):
         data, errors = settings_file.validate({
             "connection": {"paths": {"expressions": "C:/evil.json", "gestures": "Custom/x/g.json"}},
-            "body": {"speech_volume": 7, "breathing": "yes"},
+            "body": {"speech_volume": 17, "breathing": "yes"},
             "mic": {"mode": "loud"},
             "extra": {},
         })
-        self.assertEqual(data["body"]["speech_volume"], 3.0)  # version 44: clamped to the new maximum 3
+        self.assertEqual(data["body"]["speech_volume"], 10.0)  # clamped to the maximum 10 (3 in v44-v45; 1000 % since 22.11.2026)
         self.assertTrue(data["body"]["breathing"])
         self.assertEqual(data["connection"]["paths"]["gestures"], "Custom/x/g.json")
         self.assertEqual(data["connection"]["paths"]["expressions"], "Saves/PluginData/AIBody/expressions.json")

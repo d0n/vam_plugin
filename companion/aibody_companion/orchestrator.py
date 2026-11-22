@@ -903,7 +903,7 @@ class Companion:
         return []
 
     def apply_body(self, data: Any) -> list[str]:
-        """Version 44: the plugin's Speech volume (0..3, config event "body"). Above 1 every WAV for the character gets
+        """Version 44: the plugin's Speech volume factor (0..10 since 22.11.2026, plugin percent / 100; config event "body"). Above 1 every WAV for the character gets
         that linear gain (pipeline/tts.py, no limiter); up to 1 the plugin's head audio does it alone."""
         if data is None:
             return []

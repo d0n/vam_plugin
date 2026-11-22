@@ -248,7 +248,7 @@
     },
     "body": {
       "type": "object",
-      "description": "config (version 44): the plugin's Speech volume as a factor 0..3 (the slider shows percent 0..300 since 22.11.2026: factor = percent / 100); above 1 the companion multiplies its WAV samples by it (plain linear gain, no limiter; only cut to the 16-bit range)",
+      "description": "config (version 44): the plugin's Speech volume as a factor 0..10 (the slider shows percent 0..1000 since 22.11.2026: factor = percent / 100); above 1 the companion multiplies its WAV samples by it (plain linear gain, no limiter; only cut to the 16-bit range)",
       "properties": {
         "speech_volume": {
           "type": ["number", "string"]

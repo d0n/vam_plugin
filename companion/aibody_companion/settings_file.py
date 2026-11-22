@@ -264,7 +264,7 @@ RANGES: dict[tuple[str, str], tuple[float, float]] = {
     ("connection", "network_port"): (0, 65535),
     ("remote", "http_port"): (1024, 65535),
     ("remote", "osc_port"): (0, 65535),
-    ("body", "speech_volume"): (0.0, 3.0),  # version 44: above 1 the companion boosts its WAVs (pipeline/tts.py)
+    ("body", "speech_volume"): (0.0, 10.0),  # version 44 (0..3), 22.11.2026 0..10 (plugin 1000 %, Leon 04:16): above 1 the companion boosts its WAVs (pipeline/tts.py)
     ("body", "full_volume_distance"): (0.3, 10.0),  # after v45: the plugin's head audio minDistance (m)
     ("body", "idle_intensity"): (0.0, 1.0),
     ("body", "breaths_per_minute"): (4.0, 40.0),

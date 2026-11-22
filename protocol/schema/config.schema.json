@@ -296,7 +296,7 @@
             {
               "type": "number",
               "minimum": 0.0,
-              "maximum": 3.0
+              "maximum": 10.0
             },
             {
               "type": "string",

@@ -1,6 +1,6 @@
 """Version 46 (Leon, 22.11.2026 04:02-04:17): speech loudness. The shipped scene's head audio had minDistance 0.04 m
 (Unity's logarithmic rolloff: about -28 dB at 1 m); now 2 m, plus the 'Full volume distance (m)' slider and Speech
-volume in percent (0-300, default 100). The item tests are in test_speech_loudness.py."""
+volume in percent (0-1000, default 100; Leon 04:16). The item tests are in test_speech_loudness.py."""
 from __future__ import annotations
 
 import json

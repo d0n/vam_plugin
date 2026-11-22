@@ -57,12 +57,12 @@ def test_tone_pcm(seconds: float = 1.5, rate: int = 22050) -> bytes:
 # here to every WAV this app writes for the character (TTS, realtime voice, test tone): a plain linear gain, no limiter
 # or normalizing (Leon 21:16: the user decides how loud). Only samples beyond the 16-bit range are cut to it (a WAV
 # cannot hold more), so very loud settings may distort. Default 1 = unchanged bytes.
-MAX_SPEECH_VOLUME = 3.0
+MAX_SPEECH_VOLUME = 10.0   # 22.11.2026 (Leon 04:16): 1000 % in the plugin; was 3.0 (version 44)
 _OUTPUT = {"gain": 1.0, "table": None}
 
 
 def output_gain_for(speech_volume: float) -> float:
-    """Speech volume 0..3 -> sample gain: 1 up to volume 1 (the head audio does that part), then the volume itself."""
+    """Speech volume 0..10 -> sample gain: 1 up to volume 1 (the head audio does that part), then the volume itself."""
     try:
         v = float(speech_volume)
     except (TypeError, ValueError):

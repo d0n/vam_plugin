@@ -19,8 +19,8 @@ namespace AIBody
         private readonly Action<JSONClass> _send;
         private readonly Diag _diag;
 
-        private JSONStorableFloat _volumeJson;         // "Speech volume (%)" 0..300 (Leon 22.11.2026 04:15); the factor is _volumeJson.val / 100
-        private JSONStorableFloat _legacyVolumeJson;   // "Speech volume" 0..3 (factor, up to v45): no slider, kept for saved scenes
+        private JSONStorableFloat _volumeJson;         // "Speech volume (%)" 0..1000 (Leon 22.11.2026 04:15/04:16); the factor is _volumeJson.val / 100
+        private JSONStorableFloat _legacyVolumeJson;   // "Speech volume" factor (0..3 up to v45, now 0..10): no slider, kept for saved scenes
         private bool _syncingVolume;
         private JSONStorableFloat _distanceJson;   // after v45: head audio minDistance (SpeechPlayer.FullVolumeDistance)
         private JSONStorableBool _idleJson;
@@ -55,7 +55,7 @@ namespace AIBody
         /// <summary>Version 44: louder copies of the bundled tone for Speech volume above 1 (tools/build_var.py writes them
         /// with the same plain linear gain as the companion's speech, no limiter): 2x and 3x. Takes the factor (percent / 100):
         /// below 150 % the normal tone (head audio at the volume), 150 to 250 % the 2x copy, from 250 % the 3x copy (both at full
-        /// head volume), i.e. 200 % = 2x and 300 % = 3x.</summary>
+        /// head volume), i.e. 200 % = 2x and 300 % = 3x; above 300 % the 3x copy too (no new files, Leon 04:16).</summary>
         public static string TestToneFileFor(float volume)
         {
             if (volume >= 2.5f) return "AIBodyTest3.wav";
@@ -63,9 +63,9 @@ namespace AIBody
             return TestToneFile;
         }
 
-        /// <summary>Speech volume in percent (0..300, default 100) = the factor 0..3 the companion, config.json and the config
-        /// event keep using (Leon 22.11.2026 04:15).</summary>
-        public const float VolumePercentMax = 300f;
+        /// <summary>Speech volume in percent (0..1000, default 100) = the factor 0..10 the companion, config.json and the config
+        /// event keep using (Leon 22.11.2026 04:15; maximum 1000 at 04:16; plain linear gain, no limiter).</summary>
+        public const float VolumePercentMax = 1000f;
         public const string SpeechVolumeLabel = "Speech volume (%)";
 
         private void SetSpeechVolume(float percent)
@@ -94,7 +94,7 @@ namespace AIBody
             return Math.Max(0f, Math.Min(factor, VolumePercentMax / 100f)) * 100f;
         }
 
-        /// <summary>Speech volume as the factor 0..3, sent to the companion in the config event "body".</summary>
+        /// <summary>Speech volume as the factor 0..10, sent to the companion in the config event "body".</summary>
         public float SpeechVolume { get { return _volumeJson != null ? _volumeJson.val / 100f : 1f; } }
 
         /// <summary>Folder of AIBody.cslist ("d0n.AIBody.8:/Custom/Scripts/d0n/AIBody"); set by the plugin.</summary>
@@ -226,11 +226,11 @@ namespace AIBody
             });
             SettingsDefaults.Bool(_plugin, _bodyControlJson);
             // Version 44: up to 3 (above 1 the companion makes its speech louder; it learns the value from the config event "body").
-            // 22.11.2026 (Leon 04:15): percent 0..300, default 100; the old factor storable stays registered (no slider) so a
+            // 22.11.2026 (Leon 04:15/04:16): percent 0..1000, default 100; the old factor storable stays registered (no slider) so a
             // scene saved with "Speech volume": 1.0 loads as 100 %.
             _volumeJson = new JSONStorableFloat("Speech volume (%)", 100f, (float v) => SetSpeechVolume(v), 0f, VolumePercentMax);
             SettingsDefaults.Float(_plugin, _volumeJson);
-            _legacyVolumeJson = new JSONStorableFloat("Speech volume", 1f, (float v) => SetLegacySpeechVolume(v), 0f, 3f);
+            _legacyVolumeJson = new JSONStorableFloat("Speech volume", 1f, (float v) => SetLegacySpeechVolume(v), 0f, 10f);   // = VolumePercentMax / 100
             SettingsDefaults.Float(_plugin, _legacyVolumeJson);
             // After v45 (Leon 22.11.2026 04:02: much quieter away from the head): full volume up to this distance.
             _distanceJson = new JSONStorableFloat("Full volume distance (m)", SpeechPlayer.DefaultFullVolumeDistance,
@@ -776,7 +776,7 @@ namespace AIBody
         {
             if (_volumeJson == null) return;
             JSONClass body = new JSONClass();
-            body["speech_volume"].AsFloat = SpeechVolume;   // config.json keeps the factor 0..3
+            body["speech_volume"].AsFloat = SpeechVolume;   // config.json keeps the factor 0..10
             if (_distanceJson != null) body["full_volume_distance"].AsFloat = _distanceJson.val;
             body["body_control"].AsBool = BodyControl;
             body["idle_motion"].AsBool = _idleJson.val;

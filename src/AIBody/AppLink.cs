@@ -747,10 +747,10 @@ namespace AIBody
         public const string ModeQa = "qa";
 
         /// <summary>Version 44 (Leon 21:01): Speech volume above 1.</summary>
-        public const string SpeechVolumeHelp = "<b>Speech volume (%)</b> 100 is the full volume of the character's head audio (0 to 300, "
+        public const string SpeechVolumeHelp = "<b>Speech volume (%)</b> 100 is the full volume of the character's head audio (0 to 1000, "
             + "default 100). Above 100 the companion app makes its speech and <b>Test tone via companion</b> louder by that factor (200 = "
-            + "twice, 300 = three times; no limiter: very high values can distort), and <b>Play test tone</b> plays a 2x copy from 150 and a "
-            + "3x copy from 250. A sound file cannot go above full scale, so above about 150 the voice mostly gets harsher, not louder. "
+            + "twice, 1000 = ten times; no limiter: very high values distort), and <b>Play test tone</b> plays a 2x copy from 150 and a "
+            + "3x copy from 250 (also above 300). A sound file cannot go above full scale, so above about 150 the voice mostly gets harsher, not louder. "
             + "<b>Full volume distance (m)</b>: up to this distance from the character's head you hear the voice at full volume; farther "
             + "away VaM turns it down with the distance (3D sound). Raise it if the voice is quiet at your usual camera distance (default 2 m).";
 

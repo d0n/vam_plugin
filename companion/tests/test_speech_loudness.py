@@ -124,25 +124,33 @@ class HeadAudioDistanceTests(TestCase):
 
 
 class PercentSliderTests(TestCase):
-    """Leon 22.11.2026 04:15: Speech volume in percent 0..300, default 100 (= factor 0..3, default 1). The companion,
+    """Leon 22.11.2026 04:15: Speech volume in percent 0..1000 (04:16; 0..300 at 04:15), default 100 (= factor 0..10, default 1). The companion,
     config.json and the config event keep the factor; scenes saved with the old factor storable load as percent."""
 
     def test_percent_slider_and_factor_everywhere_else(self):
         body = source("Body.cs")
         self.assertIn('new JSONStorableFloat("Speech volume (%)", 100f, (float v) => SetSpeechVolume(v), 0f, VolumePercentMax);', body)
-        self.assertIn("public const float VolumePercentMax = 300f;", body)
+        self.assertIn("public const float VolumePercentMax = 1000f;", body)
+        self.assertIn("public const float MaxVolume = 10f;", source("SpeechPlayer.cs"))
+        self.assertEqual(tts.MAX_SPEECH_VOLUME, 10.0)
+        self.assertEqual(tts.output_gain_for(10), 10.0)
+        self.assertEqual(tts.gained_sample(1000, 10.0), 10000)        # plain linear gain, no limiter
+        self.assertEqual(tts.gained_sample(5000, 10.0), 32767)        # only cut to the 16-bit range
         self.assertIn("public float SpeechVolume { get { return _volumeJson != null ? _volumeJson.val / 100f : 1f; } }", body)
         self.assertIn('body["speech_volume"].AsFloat = SpeechVolume;', body)            # config.json: factor
         self.assertIn('PercentFromFactor(Protocol.GetFloat(body, "speech_volume", SpeechVolume))', body)
         self.assertIn("if (_speech != null) _speech.Volume = percent / 100f;", body)
         self.assertIn("speech.Volume = SpeechVolume;", body)
         self.assertIn('body["speech_volume"].AsFloat = _body.SpeechVolume;', source("AIBody.cs"))   # event: factor
-        self.assertEqual(settings_file.RANGES[("body", "speech_volume")], (0.0, 3.0))
+        self.assertEqual(settings_file.RANGES[("body", "speech_volume")], (0.0, 10.0))
+        schema = json.loads((ROOT / "protocol" / "schema" / "config.schema.json").read_text(encoding="utf-8"))
+        self.assertIn('"maximum": 10.0', json.dumps(schema["properties"]["body"]["properties"]["speech_volume"]))
+        self.assertIn("(0 to 1000, ", source("AppLink.cs"))
         self.assertIn("<b>Speech volume (%)</b> 100 is the full volume", source("AppLink.cs"))
 
     def test_old_scenes_migrate(self):
         body = source("Body.cs")
-        self.assertIn('new JSONStorableFloat("Speech volume", 1f, (float v) => SetLegacySpeechVolume(v), 0f, 3f);', body)
+        self.assertIn('new JSONStorableFloat("Speech volume", 1f, (float v) => SetLegacySpeechVolume(v), 0f, 10f);', body)
         self.assertIn("SettingsDefaults.Float(_plugin, _legacyVolumeJson);", body)
         legacy = body[body.index("private void SetLegacySpeechVolume"):body.index("public static float PercentFromFactor")]
         self.assertIn("_volumeJson.val = PercentFromFactor(factor);", legacy)
