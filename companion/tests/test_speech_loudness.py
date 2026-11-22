@@ -1,8 +1,8 @@
 """After v45 (Leon, 22.11.2026 04:02): "Speech volume 3 made no noticeable difference" and "much quieter away from the
 head". (1) The plugin -> companion -> WAV gain chain works; a WAV cannot go above full scale, so above ~1.5x the gain
 mostly clips (measured below) and the companion now logs that. (2) VaM's head audio is 3D with a logarithmic rolloff
-beyond its minDistance: the plugin sets minDistance ("Full volume distance (m)", default 2) and maxDistance through the
-head audio's own storable params (EasyMoan / VAMMoan, docs/API_AUDIT.md E38) and restores the scene's values."""
+beyond its minDistance. v46 set it from the plugin ("Full volume distance (m)"); v47 removed that again (Leon 12:17,
+v46 regression: test_v47_regression.py)."""
 from __future__ import annotations
 
 import array
@@ -79,48 +79,6 @@ class GainChainTests(TestCase):
         text = (ROOT / "protocol" / "schema" / "event.schema.json").read_text(encoding="utf-8")
         self.assertNotIn("soft limiter", text)
         self.assertIn("plain linear gain, no limiter", text)
-
-
-class HeadAudioDistanceTests(TestCase):
-    def test_player_sets_distance_params_and_restores(self):
-        sp = source("SpeechPlayer.cs")
-        for part in ('GetFloatJSONParam("volume")', 'GetFloatJSONParam("minDistance")', 'GetFloatJSONParam("maxDistance")',
-                     "_minDistanceParam.val = _fullVolumeDistance;", "_maxDistanceParam.val = FarDistance;",
-                     "public void RestoreHeadAudio()", "_minDistanceParam.val = _savedMinDistance;",
-                     "public const float DefaultFullVolumeDistance = 2f;", "public const float FarDistance = 500f;"):
-            self.assertIn(part, sp)
-        self.assertNotIn(".spatialBlend =", sp)     # no evidenced param: the voice stays 3D
-        self.assertNotIn(".rolloffMode =", sp)
-        play = sp[sp.index("private void Play(Utterance u)"):sp.index("private void PlayNow(Utterance u)")]
-        self.assertIn("ApplyHeadAudio();", play)    # before every clip
-        self.assertIn("_speech.RestoreHeadAudio();", source("Body.cs"))
-
-    def test_slider_persisted_and_explained(self):
-        body = source("Body.cs")
-        self.assertIn('new JSONStorableFloat("Full volume distance (m)", SpeechPlayer.DefaultFullVolumeDistance,', body)
-        self.assertIn("SettingsDefaults.Float(_plugin, _distanceJson);", body)
-        sound = body[body.index("public void BuildSoundSection"):body.index("public bool BodyControl")]
-        self.assertLess(sound.index("page.Slider(_volumeJson);"), sound.index("page.Slider(_distanceJson);"))
-        self.assertIn('body["full_volume_distance"].AsFloat = _distanceJson.val;', body)
-        self.assertIn('Protocol.GetFloat(body, "full_volume_distance", _distanceJson.val)', body)
-        self.assertIn("<b>Full volume distance (m)</b>", source("AppLink.cs"))
-        self.assertEqual(settings_file.DEFAULTS["body"]["full_volume_distance"], 2.0)
-        self.assertEqual(settings_file.RANGES[("body", "full_volume_distance")], (0.3, 10.0))
-        schema = json.loads((ROOT / "protocol" / "schema" / "config.schema.json").read_text(encoding="utf-8"))
-        self.assertIn("full_volume_distance", schema["properties"]["body"]["properties"])
-
-    def test_scene_head_audio_not_4_cm(self):
-        # the shipped AI-Buddy scene had minDistance 0.04 m: -28 dB at 1 m, -34 dB at 2 m (Leon 22.11.2026 04:14: 2 m)
-        scene = json.loads((ROOT / "examples" / "scenes" / "AI-Buddy.json").read_text(encoding="utf-8"))
-        ai = [a for a in scene["atoms"] if a["id"] == "AI"][0]
-        head = [s for s in ai["storables"] if s["id"] == "HeadAudioSource"][0]
-        self.assertEqual(float(head["minDistance"]), 2.0)
-
-    def test_evidence_recorded(self):
-        audit = (ROOT / "docs" / "API_AUDIT.md").read_text(encoding="utf-8")
-        self.assertIn("| E38 |", audit)
-        self.assertIn("vam-easymoan", audit)
-        self.assertIn('SetFloatParamValue("minDistance"', audit)
 
 
 class PercentSliderTests(TestCase):

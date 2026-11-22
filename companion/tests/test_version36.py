@@ -524,7 +524,7 @@ class BodyControlDefaultTests(unittest.TestCase):
 
 class VersionTests(unittest.TestCase):
     def test_version_36_everywhere(self):
-        """Historical: version 36 sources are gone after the v37 bump; consistency is test_version46."""
+        """Historical: version 36 sources are gone after the v37 bump; consistency is test_version47."""
         self.assertTrue((ROOT / "companion" / "tests" / "test_version36.py").is_file())
 
 
@@ -573,7 +573,10 @@ class MenuLayoutTests(unittest.TestCase):
         char = method_body(source("Body.cs"), "public void BuildCharacterTab(UiPage page)")
         self.order(char, ["Characters.Build(page)", '"<b>Body control</b>"', "_bodyControlJson", '"<b>Idle poses</b>"', "_idlePosesJson", "_idlePoseMaxJson",
                           '"<b>Idle motion and breathing</b>"', "_idleJson", "_breathingJson", "_breathRateJson", "_breathDepthJson",
-                          "page.Header(BreathMorphLabel)", "_breathMorphJson", '"<b>Expression and gesture</b>"', '"<b>Poses</b>"'])
+                          '"<b>Expression and gesture</b>"', '"<b>Poses</b>"'])
+        # version 47 (Leon 22.11.2026): no "Breath morph" header / "Breath1" input box in the menu any more
+        self.assertNotIn("page.Header(BreathMorphLabel)", char)
+        self.assertNotIn("TextInput(_breathMorphJson)", char)
         wizard = method_body(source("CharacterWizard.cs"), "public void Build(UiPage page)")
         self.order(wizard, ['"<b>Characters</b>"', 'page.Button("Yes"', 'page.Button("No"',
                             "page.Popup(_aiGenderJson)", "page.Popup(_userGenderJson)", '"<b>Clothing</b>"'])

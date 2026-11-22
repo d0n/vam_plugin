@@ -1456,7 +1456,7 @@
             {
                "id": "HeadAudioSource",
                "spatialize": "false",
-               "minDistance": "2",
+               "minDistance": "0.04",
                "volumeTriggerQuickness": "20",
                "volumeTriggerMultiplier": "0"
             },
@@ -3575,7 +3575,7 @@
             {
                "id": "PluginManager",
                "plugins": {
-                  "plugin#0": "d0n.AIBody.46:/Custom/Scripts/d0n/AIBody/AIBody.cslist"
+                  "plugin#0": "d0n.AIBody.47:/Custom/Scripts/d0n/AIBody/AIBody.cslist"
                }
             },
             {

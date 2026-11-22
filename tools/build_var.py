@@ -190,12 +190,36 @@ def build(version_override: int | None = None) -> Path:
     (out.parent / LOOSE_SCENE).write_text(example_scene(creator, meta["packageName"], version, script_dir, False),
                                           encoding="utf-8")
     (out.parent / LOOSE_THUMB).write_bytes(SCENE_THUMB.read_bytes())
+    thumb_problem = check_scene_thumbnail(out)
+    if thumb_problem:
+        out.unlink()
+        raise SystemExit("scene thumbnail (deleted the .var): " + thumb_problem)
     problems = scan_var(out)
     if problems:
         out.unlink()
         raise SystemExit("forbidden APIs inside the .var (deleted):\n" + "\n".join(problems))
     print(f"Wrote {out.relative_to(ROOT)} ({len(files) + 3} files); strict scan of the .var: 0 forbidden matches")
     return out
+
+
+def check_scene_thumbnail(var: Path) -> str | None:
+    """Version 47 (Leon 22.11.2026 12:17): VaM shows a scene's thumbnail only when a JPG with the SAME base name sits in
+    the SAME folder as the scene JSON. Every .var must carry it, byte for byte the one in examples/scenes/."""
+    with zipfile.ZipFile(var) as z:
+        names = z.namelist()
+        scenes = [n for n in names if n.startswith("Saves/scene/") and n.endswith(".json")]
+        if not scenes:
+            return "no scene JSON below Saves/scene/"
+        for scene in scenes:
+            thumb = scene[: -len(".json")] + ".jpg"
+            if thumb not in names:
+                return f"{scene} has no {thumb} next to it"
+            data = z.read(thumb)
+            if not data.startswith(b"\xff\xd8"):
+                return f"{thumb} is not a JPEG"
+            if thumb == SCENE_THUMB_PATH and data != SCENE_THUMB.read_bytes():
+                return f"{thumb} differs from {SCENE_THUMB.relative_to(ROOT)}"
+    return None
 
 
 def main() -> int:

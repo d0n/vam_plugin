@@ -21,8 +21,8 @@ def source(name: str) -> str:
 
 class VersionTests(TestCase):
     def test_version_45_is_historical(self):
-        """Historical: version 45 sources are gone after the v46 bump; consistency is test_version46."""
-        self.assertTrue((ROOT / "companion" / "tests" / "test_version46.py").is_file())
+        """Historical: version 45 sources are gone after the v46 bump; consistency is test_version47."""
+        self.assertTrue((ROOT / "companion" / "tests" / "test_version47.py").is_file())
 
     def test_docs(self):
         spec = (ROOT / "docs" / "SPEC.md").read_text(encoding="utf-8")

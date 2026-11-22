@@ -22,7 +22,6 @@ namespace AIBody
         private JSONStorableFloat _volumeJson;         // "Speech volume (%)" 0..1000 (Leon 22.11.2026 04:15/04:16); the factor is _volumeJson.val / 100
         private JSONStorableFloat _legacyVolumeJson;   // "Speech volume" factor (0..3 up to v45, now 0..10): no slider, kept for saved scenes
         private bool _syncingVolume;
-        private JSONStorableFloat _distanceJson;   // after v45: head audio minDistance (SpeechPlayer.FullVolumeDistance)
         private JSONStorableBool _idleJson;
         private JSONStorableFloat _idleIntensityJson;
         private JSONStorableBool _breathingJson;
@@ -197,7 +196,7 @@ namespace AIBody
             string storage = t["pose_storage"].Value;
             string text = "  Pose storage (PosePresets): " + (storage == "ok" ? "yes" : "NO (" + storage + ")") + "\n";
             text += "  Poses: " + t["poses"].AsInt + " (files in Custom/Atom/Person/Pose: " + t["pose_files"].AsInt + ")\n";
-            text += "  Breath morph '" + t["breath_morph"].Value + "': " + (t["breath_morph_found"].AsBool ? "found" : "NOT found (tab AI Character > " + BreathMorphLabel + ")") + "\n";
+            text += "  Breath morph '" + t["breath_morph"].Value + "': " + (t["breath_morph_found"].AsBool ? "found" : "NOT found (config.json body.breath_morph)") + "\n";
             int found = t["expression_morphs_found"].AsInt, total = t["expression_morphs_total"].AsInt;
             text += "  Expression morphs: " + (total == 0 ? "-" : found + " of " + total + " found");
             JSONArray missing = t["expression_morphs_missing"] as JSONArray;
@@ -232,10 +231,7 @@ namespace AIBody
             SettingsDefaults.Float(_plugin, _volumeJson);
             _legacyVolumeJson = new JSONStorableFloat("Speech volume", 1f, (float v) => SetLegacySpeechVolume(v), 0f, 10f);   // = VolumePercentMax / 100
             SettingsDefaults.Float(_plugin, _legacyVolumeJson);
-            // After v45 (Leon 22.11.2026 04:02: much quieter away from the head): full volume up to this distance.
-            _distanceJson = new JSONStorableFloat("Full volume distance (m)", SpeechPlayer.DefaultFullVolumeDistance,
-                (float v) => { if (_speech != null) _speech.FullVolumeDistance = v; }, SpeechPlayer.MinFullVolumeDistance, SpeechPlayer.MaxFullVolumeDistance);
-            SettingsDefaults.Float(_plugin, _distanceJson);
+            // v46's head audio distance slider (minDistance) is gone again in v47 (Leon 12:17: v45 sound was right).
             _idleJson = new JSONStorableBool("Idle head motion", true, (bool v) => { if (_idle != null) _idle.Enabled = v; });
             SettingsDefaults.Bool(_plugin, _idleJson);
             _idleIntensityJson = new JSONStorableFloat("Idle intensity", 0.5f, (float v) => { if (_idle != null) _idle.Intensity = v; }, 0f, 1f);
@@ -299,7 +295,6 @@ namespace AIBody
                     if (!IsLocal(id)) _send(Protocol.NewError(id, "audio_failed", message));
                 };
                 speech.Volume = SpeechVolume;
-                speech.FullVolumeDistance = _distanceJson != null ? _distanceJson.val : SpeechPlayer.DefaultFullVolumeDistance;
                 _speech = speech;
             });
             if (_morphs != null)
@@ -353,7 +348,6 @@ namespace AIBody
         public void BuildSoundSection(UiPage page)
         {
             page.Slider(_volumeJson);
-            page.Slider(_distanceJson);
             page.Button("Play test tone", () => { _testStatus = PlayTestTone(); });
             page.Button("Stop speaking", StopSpeaking);
         }
@@ -383,9 +377,8 @@ namespace AIBody
             page.Toggle(_breathingJson);
             page.Slider(_breathRateJson);
             page.Slider(_breathDepthJson);
-            page.Header(BreathMorphLabel);   // the label of the field below
-            if (!page.TextInput(_breathMorphJson))
-                _diag.Warn("Field 'Breath morph' is read-only (InputField failed).");
+            // Version 47 (Leon 22.11.2026, screenshot): the "Breath morph" header and its "Breath1" input box are gone from the
+            // menu. The storable "Breath morph" (default Breath1, saved with scenes) and config.json body.breath_morph still set it.
             page.Header("<b>Expression and gesture</b>");
             page.Popup(_expressionChoiceJson);
             page.Button("Show expression", ShowChosenExpression);
@@ -440,8 +433,8 @@ namespace AIBody
 
         /// <summary>The breathing controls in running prose (20.11.2026, Leon's style rule for the left fields).</summary>
         public const string BreathingHelp = "<b>Idle intensity</b> sets how much the head moves while idle. <b>Breaths per minute</b> controls how fast "
-            + "the chest breathes and <b>Breath depth</b> how deep, and <b>" + BreathMorphLabel + "</b> takes a morph name from the character's "
-            + "Morphs tab; without it the chest still rises with each breath.";
+            + "the chest breathes and <b>Breath depth</b> how deep. The breathing morph is Breath1 (another name: body.breath_morph in config.json); "
+            + "without it the chest still rises with each breath.";
 
         private string IdlePosesInfo()
         {
@@ -777,7 +770,6 @@ namespace AIBody
             if (_volumeJson == null) return;
             JSONClass body = new JSONClass();
             body["speech_volume"].AsFloat = SpeechVolume;   // config.json keeps the factor 0..10
-            if (_distanceJson != null) body["full_volume_distance"].AsFloat = _distanceJson.val;
             body["body_control"].AsBool = BodyControl;
             body["idle_motion"].AsBool = _idleJson.val;
             body["idle_intensity"].AsFloat = _idleIntensityJson.val;
@@ -813,7 +805,6 @@ namespace AIBody
             JSONClass body = root["body"] as JSONClass;
             if (body == null || _volumeJson == null) return;
             _volumeJson.val = PercentFromFactor(Protocol.GetFloat(body, "speech_volume", SpeechVolume));   // factor -> percent
-            if (_distanceJson != null) _distanceJson.val = Protocol.GetFloat(body, "full_volume_distance", _distanceJson.val);
             if (_bodyControlJson != null) _bodyControlJson.val = Protocol.GetBool(body, "body_control", _bodyControlJson.val);
             _idleJson.val = Protocol.GetBool(body, "idle_motion", _idleJson.val);
             _idleIntensityJson.val = Protocol.GetFloat(body, "idle_intensity", _idleIntensityJson.val);
@@ -1021,7 +1012,6 @@ namespace AIBody
                 text += "Speaking: " + (_speech.IsSpeaking ? "yes" : "no") + ", queued: " + _speech.QueueLength
                     + (_volumeJson != null && _volumeJson.val < 1f ? " – Speech volume is 0 %!" : "") + "\n";
                 text += "Audio: " + (_speech.Status ?? "nothing played yet") + "\n";
-                if (!string.IsNullOrEmpty(_speech.HeadAudioInfo)) text += _speech.HeadAudioInfo + "\n";
                 if (_speech.LastError != null && _speech.LastError != _speech.Status && _speech.LastErrorAge < 300f)
                     text += "<color=red>" + _speech.LastError + "</color> (" + _speech.LastErrorAge.ToString("0") + " s ago)\n";
             }
@@ -1036,7 +1026,7 @@ namespace AIBody
         /// <summary>Stops speech and returns every touched morph / bone to its original state.</summary>
         public void Restore()
         {
-            if (_speech != null) { _speech.StopAll("stopped"); _speech.RestoreHeadAudio(); }
+            if (_speech != null) _speech.StopAll("stopped");
             if (_expressions != null) _expressions.RestoreNow();
             if (_breathing != null) _breathing.RestoreNow();
             if (_idle != null) _idle.RestoreNow();

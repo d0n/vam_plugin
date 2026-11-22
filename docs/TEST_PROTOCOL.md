@@ -63,7 +63,7 @@ Tabs from version 15: Voice, AI Character, Client Character, Config (before: Voi
 1. Open the tab **Client Character**. At the top of the info field on the left it says "Info: Client Character" with the push-to-talk explanation and the microphone status.
 2. Open the tab **Voice**: at the top the section *Voice Mode*, below it *Voice > AI Character*; open the choosers. In the info field: Q&A help, AI mode help, key status, engine status.
 3. Tab **Config**: press **Reload Config JSON**; the info field shows the path of config.json, the network status and the result.
-4. Tab **AI Character**: the section **Poses** is there; click into the labeled field under "Breath morph" and change a letter, then go back.
+4. Tab **AI Character**: the section **Poses** is there; (until version 46: the labeled field under "Breath morph"; gone in version 47) click into the field under "New pose command" (Add Pose) and change a letter, then go back.
 5. Click through all four tabs once. No empty field, no empty chooser and no field with only a tab name may appear. From version 16: the info field shows only the information of the open tab (from version 17 without a header line above it, height 1800: do you still have to scroll?); self-test and Startup log are in the tab Config; at the top it says `Startup: ok` (or the errors in red).
 
 Report: Does the device list show the real microphones? Can you type into the breath morph field? Does the
@@ -787,7 +787,7 @@ Leon's v44 test (21:25): the v44 setup removed the old VAR, but `d0n.AIBody.44.v
 4. Start AIBody Companion **as administrator** (right-click > **Run as administrator**), then run the setup: on **Preparing to Install** it says **AIBody Companion is still running and could not be closed ... Nothing was changed.** and stops; AddonPackages unchanged. Quit the companion from the tray and run the setup again: it goes through.
 Report: the AddonPackages file list after each step and the lines `Package:`, `Remove older`, `Deleted`, `Stop AIBody Companion`, `Rolling back` of `%TEMP%\Setup Log <date> #<n>.txt`.
 
-## T75 – Speech loudness: Full volume distance and Speech volume (%) (version 46, Leon 22.11.2026 04:02-04:15)
+## T75 – Speech loudness: Full volume distance and Speech volume (%) (version 46 only; the distance part is gone in version 47, see T76)
 
 Cause of "too quiet / much quieter away from the head": VaM's head audio is a 3D sound that is turned down beyond its minimum distance (Unity's logarithmic rolloff), and a sound file cannot go above full scale, so Speech volume above about 150 % mostly adds distortion.
 1. Load AI-Buddy, open tab **Voice** > *Voice and sound*: **Speech volume (%)** goes from 0 to 1000, default 100 (an older scene saved with Speech volume 1 shows 100, not 1). Below it there is **Full volume distance (m)**, default 2. The left field shows a line `Head audio: volume 1.00, full volume within 2.0 m`.
@@ -797,4 +797,16 @@ Cause of "too quiet / much quieter away from the head": VaM's head audio is a 3D
 5. Speech volume (%) 100, 200, 300, 600, 1000 at the same place: companion.log shows `Speech volume 200 % (factor 2.00): ...` and `Speech level: peak ... dBFS before the gain, gain x2.00 -> ..., ...% of the samples cut at full scale` once per change. If it says the file is at its limit, higher values only make the voice harsher (no limiter: at 1000 % expect clear distortion). **Play test tone** above 300 % still plays the 3x copy.
 6. Remove the plugin (or disable it): the head audio's distance goes back to what the scene had (VaM log: `Head audio of 'AI' before AIBody: volume ..., minDistance ... m, maxDistance ... m` shows the values it restores).
 Report: from which distance the voice gets too quiet with the default 2 m, the `Head audio of ...` and `Speech level:` lines, and whether anything sounds distorted at 100 %. **Play test tone** at 200 % and 300 % plays the 2x / 3x copy (switch points 150 % and 250 %).
+
+## T76 – v46 regression fixed: speech, sound like v45, body, Breath boxes, thumbnail (version 47, Leon 22.11.2026 12:17)
+
+v46 wrote the head audio's "volume" / "minDistance" / "maxDistance" params before every clip and shipped the scene with minDistance 2; version 47 goes back to v45 there (only the head volume is set, scene minDistance 0.04, no "Full volume distance (m)" slider).
+1. Install v47 with the setup, start AIBody Companion, then VaM; load **AI-Buddy** from `d0n.AIBody.47` (not a scene saved with v46: its head audio still has minDistance 2 – load the package scene or set it back by hand).
+2. Tab **Voice** > *Voice and sound*: **Speech volume (%)** 100, no **Full volume distance (m)** below it. Say something: the AI answers with its voice (not the test tone). companion.log: `speak sent` followed by `plugin: speech_started` for every sentence, no `did not start playing within 15 s`.
+3. Loudness: at 100 % the voice is as loud as in v45 at Speech volume 1 at the same camera distance; 200 % / 300 % louder like v45 at 2 / 3. Note if it is not like v45.
+4. **Play test tone** still plays the tone (2x copy from 150 %, 3x from 250 %) and the next AI answer is speech again.
+5. Idle head motion, Breathing (chest), an expression (tab AI Character > **Show expression**) and a pose (**Pose command** menu) work; let the AI talk for a minute: expressions/gestures come with its answers.
+6. Tab **AI Character** > *Idle motion and breathing*: **Idle head motion**, **Idle intensity**, **Breathing**, **Breaths per minute**, **Breath depth**, then directly *Expression and gesture*: no "Breath morph" box and no "Breath1" box. Breathing still uses Breath1 (left field: "Breath morph: Breath1").
+7. Main menu > Open Scene: AI-Buddy of `d0n.AIBody.47` shows its thumbnail (two characters in T-pose on black).
+Report: companion.log and, if speech still fails, VaM's output_log.txt lines starting with `AIBody` (Verbose log on in tab Config for the `[audio]` lines).
 
