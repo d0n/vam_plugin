@@ -244,7 +244,7 @@ class PoseCommandTests(TestCase):
         self.assertIn('page.Button("Add Pose", StartAddPose);', tab)
 
     def test_apply_logs_result_and_error(self):
-        apply = method_body(self.body, "private void OnPoseCommandChosen(string command)")
+        apply = method_body(self.body, "private void ApplyPoseCommand(string command)")
         self.assertIn("PoseVocabulary.Resolve(entry, _poses.PoseNames)", apply)
         self.assertIn("_poses.ApplyPose(pose)", apply)
         self.assertIn("<color=red>", apply)

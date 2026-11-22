@@ -46,13 +46,14 @@ class PoseMenuTests(TestCase):
 
     def test_exact_order_of_the_poses_section(self):
         poses = self.tab[self.tab.index('"<b>Poses</b>"'):]
-        order = ['"<b>Poses</b>"', "ScrollablePopup(_poseCommandChoiceJson)", '"Add Pose"', "NewPoseCommandLabel",
+        order = ['"<b>Poses</b>"', "ScrollablePopup(_poseCommandChoiceJson)", '"Apply Pose"', '"Add Pose"', "NewPoseCommandLabel",
                  '"Save pose command"', '"Cancel Add Pose"', '"Delete Pose"', '"Reset poses"', '"Restore starter poses"',
                  '"Reload poses"']
         positions = [poses.index(x) for x in order]
         self.assertEqual(positions, sorted(positions))
 
     def test_no_pose_dropdown_and_no_apply_buttons(self):
+        # the old "Pose" menu and its buttons stay gone; 22.11.2026 brought one "Apply Pose" for the Pose command
         for gone in ("_poseChoiceJson", "Apply pose", "ApplyChosenPose", "ApplyPoseCommandLabel"):
             self.assertNotIn(gone, self.body)
 
@@ -60,7 +61,8 @@ class PoseMenuTests(TestCase):
         self.assertIn("OnPoseCommandChosen", self.body)
         chosen = method_body(self.body, "private void OnPoseCommandChosen(string command)")
         self.assertIn("if (_syncingPoseMenu", chosen)
-        self.assertIn("_poses.ApplyPose(pose)", chosen)
+        self.assertIn("ApplyPoseCommand(command)", chosen)
+        self.assertIn("_poses.ApplyPose(pose)", method_body(self.body, "private void ApplyPoseCommand(string command)"))
         quiet = method_body(self.body, "private void SelectPoseCommandQuietly(string command)")
         self.assertIn("_syncingPoseMenu = true", quiet)
         self.assertIn("finally", quiet)

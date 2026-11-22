@@ -394,7 +394,12 @@ namespace AIBody
             page.Header("<b>Poses</b>");
             // Version 42 (Leon 18:27): Pose command (choosing applies), Add Pose, Delete Pose, Reset poses; then the list tools.
             // No empty menu (version 16): the menu and Delete Pose appear only when there is a command.
-            if (_poses != null && _poses.Vocabulary.Count > 0) page.ScrollablePopup(_poseCommandChoiceJson);
+            if (_poses != null && _poses.Vocabulary.Count > 0)
+            {
+                page.ScrollablePopup(_poseCommandChoiceJson);
+                // 22.11.2026 (Leon): applies the chosen command at once, also again (choosing the same entry fires nothing)
+                page.Button("Apply Pose", ApplyPoseCommandNow);
+            }
             page.Button("Add Pose", StartAddPose);
             if (_addPosePose != null)
             {
@@ -579,8 +584,8 @@ namespace AIBody
                 lines += "  " + v.Get(i).Command + (ok ? "" : "  - UNAVAILABLE: no pose '" + v.Get(i).Pose + "'") + "\n";
             }
             return "There are " + v.Count + " pose commands (" + ready + " available); say or type EXACTLY one of them, and a command without a pose "
-                + "is never applied. Choosing an entry in <b>Pose command</b> applies its pose at once (choose another one first to apply the "
-                + "same one again). <b>Add Pose</b> opens VaM's file browser in " + PoseBrowseFolder + ": choose the pose file, then type "
+                + "is never applied. Choosing an entry in <b>Pose command</b> applies its pose at once, and <b>Apply Pose</b> applies "
+                + "the chosen one again right away. <b>Add Pose</b> opens VaM's file browser in " + PoseBrowseFolder + ": choose the pose file, then type "
                 + "the spoken command into <b>New pose command</b> (it starts with the file name) and press <b>Save pose command</b>"
                 + " (<b>Cancel Add Pose</b> drops it). <b>Delete Pose</b> removes the command chosen in <b>Pose command</b>. "
                 + "<b>Reset poses</b> puts both people back where the scene placed them, first the AI, then the client. "
@@ -736,6 +741,19 @@ namespace AIBody
         private void OnPoseCommandChosen(string command)
         {
             if (_syncingPoseMenu || string.IsNullOrEmpty(command)) return;
+            ApplyPoseCommand(command);
+        }
+
+        /// <summary>Button "Apply Pose" (22.11.2026): the command chosen in "Pose command", applied now.</summary>
+        private void ApplyPoseCommandNow()
+        {
+            string command = _poseCommandChoiceJson != null ? _poseCommandChoiceJson.val : "";
+            if (string.IsNullOrEmpty(command)) { Note("<color=red>Apply Pose: choose the command in <b>Pose command</b> first</color>", true); return; }
+            ApplyPoseCommand(command);
+        }
+
+        private void ApplyPoseCommand(string command)
+        {
             if (_poses == null) { Note("<color=red>Pose command: PoseController missing</color>", true); return; }
             PoseCommand entry = _poses.Vocabulary.Match(command);
             string error = null;

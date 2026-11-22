@@ -844,3 +844,9 @@ Report: companion.log and the sentences that still sounded English.
 1. Run the next setup over an installed AIBody: the box says **Update from AIBody <old> to <new>.** and what it will do, with no "OK: ... Cancel: ..." line; the buttons are Windows' own (OK / Abbrechen on German Windows). OK continues, Abbrechen stops without changes.
 2. Run the same setup again: **AIBody <n> is already installed (...). Reinstall / repair it? ...** with the same two Windows buttons.
 Report: screenshots of both boxes.
+
+## T81 – Apply Pose button (main after v48, Leon 22.11.2026 call)
+
+1. Tab **AI Character** > *Poses*: under **Pose command** there is a button **Apply Pose**.
+2. Choose a command: the pose is applied at once (as before). Move the character a bit (or let an idle pose run), press **Apply Pose**: the same pose is applied again right away; the left field says "Last action: Pose command applied: ...".
+3. **Apply Pose** with nothing chosen: red note "choose the command in Pose command first".
