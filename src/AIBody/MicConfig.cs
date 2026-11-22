@@ -122,6 +122,13 @@ namespace AIBody
             _plugin.RegisterAction(new JSONStorableAction("Push-to-talk toggle", () => _pttActive.val = !_pttActive.val));
         }
 
+        /// <summary>Version 51: the built-in lists of Mic mode and VAD engine again (after Reset to Default).</summary>
+        public void RefreshChoices()
+        {
+            AppLink.EnsureChoices(Mode, new[] { ModeVad, ModePtt });
+            AppLink.EnsureChoices(VadEngine, new[] { VadAuto, VadBuiltIn, VadWebRtc, VadSilero });
+        }
+
         private JSONStorableBool Reg(JSONStorableBool p) { return SettingsDefaults.Bool(_plugin, p); }
         private JSONStorableFloat Reg(JSONStorableFloat p) { return SettingsDefaults.Float(_plugin, p); }
 

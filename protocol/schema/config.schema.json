@@ -438,30 +438,30 @@
           "anyOf": [
             {
               "type": "number",
-              "minimum": 10.0,
-              "maximum": 1800.0
+              "minimum": 30.0,
+              "maximum": 18000.0
             },
             {
               "type": "string",
               "pattern": "^\\s*-?[0-9]+(\\.[0-9]+)?([eE][-+]?[0-9]+)?\\s*$"
             }
           ],
-          "default": 45.0,
+          "default": 30.0,
           "description": "Slider 'Idle pose min wait (s)': shortest quiet time before an idle pose change (10-1800)"
         },
         "idle_pose_max_s": {
           "anyOf": [
             {
               "type": "number",
-              "minimum": 10.0,
-              "maximum": 1800.0
+              "minimum": 30.0,
+              "maximum": 18000.0
             },
             {
               "type": "string",
               "pattern": "^\\s*-?[0-9]+(\\.[0-9]+)?([eE][-+]?[0-9]+)?\\s*$"
             }
           ],
-          "default": 120.0,
+          "default": 300.0,
           "description": "Slider 'Idle pose max wait (s)': longest quiet time before an idle pose change (10-1800)"
         },
         "idle_pose_default": {

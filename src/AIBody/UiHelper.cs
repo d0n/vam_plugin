@@ -269,6 +269,14 @@ namespace AIBody
             }
             for (int i = 0; i < _choosers.Count; i++)
             {
+                // Version 51: the default is always one of the menu's entries (a menu is never left without its value).
+                List<string> choices = _choosers[i].choices;
+                if (!string.IsNullOrEmpty(_chooserDefaults[i]) && (choices == null || !choices.Contains(_chooserDefaults[i])))
+                {
+                    List<string> withDefault = choices != null ? new List<string>(choices) : new List<string>();
+                    withDefault.Insert(0, _chooserDefaults[i]);
+                    _choosers[i].choices = withDefault;   // E9, E24, E25
+                }
                 if (_choosers[i].val == _chooserDefaults[i]) continue;
                 _choosers[i].val = _chooserDefaults[i];
                 changed++;

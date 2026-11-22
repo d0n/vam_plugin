@@ -72,22 +72,24 @@ class IdlePoseSchedulerTests(unittest.TestCase):
         self.assertEqual(proc.returncode, 0, proc.stderr)
         return [tuple(x.split(":", 1)) for x in json.loads(proc.stdout.splitlines()[0])]
 
-    def test_quiet_time_alternates_random_poses_and_the_default_idle_pose(self):
+    def test_quiet_time_changes_to_random_poses_never_twice_in_a_row(self):
+        # version 51: random of ALL poses (the default pose is one of them), no forced return to the default pose;
+        # the wait is clamped to the 30 s minimum (20 -> 30)
         chosen = self.run_case([[1.0, False, True, "", 600]])
         names = [n for _, n in chosen]
         self.assertGreaterEqual(len(names), 10)
-        self.assertTrue(all(n != "Stand Up" for n in names[0::2]), names)
-        self.assertTrue(all(n == "Stand Up" for n in names[1::2]), names)
-        self.assertTrue(set(names[0::2]) <= {"Sit Down", "Lay Down", "Turn Around"})
-        self.assertGreater(len(set(names[0::2])), 1, "random, not always the same pose")
+        self.assertTrue(all(a != b for a, b in zip(names, names[1:])), names)
+        self.assertEqual(set(names), {"Stand Up", "Sit Down", "Lay Down", "Turn Around"})
         steps = [int(i) for i, _ in chosen]
         gaps = [b - a for a, b in zip([-1] + steps, steps)]
-        self.assertTrue(all(20 <= g <= 41 for g in gaps), gaps)
+        self.assertTrue(all(30 <= g <= 41 for g in gaps), gaps)
 
-    def test_only_available_poses_of_the_vocabulary(self):
+    def test_only_poses_the_character_has(self):
+        # version 51: every pose the character has is in the pool (Dance too, though no pose command links it);
+        # the pose commands without a pose file (Sit Down, ...) are not
         names = [n for _, n in self.run_case([[1.0, False, True, "", 600]], poses=("Stand Up", "Prone", "Dance"))]
-        self.assertEqual(set(names), {"Prone", "Stand Up"}, "Dance is no pose command; the others have no pose file")
-        self.assertEqual(self.run_case([[1.0, False, True, "", 600]], poses=("Dance",)), [], "nothing available")
+        self.assertEqual(set(names), {"Prone", "Stand Up", "Dance"})
+        self.assertEqual(self.run_case([[1.0, False, True, "", 600]], poses=()), [], "nothing available")
         own = [n for _, n in self.run_case([[1.0, False, True, "", 300]], poses=("sitting", "Stand Up"),
                                            commands=[["Have a seat", "sitting"]])]
         self.assertIn("sitting", own)
@@ -121,7 +123,7 @@ class IdlePosePluginTests(unittest.TestCase):
                      "_poses.OnPoseLoaded = () => { if (_idle != null) _idle.Rebase(); };"):
             self.assertIn(part, body, part)
         self.assertIn("IdlePoses.cs", source("AIBody.cslist"))
-        self.assertEqual(settings_file.RANGES[("body", "idle_pose_min_s")], (10.0, 1800.0))
+        self.assertEqual(settings_file.RANGES[("body", "idle_pose_min_s")], (30.0, 18000.0))   # version 51
         self.assertEqual(settings_file.DEFAULTS["body"]["idle_pose_default"], "Stand Up")
         self.assertIs(settings_file.DEFAULTS["body"]["idle_poses"], True)
 

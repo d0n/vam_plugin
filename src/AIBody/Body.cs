@@ -258,11 +258,13 @@ namespace AIBody
             SettingsDefaults.Text(_plugin, _breathMorphJson);
             _idlePosesJson = new JSONStorableBool("Idle poses", true, (bool v) => { if (_idlePoses != null) _idlePoses.Enabled = v; });
             SettingsDefaults.Bool(_plugin, _idlePosesJson);
+            // Version 51 (Leon 20:38-20:51): these two sliders set how often the random idle pose changes (30 / 300 s,
+            // 30 - 18000 s); the storable names stay, so old scenes keep their values. Min never above max.
             _idlePoseMinJson = new JSONStorableFloat("Idle pose min wait (s)", IdlePoseScheduler.DefaultMinSeconds,
-                (float v) => { if (_idlePoses != null) _idlePoses.MinSeconds = v; }, IdlePoseScheduler.LowestSeconds, IdlePoseScheduler.HighestSeconds);
+                OnIdleMinChanged, IdlePoseScheduler.LowestSeconds, IdlePoseScheduler.HighestSeconds);
             SettingsDefaults.Float(_plugin, _idlePoseMinJson);
             _idlePoseMaxJson = new JSONStorableFloat("Idle pose max wait (s)", IdlePoseScheduler.DefaultMaxSeconds,
-                (float v) => { if (_idlePoses != null) _idlePoses.MaxSeconds = v; }, IdlePoseScheduler.LowestSeconds, IdlePoseScheduler.HighestSeconds);
+                OnIdleMaxChanged, IdlePoseScheduler.LowestSeconds, IdlePoseScheduler.HighestSeconds);
             SettingsDefaults.Float(_plugin, _idlePoseMaxJson);
             _idlePoseDefaultJson = new JSONStorableStringChooser("Idle default pose", new List<string> { IdlePoseScheduler.DefaultIdlePose },
                 IdlePoseScheduler.DefaultIdlePose, "Idle default pose", (string v) => { if (_idlePoses != null) _idlePoses.DefaultPose = v; });
@@ -467,14 +469,27 @@ namespace AIBody
         {
             if (_idlePoses == null) return "Idle poses: not available (see the log)\n";
             List<string> names = _poses != null ? _poses.PoseNames : new List<string>();
+            int pool = _poses != null ? _idlePoses.Pool(_poses.Vocabulary, names).Count : 0;
             string home = IdlePoseScheduler.ResolveName(_idlePoses.DefaultPose, names);
-            int count = _poses != null ? _idlePoses.Candidates(_poses.Vocabulary, names, home).Count : 0;
-            return "<b>Idle poses</b> is " + (_idlePoses.Enabled ? _idlePoses.Status : "off") + ": after " + _idlePoses.MinSeconds.ToString("0")
-                + "-" + _idlePoses.MaxSeconds.ToString("0") + " s (<b>Idle pose min wait (s)</b> to <b>Idle pose max wait (s)</b>) without speech "
-                + "or a pose command the character takes one of the " + count + " available pose command poses and next time goes back to "
-                + "<b>Idle default pose</b> (<b>Apply idle default pose</b> goes there now) (" + (home ?? "'" + _idlePoses.DefaultPose + "' not found, so it does not go back")
-                + "); after your own pose command it waits " + IdlePoseScheduler.CooldownSeconds.ToString("0")
-                + " s first, and <b>Idle head motion</b> and <b>Breathing</b> keep running in every pose.\n";
+            return "<b>Idle poses</b> is " + (_idlePoses.Enabled ? _idlePoses.Status : "off") + ". <b>Idle pose min wait (s)</b> and "
+                + "<b>Idle pose max wait (s)</b> control how often the idle pose changes: after a random wait between "
+                + WaitText(_idlePoses.MinSeconds) + " and " + WaitText(_idlePoses.MaxSeconds) + " without speech or a pose command the "
+                + "character takes a random pose of all " + pool + " poses it has (its pose files, gestures.json poses, the poses of "
+                + "your pose commands and the Idle default pose), never the same one twice in a row. Defaults 30 s and 300 s (5 min), "
+                + "range 30 to 18000 s (300 min); both the same = a fixed interval; min is never above max. For an exact value type "
+                + "the number into the slider's value field, or set body.idle_pose_min_s / body.idle_pose_max_s in config.json. "
+                + "<b>Idle default pose</b> (" + (home ?? "'" + _idlePoses.DefaultPose + "' not found") + ") is one of the poses and "
+                + "<b>Apply idle default pose</b> goes there now; after your own pose command it waits "
+                + IdlePoseScheduler.CooldownSeconds.ToString("0") + " s first, while Dollmaster is active it pauses, and "
+                + "<b>Idle head motion</b> and <b>Breathing</b> keep running in every pose.\n";
+        }
+
+        /// <summary>"300 s (5 min)": seconds, with minutes from one minute on.</summary>
+        public static string WaitText(float seconds)
+        {
+            string text = seconds.ToString("0") + " s";
+            if (seconds >= 60f) text += " (" + (seconds / 60f).ToString(seconds % 60f < 0.5f ? "0" : "0.0") + " min)";
+            return text;
         }
 
         // ---------------------------------------------------------------- scene hooks (since version 26)
@@ -807,6 +822,19 @@ namespace AIBody
             Note("Body position reset", false);
         }
 
+        /// <summary>Version 51: min wait raised above max moves max up with it (and the other way round).</summary>
+        private void OnIdleMinChanged(float v)
+        {
+            if (_idlePoseMaxJson != null && _idlePoseMaxJson.val < v) _idlePoseMaxJson.val = v;
+            if (_idlePoses != null) _idlePoses.MinSeconds = v;
+        }
+
+        private void OnIdleMaxChanged(float v)
+        {
+            if (_idlePoseMinJson != null && _idlePoseMinJson.val > v) _idlePoseMinJson.val = v;
+            if (_idlePoses != null) _idlePoses.MaxSeconds = v;
+        }
+
         /// <summary>Button "Apply idle default pose" (22.11.2026, Leon: idle pose control in the menu): the pose chosen in
         /// "Idle default pose", applied now; the idle poses then wait their full time again.</summary>
         private void ApplyIdleDefaultPose()
@@ -815,7 +843,7 @@ namespace AIBody
             string pose = IdlePoseScheduler.ResolveName(_idlePoseDefaultJson.val, _poses.PoseNames);
             if (pose == null) { Note("<color=red>Apply idle default pose: this character has no pose '" + _idlePoseDefaultJson.val + "' (Reload poses)</color>", true); return; }
             string error = _poses.ApplyPose(pose);
-            if (error == null) { _idlePoses.NoteUserPose(); Note("Idle default pose applied: " + pose, false); }
+            if (error == null) { _idlePoses.NoteUserPose(); _idlePoses.NoteShown(pose); Note("Idle default pose applied: " + pose, false); }
             else Note("<color=red>Apply idle default pose '" + pose + "': " + error + "</color>", true);
         }
 
@@ -840,7 +868,7 @@ namespace AIBody
                 if (pose == null) error = "this character has no pose '" + entry.Pose + "' (Reload poses, or delete it and use Add Pose)";
                 else error = _poses.ApplyPose(pose);
             }
-            if (error == null && _idlePoses != null) _idlePoses.NoteUserPose();
+            if (error == null && _idlePoses != null) { _idlePoses.NoteUserPose(); _idlePoses.NoteShown(pose); }
             if (error == null) Note("Pose command applied: '" + command + "' -> " + pose, false);
             else Note("<color=red>Pose command '" + command + "': " + error + "</color>", true);
         }
@@ -1097,7 +1125,7 @@ namespace AIBody
                 string pose = _idlePoses.Update(dt, busy, BodyControl, _poses.Vocabulary, _poses.PoseNames);
                 if (pose == null) return;
                 string error = _poses.ApplyPose(pose);
-                if (error == null) Log.Debug("Idle pose: " + pose);
+                if (error == null) Log.Debug("Idle pose: " + pose + " (random of a pool of " + _idlePoses.PoolSize + " poses)");
                 else Log.Warn("Idle pose '" + pose + "' failed: " + error);
             }
             catch (Exception e)

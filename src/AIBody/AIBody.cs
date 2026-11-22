@@ -43,7 +43,7 @@ namespace AIBody
 {
     public class AIBodyPlugin : MVRScript
     {
-        public const string PluginVersion = "50";   // = package number d0n.AIBody.50.var (scheme since version 12)
+        public const string PluginVersion = "51";   // = package number d0n.AIBody.51.var (scheme since version 12)
 
         private AppLink _link;
         private Body _body;
@@ -474,6 +474,9 @@ namespace AIBody
             {
                 int changed = Defaults.ResetAll(this);
                 if (_link != null) _link.ClearToken();   // version 50 (Leon 20:35): the reset clears the XAI API Token too
+                // Version 51 (Leon 20:58): every menu gets its full list again, so no dropdown is empty after the reset.
+                if (_link != null) _link.RefreshAllChoices();
+                if (_body != null) _body.RefreshCharacterChoices();
                 ApplyBackground();
                 if (_link != null) _link.MarkConfigDirty();
                 if (_body != null && _body.OnSettingsChanged != null) _body.OnSettingsChanged();

@@ -115,10 +115,11 @@ DEFAULTS: dict[str, dict[str, Any]] = {
         "breath_depth": 0.35,
         "breath_morph": "Breath1",
         # Idle poses (version 35): after idle_pose_min_s..idle_pose_max_s seconds without speech or a pose command the
-        # character takes an available pose of the pose commands by itself and next time goes back to idle_pose_default.
+        # character takes a random pose of all its poses (version 51; idle_pose_default is one of them, never twice in a row).
         "idle_poses": True,
-        "idle_pose_min_s": 45.0,
-        "idle_pose_max_s": 120.0,
+        # version 51 (Leon 20:38-20:51): random pose of ALL poses, every idle_pose_min_s..idle_pose_max_s seconds
+        "idle_pose_min_s": 30.0,
+        "idle_pose_max_s": 300.0,
         "idle_pose_default": "Stand Up",  # a pose name of the character; not found = no return pose
     },
     "advanced": {"file_poll_interval_s": 0.1, "verbose_log": False},
@@ -276,8 +277,8 @@ RANGES: dict[tuple[str, str], tuple[float, float]] = {
     ("body", "idle_intensity"): (0.0, 1.0),
     ("body", "breaths_per_minute"): (4.0, 40.0),
     ("body", "breath_depth"): (0.0, 1.0),
-    ("body", "idle_pose_min_s"): (10.0, 1800.0),
-    ("body", "idle_pose_max_s"): (10.0, 1800.0),
+    ("body", "idle_pose_min_s"): (30.0, 18000.0),   # version 51: 30 s to 300 min
+    ("body", "idle_pose_max_s"): (30.0, 18000.0),
     ("advanced", "file_poll_interval_s"): (0.02, 2.0),
     ("ai", "xai", "max_output_tokens"): (16, 8000),
     ("ai", "xai", "speed"): (0.7, 1.5),

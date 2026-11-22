@@ -1,14 +1,17 @@
-// Idle poses (version 35, Leon 20.11.2026): when the character has nothing to do for a while (no speech, nobody
-// talking, no pose command), it changes on its own now and then to one of the available poses of the pose-command
-// vocabulary (e.g. "Sit Down", "Turn Around") and returns to the default idle pose in between, so it never freezes.
-// The idle head motion and the breathing (IdleController, BreathingController) keep running on top of every pose.
+// Idle poses (version 35, Leon 20.11.2026; version 51, Leon 22.11.2026 20:38-20:57): when the character has nothing to do
+// for a while (no speech, nobody talking, no pose command), it changes on its own to a RANDOM pose of ALL poses it has,
+// so it never freezes. The idle head motion and the breathing (IdleController, BreathingController) keep running on top.
 //
 // Rules:
-//   - only commands of the vocabulary whose pose exists on the character (PoseVocabulary.Resolve);
+//   - the pool: every pose of the character (gestures.json poses + the pose files the plugin lists), the poses linked by
+//     pose commands (also files chosen with Add Pose) and the Idle default pose; never the same pose twice in a row when
+//     the pool has more than one (version 51; up to v50 only pose-command poses were used and every second change went
+//     back to the default pose, so with one usable command the character only switched between two poses);
 //   - never while the AI speaks or the user talks: that resets the quiet time;
 //   - a pose command of the user (spoken, typed or from the menu) is respected for CooldownSeconds first;
-//   - Body control off = no idle poses (the AI / companion side may not move the body);
-//   - the wait between two changes is random between MinSeconds and MaxSeconds.
+//   - Body control off = no idle poses (the AI / companion side may not move the body); Dollmaster active = paused;
+//   - the wait between two changes is random between MinSeconds and MaxSeconds (sliders "Idle pose min wait (s)" /
+//     "Idle pose max wait (s)", default 30 / 300 s, 30 - 18000 s; both 300 = a fixed 5-minute switch).
 //
 // Pure C# (no VaM types), so tests run it outside VaM (tests/test_idle_poses.py). It only DECIDES; Body applies the
 // pose through PoseController.ApplyPose. No Dictionary.Keys/.Values enumeration, no LINQ, no indexer.
@@ -19,10 +22,10 @@ namespace AIBody
 {
     public class IdlePoseScheduler
     {
-        public const float DefaultMinSeconds = 45f;
-        public const float DefaultMaxSeconds = 120f;
-        public const float LowestSeconds = 10f;
-        public const float HighestSeconds = 1800f;
+        public const float DefaultMinSeconds = 30f;      // version 51 (Leon 20:38): 30 s / 300 s
+        public const float DefaultMaxSeconds = 300f;
+        public const float LowestSeconds = 30f;          // version 51 (Leon 20:39): 30 s to 18000 s (300 min)
+        public const float HighestSeconds = 18000f;
         public const string DefaultIdlePose = "Stand Up";
 
         /// <summary>After a pose command of the user, idle poses wait at least this long.</summary>
@@ -31,15 +34,17 @@ namespace AIBody
         public bool Enabled = true;
         public float MinSeconds = DefaultMinSeconds;
         public float MaxSeconds = DefaultMaxSeconds;
-        /// <summary>Pose name (compared with PoseVocabulary.PoseKey) the character returns to between two idle poses.</summary>
+        /// <summary>Idle default pose (compared with PoseVocabulary.PoseKey): one of the pool (version 51: no forced return to it).</summary>
         public string DefaultPose = DefaultIdlePose;
 
         private readonly Random _random;
         private float _quiet;          // seconds without speech / user activity
         private float _cooldown;       // seconds left after a user pose command
         private float _next;           // quiet seconds needed for the next change
-        private bool _inIdlePose;      // the last change was a random pose (the next one goes back to the default)
-        private string _lastKey = "";
+        private string _lastKey = "";  // the pose shown last (never picked twice in a row)
+
+        /// <summary>Size of the pool at the last change or check (info field, verbose log).</summary>
+        public int PoolSize;
 
         /// <summary>What happened last, for the info field.</summary>
         public string Status = "waiting";
@@ -75,7 +80,6 @@ namespace AIBody
         {
             _cooldown = CooldownSeconds;
             _quiet = 0f;
-            _inIdlePose = false;
             PlanNext();
         }
 
@@ -109,50 +113,61 @@ namespace AIBody
             }
             _quiet = 0f;
             PlanNext();
-            string home = ResolveName(DefaultPose, poseNames);
-            if (_inIdlePose && home != null)
-            {
-                _inIdlePose = false;
-                _lastKey = PoseVocabulary.PoseKey(home);
-                _shownSeconds = -1; Status = "back to the default idle pose '" + home + "'";
-                return home;
-            }
-            List<string> candidates = Candidates(vocabulary, poseNames, home);
+            List<string> pool = Pool(vocabulary, poseNames);
+            PoolSize = pool.Count;
+            List<string> candidates = WithoutLast(pool);
             if (candidates.Count == 0)
             {
-                _inIdlePose = false;
-                _shownSeconds = -1; Status = "no idle pose available (no pose command with a pose of this character besides the default)";
+                _shownSeconds = -1; Status = "no idle pose available (this character has no pose; Reload poses)";
                 return null;
             }
             string pick = candidates[_random.Next(candidates.Count)];
-            _inIdlePose = true;
             _lastKey = PoseVocabulary.PoseKey(pick);
-            _shownSeconds = -1; Status = "idle pose '" + pick + "'";
+            _shownSeconds = -1; Status = "idle pose '" + pick + "' (random of " + pool.Count + ")";
             return pick;
         }
 
-        /// <summary>The available poses of the vocabulary, without the default pose and the one shown last.</summary>
-        public List<string> Candidates(PoseVocabulary vocabulary, List<string> poseNames, string home)
+        /// <summary>The pose shown last (key), e.g. after a pose command; it is not picked next.</summary>
+        public void NoteShown(string pose)
+        {
+            _lastKey = PoseVocabulary.PoseKey(pose);
+        }
+
+        /// <summary>
+        /// Version 51: every pose the character has (poseNames: gestures.json poses + listed pose files), the poses of the
+        /// pose commands (Resolve: also files linked with Add Pose) and the Idle default pose; each once (by PoseKey).
+        /// </summary>
+        public List<string> Pool(PoseVocabulary vocabulary, List<string> poseNames)
         {
             List<string> result = new List<string>();
-            if (vocabulary == null || poseNames == null) return result;
-            string homeKey = home != null ? PoseVocabulary.PoseKey(home) : "";
-            for (int i = 0; i < vocabulary.Count; i++)
+            List<string> keys = new List<string>();
+            if (poseNames != null)
+                for (int i = 0; i < poseNames.Count; i++) AddOnce(result, keys, poseNames[i]);
+            if (vocabulary != null)
+                for (int i = 0; i < vocabulary.Count; i++) AddOnce(result, keys, PoseVocabulary.Resolve(vocabulary.Get(i), poseNames));
+            AddOnce(result, keys, ResolveName(DefaultPose, poseNames));
+            return result;
+        }
+
+        private static void AddOnce(List<string> result, List<string> keys, string pose)
+        {
+            if (string.IsNullOrEmpty(pose)) return;
+            string key = PoseVocabulary.PoseKey(pose);
+            if (key.Length == 0 || keys.Contains(key)) return;
+            keys.Add(key);
+            result.Add(pose);
+        }
+
+        /// <summary>The pool without the pose shown last (only when more than one is left).</summary>
+        public List<string> WithoutLast(List<string> pool)
+        {
+            List<string> result = new List<string>(pool);
+            if (result.Count < 2) return result;
+            for (int i = 0; i < result.Count; i++)
             {
-                string actual = PoseVocabulary.Resolve(vocabulary.Get(i), poseNames);
-                if (actual == null) continue;
-                string key = PoseVocabulary.PoseKey(actual);
-                if (key == homeKey || result.Contains(actual)) continue;
-                result.Add(actual);
-            }
-            if (result.Count > 1)
-            {
-                for (int i = 0; i < result.Count; i++)
-                {
-                    if (PoseVocabulary.PoseKey(result[i]) != _lastKey) continue;
-                    result.RemoveAt(i);
-                    break;
-                }
+                if (PoseVocabulary.PoseKey(result[i]) != _lastKey) continue;
+                result.RemoveAt(i);
+                break;
             }
             return result;
         }

@@ -1469,6 +1469,37 @@ namespace AIBody
 
         private bool _choicesWarned;
 
+        /// <summary>
+        /// Version 51 (Leon 20:58: "after Reset to Default the dropdowns are empty, must never happen"): every menu of the
+        /// link gets its built-in list again (kept: entries the companion app reported, the current value), so no menu
+        /// is ever empty or reduced to one entry after a reset or before the companion app reported anything.
+        /// </summary>
+        public void RefreshAllChoices()
+        {
+            EnsureChoices(_sttJson, SttChoices);
+            EnsureChoices(_llmJson, LlmChoices);
+            EnsureChoices(_ttsJson, TtsChoices);
+            EnsureChoices(_aiModeJson, new[] { ModeQa, "auto", "realtime", "chain" });
+            EnsureChoices(_voiceJson, XaiVoices);
+            EnsureChoices(_languageJson, Languages);
+            RefreshPersonaChoices();
+            if (_mic != null) _mic.RefreshChoices();
+        }
+
+        /// <summary>Built-in entries first, then the other entries the menu had, then its value; unchanged lists are not touched.</summary>
+        public static void EnsureChoices(JSONStorableStringChooser chooser, string[] builtIn)
+        {
+            if (chooser == null || builtIn == null) return;
+            List<string> choices = new List<string>(builtIn);
+            List<string> old = chooser.choices;
+            if (old != null) for (int i = 0; i < old.Count; i++) if (!string.IsNullOrEmpty(old[i]) && !choices.Contains(old[i])) choices.Add(old[i]);
+            if (!string.IsNullOrEmpty(chooser.val) && !choices.Contains(chooser.val)) choices.Add(chooser.val);
+            bool same = old != null && choices.Count == old.Count;
+            for (int i = 0; same && i < choices.Count; i++) same = choices[i] == old[i];
+            if (same) return;
+            chooser.choices = choices;   // choices refresh: E9, E24, E25
+        }
+
         private string[] BuiltInChoices(JSONStorableStringChooser chooser)
         {
             if (chooser == _sttJson) return SttChoices;

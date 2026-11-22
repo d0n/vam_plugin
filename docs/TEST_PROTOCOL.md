@@ -887,3 +887,12 @@ Report: any red line in the info field or the VaM log ("Dollmaster ..."), anythi
 6. Paste the token again and speak: you are heard and answered with the xAI voice. Without a token the info field says the test engines run (no xAI API key).
 7. Optional: close VaM and the companion, rename config.json, start again: the new config.json has the same defaults (engines xai, persona Anna, memory on, mic on).
 Report: any menu with only one entry, any '(none)', a token left anywhere after the reset.
+
+## T86 – Idle poses random of all poses, idle timer, dropdowns after Reset (version 51, Leon 22.11.2026 20:38-20:58)
+1. Install v51, start AIBody Companion, then VaM; load AI-Buddy. Put three or more pose files into `Custom/Atom/Person/Pose/AIBody` (or have them in `Custom/Atom/Person/Pose`), press **Reload poses**.
+2. Tab AI Character > Idle poses: the info field says "random pose of all N poses" with N = your pose files + gestures.json poses + the Idle default pose; **Idle pose min wait (s)** shows 30, **Idle pose max wait (s)** 300 (after a reset or in a new scene).
+3. Set both sliders to 30 (type 30 into the value field). Stay silent for 5 minutes: the pose changes about every 30 s, to different poses (not only two), never the same pose twice in a row, and not back to the default pose every second time. Logging Verbose: the log shows `Idle pose: X (random of a pool of N poses)`.
+4. Type 600 into min: max moves to 600 too; type 120 into max: min moves to 120. Type 18000 into max: the info field says "18000 s (300 min)". Values below 30 or above 18000 are not possible.
+5. Speak during the wait: no change while you or the AI speak. Turn on Dollmaster: no idle pose change while it is active; turn it off: the idle poses go on.
+6. Tab Config > **Reset to Default** > **Confirm Reset to Default**. Then open every dropdown of every tab (AI mode, Voice, Persona, Language, Speech-to-text, Language model, Text-to-speech, Mic mode, VAD engine, Idle default pose, Pose command, Expression, Gesture, AI gender/body, Your character gender): every one has its entries and a chosen value (the gender menus are empty until you answer, by design). The AI model field may be empty (expected).
+Report: a dropdown without entries after the reset, the same pose twice in a row, only two poses alternating, a change while someone speaks or while Dollmaster is active.
