@@ -896,3 +896,14 @@ Report: any menu with only one entry, any '(none)', a token left anywhere after 
 5. Speak during the wait: no change while you or the AI speak. Turn on Dollmaster: no idle pose change while it is active; turn it off: the idle poses go on.
 6. Tab Config > **Reset to Default** > **Confirm Reset to Default**. Then open every dropdown of every tab (AI mode, Voice, Persona, Language, Speech-to-text, Language model, Text-to-speech, Mic mode, VAD engine, Idle default pose, Pose command, Expression, Gesture, AI gender/body, Your character gender): every one has its entries and a chosen value (the gender menus are empty until you answer, by design). The AI model field may be empty (expected).
 Report: a dropdown without entries after the reset, the same pose twice in a row, only two poses alternating, a change while someone speaks or while Dollmaster is active.
+
+## T87 – Pose commands, Apply Pose, no twitching (version 52, Leon 22.11.2026 20:47-20:48)
+1. Install v52, start AIBody Companion, then VaM; load AI-Buddy. Have at least two pose presets (.vap) in `Custom/Atom/Person/Pose` or `.../AIBody`; tab AI Character > **Reload poses**. Link two commands with **Add Pose** (e.g. "Sit Down" and "Stand Up") if no file has the command's name.
+2. Choose "Sit Down" in **Pose command**: nothing moves, the left field says "Pose command chosen ... press Apply Pose". Press **Apply Pose**: the AI person takes the pose fully, without twitching. Press it again: it is applied again. Choose "Stand Up", press **Apply Pose**.
+3. The left field shows "Last pose load: pose '...': N controllers moved". Logging Verbose: the log says "Pose preset loaded once ... (Load On Select was on)". If it ever says "no controller moved" for a different pose, report the file name.
+4. **Idle default pose**: choose an entry - nothing moves; **Apply idle default pose** applies it.
+5. Say "Sit down." / "Stand up." (whole sentence): the pose changes; the companion status says "Pose command: ...".
+6. Tab Dollmaster: Activate on, then press **Apply Pose**: a red note says Dollmaster is active. Activate off, then close VaM and start again (or Reload Config JSON): **Body control** is still on, and step 5 still works.
+7. Idle head motion on: watch the head and chest for 2 s after each pose load: no jerk; the idle sway starts again after about 1 s.
+Report: a pose that does not apply, any twitching, a pose applied by just choosing an entry, Body control off after using Dollmaster.
+

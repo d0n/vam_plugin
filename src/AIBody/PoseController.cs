@@ -47,6 +47,19 @@ namespace AIBody
         /// <summary>Called after a pose preset was loaded (version 35: the idle motion forgets its old offsets).</summary>
         public Action OnPoseLoaded;
 
+        /// <summary>Version 52: called right BEFORE a pose preset is loaded (the idle motion takes its offsets off and holds
+        /// still while VaM applies the pose, so only one system writes the body).</summary>
+        public Action BeforePoseLoad;
+
+        /// <summary>Version 52: seconds after a pose load in which the result is checked (did any controller move?).</summary>
+        public const float SettleSeconds = 1.0f;
+        private float _checkIn = -1f;
+        private string _checkPose = "";
+        private Vector3[] _beforePositions;
+
+        /// <summary>Version 52: the result of the last pose load once it settled ("" while none), for the info field and the log.</summary>
+        public string LastLoadCheck { get; private set; }
+
         /// <summary>
         /// Pose presets by name: gestures.json entries of kind "pose" first, then the preset files in
         /// PoseFolders (name = file name without "Preset_" and extension). Used by the pose menu in
@@ -92,7 +105,8 @@ namespace AIBody
                 {
                     if (_poseFiles.Count >= MaxPoseFiles) break;
                     string lower = f.ToLowerInvariant();
-                    if (!lower.EndsWith(".vap") && !lower.EndsWith(".json")) continue;
+                    // Version 52: pose presets only (.vap); a .json there is no pose preset and PosePresets cannot load it.
+                    if (!lower.EndsWith(".vap")) continue;
                     string name = f.Replace('\\', '/');
                     name = name.Substring(name.LastIndexOf('/') + 1);
                     name = name.Substring(0, name.LastIndexOf('.'));
@@ -225,21 +239,86 @@ namespace AIBody
             }
         }
 
-        /// <summary>Loads a pose preset. Returns an error message, or null on success.</summary>
+        /// <summary>
+        /// Loads a pose preset. Returns an error message, or null on success.
+        /// Version 52 (Leon 20:47, "pose commands do not work, the character twitches"): the pose is loaded ONCE.
+        /// Up to v51 the path was set while VaM's "Load On Select" (PosePresets.loadPresetOnSelect, on by default) was on:
+        /// setting presetBrowsePath already loaded the pose, and CallAction("LoadPreset") loaded it a second time. And the
+        /// idle head / chest motion went on writing the head and chest controllers while VaM applied the pose. Now:
+        /// Load On Select off while the path is set (put back afterwards; the same as varManager's loadscene.cs), the idle
+        /// motion takes its offsets off before and holds still for SettleSeconds (BeforePoseLoad), a .json (legacy pose,
+        /// no preset) is refused with a clear message, and SettleSeconds later the plugin checks that the body moved.
+        /// </summary>
         public string LoadPose(string path)
         {
             if (string.IsNullOrEmpty(path)) return "Pose path is empty";
+            if (path.ToLowerInvariant().EndsWith(".json"))
+                return "'" + path + "' is a .json file, not a pose preset (.vap): load it in VaM and save it as a pose preset (tab Pose)";
+            if (_atom == null) return "No AI character";
             JSONStorable presets = _atom.GetStorableByID("PosePresets");
             if (presets == null) return "Atom has no PosePresets storable";
-            // Same pattern as vamdeluxe's PresetRandomizer for the Morph/Hair/Skin preset storables:
-            // presetBrowsePath = SuperController.singleton.NormalizePath(path), then CallAction("LoadPreset").
-            // TODO(verify): the "PosePresets" storable follows the same pattern on 1.22.
+            // presetBrowsePath = SuperController.singleton.NormalizePath(path), then CallAction("LoadPreset") (E7);
+            // loadPresetOnSelect off meanwhile (E40, varManager loadscene.cs).
             JSONStorableUrl url = presets.GetUrlJSONParam("presetBrowsePath");
             if (url == null) return "PosePresets has no presetBrowsePath parameter";
-            url.val = SuperController.singleton.NormalizePath(path);
-            presets.CallAction("LoadPreset");
+            bool exists = true;
+            try { exists = FileManagerSecure.FileExists(path); } catch (Exception) { exists = true; }   // E10; a check only
+            if (!exists) Log.Warn("Pose file not found by FileManagerSecure.FileExists (loading it anyway): " + path);
+            JSONStorableBool onSelect = presets.GetBoolJSONParam("loadPresetOnSelect");
+            bool onSelectWas = onSelect != null && onSelect.val;
+            if (BeforePoseLoad != null) BeforePoseLoad();
+            StartCheck(path);
+            try
+            {
+                if (onSelect != null && onSelectWas) onSelect.val = false;
+                url.val = SuperController.singleton.NormalizePath(path);
+                presets.CallAction("LoadPreset");
+            }
+            finally
+            {
+                if (onSelect != null && onSelectWas) onSelect.val = true;
+            }
+            Log.Debug("Pose preset loaded once: " + path + " on '" + _atom.uid + "' (Load On Select was " + (onSelectWas ? "on" : "off") + ")");
             if (OnPoseLoaded != null) OnPoseLoaded();
             return null;
+        }
+
+        private void StartCheck(string path)
+        {
+            _checkPose = path;
+            _checkIn = SettleSeconds;
+            FreeControllerV3[] all = _atom.freeControllers;   // E12, E28
+            _beforePositions = new Vector3[all != null ? all.Length : 0];
+            for (int i = 0; i < _beforePositions.Length; i++) if (all[i] != null) _beforePositions[i] = all[i].transform.position;
+        }
+
+        /// <summary>Version 52: SettleSeconds after a pose load, how far the controllers moved (the log says if none did).</summary>
+        public void Update(float dt)
+        {
+            if (_checkIn < 0f) return;
+            _checkIn -= dt;
+            if (_checkIn > 0f) return;
+            _checkIn = -1f;
+            FreeControllerV3[] all = _atom != null ? _atom.freeControllers : null;
+            int moved = 0;
+            float most = 0f;
+            for (int i = 0; all != null && i < all.Length && i < _beforePositions.Length; i++)
+            {
+                if (all[i] == null) continue;
+                float d = (all[i].transform.position - _beforePositions[i]).magnitude;
+                if (d > 0.01f) moved++;
+                if (d > most) most = d;
+            }
+            LastLoadCheck = moved > 0
+                ? "pose " + Short(_checkPose) + ": " + moved + " controllers moved (up to " + (most * 100f).ToString("0") + " cm)"
+                : "pose " + Short(_checkPose) + ": no controller moved (it was already in this pose, or VaM did not load the file: open it in VaM's Pose tab to check)";
+            if (moved > 0) Log.Debug(LastLoadCheck); else Log.Warn(LastLoadCheck);
+        }
+
+        private static string Short(string path)
+        {
+            string p = (path ?? "").Replace('\\', '/');
+            return "'" + p.Substring(p.LastIndexOf('/') + 1) + "'";
         }
 
         /// <summary>Starts a Timeline animation by name on the given Timeline storable.</summary>

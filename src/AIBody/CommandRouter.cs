@@ -103,7 +103,9 @@ namespace AIBody
             {
                 if (!BodyOn)
                 {
-                    Log.Debug("Body control off: ignoring '" + type + "'");
+                    // Version 52: a pose from the app is worth a visible line (Body control off, or Dollmaster active).
+                    if (type == Protocol.CmdPose) Log.Info("Pose ignored: Body control is off or Dollmaster is active");
+                    else Log.Debug("Body control off: ignoring '" + type + "'");
                     return null;
                 }
                 if (type == Protocol.CmdGesture || type == Protocol.CmdPose || type == Protocol.CmdTrigger)

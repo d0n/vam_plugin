@@ -22,7 +22,7 @@ class ApplyPoseButtonTests(unittest.TestCase):
         self.assertIn("ApplyPoseCommand(command);", now)
         self.assertIn("choose the command in <b>Pose command</b> first", now)
         chosen = method_body(BODY, "private void OnPoseCommandChosen(string command)")
-        self.assertIn("ApplyPoseCommand(command);", chosen)
+        self.assertNotIn("ApplyPoseCommand(command);", chosen, "version 52: choosing only selects, Apply Pose applies")
         apply = method_body(BODY, "private void ApplyPoseCommand(string command)")
         for part in ("_poses.Vocabulary.Match(command)", "PoseVocabulary.Resolve(entry, _poses.PoseNames)",
                      "_poses.ApplyPose(pose)", "_idlePoses.NoteUserPose()"):

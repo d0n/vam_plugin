@@ -112,7 +112,7 @@ namespace AIBody
         private PoseController _poses;
         private JSONStorableStringChooser _expressionChoiceJson;
         private JSONStorableStringChooser _gestureChoiceJson;
-        private JSONStorableStringChooser _poseCommandChoiceJson;   // "Pose command": choosing an entry applies its pose (v42)
+        private JSONStorableStringChooser _poseCommandChoiceJson;   // "Pose command": choosing only selects; Apply Pose applies (v52)
         private JSONStorableString _poseCommandTextJson;            // "New pose command": the spoken command for Add Pose
         private bool _syncingPoseMenu;                              // true while code (not the user) sets the menu value
         private string _addPosePose;                                // Add Pose step 2: the chosen pose (name or file path)
@@ -277,8 +277,8 @@ namespace AIBody
 
             // Manual pose / expression / gesture menu (tab AI Character). Not registered: only the
             // choice in the menu, nothing new is saved with the scene. Lists refill on opening (E25).
-            // Version 42 (Leon 18:27): choosing an entry in "Pose command" applies its pose at once; the old "Pose" menu and
-            // the Apply buttons are gone. Code that sets the value (menu refresh, Add Pose) never applies (_syncingPoseMenu).
+            // Version 52 (Leon 20:48): choosing an entry in "Pose command" only selects it; Apply Pose applies it (choosing the
+            // same entry again fired nothing, so "applies on choosing" worked once and then seemed broken).
             _poseCommandChoiceJson = new JSONStorableStringChooser("Pose command", new List<string>(), "", "Pose command",
                 OnPoseCommandChosen);
             _poseCommandChoiceJson.popupOpenCallback = RefreshCharacterChoices;
@@ -334,6 +334,8 @@ namespace AIBody
                 _poses = new PoseController(_atom, _idle);
                 _poses.Vocabulary.SetStarters();   // until config.json poses.commands is read (LoadPoseCommands)
                 _poses.OnPoseLoaded = () => { if (_idle != null) _idle.Rebase(); };
+                // Version 52: one writer at a time - the idle motion holds still while VaM applies the pose.
+                _poses.BeforePoseLoad = () => { if (_idle != null) _idle.HoldForPose(PoseController.SettleSeconds); };
             });
             _diag.Run("Idle poses (IdlePoseScheduler)", () =>
             {
@@ -411,13 +413,12 @@ namespace AIBody
             page.Popup(_gestureChoiceJson);
             page.Button("Play gesture", PlayChosenGesture);
             page.Header("<b>Poses</b>");
-            // Version 42 (Leon 18:27): Pose command (choosing applies), Add Pose, Delete Pose, Reset poses; then the list tools.
+            // Version 52: Pose command (choosing selects) + Apply Pose, Add Pose, Delete Pose, Reset poses; then the list tools.
             // No empty menu (version 16): the menu and Delete Pose appear only when there is a command.
             if (_poses != null && _poses.Vocabulary.Count > 0)
             {
                 page.ScrollablePopup(_poseCommandChoiceJson);
-                // 22.11.2026 (Leon): applies the chosen command at once, also again (choosing the same entry fires nothing)
-                page.Button("Apply Pose", ApplyPoseCommandNow);
+                page.Button("Apply Pose", ApplyPoseCommandNow);   // version 52: the only way the menu applies a pose
             }
             page.Button("Add Pose", StartAddPose);
             if (_addPosePose != null)
@@ -448,6 +449,7 @@ namespace AIBody
             string text = CharacterNote.Length > 0 ? "Last action: " + CharacterNote + "\n" : "";
             text += Characters != null ? Characters.InfoText() : "";
             text += "Poses: " + (_poses != null ? _poses.PoseNames.Count + " in the menu (" + _poses.PoseScanNote + ")" : "PoseController missing") + "\n";
+            if (_poses != null && !string.IsNullOrEmpty(_poses.LastLoadCheck)) text += "Last pose load: " + _poses.LastLoadCheck + "\n";
             text += PoseCommandsInfo();
             text += IdlePosesInfo();
             text += BodyControlHelp + "\n" + BodyPositionHelp + "\n" + BreathingHelp + "\n";
@@ -616,8 +618,9 @@ namespace AIBody
                 lines += "  " + v.Get(i).Command + (ok ? "" : "  - UNAVAILABLE: no pose '" + v.Get(i).Pose + "'") + "\n";
             }
             return "There are " + v.Count + " pose commands (" + ready + " available); say or type EXACTLY one of them, and a command without a pose "
-                + "is never applied. Choosing an entry in <b>Pose command</b> applies its pose at once, and <b>Apply Pose</b> applies "
-                + "the chosen one again right away. <b>Add Pose</b> opens VaM's file browser in " + PoseBrowseFolder + ": choose the pose file, then type "
+                + "is never applied. Choosing an entry in <b>Pose command</b> only selects it; <b>Apply Pose</b> applies it (as often as "
+                + "you press it). A pose is loaded once and the idle head motion holds still for a second meanwhile; while Dollmaster "
+                + "is active it poses the body and pose commands wait. Only pose presets (.vap) work. <b>Add Pose</b> opens VaM's file browser in " + PoseBrowseFolder + ": choose the pose file, then type "
                 + "the spoken command into <b>New pose command</b> (it starts with the file name) and press <b>Save pose command</b>"
                 + " (<b>Cancel Add Pose</b> drops it). <b>Delete Pose</b> removes the command chosen in <b>Pose command</b>. "
                 + "<b>Reset poses</b> puts both people back where the scene placed them, first the AI, then the client. "
@@ -768,12 +771,12 @@ namespace AIBody
             RebuildTab = true;
         }
 
-        /// <summary>Version 42 (Leon 18:27): choosing an entry in "Pose command" applies its pose. Values set by code never apply.
-        /// Works with Body control off (your own action, like Show expression).</summary>
+        /// <summary>Version 52 (Leon 20:48, decision): choosing an entry in "Pose command" only selects it; <b>Apply Pose</b>
+        /// applies it (also again and again). Same rule as "Idle default pose" + "Apply idle default pose".</summary>
         private void OnPoseCommandChosen(string command)
         {
             if (_syncingPoseMenu || string.IsNullOrEmpty(command)) return;
-            ApplyPoseCommand(command);
+            Note("Pose command chosen: '" + command + "' - press Apply Pose", false);
         }
 
         // ---------------------------------------------------------------- body position (22.11.2026)
@@ -840,12 +843,16 @@ namespace AIBody
         private void ApplyIdleDefaultPose()
         {
             if (_poses == null || _idlePoses == null) { Note("<color=red>Apply idle default pose: poses not available</color>", true); return; }
+            if (DollmasterOwns) { Note("<color=red>Apply idle default pose: " + DollmasterPoseNote + "</color>", true); return; }
             string pose = IdlePoseScheduler.ResolveName(_idlePoseDefaultJson.val, _poses.PoseNames);
             if (pose == null) { Note("<color=red>Apply idle default pose: this character has no pose '" + _idlePoseDefaultJson.val + "' (Reload poses)</color>", true); return; }
             string error = _poses.ApplyPose(pose);
             if (error == null) { _idlePoses.NoteUserPose(); _idlePoses.NoteShown(pose); Note("Idle default pose applied: " + pose, false); }
             else Note("<color=red>Apply idle default pose '" + pose + "': " + error + "</color>", true);
         }
+
+        /// <summary>Version 52: while Dollmaster is active it poses the body itself; a second pose system would fight it.</summary>
+        public const string DollmasterPoseNote = "Dollmaster is active and poses the body itself (tab Dollmaster: turn Activate off to use pose commands)";
 
         /// <summary>Button "Apply Pose" (22.11.2026): the command chosen in "Pose command", applied now.</summary>
         private void ApplyPoseCommandNow()
@@ -858,6 +865,7 @@ namespace AIBody
         private void ApplyPoseCommand(string command)
         {
             if (_poses == null) { Note("<color=red>Pose command: PoseController missing</color>", true); return; }
+            if (DollmasterOwns) { Note("<color=red>Pose command '" + command + "': " + DollmasterPoseNote + "</color>", true); return; }
             PoseCommand entry = _poses.Vocabulary.Match(command);
             string error = null;
             string pose = null;
@@ -897,7 +905,9 @@ namespace AIBody
             JSONClass body = new JSONClass();
             body["speech_volume"].AsFloat = SpeechVolume;   // config.json keeps the factor 0..10
             if (_distanceJson != null) body["full_volume_distance"].AsFloat = _distanceJson.val;
-            body["body_control"].AsBool = BodyControl;
+            // Version 52: the user's own toggle. Up to v51 the EFFECTIVE value (false while Dollmaster owns the body) was
+            // written, read back with the next config.json load, and Body control stayed off after Dollmaster was used.
+            body["body_control"].AsBool = _bodyControlJson == null || _bodyControlJson.val;
             body["idle_motion"].AsBool = _idleJson.val;
             body["idle_intensity"].AsFloat = _idleIntensityJson.val;
             body["breathing"].AsBool = _breathingJson.val;
@@ -1094,6 +1104,7 @@ namespace AIBody
                 _speech.UpdateDistance(_distanceJson != null ? _distanceJson.val : SpeechPlayer.DefaultFullVolumeDistance);
             }
             bool speaking = _speech != null && _speech.IsSpeaking;
+            if (_poses != null) _poses.Update(dt);   // version 52: the check SettleSeconds after a pose load
             if (DollmasterOwns)
             {
                 UpdateSceneState(speaking);   // Dollmaster owns expressions, breathing, idle motion and poses

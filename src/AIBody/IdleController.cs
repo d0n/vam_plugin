@@ -42,6 +42,10 @@ namespace AIBody
 
         public bool Enabled = true;
 
+        /// <summary>Version 52: seconds left in which the idle motion writes no controller (a pose is being applied).</summary>
+        private float _hold;
+        public bool Holding { get { return _hold > 0f; } }
+
         /// <summary>0..1 overall amount of idle sway.</summary>
         public float Intensity = 0.5f;
 
@@ -103,6 +107,13 @@ namespace AIBody
             }
             _time += deltaTime;
             string finished = null;
+            if (_hold > 0f)
+            {
+                // Version 52: VaM applies a pose now; only it writes the body (no offset on top, no fight = no twitch).
+                _hold -= deltaTime;
+                if (_gesture != null) { finished = _gesture; _gesture = null; }
+                return finished;
+            }
 
             // --- idle sway (degrees) ---
             float amount = Enabled ? Intensity * MaxAngle * (speaking ? SpeakingBoost : 1f) : 0f;
@@ -158,6 +169,14 @@ namespace AIBody
             Quaternion baseRot = t.rotation * Quaternion.Inverse(last);
             t.rotation = baseRot * offset;
             return offset;
+        }
+
+        /// <summary>Version 52: a pose is about to be loaded. The offsets come off the controllers NOW (the pose is stored and
+        /// loaded without them) and the idle motion writes nothing for `seconds`; it then starts again from the new pose.</summary>
+        public void HoldForPose(float seconds)
+        {
+            RestoreNow();
+            _hold = Math.Max(_hold, seconds);
         }
 
         /// <summary>A pose was just loaded: it set the controllers anew, so the old offsets are not removed again.</summary>

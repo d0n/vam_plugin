@@ -57,11 +57,12 @@ class PoseMenuTests(TestCase):
         for gone in ("_poseChoiceJson", "Apply pose", "ApplyChosenPose", "ApplyPoseCommandLabel"):
             self.assertNotIn(gone, self.body)
 
-    def test_choosing_a_command_applies_it_with_a_guard(self):
+    def test_choosing_a_command_selects_it_with_a_guard(self):
+        # version 52 (Leon 20:48): choosing only selects (it applied once and then never again); Apply Pose applies
         self.assertIn("OnPoseCommandChosen", self.body)
         chosen = method_body(self.body, "private void OnPoseCommandChosen(string command)")
         self.assertIn("if (_syncingPoseMenu", chosen)
-        self.assertIn("ApplyPoseCommand(command)", chosen)
+        self.assertNotIn("ApplyPoseCommand(command)", chosen)
         self.assertIn("_poses.ApplyPose(pose)", method_body(self.body, "private void ApplyPoseCommand(string command)"))
         quiet = method_body(self.body, "private void SelectPoseCommandQuietly(string command)")
         self.assertIn("_syncingPoseMenu = true", quiet)
