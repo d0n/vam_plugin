@@ -1,0 +1,190 @@
+{
+  "expressions": [
+    {
+      "audio": "./Audio/Momo/MomoMoan1.wav",
+      "minIntensity": 0.1,
+      "maxIntensity": 0.2,
+      "facial": [
+        "squint",
+        "EH"
+      ]
+    },
+    {
+      "audio": "./Audio/Momo/MomoMoan2.wav",
+      "minIntensity": 0.1,
+      "maxIntensity": 0.3,
+      "facial": [
+        "squint",
+        "brow furrowed",
+        "IY"
+      ]
+    },
+    {
+      "audio": "./Audio/Momo/MomoMoan3.wav",
+      "minIntensity": 0.2,
+      "maxIntensity": 0.4,
+      "facial": [
+        "IY"
+      ]
+    },
+    {
+      "audio": "./Audio/Momo/MomoMoan4.wav",
+      "minIntensity": 0.2,
+      "maxIntensity": 0.5,
+      "facial": [
+        "brow furrowed",
+        "squint",
+        "IY"
+      ]
+    },
+    {
+      "audio": "./Audio/Momo/MomoMoan5.wav",
+      "minIntensity": 0.3,
+      "maxIntensity": 0.5,
+      "facial": [
+        "squint",
+        "brow furrowed",
+        "EH"
+      ]
+    },
+    {
+      "audio": "./Audio/Momo/MomoMoan6.wav",
+      "minIntensity": 0.2,
+      "maxIntensity": 0.6,
+      "facial": [
+        "squint hard",
+        "brow furrowed",
+        "EH"
+      ]
+    },
+    {
+      "audio": "./Audio/Momo/MomoMoan7.wav",
+      "minIntensity": 0.4,
+      "maxIntensity": 0.7,
+      "facial": [
+        "squint hard",
+        "brow furrowed",
+        "EH"
+      ]
+    },
+    {
+      "audio": "./Audio/Momo/MomoMoan8.wav",
+      "minIntensity": 0.4,
+      "maxIntensity": 0.7,
+      "facial": [
+        "eyes closed",
+        "brow furrowed",
+        "EH"
+      ]
+    },
+    {
+      "audio": "./Audio/Momo/MomoMoan9.wav",
+      "minIntensity": 0.4,
+      "maxIntensity": 0.6,
+      "facial": [
+        "squint hard",
+        "brow furrowed",
+        "EH"
+      ]
+    },
+    {
+      "audio": "./Audio/Momo/MomoMoan10.wav",
+      "minIntensity": 0.6,
+      "maxIntensity": 0.7,
+      "facial": [
+        "eyes closed",
+        "brow furrowed",
+        "EH"
+      ]
+    },
+    {
+      "audio": "./Audio/Momo/MomoMoan11.wav",
+      "minIntensity": 0.6,
+      "maxIntensity": 0.8,
+      "facial": [
+        "eyes closed",
+        "brow furrowed",
+        "EH"
+      ]
+    },
+    {
+      "audio": "./Audio/Momo/MomoMoan12.wav",
+      "minIntensity": 0.7,
+      "maxIntensity": 0.9,
+      "facial": [
+        "eyes closed",
+        "brow furrowed",
+        "EH"
+      ]
+    },
+    {
+      "audio": "./Audio/Momo/MomoMoan13.wav",
+      "minIntensity": 0.5,
+      "maxIntensity": 0.8,
+      "facial": [
+        "squint hard",
+        "brow furrowed",
+        "EH"
+      ]
+    },
+    {
+      "audio": "./Audio/Momo/MomoMoan14.wav",
+      "minIntensity": 0.6,
+      "maxIntensity": 0.8,
+      "facial": [
+        "brow furrowed",
+        "AA"
+      ]
+    },
+    {
+      "audio": "./Audio/Momo/MomoMoan15.wav",
+      "minIntensity": 0.7,
+      "maxIntensity": 1.0,
+      "facial": [
+        "eyes closed",
+        "brow furrowed",
+        "IY"
+      ]
+    },
+    {
+      "audio": "./Audio/Momo/MomoMoan16.wav",
+      "minIntensity": 0.7,
+      "maxIntensity": 1.0,
+      "facial": [
+        "eyes open wide",
+        "brow up",
+        "AA"
+      ]
+    },
+    {
+      "audio": "./Audio/Momo/MomoMoan17.wav",
+      "minIntensity": 0.7,
+      "maxIntensity": 1.0,
+      "facial": [
+        "brow up",
+        "eyes open wide",
+        "AA"
+      ]
+    },
+    {
+      "audio": "./Audio/Momo/MomoMoan18.wav",
+      "minIntensity": 0.7,
+      "maxIntensity": 1.0,
+      "facial": [
+        "eyes closed",
+        "brow furrowed",
+        "AA"
+      ]
+    }
+  ],
+  "climaxes": [
+    {
+      "audio": "./Audio/Momo/MomoOrgasm.wav",
+      "facial": [
+        "eyes closed pleasure",
+        "mouth open",
+        "retract lips"
+      ]
+    }
+  ]
+}

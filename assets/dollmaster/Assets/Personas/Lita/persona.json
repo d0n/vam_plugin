@@ -1,0 +1,234 @@
+{
+  "expressions": [
+    {
+      "audio": "./Audio/Lita/001.wav",
+      "minIntensity": 0.1,
+      "maxIntensity": 0.2,
+      "facial": [
+        "squint",
+        "AA",
+        "mouth open"
+      ]
+    },
+    {
+      "audio": "./Audio/Lita/002.wav",
+      "minIntensity": 0.1,
+      "maxIntensity": 0.3,
+      "facial": [
+        "squint",
+        "AA",
+        "mouth open"
+      ]
+    },
+    {
+      "audio": "./Audio/Lita/003.wav",
+      "minIntensity": 0.1,
+      "maxIntensity": 0.4,
+      "facial": [
+        "squint",
+        "AA",
+        "mouth open",
+        "snarl left"
+      ]
+    },
+    {
+      "audio": "./Audio/Lita/004.wav",
+      "minIntensity": 0.2,
+      "maxIntensity": 0.5,
+      "facial": [
+        "squint",
+        "AA",
+        "mouth open"
+      ]
+    },
+    {
+      "audio": "./Audio/Lita/005.wav",
+      "minIntensity": 0.3,
+      "maxIntensity": 0.5,
+      "facial": [
+        "squint",
+        "brow furrowed",
+        "OW",
+        "mouth open",
+        "retract lips"
+      ]
+    },
+    {
+      "audio": "./Audio/Lita/007.wav",
+      "minIntensity": 0.3,
+      "maxIntensity": 0.6,
+      "facial": [
+        "brow furrowed",
+        "eyes closed",
+        "AA",
+        "mouth open",
+        "retract lips"
+      ]
+    },
+    {
+      "audio": "./Audio/Lita/008.wav",
+      "minIntensity": 0.4,
+      "maxIntensity": 0.7,
+      "facial": [
+        "brow furrowed",
+        "eyes closed",
+        "AA",
+        "mouth open",
+        "retract lips",
+        "snarl left"
+      ]
+    },
+    {
+      "audio": "./Audio/Lita/009.wav",
+      "minIntensity": 0.4,
+      "maxIntensity": 0.8,
+      "facial": [
+        "brow furrowed",
+        "squint hard",
+        "AA",
+        "mouth open",
+        "retract lips"
+      ]
+    },
+    {
+      "audio": "./Audio/Lita/010.wav",
+      "minIntensity": 0.6,
+      "maxIntensity": 0.9,
+      "facial": [
+        "brow furrowed",
+        "squint hard",
+        "AA",
+        "mouth open",
+        "retract lips"
+      ]
+    },
+    {
+      "audio": "./Audio/Lita/012.wav",
+      "minIntensity": 0.6,
+      "maxIntensity": 0.9,
+      "facial": [
+        "eyes closed pleasure",
+        "AA",
+        "mouth open",
+        "retract lips",
+        "snarl left"
+      ]
+    },
+    {
+      "audio": "./Audio/Lita/013.wav",
+      "minIntensity": 0.6,
+      "maxIntensity": 1.0,
+      "facial": [
+        "eyes closed pleasure",
+        "AA",
+        "mouth open",
+        "retract lips",
+        "snarl left"
+      ]
+    },
+    {
+      "audio": "./Audio/Lita/014.wav",
+      "minIntensity": 0.6,
+      "maxIntensity": 1.0,
+      "facial": [
+        "eyes closed pleasure",
+        "AA",
+        "mouth open",
+        "retract lips",
+        "snarl left"
+      ]
+    },
+    {
+      "audio": "./Audio/Lita/015.wav",
+      "minIntensity": 0.6,
+      "maxIntensity": 1.0,
+      "facial": [
+        "eyes closed pleasure",
+        "AA",
+        "mouth open",
+        "retract lips",
+        "snarl left"
+      ]
+    },
+    {
+      "audio": "./Audio/Lita/016.wav",
+      "minIntensity": 0.6,
+      "maxIntensity": 1.0,
+      "facial": [
+        "eyes closed pleasure",
+        "AA",
+        "mouth open",
+        "retract lips",
+        "snarl left"
+      ]
+    },
+    {
+      "audio": "./Audio/Lita/017.wav",
+      "minIntensity": 0.6,
+      "maxIntensity": 1.0,
+      "facial": [
+        "eyes closed pleasure",
+        "AA",
+        "mouth open",
+        "retract lips",
+        "snarl left"
+      ]
+    },
+    {
+      "audio": "./Audio/Lita/018.wav",
+      "minIntensity": 0.6,
+      "maxIntensity": 1.0,
+      "facial": [
+        "eyes closed pleasure",
+        "AA",
+        "mouth open",
+        "retract lips",
+        "snarl left"
+      ]
+    },
+    {
+      "audio": "./Audio/Lita/019.wav",
+      "minIntensity": 0.6,
+      "maxIntensity": 1.0,
+      "facial": [
+        "eyes closed pleasure",
+        "AA",
+        "mouth open",
+        "retract lips",
+        "snarl left"
+      ]
+    }
+  ],
+  "climaxes": [
+    {
+      "audio": "./Audio/Lita/017.wav",
+      "facial": [
+        "eyes closed pleasure",
+        "AA",
+        "mouth open",
+        "retract lips",
+        "snarl left"
+      ]
+    },
+    {
+      "audio": "./Audio/Lita/018.wav",
+      "facial": [
+        "eyes closed pleasure",
+        "AA",
+        "mouth open",
+        "retract lips",
+        "snarl left"
+      ]
+    },
+    {
+      "audio": "./Audio/Lita/019.wav",
+      "facial": [
+        "eyes closed pleasure",
+        "AA",
+        "mouth open",
+        "retract lips",
+        "snarl left"
+      ]
+    }
+  ]
+}

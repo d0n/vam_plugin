@@ -1,0 +1,168 @@
+{
+  "expressions": [
+    {
+      "audio": "./Audio/Aiko/AikoMoan1.wav",
+      "minIntensity": 0.1,
+      "maxIntensity": 0.2,
+      "facial": [
+        "squint",
+        "AA"
+      ]
+    },
+    {
+      "audio": "./Audio/Aiko/AikoMoan2.wav",
+      "minIntensity": 0.1,
+      "maxIntensity": 0.3,
+      "facial": [
+        "squint",
+        "M"
+      ]
+    },
+    {
+      "audio": "./Audio/Aiko/AikoMoan3.wav",
+      "minIntensity": 0.2,
+      "maxIntensity": 0.4,
+      "facial": [
+        "squint"
+      ]
+    },
+    {
+      "audio": "./Audio/Aiko/AikoMoan4.wav",
+      "minIntensity": 0.2,
+      "maxIntensity": 0.5,
+      "facial": [
+        "squint"
+      ]
+    },
+    {
+      "audio": "./Audio/Aiko/AikoMoan5.wav",
+      "minIntensity": 0.3,
+      "maxIntensity": 0.5,
+      "facial": [
+        "squint",
+        "OW"
+      ]
+    },
+    {
+      "audio": "./Audio/Aiko/AikoMoan6.wav",
+      "minIntensity": 0.2,
+      "maxIntensity": 0.6,
+      "facial": [
+        "squint hard",
+        "AA"
+      ]
+    },
+    {
+      "audio": "./Audio/Aiko/AikoMoan7.wav",
+      "minIntensity": 0.4,
+      "maxIntensity": 0.7,
+      "facial": [
+        "squint hard",
+        "AA"
+      ]
+    },
+    {
+      "audio": "./Audio/Aiko/AikoMoan8.wav",
+      "minIntensity": 0.4,
+      "maxIntensity": 0.7,
+      "facial": [
+        "squint hard",
+        "OW"
+      ]
+    },
+    {
+      "audio": "./Audio/Aiko/AikoMoan9.wav",
+      "minIntensity": 0.4,
+      "maxIntensity": 0.6,
+      "facial": [
+        "squint hard",
+        "OW"
+      ]
+    },
+    {
+      "audio": "./Audio/Aiko/AikoMoan10.wav",
+      "minIntensity": 0.6,
+      "maxIntensity": 0.7,
+      "facial": [
+        "squint hard",
+        "AA"
+      ]
+    },
+    {
+      "audio": "./Audio/Aiko/AikoMoan11.wav",
+      "minIntensity": 0.6,
+      "maxIntensity": 0.8,
+      "facial": [
+        "squint hard",
+        "AA"
+      ]
+    },
+    {
+      "audio": "./Audio/Aiko/AikoMoan12.wav",
+      "minIntensity": 0.7,
+      "maxIntensity": 0.9,
+      "facial": [
+        "squint hard",
+        "mouth open",
+        "retract lips"
+      ]
+    },
+    {
+      "audio": "./Audio/Aiko/AikoMoan13.wav",
+      "minIntensity": 0.5,
+      "maxIntensity": 0.8,
+      "facial": [
+        "squint hard",
+        "OW"
+      ]
+    },
+    {
+      "audio": "./Audio/Aiko/AikoMoan14.wav",
+      "minIntensity": 0.6,
+      "maxIntensity": 0.8,
+      "facial": [
+        "squint hard",
+        "AA"
+      ]
+    },
+    {
+      "audio": "./Audio/Aiko/AikoMoan15.wav",
+      "minIntensity": 0.7,
+      "maxIntensity": 1.0,
+      "facial": [
+        "squint hard",
+        "AA"
+      ]
+    },
+    {
+      "audio": "./Audio/Aiko/AikoMoan16.wav",
+      "minIntensity": 0.7,
+      "maxIntensity": 1.0,
+      "facial": [
+        "squint hard",
+        "mouth open",
+        "retract lips"
+      ]
+    },
+    {
+      "audio": "./Audio/Aiko/AikoMoan17.wav",
+      "minIntensity": 0.7,
+      "maxIntensity": 1.0,
+      "facial": [
+        "squint hard",
+        "mouth open",
+        "retract lips"
+      ]
+    }
+  ],
+  "climaxes": [
+    {
+      "audio": "./Audio/Aiko/AikoOrgasm.wav",
+      "facial": [
+        "eyes closed pleasure",
+        "mouth open",
+        "retract lips"
+      ]
+    }
+  ]
+}

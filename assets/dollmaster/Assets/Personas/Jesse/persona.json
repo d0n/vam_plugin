@@ -1,0 +1,130 @@
+{
+  "expressions": [
+    {
+      "audio": "./Audio/Jesse/JesseMoan2.wav",
+      "minIntensity": 0.1,
+      "maxIntensity": 0.2,
+      "facial": [
+        "squint",
+        "smile"
+      ]
+    },
+    {
+      "audio": "./Audio/Jesse/JesseMoan1.wav",
+      "minIntensity": 0.1,
+      "maxIntensity": 0.3,
+      "facial:": [
+        "angry",
+        "smile full"
+      ]
+    },
+    {
+      "audio": "./Audio/Jesse/JesseMoan3.wav",
+      "minIntensity": 0.2,
+      "maxIntensity": 0.4,
+      "facial": [
+        "squint",
+        "brow furrowed",
+        "smile full"
+      ]
+    },
+    {
+      "audio": "./Audio/Jesse/JesseMoan4.wav",
+      "minIntensity": 0.2,
+      "maxIntensity": 0.5,
+      "facial": [
+        "brow up",
+        "smile full"
+      ]
+    },
+    {
+      "audio": "./Audio/Jesse/JesseMoan5.wav",
+      "minIntensity": 0.3,
+      "maxIntensity": 0.5,
+      "facial": [
+        "squint",
+        "brow furrowed",
+        "smile full"
+      ]
+    },
+    {
+      "audio": "./Audio/Jesse/JesseMoan6.wav",
+      "minIntensity": 0.2,
+      "maxIntensity": 0.6,
+      "facial": [
+        "brow furrowed",
+        "OW"
+      ]
+    },
+    {
+      "audio": "./Audio/Jesse/JesseMoan7.wav",
+      "minIntensity": 0.4,
+      "maxIntensity": 0.7,
+      "facial": [
+        "angry",
+        "EH"
+      ]
+    },
+    {
+      "audio": "./Audio/Jesse/JesseMoan8.wav",
+      "minIntensity": 0.4,
+      "maxIntensity": 0.7,
+      "facial": [
+        "squint hard",
+        "angry",
+        "EH"
+      ]
+    },
+    {
+      "audio": "./Audio/Jesse/JesseMoan9.wav",
+      "minIntensity": 0.5,
+      "maxIntensity": 0.8,
+      "mouth closed": true,
+      "facial": [
+        "squint hard",
+        "angry",
+        "M"
+      ]
+    },
+    {
+      "audio": "./Audio/Jesse/JesseMoan10.wav",
+      "minIntensity": 0.6,
+      "maxIntensity": 0.8,
+      "facial": [
+        "squint hard",
+        "angry",
+        "OH"
+      ]
+    },
+    {
+      "audio": "./Audio/Jesse/JesseMoan11.wav",
+      "minIntensity": 0.7,
+      "maxIntensity": 1.0,
+      "facial": [
+        "brow up",
+        "eyes half closed",
+        "IY"
+      ]
+    },
+    {
+      "audio": "./Audio/Jesse/JesseMoan12.wav",
+      "minIntensity": 0.7,
+      "maxIntensity": 1.0,
+      "facial": [
+        "brow up",
+        "eyes half closed",
+        "OH"
+      ]
+    }
+  ],
+  "climaxes": [
+    {
+      "audio": "./Audio/Jesse/JesseOrgasm.wav",
+      "facial": [
+        "brows furrowed",
+        "eyes closed",
+        "OH"
+      ]
+    }
+  ]
+}

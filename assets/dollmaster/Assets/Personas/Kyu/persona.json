@@ -1,0 +1,140 @@
+{
+  "expressions": [
+    {
+      "audio": "./Audio/Kyu/KyuMoan1.wav",
+      "minIntensity": 0.1,
+      "maxIntensity": 0.2,
+      "facial": [
+        "squint",
+        "brow furrowed",
+        "AA"
+      ]
+    },
+    {
+      "audio": "./Audio/Kyu/KyuMoan2.wav",
+      "minIntensity": 0.1,
+      "maxIntensity": 0.3,
+      "facial": [
+        "squint",
+        "mouth open",
+        "OW"
+      ]
+    },
+    {
+      "audio": "./Audio/Kyu/KyuMoan3.wav",
+      "minIntensity": 0.2,
+      "maxIntensity": 0.4,
+      "facial": [
+        "squint",
+        "mouth open",
+        "AA"
+      ]
+    },
+    {
+      "audio": "./Audio/Kyu/KyuMoan4.wav",
+      "minIntensity": 0.2,
+      "maxIntensity": 0.5,
+      "facial": [
+        "squint",
+        "brow furrowed",
+        "mouth open",
+        "AA"
+      ]
+    },
+    {
+      "audio": "./Audio/Kyu/KyuMoan5.wav",
+      "minIntensity": 0.3,
+      "maxIntensity": 0.5,
+      "facial": [
+        "squint",
+        "IY",
+        "mouth open"
+      ]
+    },
+    {
+      "audio": "./Audio/Kyu/KyuMoan6.wav",
+      "minIntensity": 0.2,
+      "maxIntensity": 0.6,
+      "facial": [
+        "squint hard",
+        "brow furrowed",
+        "AA",
+        "mouth open"
+      ]
+    },
+    {
+      "audio": "./Audio/Kyu/KyuMoan7.wav",
+      "minIntensity": 0.4,
+      "maxIntensity": 0.7,
+      "facial": [
+        "squint hard",
+        "brow furrowed",
+        "AA",
+        "mouth open"
+      ]
+    },
+    {
+      "audio": "./Audio/Kyu/KyuMoan8.wav",
+      "minIntensity": 0.4,
+      "maxIntensity": 0.7,
+      "facial": [
+        "squint hard",
+        "brow furrowed",
+        "S"
+      ]
+    },
+    {
+      "audio": "./Audio/Kyu/KyuMoan9.wav",
+      "minIntensity": 0.5,
+      "maxIntensity": 0.8,
+      "facial": [
+        "squint hard",
+        "brow furrowed",
+        "AA",
+        "mouth open"
+      ]
+    },
+    {
+      "audio": "./Audio/Kyu/KyuMoan10.wav",
+      "minIntensity": 0.6,
+      "maxIntensity": 0.8,
+      "facial": [
+        "squint hard",
+        "brow furrowed",
+        "AA",
+        "mouth open"
+      ]
+    },
+    {
+      "audio": "./Audio/Kyu/KyuMoan11.wav",
+      "minIntensity": 0.7,
+      "maxIntensity": 1.0,
+      "facial": [
+        "squint hard",
+        "brow furrowed",
+        "AA",
+        "mouth open"
+      ]
+    },
+    {
+      "audio": "./Audio/Kyu/KyuMoan12.wav",
+      "minIntensity": 0.7,
+      "maxIntensity": 1.0,
+      "facial": [
+        "squint hard",
+        "brow furrowed",
+        "UW half"
+      ]
+    }
+  ],
+  "climaxes": [
+    {
+      "audio": "./Audio/Kyu/KyuOrgasm.wav",
+      "facial": [
+        "eyes closed pleasure",
+        "mouth open",
+        "retract lips"
+      ]
+    }
+  ]
+}

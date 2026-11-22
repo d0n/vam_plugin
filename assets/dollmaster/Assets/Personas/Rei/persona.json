@@ -1,0 +1,207 @@
+{
+  "panting": [
+    "./Audio/Rei/short_pant1.wav",
+    "./Audio/Rei/short_pant2.wav",
+    "./Audio/Rei/short_pant3.wav",
+    "./Audio/Rei/short_pant4.wav",
+    "./Audio/Rei/short_pant5.wav"
+  ],
+  "expressions": [
+    {
+      "audio": "./Audio/Rei/smg-01.wav",
+      "minIntensity": 0.1,
+      "maxIntensity": 0.2,
+      "facial": [
+        "squint",
+        "AA",
+        "mouth open"
+      ]
+    },
+    {
+      "audio": "./Audio/Rei/smg-02.wav",
+      "minIntensity": 0.1,
+      "maxIntensity": 0.3,
+      "facial": [
+        "squint",
+        "AA",
+        "mouth open"
+      ]
+    },
+    {
+      "audio": "./Audio/Rei/smg-03.wav",
+      "minIntensity": 0.1,
+      "maxIntensity": 0.4,
+      "facial": [
+        "squint",
+        "AA",
+        "mouth open",
+        "snarl left"
+      ]
+    },
+    {
+      "audio": "./Audio/Rei/smg-04.wav",
+      "minIntensity": 0.2,
+      "maxIntensity": 0.5,
+      "facial": [
+        "squint",
+        "AA",
+        "mouth open"
+      ]
+    },
+    {
+      "audio": "./Audio/Rei/smg-05.wav",
+      "minIntensity": 0.3,
+      "maxIntensity": 0.5,
+      "facial": [
+        "squint",
+        "brow furrowed",
+        "OW",
+        "mouth open",
+        "retract lips"
+      ]
+    },
+    {
+      "audio": "./Audio/Rei/smg-07.wav",
+      "minIntensity": 0.3,
+      "maxIntensity": 0.6,
+      "facial": [
+        "brow furrowed",
+        "eyes closed",
+        "AA",
+        "mouth open",
+        "retract lips"
+      ]
+    },
+    {
+      "audio": "./Audio/Rei/smg-08.wav",
+      "minIntensity": 0.4,
+      "maxIntensity": 0.7,
+      "facial": [
+        "brow furrowed",
+        "eyes closed",
+        "AA",
+        "mouth open",
+        "retract lips",
+        "snarl left"
+      ]
+    },
+    {
+      "audio": "./Audio/Rei/smg-09.wav",
+      "minIntensity": 0.4,
+      "maxIntensity": 0.8,
+      "facial": [
+        "brow furrowed",
+        "squint hard",
+        "AA",
+        "mouth open",
+        "retract lips"
+      ]
+    },
+    {
+      "audio": "./Audio/Rei/smg-10.wav",
+      "minIntensity": 0.6,
+      "maxIntensity": 0.9,
+      "facial": [
+        "brow furrowed",
+        "squint hard",
+        "AA",
+        "mouth open",
+        "retract lips"
+      ]
+    },
+    {
+      "audio": "./Audio/Rei/smg-12.wav",
+      "minIntensity": 0.6,
+      "maxIntensity": 0.9,
+      "facial": [
+        "eyes closed pleasure",
+        "AA",
+        "mouth open",
+        "retract lips",
+        "snarl left"
+      ]
+    },
+    {
+      "audio": "./Audio/Rei/smg-13.wav",
+      "minIntensity": 0.6,
+      "maxIntensity": 1.0,
+      "facial": [
+        "eyes closed pleasure",
+        "AA",
+        "mouth open",
+        "retract lips",
+        "snarl left"
+      ]
+    },
+    {
+      "audio": "./Audio/Rei/smg-14.wav",
+      "minIntensity": 0.6,
+      "maxIntensity": 0.9,
+      "facial": [
+        "eyes closed pleasure",
+        "AA",
+        "mouth open",
+        "retract lips",
+        "snarl left"
+      ]
+    },
+    {
+      "audio": "./Audio/Rei/smg-15.wav",
+      "minIntensity": 0.6,
+      "maxIntensity": 0.9,
+      "facial": [
+        "eyes closed pleasure",
+        "AA",
+        "mouth open",
+        "retract lips",
+        "snarl left"
+      ]
+    },
+    {
+      "audio": "./Audio/Rei/smg-16.wav",
+      "minIntensity": 0.8,
+      "maxIntensity": 1.0,
+      "facial": [
+        "eyes closed pleasure",
+        "AA",
+        "mouth open",
+        "retract lips",
+        "snarl left"
+      ]
+    },
+    {
+      "audio": "./Audio/Rei/smg-17.wav",
+      "minIntensity": 0.8,
+      "maxIntensity": 1.0,
+      "facial": [
+        "eyes closed pleasure",
+        "AA",
+        "mouth open",
+        "retract lips",
+        "snarl left"
+      ]
+    }
+  ],
+  "climaxes": [
+    {
+      "audio": "./Audio/Rei/smg-16.wav",
+      "facial": [
+        "eyes closed pleasure",
+        "AA",
+        "mouth open",
+        "retract lips",
+        "snarl left"
+      ]
+    },
+    {
+      "audio": "./Audio/Rei/smg-17.wav",
+      "facial": [
+        "eyes closed pleasure",
+        "AA",
+        "mouth open",
+        "retract lips",
+        "snarl left"
+      ]
+    }
+  ]
+}

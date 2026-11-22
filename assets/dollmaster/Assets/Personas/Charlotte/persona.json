@@ -1,0 +1,325 @@
+{
+  "panting": [
+    "./Audio/Charlotte/breathing_panting.mp3",
+    "./Audio/Charlotte/gasp_breathe.wav"
+  ],
+  "expressions": [
+    {
+      "audio": "./Audio/Charlotte/light sex 1.mp3",
+      "minIntensity": 0.1,
+      "maxIntensity": 0.2,
+      "mouthClosed": true,
+      "facial": [
+        "eyes closed jaw open half"
+      ]
+    },
+    {
+      "audio": "./Audio/Charlotte/light sex 2.mp3",
+      "minIntensity": 0.1,
+      "maxIntensity": 0.2,
+      "mouthClosed": true,
+      "facial": [
+        "eyes closed jaw open half"
+      ]
+    },
+    {
+      "audio": "./Audio/Charlotte/light sex 3.mp3",
+      "minIntensity": 0.1,
+      "maxIntensity": 0.2,
+      "mouthClosed": false,
+      "facial": [
+        "eyes squint mouth O half"
+      ]
+    },
+    {
+      "audio": "./Audio/Charlotte/light sex 4.mp3",
+      "minIntensity": 0.1,
+      "maxIntensity": 0.2,
+      "mouthClosed": true,
+      "facial": [
+        "eyes closed jaw open half"
+      ]
+    },
+    {
+      "audio": "./Audio/Charlotte/light sex 5.mp3",
+      "minIntensity": 0.1,
+      "maxIntensity": 0.2,
+      "mouthClosed": true,
+      "facial": [
+        "eyes closed jaw open half"
+      ]
+    },
+    {
+      "audio": "./Audio/Charlotte/Moan.mp3",
+      "minIntensity": 0.2,
+      "maxIntensity": 0.3,
+      "mouthClosed": false,
+      "facial": [
+        "eyes squint mouth O half"
+      ]
+    },
+    {
+      "audio": "./Audio/Charlotte/Oohh Mnn.mp3",
+      "minIntensity": 0.2,
+      "maxIntensity": 0.3,
+      "mouthClosed": true,
+      "facial": [
+        "eyes squint mouth O half"
+      ]
+    },
+    {
+      "audio": "./Audio/Charlotte/Nhh.mp3",
+      "minIntensity": 0.2,
+      "maxIntensity": 0.3,
+      "mouthClosed": true,
+      "facial": [
+        "eyes closed jaw open half"
+      ]
+    },
+    {
+      "audio": "./Audio/Charlotte/Moan to Breathe.mp3",
+      "minIntensity": 0.2,
+      "maxIntensity": 0.4,
+      "mouthClosed": true,
+      "facial": [
+        "eyes squint jaw open half"
+      ]
+    },
+    {
+      "audio": "./Audio/Charlotte/gasping 1.mp3",
+      "minIntensity": 0.2,
+      "maxIntensity": 0.5,
+      "mouthClosed": false,
+      "facial": [
+        "eyes squint jaw open"
+      ]
+    },
+    {
+      "audio": "./Audio/Charlotte/gasping 2.mp3",
+      "minIntensity": 0.2,
+      "maxIntensity": 0.5,
+      "mouthClosed": false,
+      "facial": [
+        "eyes squint jaw open"
+      ]
+    },
+    {
+      "audio": "./Audio/Charlotte/gasping 3.mp3",
+      "minIntensity": 0.2,
+      "maxIntensity": 0.5,
+      "mouthClosed": false,
+      "facial": [
+        "brows arched mouth half open"
+      ]
+    },
+    {
+      "audio": "./Audio/Charlotte/gasping 4.mp3",
+      "minIntensity": 0.2,
+      "maxIntensity": 0.5,
+      "mouthClosed": false,
+      "facial": [
+        "brows arched mouth half open"
+      ]
+    },
+    {
+      "audio": "./Audio/Charlotte/gasping 5.mp3",
+      "minIntensity": 0.2,
+      "maxIntensity": 0.5,
+      "mouthClosed": false,
+      "facial": [
+        "brows arched mouth half open half"
+      ]
+    },
+    {
+      "audio": "./Audio/Charlotte/gasping 6.mp3",
+      "minIntensity": 0.2,
+      "maxIntensity": 0.5,
+      "mouthClosed": false,
+      "facial": [
+        "brows arched mouth half open half"
+      ]
+    },
+    {
+      "audio": "./Audio/Charlotte/gasping 7.mp3",
+      "minIntensity": 0.2,
+      "maxIntensity": 0.5,
+      "mouthClosed": false,
+      "facial": [
+        "eyes squint mouth O half"
+      ]
+    },
+    {
+      "audio": "./Audio/Charlotte/mnnn.mp3",
+      "minIntensity": 0.3,
+      "maxIntensity": 0.6,
+      "mouthClosed": true,
+      "facial": [
+        "eyes squint bite lip"
+      ]
+    },
+    {
+      "audio": "./Audio/Charlotte/Gulp.mp3",
+      "minIntensity": 0.3,
+      "maxIntensity": 0.5,
+      "mouthClosed": false,
+      "facial": [
+        "eyes squint mouth O"
+      ]
+    },
+    {
+      "audio": "./Audio/Charlotte/holding it 1.mp3",
+      "minIntensity": 0.4,
+      "maxIntensity": 0.7,
+      "mouthClosed": true,
+      "facial": [
+        "eyes squint bite lip"
+      ]
+    },
+    {
+      "audio": "./Audio/Charlotte/holding it 2.mp3",
+      "minIntensity": 0.4,
+      "maxIntensity": 0.7,
+      "mouthClosed": false,
+      "facial": [
+        "brows arched mouth half open"
+      ]
+    },
+    {
+      "audio": "./Audio/Charlotte/holding it 3.mp3",
+      "minIntensity": 0.4,
+      "maxIntensity": 0.7,
+      "mouthClosed": false,
+      "facial": [
+        "eyes squint jaw open"
+      ]
+    },
+    {
+      "audio": "./Audio/Charlotte/holding it 4 fast breathing.mp3",
+      "minIntensity": 0.5,
+      "maxIntensity": 0.7,
+      "mouthClosed": false,
+      "facial": [
+        "eyes squint jaw open tongue out"
+      ]
+    },
+    {
+      "audio": "./Audio/Charlotte/Crying out.mp3",
+      "minIntensity": 0.5,
+      "maxIntensity": 0.8,
+      "mouthClosed": false,
+      "facial": [
+        "eyes half closed jaw open"
+      ]
+    },
+    {
+      "audio": "./Audio/Charlotte/deep gasp 1.mp3",
+      "minIntensity": 0.5,
+      "maxIntensity": 0.8,
+      "mouthClosed": false,
+      "facial": [
+        "jaw open tongue out"
+      ]
+    },
+    {
+      "audio": "./Audio/Charlotte/deep gasp 2.mp3",
+      "minIntensity": 0.5,
+      "maxIntensity": 0.8,
+      "mouthClosed": false,
+      "facial": [
+        "jaw open tongue out"
+      ]
+    },
+    {
+      "audio": "./Audio/Charlotte/deep moan 1.mp3",
+      "minIntensity": 0.5,
+      "maxIntensity": 0.8,
+      "mouthClosed": true,
+      "facial": [
+        "eyes squint bite lip"
+      ]
+    },
+    {
+      "audio": "./Audio/Charlotte/deep moan 2.mp3",
+      "minIntensity": 0.5,
+      "maxIntensity": 0.8,
+      "mouthClosed": true,
+      "facial": [
+        "eyes squint bite lip"
+      ]
+    },
+    {
+      "audio": "./Audio/Charlotte/ahhhsss.mp3",
+      "minIntensity": 0.5,
+      "maxIntensity": 0.8,
+      "mouthClosed": false,
+      "facial": [
+        "eyes half closed tongue up"
+      ]
+    },
+    {
+      "audio": "./Audio/Charlotte/mmhhh.mp3",
+      "minIntensity": 0.5,
+      "maxIntensity": 0.8,
+      "mouthClosed": true,
+      "facial": [
+        "eyes squint bite lip"
+      ]
+    },
+    {
+      "audio": "./Audio/Charlotte/mnnhh.mp3",
+      "minIntensity": 0.5,
+      "maxIntensity": 0.8,
+      "mouthClosed": true,
+      "facial": [
+        "eyes squint bite lip"
+      ]
+    },
+    {
+      "audio": "./Audio/Charlotte/pre orgasm 1.mp3",
+      "minIntensity": 0.7,
+      "maxIntensity": 1.0,
+      "mouthClosed": true,
+      "facial": [
+        "eyes squint bite lip"
+      ]
+    },
+    {
+      "audio": "./Audio/Charlotte/pre orgasm 2.mp3",
+      "minIntensity": 0.7,
+      "maxIntensity": 1.0,
+      "mouthClosed": false,
+      "facial": [
+        "eyes closed jaw open"
+      ]
+    },
+    {
+      "audio": "./Audio/Charlotte/pre orgasm 3.mp3",
+      "minIntensity": 0.7,
+      "maxIntensity": 1.0,
+      "mouthClosed": false,
+      "facial": [
+        "eyes half closed jaw open"
+      ]
+    }
+  ],
+  "climaxes": [
+    {
+      "audio": "./Audio/Charlotte/Fuck to Climax.mp3",
+      "facial": [
+        "eyes squint jaw open"
+      ]
+    },
+    {
+      "audio": "./Audio/Charlotte/Orgasm Edge.mp3",
+      "facial": [
+        "jaw open tongue out"
+      ]
+    },
+    {
+      "audio": "./Audio/Charlotte/Orgasm Finish.mp3",
+      "facial": [
+        "eyes half closed tongue up"
+      ]
+    }
+  ]
+}

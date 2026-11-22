@@ -1,0 +1,121 @@
+{
+  "expressions": [
+    {
+      "audio": "./Audio/Venus/VenusMoan1.wav",
+      "minIntensity": 0.0,
+      "maxIntensity": 0.2,
+      "facial": [
+        "squint",
+        "AA"
+      ]
+    },
+    {
+      "audio": "./Audio/Venus/VenusMoan2.wav",
+      "minIntensity": 0.0,
+      "maxIntensity": 0.3,
+      "facial": [
+        "squint",
+        "M"
+      ]
+    },
+    {
+      "audio": "./Audio/Venus/VenusMoan3.wav",
+      "minIntensity": 0.2,
+      "maxIntensity": 0.4,
+      "facial": [
+        "squint"
+      ]
+    },
+    {
+      "audio": "./Audio/Venus/VenusMoan4.wav",
+      "minIntensity": 0.2,
+      "maxIntensity": 0.5,
+      "facial": [
+        "squint"
+      ]
+    },
+    {
+      "audio": "./Audio/Venus/VenusMoan5.wav",
+      "minIntensity": 0.3,
+      "maxIntensity": 0.5,
+      "facial": [
+        "squint",
+        "OW"
+      ]
+    },
+    {
+      "audio": "./Audio/Venus/VenusMoan6.wav",
+      "minIntensity": 0.2,
+      "maxIntensity": 0.6,
+      "facial": [
+        "squint hard",
+        "AA"
+      ]
+    },
+    {
+      "audio": "./Audio/Venus/VenusMoan7.wav",
+      "minIntensity": 0.4,
+      "maxIntensity": 0.7,
+      "facial": [
+        "squint hard",
+        "AA"
+      ]
+    },
+    {
+      "audio": "./Audio/Venus/VenusMoan8.wav",
+      "minIntensity": 0.4,
+      "maxIntensity": 0.7,
+      "facial": [
+        "squint hard",
+        "OW"
+      ]
+    },
+    {
+      "audio": "./Audio/Venus/VenusMoan9.wav",
+      "minIntensity": 0.5,
+      "maxIntensity": 0.8,
+      "facial": [
+        "squint hard",
+        "OW"
+      ]
+    },
+    {
+      "audio": "./Audio/Venus/VenusMoan10.wav",
+      "minIntensity": 0.6,
+      "maxIntensity": 0.8,
+      "facial": [
+        "squint hard",
+        "AA"
+      ]
+    },
+    {
+      "audio": "./Audio/Venus/VenusMoan11.wav",
+      "minIntensity": 0.7,
+      "maxIntensity": 1.0,
+      "facial": [
+        "squint hard",
+        "AA"
+      ]
+    },
+    {
+      "audio": "./Audio/Venus/VenusMoan12.wav",
+      "minIntensity": 0.7,
+      "maxIntensity": 1.0,
+      "facial": [
+        "squint hard",
+        "mouth open",
+        "retract lips"
+      ]
+    }
+  ],
+  "climaxes": [
+    {
+      "audio": "./Audio/Venus/VenusOrgasm.wav",
+      "facial": [
+        "eyes closed pleasure",
+        "mouth open",
+        "retract lips"
+      ]
+    }
+  ]
+}

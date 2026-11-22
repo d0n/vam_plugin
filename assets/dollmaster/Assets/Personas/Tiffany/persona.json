@@ -1,0 +1,119 @@
+{
+  "expressions": [
+    {
+      "audio": "./Audio/Tiffany/TiffanyMoan1.wav",
+      "minIntensity": 0.1,
+      "maxIntensity": 0.2,
+      "mouthClosed": true,
+      "facial": [
+        "squint left",
+        "brow furrowed",
+        "M"
+      ]
+    },
+    {
+      "audio": "./Audio/Tiffany/TiffanyMoan2.wav",
+      "minIntensity": 0.1,
+      "maxIntensity": 0.3,
+      "facial": [
+        "squint",
+        "mouth open",
+        "AA"
+      ]
+    },
+    {
+      "audio": "./Audio/Tiffany/TiffanyMoan3.wav",
+      "minIntensity": 0.2,
+      "maxIntensity": 0.4,
+      "facial": [
+        "squint",
+        "mouth open",
+        "EH"
+      ]
+    },
+    {
+      "audio": "./Audio/Tiffany/TiffanyMoan4.wav",
+      "minIntensity": 0.2,
+      "maxIntensity": 0.5,
+      "facial": [
+        "squint left",
+        "brow furrowed",
+        "mouth open",
+        "AA"
+      ]
+    },
+    {
+      "audio": "./Audio/Tiffany/TiffanyMoan5.wav",
+      "minIntensity": 0.3,
+      "maxIntensity": 0.5,
+      "facial": [
+        "squint",
+        "OH",
+        "mouth open"
+      ]
+    },
+    {
+      "audio": "./Audio/Tiffany/TiffanyMoan6.wav",
+      "minIntensity": 0.2,
+      "maxIntensity": 0.6,
+      "facial": [
+        "smile full",
+        "IY"
+      ]
+    },
+    {
+      "audio": "./Audio/Tiffany/TiffanyMoan7.wav",
+      "minIntensity": 0.3,
+      "maxIntensity": 0.7,
+      "facial": [
+        "squint left",
+        "brow furrowed",
+        "AA",
+        "mouth open"
+      ]
+    },
+    {
+      "audio": "./Audio/Tiffany/TiffanyMoan8.wav",
+      "minIntensity": 0.4,
+      "maxIntensity": 0.8,
+      "facial": [
+        "squint hard",
+        "brow furrowed",
+        "mouth open",
+        "AA"
+      ]
+    },
+    {
+      "audio": "./Audio/Tiffany/TiffanyMoan9.wav",
+      "minIntensity": 0.7,
+      "maxIntensity": 1.0,
+      "facial": [
+        "eyes half closed",
+        "brow furrowed",
+        "AA",
+        "mouth open"
+      ]
+    },
+    {
+      "audio": "./Audio/Tiffany/TiffanyMoan10.wav",
+      "minIntensity": 0.8,
+      "maxIntensity": 1.0,
+      "facial": [
+        "eyes closed",
+        "brow furrowed",
+        "EH",
+        "mouth open"
+      ]
+    }
+  ],
+  "climaxes": [
+    {
+      "audio": "./Audio/Tiffany/TiffanyOrgasm.wav",
+      "facial": [
+        "eyes closed pleasure",
+        "mouth open",
+        "retract lips"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,121 @@
+{
+  "expressions": [
+    {
+      "audio": "./Audio/Kyanna/KyannaMoan1.wav",
+      "minIntensity": 0.1,
+      "maxIntensity": 0.2,
+      "facial": [
+        "squint",
+        "AA"
+      ]
+    },
+    {
+      "audio": "./Audio/Kyanna/KyannaMoan2.wav",
+      "minIntensity": 0.1,
+      "maxIntensity": 0.3,
+      "facial": [
+        "squint",
+        "M"
+      ]
+    },
+    {
+      "audio": "./Audio/Kyanna/KyannaMoan3.wav",
+      "minIntensity": 0.2,
+      "maxIntensity": 0.4,
+      "facial": [
+        "squint"
+      ]
+    },
+    {
+      "audio": "./Audio/Kyanna/KyannaMoan4.wav",
+      "minIntensity": 0.2,
+      "maxIntensity": 0.5,
+      "facial": [
+        "squint"
+      ]
+    },
+    {
+      "audio": "./Audio/Kyanna/KyannaMoan5.wav",
+      "minIntensity": 0.3,
+      "maxIntensity": 0.5,
+      "facial": [
+        "squint",
+        "OW"
+      ]
+    },
+    {
+      "audio": "./Audio/Kyanna/KyannaMoan6.wav",
+      "minIntensity": 0.2,
+      "maxIntensity": 0.6,
+      "facial": [
+        "squint hard",
+        "AA"
+      ]
+    },
+    {
+      "audio": "./Audio/Kyanna/KyannaMoan7.wav",
+      "minIntensity": 0.4,
+      "maxIntensity": 0.7,
+      "facial": [
+        "squint hard",
+        "AA"
+      ]
+    },
+    {
+      "audio": "./Audio/Kyanna/KyannaMoan8.wav",
+      "minIntensity": 0.4,
+      "maxIntensity": 0.7,
+      "facial": [
+        "squint hard",
+        "OW"
+      ]
+    },
+    {
+      "audio": "./Audio/Kyanna/KyannaMoan9.wav",
+      "minIntensity": 0.5,
+      "maxIntensity": 0.8,
+      "facial": [
+        "squint hard",
+        "OW"
+      ]
+    },
+    {
+      "audio": "./Audio/Kyanna/KyannaMoan10.wav",
+      "minIntensity": 0.6,
+      "maxIntensity": 0.8,
+      "facial": [
+        "squint hard",
+        "AA"
+      ]
+    },
+    {
+      "audio": "./Audio/Kyanna/KyannaMoan11.wav",
+      "minIntensity": 0.7,
+      "maxIntensity": 1.0,
+      "facial": [
+        "squint hard",
+        "AA"
+      ]
+    },
+    {
+      "audio": "./Audio/Kyanna/KyannaMoan12.wav",
+      "minIntensity": 0.7,
+      "maxIntensity": 1.0,
+      "facial": [
+        "squint hard",
+        "mouth open",
+        "retract lips"
+      ]
+    }
+  ],
+  "climaxes": [
+    {
+      "audio": "./Audio/Kyanna/KyannaOrgasm.wav",
+      "facial": [
+        "eyes closed pleasure",
+        "mouth open",
+        "retract lips"
+      ]
+    }
+  ]
+}

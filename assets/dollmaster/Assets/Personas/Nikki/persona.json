@@ -1,0 +1,159 @@
+{
+  "expressions": [
+    {
+      "audio": "./Audio/Nikki/NikkiMoan1.wav",
+      "minIntensity": 0.1,
+      "maxIntensity": 0.2,
+      "mouthClosed": true,
+      "facial": [
+        "squint",
+        "M"
+      ]
+    },
+    {
+      "audio": "./Audio/Nikki/NikkiMoan2.wav",
+      "minIntensity": 0.1,
+      "maxIntensity": 0.3,
+      "facial": [
+        "brow furrowed",
+        "squint",
+        "OW"
+      ]
+    },
+    {
+      "audio": "./Audio/Nikki/NikkiMoan3.wav",
+      "minIntensity": 0.2,
+      "maxIntensity": 0.4,
+      "mouthClosed": true,
+      "facial": [
+        "brow furrowed",
+        "squint",
+        "M"
+      ]
+    },
+    {
+      "audio": "./Audio/Nikki/NikkiMoan4.wav",
+      "minIntensity": 0.2,
+      "maxIntensity": 0.5,
+      "facial": [
+        "eyes closed",
+        "smile",
+        "retract lips"
+      ]
+    },
+    {
+      "audio": "./Audio/Nikki/NikkiMoan5.wav",
+      "minIntensity": 0.3,
+      "maxIntensity": 0.5,
+      "facial": [
+        "squint",
+        "mouth open"
+      ]
+    },
+    {
+      "audio": "./Audio/Nikki/NikkiMoan6.wav",
+      "minIntensity": 0.2,
+      "maxIntensity": 0.6,
+      "facial": [
+        "squint hard",
+        "IY"
+      ]
+    },
+    {
+      "audio": "./Audio/Nikki/NikkiMoan7.wav",
+      "minIntensity": 0.4,
+      "maxIntensity": 0.7,
+      "facial": [
+        "squint hard",
+        "F"
+      ]
+    },
+    {
+      "audio": "./Audio/Nikki/NikkiMoan8.wav",
+      "minIntensity": 0.4,
+      "maxIntensity": 0.7,
+      "facial": [
+        "eyes closed pleasure",
+        "AA"
+      ]
+    },
+    {
+      "audio": "./Audio/Nikki/NikkiMoan9.wav",
+      "minIntensity": 0.4,
+      "maxIntensity": 0.6,
+      "facial": [
+        "eyes closed pleasure",
+        "AA"
+      ]
+    },
+    {
+      "audio": "./Audio/Nikki/NikkiMoan10.wav",
+      "minIntensity": 0.6,
+      "maxIntensity": 0.7,
+      "facial": [
+        "eyes closed pleasure",
+        "AA"
+      ]
+    },
+    {
+      "audio": "./Audio/Nikki/NikkiMoan11.wav",
+      "minIntensity": 0.6,
+      "maxIntensity": 0.8,
+      "facial": [
+        "eyes half closed",
+        "eyes closed pleasure",
+        "EH"
+      ]
+    },
+    {
+      "audio": "./Audio/Nikki/NikkiMoan12.wav",
+      "minIntensity": 0.7,
+      "maxIntensity": 0.9,
+      "facial": [
+        "eyes closed pleasure",
+        "UW half",
+        "snarl left"
+      ]
+    },
+    {
+      "audio": "./Audio/Nikki/NikkiMoan13.wav",
+      "minIntensity": 0.5,
+      "maxIntensity": 0.8,
+      "facial": [
+        "squint hard",
+        "retract lower lips",
+        "AA"
+      ]
+    },
+    {
+      "audio": "./Audio/Nikki/NikkiMoan14.wav",
+      "minIntensity": 0.6,
+      "maxIntensity": 0.8,
+      "facial": [
+        "squint hard",
+        "brow furrowed",
+        "AA"
+      ]
+    },
+    {
+      "audio": "./Audio/Nikki/NikkiMoan15.wav",
+      "minIntensity": 0.7,
+      "maxIntensity": 1.0,
+      "facial": [
+        "squint hard",
+        "brow furrowed",
+        "AA"
+      ]
+    }
+  ],
+  "climaxes": [
+    {
+      "audio": "./Audio/Nikki/NikkiOrgasm.wav",
+      "facial": [
+        "eyes closed pleasure",
+        "mouth open",
+        "retract lips"
+      ]
+    }
+  ]
+}

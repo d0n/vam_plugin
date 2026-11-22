@@ -1,0 +1,251 @@
+{
+  "panting": [
+    "./Audio/Naomi/petite_breathing.mp3"
+  ],
+  "expressions": [
+    {
+      "audio": "./Audio/Naomi/agm-01.wav",
+      "minIntensity": 0.1,
+      "maxIntensity": 0.2,
+      "facial": [
+        "squint",
+        "AA",
+        "mouth open"
+      ]
+    },
+    {
+      "audio": "./Audio/Naomi/agm-02.wav",
+      "minIntensity": 0.1,
+      "maxIntensity": 0.3,
+      "facial": [
+        "squint",
+        "AA",
+        "mouth open"
+      ]
+    },
+    {
+      "audio": "./Audio/Naomi/agm-03.wav",
+      "minIntensity": 0.1,
+      "maxIntensity": 0.4,
+      "facial": [
+        "squint",
+        "AA",
+        "mouth open",
+        "snarl left"
+      ]
+    },
+    {
+      "audio": "./Audio/Naomi/agm-04.wav",
+      "minIntensity": 0.2,
+      "maxIntensity": 0.5,
+      "facial": [
+        "squint",
+        "AA",
+        "mouth open"
+      ]
+    },
+    {
+      "audio": "./Audio/Naomi/agm-05.wav",
+      "minIntensity": 0.3,
+      "maxIntensity": 0.5,
+      "facial": [
+        "squint",
+        "brow furrowed",
+        "OW",
+        "mouth open",
+        "retract lips"
+      ]
+    },
+    {
+      "audio": "./Audio/Naomi/agm-07.wav",
+      "minIntensity": 0.3,
+      "maxIntensity": 0.6,
+      "facial": [
+        "brow furrowed",
+        "eyes closed",
+        "AA",
+        "mouth open",
+        "retract lips"
+      ]
+    },
+    {
+      "audio": "./Audio/Naomi/agm-08.wav",
+      "minIntensity": 0.4,
+      "maxIntensity": 0.7,
+      "facial": [
+        "brow furrowed",
+        "eyes closed",
+        "AA",
+        "mouth open",
+        "retract lips",
+        "snarl left"
+      ]
+    },
+    {
+      "audio": "./Audio/Naomi/agm-09.wav",
+      "minIntensity": 0.4,
+      "maxIntensity": 0.8,
+      "facial": [
+        "brow furrowed",
+        "squint hard",
+        "AA",
+        "mouth open",
+        "retract lips"
+      ]
+    },
+    {
+      "audio": "./Audio/Naomi/agm-10.wav",
+      "minIntensity": 0.6,
+      "maxIntensity": 0.9,
+      "facial": [
+        "brow furrowed",
+        "squint hard",
+        "AA",
+        "mouth open",
+        "retract lips"
+      ]
+    },
+    {
+      "audio": "./Audio/Naomi/agm-12.wav",
+      "minIntensity": 0.6,
+      "maxIntensity": 0.9,
+      "facial": [
+        "eyes closed pleasure",
+        "AA",
+        "mouth open",
+        "retract lips",
+        "snarl left"
+      ]
+    },
+    {
+      "audio": "./Audio/Naomi/agm-13.wav",
+      "minIntensity": 0.6,
+      "maxIntensity": 1.0,
+      "facial": [
+        "eyes closed pleasure",
+        "AA",
+        "mouth open",
+        "retract lips",
+        "snarl left"
+      ]
+    },
+    {
+      "audio": "./Audio/Naomi/agm-14.wav",
+      "minIntensity": 0.6,
+      "maxIntensity": 1.0,
+      "facial": [
+        "eyes closed pleasure",
+        "AA",
+        "mouth open",
+        "retract lips",
+        "snarl left"
+      ]
+    },
+    {
+      "audio": "./Audio/Naomi/agm-15.wav",
+      "minIntensity": 0.6,
+      "maxIntensity": 1.0,
+      "facial": [
+        "eyes closed pleasure",
+        "AA",
+        "mouth open",
+        "retract lips",
+        "snarl left"
+      ]
+    },
+    {
+      "audio": "./Audio/Naomi/agm-16.wav",
+      "minIntensity": 0.6,
+      "maxIntensity": 1.0,
+      "facial": [
+        "eyes closed pleasure",
+        "AA",
+        "mouth open",
+        "retract lips",
+        "snarl left"
+      ]
+    },
+    {
+      "audio": "./Audio/Naomi/agm-17.wav",
+      "minIntensity": 0.6,
+      "maxIntensity": 1.0,
+      "facial": [
+        "eyes closed pleasure",
+        "AA",
+        "mouth open",
+        "retract lips",
+        "snarl left"
+      ]
+    },
+    {
+      "audio": "./Audio/Naomi/agm-18.wav",
+      "minIntensity": 0.6,
+      "maxIntensity": 1.0,
+      "facial": [
+        "eyes closed pleasure",
+        "AA",
+        "mouth open",
+        "retract lips",
+        "snarl left"
+      ]
+    },
+    {
+      "audio": "./Audio/Naomi/agm-19.wav",
+      "minIntensity": 0.6,
+      "maxIntensity": 1.0,
+      "facial": [
+        "eyes closed pleasure",
+        "AA",
+        "mouth open",
+        "retract lips",
+        "snarl left"
+      ]
+    },
+    {
+      "audio": "./Audio/Naomi/agm-20.wav",
+      "minIntensity": 0.6,
+      "maxIntensity": 1.0,
+      "facial": [
+        "eyes closed pleasure",
+        "AA",
+        "mouth open",
+        "retract lips",
+        "snarl left"
+      ]
+    },
+    {
+      "audio": "./Audio/Naomi/agm-21.wav",
+      "minIntensity": 0.6,
+      "maxIntensity": 1.0,
+      "facial": [
+        "eyes closed pleasure",
+        "AA",
+        "mouth open",
+        "retract lips",
+        "snarl left"
+      ]
+    }
+  ],
+  "climaxes": [
+    {
+      "audio": "./Audio/Naomi/agm-22.wav",
+      "facial": [
+        "eyes closed pleasure",
+        "AA",
+        "mouth open",
+        "retract lips",
+        "snarl left"
+      ]
+    },
+    {
+      "audio": "./Audio/Naomi/agm-23.wav",
+      "facial": [
+        "eyes closed pleasure",
+        "AA",
+        "mouth open",
+        "retract lips",
+        "snarl left"
+      ]
+    }
+  ]
+}

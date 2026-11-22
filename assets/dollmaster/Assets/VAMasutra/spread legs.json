@@ -1,0 +1,5147 @@
+{
+   "playerNavCollider" : "PlayerNavigationPanel:Floor",
+   "playerHeightAdjust" : "2.100402",
+   "monitorCameraRotation" : {
+      "x" : "45.7608",
+      "y" : "0",
+      "z" : "0"
+   },
+   "useSceneLoadPosition" : "false",
+   "atoms" : [
+      {
+         "id" : "WindowCamera",
+         "on" : "false",
+         "type" : "WindowCamera",
+         "position" : {
+            "x" : "1.301",
+            "y" : "1.684",
+            "z" : "1.412"
+         },
+         "rotation" : {
+            "x" : "0",
+            "y" : "0",
+            "z" : "0"
+         },
+         "containerPosition" : {
+            "x" : "1.301",
+            "y" : "1.684",
+            "z" : "1.412"
+         },
+         "containerRotation" : {
+            "x" : "0",
+            "y" : "0",
+            "z" : "0"
+         },
+         "storables" : [
+            {
+               "id" : "AtomControl",
+               "hidden" : "true"
+            },
+            {
+               "id" : "CollisionTrigger",
+               "trigger" : {
+                  "startActions" : [
+                  ],
+                  "transitionActions" : [
+                  ],
+                  "endActions" : [
+                  ]
+               }
+            },
+            {
+               "id" : "CameraControl",
+               "FOV" : "21.45049",
+               "maskSelection" : "mask3"
+            },
+            {
+               "id" : "PluginManager",
+               "plugins" : {
+               }
+            },
+            {
+               "id" : "control",
+               "position" : {
+                  "x" : "1.301",
+                  "y" : "1.684",
+                  "z" : "1.412"
+               },
+               "rotation" : {
+                  "x" : "0",
+                  "y" : "0",
+                  "z" : "0"
+               }
+            }
+         ]
+      },
+      {
+         "id" : "PlayerNavigationPanel",
+         "on" : "true",
+         "type" : "PlayerNavigationPanel",
+         "position" : {
+            "x" : "0.5",
+            "y" : "0",
+            "z" : "0.5"
+         },
+         "rotation" : {
+            "x" : "0",
+            "y" : "0",
+            "z" : "0"
+         },
+         "containerPosition" : {
+            "x" : "0.5",
+            "y" : "0",
+            "z" : "0.5"
+         },
+         "containerRotation" : {
+            "x" : "0",
+            "y" : "0",
+            "z" : "0"
+         },
+         "storables" : [
+            {
+               "id" : "AtomControl",
+               "hidden" : "true"
+            },
+            {
+               "id" : "CollisionTrigger",
+               "trigger" : {
+                  "startActions" : [
+                  ],
+                  "transitionActions" : [
+                  ],
+                  "endActions" : [
+                  ]
+               }
+            },
+            {
+               "id" : "PluginManager",
+               "plugins" : {
+               }
+            },
+            {
+               "id" : "control",
+               "interactableInPlayMode" : "false",
+               "xPositionLock" : "true",
+               "yPositionLock" : "true",
+               "zPositionLock" : "true",
+               "xRotationLock" : "true",
+               "yRotationLock" : "true",
+               "zRotationLock" : "true",
+               "position" : {
+                  "x" : "0.5",
+                  "y" : "0",
+                  "z" : "0.5"
+               },
+               "rotation" : {
+                  "x" : "0",
+                  "y" : "0",
+                  "z" : "0"
+               }
+            }
+         ]
+      },
+      {
+         "id" : "CoreControl",
+         "on" : "true",
+         "type" : "CoreControl",
+         "storables" : [
+            {
+               "id" : "GlobalLighting",
+               "skyName" : "SkyCity"
+            },
+            {
+               "id" : "MotionAnimationMaster",
+               "triggers" : [
+               ]
+            }
+         ]
+      },
+      {
+         "id" : "[CameraRig]",
+         "on" : "true",
+         "type" : "VRController",
+         "position" : {
+            "x" : "-4.840603",
+            "y" : "0",
+            "z" : "1.364522"
+         },
+         "rotation" : {
+            "x" : "0",
+            "y" : "81.11357",
+            "z" : "0"
+         },
+         "storables" : [
+         ]
+      },
+      {
+         "id" : "DSBR_Chair",
+         "on" : "true",
+         "type" : "DSBR_Chair",
+         "position" : {
+            "x" : "1.15",
+            "y" : "0",
+            "z" : "2.52"
+         },
+         "rotation" : {
+            "x" : "0",
+            "y" : "0",
+            "z" : "0"
+         },
+         "containerPosition" : {
+            "x" : "1.15",
+            "y" : "0",
+            "z" : "2.52"
+         },
+         "containerRotation" : {
+            "x" : "0",
+            "y" : "0",
+            "z" : "0"
+         },
+         "storables" : [
+            {
+               "id" : "CollisionTrigger",
+               "trigger" : {
+                  "startActions" : [
+                  ],
+                  "transitionActions" : [
+                  ],
+                  "endActions" : [
+                  ]
+               }
+            },
+            {
+               "id" : "PluginManager",
+               "plugins" : {
+               }
+            },
+            {
+               "id" : "control",
+               "position" : {
+                  "x" : "1.15",
+                  "y" : "0",
+                  "z" : "2.52"
+               },
+               "rotation" : {
+                  "x" : "0",
+                  "y" : "0",
+                  "z" : "0"
+               }
+            }
+         ]
+      },
+      {
+         "id" : "DSBR_Bed",
+         "on" : "true",
+         "type" : "DSBR_Bed",
+         "position" : {
+            "x" : "-1.22",
+            "y" : "0",
+            "z" : "1.81"
+         },
+         "rotation" : {
+            "x" : "0",
+            "y" : "0",
+            "z" : "0"
+         },
+         "containerPosition" : {
+            "x" : "-1.22",
+            "y" : "0",
+            "z" : "1.81"
+         },
+         "containerRotation" : {
+            "x" : "0",
+            "y" : "0",
+            "z" : "0"
+         },
+         "storables" : [
+            {
+               "id" : "CollisionTrigger",
+               "trigger" : {
+                  "startActions" : [
+                  ],
+                  "transitionActions" : [
+                  ],
+                  "endActions" : [
+                  ]
+               }
+            },
+            {
+               "id" : "PluginManager",
+               "plugins" : {
+               }
+            },
+            {
+               "id" : "control",
+               "position" : {
+                  "x" : "-1.22",
+                  "y" : "0",
+                  "z" : "1.81"
+               },
+               "rotation" : {
+                  "x" : "0",
+                  "y" : "0",
+                  "z" : "0"
+               }
+            }
+         ]
+      },
+      {
+         "id" : "DSBR_Ottoman",
+         "on" : "true",
+         "type" : "DSBR_Ottoman",
+         "position" : {
+            "x" : "1.12",
+            "y" : "0",
+            "z" : "1.6"
+         },
+         "rotation" : {
+            "x" : "0",
+            "y" : "0",
+            "z" : "0"
+         },
+         "containerPosition" : {
+            "x" : "1.12",
+            "y" : "0",
+            "z" : "1.6"
+         },
+         "containerRotation" : {
+            "x" : "0",
+            "y" : "0",
+            "z" : "0"
+         },
+         "storables" : [
+            {
+               "id" : "CollisionTrigger",
+               "trigger" : {
+                  "startActions" : [
+                  ],
+                  "transitionActions" : [
+                  ],
+                  "endActions" : [
+                  ]
+               }
+            },
+            {
+               "id" : "PluginManager",
+               "plugins" : {
+               }
+            },
+            {
+               "id" : "control",
+               "position" : {
+                  "x" : "1.12",
+                  "y" : "0",
+                  "z" : "1.6"
+               },
+               "rotation" : {
+                  "x" : "0",
+                  "y" : "0",
+                  "z" : "0"
+               }
+            }
+         ]
+      },
+      {
+         "id" : "GrabPoint",
+         "on" : "true",
+         "type" : "GrabPoint",
+         "position" : {
+            "x" : "1.093",
+            "y" : "2.8",
+            "z" : "0"
+         },
+         "rotation" : {
+            "x" : "0",
+            "y" : "0",
+            "z" : "0"
+         },
+         "containerPosition" : {
+            "x" : "-1.181774",
+            "y" : "0.1275561",
+            "z" : "1.923388"
+         },
+         "containerRotation" : {
+            "x" : "-3.385096E-05",
+            "y" : "2.271215E-06",
+            "z" : "-4.689914E-06"
+         },
+         "storables" : [
+            {
+               "id" : "CollisionTrigger",
+               "trigger" : {
+                  "startActions" : [
+                  ],
+                  "transitionActions" : [
+                  ],
+                  "endActions" : [
+                  ]
+               }
+            },
+            {
+               "id" : "PluginManager",
+               "plugins" : {
+               }
+            },
+            {
+               "id" : "control",
+               "position" : {
+                  "x" : "-1.181774",
+                  "y" : "0.1295154",
+                  "z" : "1.923388"
+               },
+               "rotation" : {
+                  "x" : "0",
+                  "y" : "0",
+                  "z" : "0"
+               }
+            }
+         ]
+      },
+      {
+         "id" : "Person",
+         "on" : "true",
+         "type" : "Person",
+         "parentAtom" : "GrabPoint",
+         "position" : {
+            "x" : "-1.181774",
+            "y" : "0.1275561",
+            "z" : "1.760765"
+         },
+         "rotation" : {
+            "x" : "-3.385096E-05",
+            "y" : "2.271215E-06",
+            "z" : "-4.689914E-06"
+         },
+         "containerPosition" : {
+            "x" : "-1.195188",
+            "y" : "1.71484",
+            "z" : "2.120454"
+         },
+         "containerRotation" : {
+            "x" : "-3.385096E-05",
+            "y" : "2.271215E-06",
+            "z" : "180"
+         },
+         "storables" : [
+            {
+               "id" : "control",
+               "position" : {
+                  "x" : "-1.195188",
+                  "y" : "1.71484",
+                  "z" : "2.120454"
+               },
+               "rotation" : {
+                  "x" : "-3.385096E-05",
+                  "y" : "2.271215E-06",
+                  "z" : "180"
+               }
+            },
+            {
+               "id" : "hipControl",
+               "localPosition" : {
+                  "x" : "0.01470885",
+                  "y" : "1.097489",
+                  "z" : "-0.1780072"
+               },
+               "localRotation" : {
+                  "x" : "82.27168",
+                  "y" : "180",
+                  "z" : "180"
+               }
+            },
+            {
+               "id" : "pelvisControl",
+               "interactableInPlayMode" : "false",
+               "localPosition" : {
+                  "x" : "0.01782775",
+                  "y" : "1.017682",
+                  "z" : "-0.08107316"
+               },
+               "localRotation" : {
+                  "x" : "51.18505",
+                  "y" : "2.850546",
+                  "z" : "4.544882"
+               }
+            },
+            {
+               "id" : "chestControl",
+               "interactableInPlayMode" : "false",
+               "localPosition" : {
+                  "x" : "0.006592719",
+                  "y" : "1.00914",
+                  "z" : "0.05728209"
+               },
+               "localRotation" : {
+                  "x" : "71.74681",
+                  "y" : "8.513633E-06",
+                  "z" : "-1.098303E-05"
+               }
+            },
+            {
+               "id" : "headControl",
+               "localPosition" : {
+                  "x" : "0.009451125",
+                  "y" : "1.066729",
+                  "z" : "0.4192788"
+               },
+               "localRotation" : {
+                  "x" : "71.0543",
+                  "y" : "179.5779",
+                  "z" : "177.1211"
+               }
+            },
+            {
+               "id" : "rHandControl",
+               "localPosition" : {
+                  "x" : "0.3413776",
+                  "y" : "1.181797",
+                  "z" : "-0.2594196"
+               },
+               "localRotation" : {
+                  "x" : "353.3298",
+                  "y" : "248.9195",
+                  "z" : "174.625"
+               }
+            },
+            {
+               "id" : "lHandControl",
+               "localPosition" : {
+                  "x" : "-0.2614728",
+                  "y" : "1.187177",
+                  "z" : "-0.2048899"
+               },
+               "localRotation" : {
+                  "x" : "352.6765",
+                  "y" : "107.9819",
+                  "z" : "179.9515"
+               }
+            },
+            {
+               "id" : "rFootControl",
+               "localPosition" : {
+                  "x" : "0.4068797",
+                  "y" : "0.05163594",
+                  "z" : "0.29124"
+               },
+               "localRotation" : {
+                  "x" : "70.93532",
+                  "y" : "22.48721",
+                  "z" : "9.962592"
+               }
+            },
+            {
+               "id" : "lFootControl",
+               "localPosition" : {
+                  "x" : "-0.3089632",
+                  "y" : "0.02317098",
+                  "z" : "0.2896952"
+               },
+               "localRotation" : {
+                  "x" : "77.20332",
+                  "y" : "332.5095",
+                  "z" : "345.2187"
+               }
+            },
+            {
+               "id" : "neckControl",
+               "localPosition" : {
+                  "x" : "0.0205548",
+                  "y" : "1.087432",
+                  "z" : "0.3281427"
+               },
+               "localRotation" : {
+                  "x" : "66.68912",
+                  "y" : "180.8153",
+                  "z" : "180.7714"
+               }
+            },
+            {
+               "id" : "eyeTargetControl",
+               "interactableInPlayMode" : "false",
+               "mass" : "0.01",
+               "localPosition" : {
+                  "x" : "2.940942E-08",
+                  "y" : "1.7",
+                  "z" : "0.9999998"
+               },
+               "localRotation" : {
+                  "x" : "0",
+                  "y" : "0",
+                  "z" : "0"
+               }
+            },
+            {
+               "id" : "rNippleControl",
+               "localPosition" : {
+                  "x" : "0.1289361",
+                  "y" : "0.9128946",
+                  "z" : "0.1875905"
+               },
+               "localRotation" : {
+                  "x" : "312.8725",
+                  "y" : "229.7232",
+                  "z" : "322.705"
+               }
+            },
+            {
+               "id" : "lNippleControl",
+               "localPosition" : {
+                  "x" : "-0.1000161",
+                  "y" : "0.9101304",
+                  "z" : "0.2019865"
+               },
+               "localRotation" : {
+                  "x" : "312.1",
+                  "y" : "137.8628",
+                  "z" : "36.17115"
+               }
+            },
+            {
+               "id" : "testesControl",
+               "interactableInPlayMode" : "false",
+               "localPosition" : {
+                  "x" : "-0.0008240163",
+                  "y" : "0.8868941",
+                  "z" : "0.06647068"
+               },
+               "localRotation" : {
+                  "x" : "1.018317",
+                  "y" : "359.8351",
+                  "z" : "359.5292"
+               }
+            },
+            {
+               "id" : "penisBaseControl",
+               "interactableInPlayMode" : "false",
+               "localPosition" : {
+                  "x" : "-0.0007000368",
+                  "y" : "0.907606",
+                  "z" : "0.0835253"
+               },
+               "localRotation" : {
+                  "x" : "1.018317",
+                  "y" : "359.8351",
+                  "z" : "359.5292"
+               }
+            },
+            {
+               "id" : "penisMidControl",
+               "interactableInPlayMode" : "false",
+               "localPosition" : {
+                  "x" : "-0.0007820529",
+                  "y" : "0.90707",
+                  "z" : "0.1116817"
+               },
+               "localRotation" : {
+                  "x" : "1.018317",
+                  "y" : "359.8351",
+                  "z" : "359.5292"
+               }
+            },
+            {
+               "id" : "penisTipControl",
+               "interactableInPlayMode" : "false",
+               "localPosition" : {
+                  "x" : "-0.0008631152",
+                  "y" : "0.9065672",
+                  "z" : "0.1399859"
+               },
+               "localRotation" : {
+                  "x" : "1.018317",
+                  "y" : "359.8351",
+                  "z" : "359.5292"
+               }
+            },
+            {
+               "id" : "rElbowControl",
+               "localPosition" : {
+                  "x" : "0.24633",
+                  "y" : "1.1069",
+                  "z" : "-0.02055949"
+               },
+               "localRotation" : {
+                  "x" : "12.4356",
+                  "y" : "248.7082",
+                  "z" : "174.9685"
+               }
+            },
+            {
+               "id" : "lElbowControl",
+               "localPosition" : {
+                  "x" : "-0.2150786",
+                  "y" : "1.106291",
+                  "z" : "0.00886783"
+               },
+               "localRotation" : {
+                  "x" : "4.296052",
+                  "y" : "110.0387",
+                  "z" : "185.3127"
+               }
+            },
+            {
+               "id" : "rKneeControl",
+               "localPosition" : {
+                  "x" : "0.2750738",
+                  "y" : "0.6444179",
+                  "z" : "0.08854163"
+               },
+               "localRotation" : {
+                  "x" : "341.3824",
+                  "y" : "10.34749",
+                  "z" : "10.19814"
+               }
+            },
+            {
+               "id" : "lKneeControl",
+               "localPosition" : {
+                  "x" : "-0.2041256",
+                  "y" : "0.61313",
+                  "z" : "0.07116163"
+               },
+               "localRotation" : {
+                  "x" : "340.6411",
+                  "y" : "352.5661",
+                  "z" : "351.521"
+               }
+            },
+            {
+               "id" : "rToeControl",
+               "localPosition" : {
+                  "x" : "0.4264085",
+                  "y" : "0.07769259",
+                  "z" : "0.2971153"
+               },
+               "localRotation" : {
+                  "x" : "45.24253",
+                  "y" : "23.30377",
+                  "z" : "8.797817"
+               }
+            },
+            {
+               "id" : "lToeControl",
+               "localPosition" : {
+                  "x" : "-0.3279638",
+                  "y" : "0.03740683",
+                  "z" : "0.2821276"
+               },
+               "localRotation" : {
+                  "x" : "52.65618",
+                  "y" : "337.4672",
+                  "z" : "351.6893"
+               }
+            },
+            {
+               "id" : "abdomenControl",
+               "localPosition" : {
+                  "x" : "0.01876092",
+                  "y" : "1.036743",
+                  "z" : "-0.1195189"
+               },
+               "localRotation" : {
+                  "x" : "85.24577",
+                  "y" : "20.18865",
+                  "z" : "23.36785"
+               }
+            },
+            {
+               "id" : "abdomen2Control",
+               "localPosition" : {
+                  "x" : "0.01409841",
+                  "y" : "1.032475",
+                  "z" : "-0.0310148"
+               },
+               "localRotation" : {
+                  "x" : "76.25003",
+                  "y" : "5.938683",
+                  "z" : "9.293715"
+               }
+            },
+            {
+               "id" : "rThighControl",
+               "localPosition" : {
+                  "x" : "0.104614",
+                  "y" : "0.9783915",
+                  "z" : "-0.1583355"
+               },
+               "localRotation" : {
+                  "x" : "322.3035",
+                  "y" : "6.405242",
+                  "z" : "19.47858"
+               }
+            },
+            {
+               "id" : "lThighControl",
+               "localPosition" : {
+                  "x" : "-0.06186008",
+                  "y" : "0.9702114",
+                  "z" : "-0.1607337"
+               },
+               "localRotation" : {
+                  "x" : "326.5261",
+                  "y" : "355.4548",
+                  "z" : "343.0288"
+               }
+            },
+            {
+               "id" : "rArmControl",
+               "localPosition" : {
+                  "x" : "0.1523624",
+                  "y" : "1.077979",
+                  "z" : "0.2530048"
+               },
+               "localRotation" : {
+                  "x" : "69.42136",
+                  "y" : "232.8866",
+                  "z" : "161.7885"
+               }
+            },
+            {
+               "id" : "lArmControl",
+               "localPosition" : {
+                  "x" : "-0.1190169",
+                  "y" : "1.074678",
+                  "z" : "0.2798603"
+               },
+               "localRotation" : {
+                  "x" : "63.68418",
+                  "y" : "123.5312",
+                  "z" : "195.6465"
+               }
+            },
+            {
+               "id" : "rShoulderControl",
+               "localPosition" : {
+                  "x" : "0.03259636",
+                  "y" : "1.042385",
+                  "z" : "0.2713653"
+               },
+               "localRotation" : {
+                  "x" : "73.10551",
+                  "y" : "47.1973",
+                  "z" : "56.56746"
+               }
+            },
+            {
+               "id" : "lShoulderControl",
+               "localPosition" : {
+                  "x" : "0.002742069",
+                  "y" : "1.041989",
+                  "z" : "0.2731091"
+               },
+               "localRotation" : {
+                  "x" : "76.15851",
+                  "y" : "317.8101",
+                  "z" : "298.1754"
+               }
+            },
+            {
+               "id" : "PluginManager",
+               "plugins" : {
+               }
+            },
+            {
+               "id" : "geometry",
+               "character" : "Female 3",
+               "clothing" : [
+               ],
+               "hair" : "Krayon Hair",
+               "morphs" : [
+                  {
+                     "name" : "Armpit Curve",
+                     "value" : "-0.114183"
+                  },
+                  {
+                     "name" : "Faerie Head",
+                     "value" : "0.02961557"
+                  },
+                  {
+                     "name" : "Aiko 6 Body",
+                     "value" : "0.3649245"
+                  },
+                  {
+                     "name" : "Androgynous",
+                     "value" : "-0.1867813"
+                  },
+                  {
+                     "name" : "Body Size",
+                     "value" : "0.08038791"
+                  },
+                  {
+                     "name" : "Body Tone",
+                     "value" : "0.4443381"
+                  },
+                  {
+                     "name" : "Bodybuilder Details",
+                     "value" : "0.04493149"
+                  },
+                  {
+                     "name" : "Carmen Body",
+                     "value" : "0.01306353"
+                  },
+                  {
+                     "name" : "Emaciated",
+                     "value" : "0.0434416"
+                  },
+                  {
+                     "name" : "Fitness Details",
+                     "value" : "0.1679683"
+                  },
+                  {
+                     "name" : "Heather Body",
+                     "value" : "0.1082447"
+                  },
+                  {
+                     "name" : "Height",
+                     "value" : "0.14618"
+                  },
+                  {
+                     "name" : "Holly Body",
+                     "value" : "0.08788382"
+                  },
+                  {
+                     "name" : "Lily Body",
+                     "value" : "0.04957966"
+                  },
+                  {
+                     "name" : "Mei Lin 6 Body",
+                     "value" : "0.00707534"
+                  },
+                  {
+                     "name" : "Monique 6 Body",
+                     "value" : "0.09994517"
+                  },
+                  {
+                     "name" : "Rose Body",
+                     "value" : "0.01224766"
+                  },
+                  {
+                     "name" : "Teen Josie Body",
+                     "value" : "0.06997578"
+                  },
+                  {
+                     "name" : "Thin",
+                     "value" : "0.06069127"
+                  },
+                  {
+                     "name" : "Victoria 6 Body",
+                     "value" : "0.07238401"
+                  },
+                  {
+                     "name" : "Voluptuous",
+                     "value" : "0.04863692"
+                  },
+                  {
+                     "name" : "Thin",
+                     "value" : "0.06069127"
+                  },
+                  {
+                     "name" : "Areola Depth",
+                     "value" : "0.2395547"
+                  },
+                  {
+                     "name" : "Areola Size",
+                     "value" : "-0.08707783"
+                  },
+                  {
+                     "name" : "Areola Size X",
+                     "value" : "-0.1239153"
+                  },
+                  {
+                     "name" : "Areola Size Y",
+                     "value" : "-0.1216024"
+                  },
+                  {
+                     "name" : "Areolae Depth",
+                     "value" : "0.04902492"
+                  },
+                  {
+                     "name" : "Areolae Diameter",
+                     "value" : "-0.1430145"
+                  },
+                  {
+                     "name" : "Areolae Perk",
+                     "value" : "0.01768036"
+                  },
+                  {
+                     "name" : "Armpit Curve",
+                     "value" : "-0.114183"
+                  },
+                  {
+                     "name" : "Breast Diameter",
+                     "value" : "0.01660956"
+                  },
+                  {
+                     "name" : "Breast Height Lower",
+                     "value" : "-0.09552144"
+                  },
+                  {
+                     "name" : "Breast Height Upper",
+                     "value" : "0.05509246"
+                  },
+                  {
+                     "name" : "Breast Large",
+                     "value" : "0.06628242"
+                  },
+                  {
+                     "name" : "Breast Pointed",
+                     "value" : "-0.08994205"
+                  },
+                  {
+                     "name" : "Breast Sag1",
+                     "value" : "0.04075491"
+                  },
+                  {
+                     "name" : "Breast Sag2",
+                     "value" : "-0.06595279"
+                  },
+                  {
+                     "name" : "Breast Top Curve1",
+                     "value" : "-0.001991824"
+                  },
+                  {
+                     "name" : "Breast Top Curve2",
+                     "value" : "0.1438538"
+                  },
+                  {
+                     "name" : "Breast Zero",
+                     "value" : "0.02257068"
+                  },
+                  {
+                     "name" : "Breasts Diameter",
+                     "value" : "0.004024434"
+                  },
+                  {
+                     "name" : "Breasts Downward Slope",
+                     "value" : "0.09639531"
+                  },
+                  {
+                     "name" : "Breasts Gone",
+                     "value" : "0.01493773"
+                  },
+                  {
+                     "name" : "Breasts Heavy",
+                     "value" : "0.01175248"
+                  },
+                  {
+                     "name" : "Breasts Implants",
+                     "value" : "-0.04745344"
+                  },
+                  {
+                     "name" : "Breasts Natural",
+                     "value" : "0.06930307"
+                  },
+                  {
+                     "name" : "Breasts Perk Side",
+                     "value" : "0.04885172"
+                  },
+                  {
+                     "name" : "Breasts Shape 01",
+                     "value" : "0.03486942"
+                  },
+                  {
+                     "name" : "Breasts Shape 02",
+                     "value" : "0.07041275"
+                  },
+                  {
+                     "name" : "Breasts Shape 04",
+                     "value" : "0.01178489"
+                  },
+                  {
+                     "name" : "Breasts Shape 05",
+                     "value" : "0.0290142"
+                  },
+                  {
+                     "name" : "Breasts Shape 06",
+                     "value" : "0.03616593"
+                  },
+                  {
+                     "name" : "Breasts Shape 07",
+                     "value" : "0.05360289"
+                  },
+                  {
+                     "name" : "Breasts Shape 08",
+                     "value" : "0.02422064"
+                  },
+                  {
+                     "name" : "Breasts Size",
+                     "value" : "0.06880279"
+                  },
+                  {
+                     "name" : "Breasts Small",
+                     "value" : "0.2587383"
+                  },
+                  {
+                     "name" : "Center Gap Depth",
+                     "value" : "0.0606884"
+                  },
+                  {
+                     "name" : "Center Gap Height",
+                     "value" : "0.03766473"
+                  },
+                  {
+                     "name" : "Center Gap Smooth",
+                     "value" : "0.07976844"
+                  },
+                  {
+                     "name" : "Center Gap UpDown",
+                     "value" : "0.02538326"
+                  },
+                  {
+                     "name" : "Centre Gap Narrow",
+                     "value" : "0.04383717"
+                  },
+                  {
+                     "name" : "Centre Gap Wide",
+                     "value" : "0.08847426"
+                  },
+                  {
+                     "name" : "Chest Height",
+                     "value" : "0.04708647"
+                  },
+                  {
+                     "name" : "Chest Smoother",
+                     "value" : "0.03460285"
+                  },
+                  {
+                     "name" : "Collarbone Detail",
+                     "value" : "0.2428618"
+                  },
+                  {
+                     "name" : "Nipple Diameter",
+                     "value" : "0.1163218"
+                  },
+                  {
+                     "name" : "Nipple Length",
+                     "value" : "0.07489315"
+                  },
+                  {
+                     "name" : "Nipple Size",
+                     "value" : "0.05900545"
+                  },
+                  {
+                     "name" : "Nipples",
+                     "value" : "0.04864898"
+                  },
+                  {
+                     "name" : "Nipples Apply",
+                     "value" : "0.05010627"
+                  },
+                  {
+                     "name" : "Nipples Depth",
+                     "value" : "0.03433074"
+                  },
+                  {
+                     "name" : "Nipples Diameter",
+                     "value" : "0.01308004"
+                  },
+                  {
+                     "name" : "Nipples Large",
+                     "value" : "0.04981967"
+                  },
+                  {
+                     "name" : "Nipples Size",
+                     "value" : "0.03407221"
+                  },
+                  {
+                     "name" : "Ribcage Size",
+                     "value" : "-0.02466423"
+                  },
+                  {
+                     "name" : "Sternum Depth",
+                     "value" : "0.02068494"
+                  },
+                  {
+                     "name" : "Sternum Height",
+                     "value" : "-0.07549295"
+                  },
+                  {
+                     "name" : "Sternum Width",
+                     "value" : "-0.05930254"
+                  },
+                  {
+                     "name" : "Breasts Shape 01",
+                     "value" : "0.03486942"
+                  },
+                  {
+                     "name" : "Earlobes Attached",
+                     "value" : "0.5542243"
+                  },
+                  {
+                     "name" : "Earlobes Length",
+                     "value" : "0.0693847"
+                  },
+                  {
+                     "name" : "Earlobes Size",
+                     "value" : "0.1198722"
+                  },
+                  {
+                     "name" : "Ears Angle",
+                     "value" : "-0.1472818"
+                  },
+                  {
+                     "name" : "Ears Depth",
+                     "value" : "-0.1207794"
+                  },
+                  {
+                     "name" : "Ears Height",
+                     "value" : "0.2712738"
+                  },
+                  {
+                     "name" : "Ears Size",
+                     "value" : "-0.06427328"
+                  },
+                  {
+                     "name" : "Eyelashes Curl",
+                     "value" : "0.1396705"
+                  },
+                  {
+                     "name" : "Eyelashes Hide Layer 2",
+                     "value" : "0.004389779"
+                  },
+                  {
+                     "name" : "Eyelashes Length",
+                     "value" : "0.3318671"
+                  },
+                  {
+                     "name" : "Eyelashes Top Point",
+                     "value" : "0.09661639"
+                  },
+                  {
+                     "name" : "Eyelids Bottom Define",
+                     "value" : "1"
+                  },
+                  {
+                     "name" : "Eyelids Upper Height",
+                     "value" : "0.1626562"
+                  },
+                  {
+                     "name" : "Eyes Angle",
+                     "value" : "0.4252353"
+                  },
+                  {
+                     "name" : "Eyes Depth",
+                     "value" : "0.1004646"
+                  },
+                  {
+                     "name" : "Eyes Height",
+                     "value" : "-0.2089499"
+                  },
+                  {
+                     "name" : "Eyes Height Inner",
+                     "value" : "0.1602892"
+                  },
+                  {
+                     "name" : "Eyes Height Outer",
+                     "value" : "0.1498823"
+                  },
+                  {
+                     "name" : "Eyes Inner Depth",
+                     "value" : "0.0367902"
+                  },
+                  {
+                     "name" : "Eyes Iris Size",
+                     "value" : "0.4536031"
+                  },
+                  {
+                     "name" : "Eyes Puffy Lower",
+                     "value" : "0.4566551"
+                  },
+                  {
+                     "name" : "Eyes Puffy Upper",
+                     "value" : "0.4241918"
+                  },
+                  {
+                     "name" : "Eyes Size",
+                     "value" : "-0.2450901"
+                  },
+                  {
+                     "name" : "Eyes Width",
+                     "value" : "0.1720817"
+                  },
+                  {
+                     "name" : "Pupils Dialate",
+                     "value" : "0.01258549"
+                  },
+                  {
+                     "name" : "Teen Josie Lashes",
+                     "value" : "0.1489484"
+                  },
+                  {
+                     "name" : "Brow Define",
+                     "value" : "0.2272584"
+                  },
+                  {
+                     "name" : "Brow Depth",
+                     "value" : "-0.02986988"
+                  },
+                  {
+                     "name" : "Brow Height",
+                     "value" : "0.04632616"
+                  },
+                  {
+                     "name" : "Brow Inner Height",
+                     "value" : "0.1201984"
+                  },
+                  {
+                     "name" : "Brow Inner Width",
+                     "value" : "-0.09980597"
+                  },
+                  {
+                     "name" : "Brow Outer Height",
+                     "value" : "-0.1504448"
+                  },
+                  {
+                     "name" : "Brow Outer Width",
+                     "value" : "0.08869135"
+                  },
+                  {
+                     "name" : "Brow Shape Inner",
+                     "value" : "0.2790014"
+                  },
+                  {
+                     "name" : "Brow Shape Middle",
+                     "value" : "0.09645796"
+                  },
+                  {
+                     "name" : "Brow Shape Outer",
+                     "value" : "0.1534413"
+                  },
+                  {
+                     "name" : "Brow Width",
+                     "value" : "0.08083083"
+                  },
+                  {
+                     "name" : "Brows Arch",
+                     "value" : "-0.1594267"
+                  },
+                  {
+                     "name" : "Brows Size",
+                     "value" : "0.02323618"
+                  },
+                  {
+                     "name" : "Cheek Bone Define ",
+                     "value" : "-0.2606976"
+                  },
+                  {
+                     "name" : "Cheek Bones Arch ",
+                     "value" : "-0.09463985"
+                  },
+                  {
+                     "name" : "Cheek Bones Height",
+                     "value" : "-0.1240541"
+                  },
+                  {
+                     "name" : "Cheek Bones Size",
+                     "value" : "0.07569312"
+                  },
+                  {
+                     "name" : "Cheek Bones Width",
+                     "value" : "0.007581599"
+                  },
+                  {
+                     "name" : "Cheek Lower Depth",
+                     "value" : "-0.0773343"
+                  },
+                  {
+                     "name" : "Cheek Lower Width",
+                     "value" : "0.02948295"
+                  },
+                  {
+                     "name" : "Cheeks Define",
+                     "value" : "-0.02886987"
+                  },
+                  {
+                     "name" : "Cheeks Depth",
+                     "value" : "-0.01434618"
+                  },
+                  {
+                     "name" : "Cheeks Dimple Crease",
+                     "value" : "0.1002989"
+                  },
+                  {
+                     "name" : "Cheeks Sink",
+                     "value" : "0.1997434"
+                  },
+                  {
+                     "name" : "Chin Cleft",
+                     "value" : "0.01032166"
+                  },
+                  {
+                     "name" : "Chin Crease",
+                     "value" : "0.1685527"
+                  },
+                  {
+                     "name" : "Chin Crease Smooth",
+                     "value" : "0.166363"
+                  },
+                  {
+                     "name" : "Chin Depth",
+                     "value" : "0.1599142"
+                  },
+                  {
+                     "name" : "Chin Height",
+                     "value" : "0.0004660844"
+                  },
+                  {
+                     "name" : "Chin Round",
+                     "value" : "0.1198555"
+                  },
+                  {
+                     "name" : "Chin Width",
+                     "value" : "0.1317152"
+                  },
+                  {
+                     "name" : "Chin Width 2",
+                     "value" : "0.1633703"
+                  },
+                  {
+                     "name" : "Cranium Slope",
+                     "value" : "0.07768255"
+                  },
+                  {
+                     "name" : "Eye Fold",
+                     "value" : "0.07254232"
+                  },
+                  {
+                     "name" : "Eyelid Upper Inner Shape",
+                     "value" : "-0.3090854"
+                  },
+                  {
+                     "name" : "Eyelid Upper Shape  Outer",
+                     "value" : "-0.08105812"
+                  },
+                  {
+                     "name" : "Eyes Inner  Shape",
+                     "value" : "-0.9975806"
+                  },
+                  {
+                     "name" : "Eyes Inner Corner Height",
+                     "value" : "-1"
+                  },
+                  {
+                     "name" : "Eyes Inner Corner Width",
+                     "value" : "0.1703152"
+                  },
+                  {
+                     "name" : "Eyes Lower Shape",
+                     "value" : "-0.7515988"
+                  },
+                  {
+                     "name" : "Eyes Open",
+                     "value" : "-0.134871"
+                  },
+                  {
+                     "name" : "Eyes Outer Shape",
+                     "value" : "-0.8202835"
+                  },
+                  {
+                     "name" : "Eyes Round",
+                     "value" : "-0.2144665"
+                  },
+                  {
+                     "name" : "Eyes Round Lower",
+                     "value" : "0.73266"
+                  },
+                  {
+                     "name" : "Eyes Round Upper",
+                     "value" : "1"
+                  },
+                  {
+                     "name" : "Eyes Slant Outer ",
+                     "value" : "-0.3921052"
+                  },
+                  {
+                     "name" : "Eyes Upper Shape",
+                     "value" : "0.2384423"
+                  },
+                  {
+                     "name" : "Face Center Depth",
+                     "value" : "0.01571446"
+                  },
+                  {
+                     "name" : "Face Flat",
+                     "value" : "-0.04477672"
+                  },
+                  {
+                     "name" : "Face Heart",
+                     "value" : "-0.05411885"
+                  },
+                  {
+                     "name" : "Face Height",
+                     "value" : "0.1485291"
+                  },
+                  {
+                     "name" : "Face Round",
+                     "value" : "0.02447919"
+                  },
+                  {
+                     "name" : "Face Square",
+                     "value" : "-0.09127803"
+                  },
+                  {
+                     "name" : "Face Young",
+                     "value" : "0.5312166"
+                  },
+                  {
+                     "name" : "Forehead Define",
+                     "value" : "0.1126961"
+                  },
+                  {
+                     "name" : "Forehead Flat",
+                     "value" : "0.004710639"
+                  },
+                  {
+                     "name" : "Forehead Round",
+                     "value" : "-0.03711333"
+                  },
+                  {
+                     "name" : "Jaw Angle",
+                     "value" : "0.07310688"
+                  },
+                  {
+                     "name" : "Jaw Corner Width",
+                     "value" : "0.06668947"
+                  },
+                  {
+                     "name" : "Jaw Curve",
+                     "value" : "0.1491107"
+                  },
+                  {
+                     "name" : "Jaw Define",
+                     "value" : "0.02414537"
+                  },
+                  {
+                     "name" : "Jaw Height",
+                     "value" : "0.07731758"
+                  },
+                  {
+                     "name" : "Jaw Line Depth",
+                     "value" : "-0.187308"
+                  },
+                  {
+                     "name" : "Jaw Size",
+                     "value" : "0.006565705"
+                  },
+                  {
+                     "name" : "Laugh Lines",
+                     "value" : "-0.02209551"
+                  },
+                  {
+                     "name" : "Mouth Corner Height",
+                     "value" : "0.05404115"
+                  },
+                  {
+                     "name" : "Mouth Corner Width",
+                     "value" : "-0.07181041"
+                  },
+                  {
+                     "name" : "Nose Bridge Height 2",
+                     "value" : "0.08393595"
+                  },
+                  {
+                     "name" : "Nose Bridge Lower Width ",
+                     "value" : "-0.04663352"
+                  },
+                  {
+                     "name" : "Nostrils Rotation",
+                     "value" : "0.02266688"
+                  },
+                  {
+                     "name" : "Temples Define",
+                     "value" : "0.03223901"
+                  },
+                  {
+                     "name" : "Clitoris-size",
+                     "value" : "0.01547824"
+                  },
+                  {
+                     "name" : "Genitals-extreme expansion",
+                     "value" : "0.002932259"
+                  },
+                  {
+                     "name" : "Labia majora-relaxation",
+                     "value" : "0.5"
+                  },
+                  {
+                     "name" : "Labia majora-spread-LLow",
+                     "value" : "0.00296245"
+                  },
+                  {
+                     "name" : "Labia majora-spread-LMid",
+                     "value" : "0.008705397"
+                  },
+                  {
+                     "name" : "Labia majora-spread-LUp",
+                     "value" : "0.005008967"
+                  },
+                  {
+                     "name" : "Labia majora-spread-RLow",
+                     "value" : "-0.01096052"
+                  },
+                  {
+                     "name" : "Labia minora-exstrophy",
+                     "value" : "-0.06273209"
+                  },
+                  {
+                     "name" : "Labia minora-relaxation",
+                     "value" : "0.04298455"
+                  },
+                  {
+                     "name" : "Labia minora-size",
+                     "value" : "0.02262295"
+                  },
+                  {
+                     "name" : "Labia minora-spread-LLow",
+                     "value" : "-0.01431698"
+                  },
+                  {
+                     "name" : "Labia minora-spread-RLow",
+                     "value" : "-0.02459434"
+                  },
+                  {
+                     "name" : "Labia minora-style1",
+                     "value" : "0.008669106"
+                  },
+                  {
+                     "name" : "Labia minora-style2",
+                     "value" : "0.007860295"
+                  },
+                  {
+                     "name" : "Labia minora-style3",
+                     "value" : "-0.02887268"
+                  },
+                  {
+                     "name" : "Labia minora-style4",
+                     "value" : "0.001137907"
+                  },
+                  {
+                     "name" : "Labia minora-thickness",
+                     "value" : "0.2729472"
+                  },
+                  {
+                     "name" : "Pubic Area Size",
+                     "value" : "0.05539078"
+                  },
+                  {
+                     "name" : "Adrianna",
+                     "value" : "0.2858605"
+                  },
+                  {
+                     "name" : "Aiko 6 Head",
+                     "value" : "0.1914624"
+                  },
+                  {
+                     "name" : "Aneta",
+                     "value" : "0.269587"
+                  },
+                  {
+                     "name" : "Carmen Face",
+                     "value" : "0.02222962"
+                  },
+                  {
+                     "name" : "Danika Head",
+                     "value" : "0.03388127"
+                  },
+                  {
+                     "name" : "Faerie Head",
+                     "value" : "0.02961557"
+                  },
+                  {
+                     "name" : "Head Scale",
+                     "value" : "-0.1261632"
+                  },
+                  {
+                     "name" : "Kori Head",
+                     "value" : "0.011402"
+                  },
+                  {
+                     "name" : "Mei Lin 6 Head",
+                     "value" : "0.01686945"
+                  },
+                  {
+                     "name" : "Neck Width",
+                     "value" : "-0.02130836"
+                  },
+                  {
+                     "name" : "Sumiko Head",
+                     "value" : "0.04819844"
+                  },
+                  {
+                     "name" : "Teen Josie Head",
+                     "value" : "0.05491455"
+                  },
+                  {
+                     "name" : "Victoria 6 Head",
+                     "value" : "0.03704645"
+                  },
+                  {
+                     "name" : "Glute Crease",
+                     "value" : "0.0537602"
+                  },
+                  {
+                     "name" : "Glutes Lower Depth",
+                     "value" : "-0.03283304"
+                  },
+                  {
+                     "name" : "Glutes Size",
+                     "value" : "0.08679455"
+                  },
+                  {
+                     "name" : "Glutes Upper Depth",
+                     "value" : "0.04276332"
+                  },
+                  {
+                     "name" : "Glutes Width",
+                     "value" : "-0.006046607"
+                  },
+                  {
+                     "name" : "Hip Bone Crest",
+                     "value" : "0.07406541"
+                  },
+                  {
+                     "name" : "Hip Bone Size",
+                     "value" : "0.02018541"
+                  },
+                  {
+                     "name" : "Hip Size",
+                     "value" : "0.09010057"
+                  },
+                  {
+                     "name" : "Iliac Line",
+                     "value" : "0.1028369"
+                  },
+                  {
+                     "name" : "Calves Size",
+                     "value" : "0.001742836"
+                  },
+                  {
+                     "name" : "Knee Bones Size",
+                     "value" : "0.0828157"
+                  },
+                  {
+                     "name" : "Legs Length",
+                     "value" : "0.04821619"
+                  },
+                  {
+                     "name" : "Shins Size",
+                     "value" : "-0.1172346"
+                  },
+                  {
+                     "name" : "Thighs Size",
+                     "value" : "-0.1203805"
+                  },
+                  {
+                     "name" : "Thighs Tone",
+                     "value" : "0.04715619"
+                  },
+                  {
+                     "name" : "Nose Bridge Height",
+                     "value" : "0.1228436"
+                  },
+                  {
+                     "name" : "Nose Size",
+                     "value" : "0.1090958"
+                  },
+                  {
+                     "name" : "Nose Tip Round",
+                     "value" : "0.06127836"
+                  },
+                  {
+                     "name" : "Lip Lower Depth",
+                     "value" : "-0.04342234"
+                  },
+                  {
+                     "name" : "Lip Lower Size",
+                     "value" : "-0.06686844"
+                  },
+                  {
+                     "name" : "Lip Lower Width",
+                     "value" : "0.06886405"
+                  },
+                  {
+                     "name" : "Lip Top Peak",
+                     "value" : "-0.03696707"
+                  },
+                  {
+                     "name" : "Lip Upper Curves",
+                     "value" : "0.09399537"
+                  },
+                  {
+                     "name" : "Lip Upper Depth",
+                     "value" : "0.1123795"
+                  },
+                  {
+                     "name" : "Lip Upper Size",
+                     "value" : "-0.2970969"
+                  },
+                  {
+                     "name" : "Lips Edge Define",
+                     "value" : "0.05798041"
+                  },
+                  {
+                     "name" : "Lips Heart",
+                     "value" : "0.01561725"
+                  },
+                  {
+                     "name" : "Lips Square",
+                     "value" : "-0.0297487"
+                  },
+                  {
+                     "name" : "Lips Thin",
+                     "value" : "-0.1060951"
+                  },
+                  {
+                     "name" : "LIps Top Width",
+                     "value" : "-0.02523635"
+                  },
+                  {
+                     "name" : "Lips Upper Curves Corner",
+                     "value" : "-0.01163227"
+                  },
+                  {
+                     "name" : "Mouth Corner Depth",
+                     "value" : "-0.3690208"
+                  },
+                  {
+                     "name" : "Mouth Curves",
+                     "value" : "0.3936719"
+                  },
+                  {
+                     "name" : "Mouth Curves  Arch",
+                     "value" : "0.4636275"
+                  },
+                  {
+                     "name" : "Mouth Depth",
+                     "value" : "0.01766129"
+                  },
+                  {
+                     "name" : "Mouth Height",
+                     "value" : "0.2276806"
+                  },
+                  {
+                     "name" : "Mouth Size",
+                     "value" : "0.3231876"
+                  },
+                  {
+                     "name" : "Mouth Width",
+                     "value" : "-0.4845556"
+                  },
+                  {
+                     "name" : "Uvula Size",
+                     "value" : "0.0211881"
+                  },
+                  {
+                     "name" : "Vampire Fangs",
+                     "value" : "0.005863717"
+                  },
+                  {
+                     "name" : "Nose Bridge Depth",
+                     "value" : "-0.01602908"
+                  },
+                  {
+                     "name" : "Nose Bridge Height",
+                     "value" : "0.1228436"
+                  },
+                  {
+                     "name" : "Nose Bridge Skew",
+                     "value" : "-0.002510345"
+                  },
+                  {
+                     "name" : "Nose Bridge Width",
+                     "value" : "-0.04980271"
+                  },
+                  {
+                     "name" : "Nose Bump",
+                     "value" : "0.02373459"
+                  },
+                  {
+                     "name" : "Nose Depth",
+                     "value" : "0.01248971"
+                  },
+                  {
+                     "name" : "Nose Flesh Size",
+                     "value" : "-0.0215184"
+                  },
+                  {
+                     "name" : "Nose Height",
+                     "value" : "0.06420537"
+                  },
+                  {
+                     "name" : "Nose Pinch",
+                     "value" : "-0.02038383"
+                  },
+                  {
+                     "name" : "Nose Ridge",
+                     "value" : "0.03639577"
+                  },
+                  {
+                     "name" : "Nose Ridge Width",
+                     "value" : "-0.03184823"
+                  },
+                  {
+                     "name" : "Nose Septum Depth",
+                     "value" : "-0.05523877"
+                  },
+                  {
+                     "name" : "Nose Septum Height",
+                     "value" : "0.05778467"
+                  },
+                  {
+                     "name" : "Nose Side-Side",
+                     "value" : "-0.005924311"
+                  },
+                  {
+                     "name" : "Nose Size",
+                     "value" : "0.1090958"
+                  },
+                  {
+                     "name" : "Nose Skew",
+                     "value" : "-0.004554975"
+                  },
+                  {
+                     "name" : "Nose Tip Depth",
+                     "value" : "-0.03751827"
+                  },
+                  {
+                     "name" : "Nose Tip Height",
+                     "value" : "-0.04005923"
+                  },
+                  {
+                     "name" : "Nose Tip Round",
+                     "value" : "0.06127836"
+                  },
+                  {
+                     "name" : "Nose Tip Width",
+                     "value" : "-0.00205573"
+                  },
+                  {
+                     "name" : "Nose Twist",
+                     "value" : "-0.003185939"
+                  },
+                  {
+                     "name" : "Nose Width",
+                     "value" : "-0.003220987"
+                  },
+                  {
+                     "name" : "Nostrils Depth",
+                     "value" : "-0.1479179"
+                  },
+                  {
+                     "name" : "Nostrils Flesh Size",
+                     "value" : "0.005203492"
+                  },
+                  {
+                     "name" : "Nostrils Height",
+                     "value" : "0.3224661"
+                  },
+                  {
+                     "name" : "Nostrils Width",
+                     "value" : "0.01566069"
+                  },
+                  {
+                     "name" : "Philtrum Angle",
+                     "value" : "0.04362004"
+                  },
+                  {
+                     "name" : "Philtrum Depth",
+                     "value" : "0.05552082"
+                  },
+                  {
+                     "name" : "Philtrum Width",
+                     "value" : "-0.01050509"
+                  },
+                  {
+                     "name" : "Abs Definition",
+                     "value" : "0.6148846"
+                  },
+                  {
+                     "name" : "Abs Muscle",
+                     "value" : "0.2758448"
+                  },
+                  {
+                     "name" : "Back Definition .",
+                     "value" : "0.8410699"
+                  },
+                  {
+                     "name" : "Lower Back Dimple",
+                     "value" : "0.3417057"
+                  },
+                  {
+                     "name" : "Ribs Definition",
+                     "value" : "0.1881779"
+                  },
+                  {
+                     "name" : "Love Handles",
+                     "value" : "0.01232762"
+                  },
+                  {
+                     "name" : "Navel Depth",
+                     "value" : "0.007216451"
+                  },
+                  {
+                     "name" : "Navel Hollow",
+                     "value" : "0.003471582"
+                  },
+                  {
+                     "name" : "Navel Out",
+                     "value" : "0.001712444"
+                  },
+                  {
+                     "name" : "Navel Size",
+                     "value" : "-0.02145385"
+                  },
+                  {
+                     "name" : "Navel Vertical",
+                     "value" : "0.0170214"
+                  }
+               ]
+            },
+            {
+               "id" : "BreastPhysicsMesh",
+               "softVerticesColliderRadius" : "0.04036804"
+            },
+            {
+               "id" : "irises",
+               "Irises" : "Color 50"
+            },
+            {
+               "id" : "hip",
+               "rootPosition" : {
+                  "x" : "-1.213877",
+                  "y" : "0.6876516",
+                  "z" : "2.01625"
+               },
+               "rootRotation" : {
+                  "x" : "293.7479",
+                  "y" : "357.9545",
+                  "z" : "183.2671"
+               }
+            },
+            {
+               "id" : "pelvis",
+               "position" : {
+                  "x" : "-0.00072783",
+                  "y" : "0.01736339",
+                  "z" : "0.01802117"
+               },
+               "rotation" : {
+                  "x" : "344.9873",
+                  "y" : "1.371736",
+                  "z" : "0.3816247"
+               }
+            },
+            {
+               "id" : "LabiaTrigger",
+               "trigger" : {
+                  "startActions" : [
+                  ],
+                  "transitionActions" : [
+                  ],
+                  "endActions" : [
+                  ]
+               }
+            },
+            {
+               "id" : "VaginaTrigger",
+               "trigger" : {
+                  "startActions" : [
+                  ],
+                  "transitionActions" : [
+                  ],
+                  "endActions" : [
+                  ]
+               }
+            },
+            {
+               "id" : "DeepVaginaTrigger",
+               "trigger" : {
+                  "startActions" : [
+                  ],
+                  "transitionActions" : [
+                  ],
+                  "endActions" : [
+                  ]
+               }
+            },
+            {
+               "id" : "DeeperVaginaTrigger",
+               "trigger" : {
+                  "startActions" : [
+                  ],
+                  "transitionActions" : [
+                  ],
+                  "endActions" : [
+                  ]
+               }
+            },
+            {
+               "id" : "Testes",
+               "position" : {
+                  "x" : "7.916242E-09",
+                  "y" : "-0.1958994",
+                  "z" : "0.05661085"
+               },
+               "rotation" : {
+                  "x" : "0",
+                  "y" : "0",
+                  "z" : "2.134434E-07"
+               }
+            },
+            {
+               "id" : "rThigh",
+               "position" : {
+                  "x" : "0.08375529",
+                  "y" : "-0.08830591",
+                  "z" : "-0.01507196"
+               },
+               "rotation" : {
+                  "x" : "277.4088",
+                  "y" : "81.68443",
+                  "z" : "299.9841"
+               }
+            },
+            {
+               "id" : "rShin",
+               "position" : {
+                  "x" : "-0.008305907",
+                  "y" : "-0.4488426",
+                  "z" : "0.0049088"
+               },
+               "rotation" : {
+                  "x" : "19.17071",
+                  "y" : "357.1494",
+                  "z" : "352.1286"
+               }
+            },
+            {
+               "id" : "rFoot",
+               "position" : {
+                  "x" : "0.001480773",
+                  "y" : "-0.503149",
+                  "z" : "0.001167208"
+               },
+               "rotation" : {
+                  "x" : "68.97577",
+                  "y" : "357.6783",
+                  "z" : "353.6005"
+               }
+            },
+            {
+               "id" : "rToe",
+               "position" : {
+                  "x" : "0.00222539",
+                  "y" : "-0.00666251",
+                  "z" : "0.1239819"
+               },
+               "rotation" : {
+                  "x" : "355.9122",
+                  "y" : "0.3608503",
+                  "z" : "359.4211"
+               }
+            },
+            {
+               "id" : "rBigToe",
+               "position" : {
+                  "x" : "-0.03006741",
+                  "y" : "0.007919173",
+                  "z" : "0.01110524"
+               },
+               "rotation" : {
+                  "x" : "4.29043",
+                  "y" : "4.643865",
+                  "z" : "355.3409"
+               }
+            },
+            {
+               "id" : "rSmallToe1",
+               "position" : {
+                  "x" : "-0.008625292",
+                  "y" : "0.008899392",
+                  "z" : "0.01678622"
+               },
+               "rotation" : {
+                  "x" : "9.25038",
+                  "y" : "2.925201",
+                  "z" : "354.8322"
+               }
+            },
+            {
+               "id" : "rSmallToe2",
+               "position" : {
+                  "x" : "0.006495766",
+                  "y" : "0.007704397",
+                  "z" : "0.01690284"
+               },
+               "rotation" : {
+                  "x" : "13.08663",
+                  "y" : "2.096857",
+                  "z" : "356.1569"
+               }
+            },
+            {
+               "id" : "rSmallToe3",
+               "position" : {
+                  "x" : "0.01717983",
+                  "y" : "0.002758638",
+                  "z" : "0.01319017"
+               },
+               "rotation" : {
+                  "x" : "15.22769",
+                  "y" : "0.4809485",
+                  "z" : "352.8337"
+               }
+            },
+            {
+               "id" : "rSmallToe4",
+               "position" : {
+                  "x" : "0.03260573",
+                  "y" : "-0.002597702",
+                  "z" : "0.01011012"
+               },
+               "rotation" : {
+                  "x" : "17.04643",
+                  "y" : "356.5399",
+                  "z" : "349.7722"
+               }
+            },
+            {
+               "id" : "LGlute",
+               "position" : {
+                  "x" : "-0.05999226",
+                  "y" : "-0.1459092",
+                  "z" : "-0.001474869"
+               },
+               "rotation" : {
+                  "x" : "10.07737",
+                  "y" : "359.8261",
+                  "z" : "359.9766"
+               }
+            },
+            {
+               "id" : "Gen1",
+               "position" : {
+                  "x" : "9.639189E-08",
+                  "y" : "-0.1748867",
+                  "z" : "0.07329457"
+               },
+               "rotation" : {
+                  "x" : "0",
+                  "y" : "0",
+                  "z" : "2.134434E-07"
+               }
+            },
+            {
+               "id" : "Gen2",
+               "position" : {
+                  "x" : "-8.055954E-08",
+                  "y" : "-3.531575E-05",
+                  "z" : "0.02816159"
+               },
+               "rotation" : {
+                  "x" : "0",
+                  "y" : "0",
+                  "z" : "0"
+               }
+            },
+            {
+               "id" : "Gen3",
+               "position" : {
+                  "x" : "7.450581E-08",
+                  "y" : "-4.023314E-07",
+                  "z" : "0.02830864"
+               },
+               "rotation" : {
+                  "x" : "0",
+                  "y" : "0",
+                  "z" : "0"
+               }
+            },
+            {
+               "id" : "RGlute",
+               "position" : {
+                  "x" : "0.05998228",
+                  "y" : "-0.1458939",
+                  "z" : "-0.001518883"
+               },
+               "rotation" : {
+                  "x" : "10.26883",
+                  "y" : "0.1646844",
+                  "z" : "0.1627513"
+               }
+            },
+            {
+               "id" : "lThigh",
+               "position" : {
+                  "x" : "-0.08290247",
+                  "y" : "-0.08853407",
+                  "z" : "-0.01539145"
+               },
+               "rotation" : {
+                  "x" : "275.3575",
+                  "y" : "341.9711",
+                  "z" : "356.518"
+               }
+            },
+            {
+               "id" : "lShin",
+               "position" : {
+                  "x" : "0.00790599",
+                  "y" : "-0.4488145",
+                  "z" : "0.005290896"
+               },
+               "rotation" : {
+                  "x" : "14.28152",
+                  "y" : "1.504672",
+                  "z" : "7.386233"
+               }
+            },
+            {
+               "id" : "lFoot",
+               "position" : {
+                  "x" : "-0.001458183",
+                  "y" : "-0.503108",
+                  "z" : "0.001203172"
+               },
+               "rotation" : {
+                  "x" : "77.37729",
+                  "y" : "359.3692",
+                  "z" : "4.97106"
+               }
+            },
+            {
+               "id" : "lToe",
+               "position" : {
+                  "x" : "-0.002273521",
+                  "y" : "-0.006527215",
+                  "z" : "0.1235675"
+               },
+               "rotation" : {
+                  "x" : "355.7533",
+                  "y" : "359.5714",
+                  "z" : "0.7391433"
+               }
+            },
+            {
+               "id" : "lBigToe",
+               "position" : {
+                  "x" : "0.02977739",
+                  "y" : "0.007914029",
+                  "z" : "0.01115373"
+               },
+               "rotation" : {
+                  "x" : "4.545007",
+                  "y" : "355.5844",
+                  "z" : "4.785444"
+               }
+            },
+            {
+               "id" : "lSmallToe1",
+               "position" : {
+                  "x" : "0.008246873",
+                  "y" : "0.009271983",
+                  "z" : "0.01598768"
+               },
+               "rotation" : {
+                  "x" : "9.266091",
+                  "y" : "356.7963",
+                  "z" : "4.803027"
+               }
+            },
+            {
+               "id" : "lSmallToe2",
+               "position" : {
+                  "x" : "-0.00682339",
+                  "y" : "0.007689277",
+                  "z" : "0.01690467"
+               },
+               "rotation" : {
+                  "x" : "13.26786",
+                  "y" : "357.4288",
+                  "z" : "6.477154"
+               }
+            },
+            {
+               "id" : "lSmallToe3",
+               "position" : {
+                  "x" : "-0.01732544",
+                  "y" : "0.002687628",
+                  "z" : "0.01354682"
+               },
+               "rotation" : {
+                  "x" : "15.33501",
+                  "y" : "359.1127",
+                  "z" : "9.385772"
+               }
+            },
+            {
+               "id" : "lSmallToe4",
+               "position" : {
+                  "x" : "-0.03306545",
+                  "y" : "-0.002261189",
+                  "z" : "0.009277036"
+               },
+               "rotation" : {
+                  "x" : "17.37331",
+                  "y" : "3.790999",
+                  "z" : "10.8803"
+               }
+            },
+            {
+               "id" : "abdomen",
+               "position" : {
+                  "x" : "-2.796951E-07",
+                  "y" : "-0.01018488",
+                  "z" : "-0.01488671"
+               },
+               "rotation" : {
+                  "x" : "19.27353",
+                  "y" : "0.4267212",
+                  "z" : "2.331154"
+               }
+            },
+            {
+               "id" : "abdomen2",
+               "position" : {
+                  "x" : "-1.050089E-05",
+                  "y" : "0.08804072",
+                  "z" : "0.011016"
+               },
+               "rotation" : {
+                  "x" : "350.7937",
+                  "y" : "0.3122866",
+                  "z" : "0.01482909"
+               }
+            },
+            {
+               "id" : "chest",
+               "position" : {
+                  "x" : "2.303594E-05",
+                  "y" : "0.1226204",
+                  "z" : "0.003625164"
+               },
+               "rotation" : {
+                  "x" : "8.915377",
+                  "y" : "358.8146",
+                  "z" : "353.2242"
+               }
+            },
+            {
+               "id" : "rCollar",
+               "position" : {
+                  "x" : "0.01494583",
+                  "y" : "0.1818607",
+                  "z" : "0.03059718"
+               },
+               "rotation" : {
+                  "x" : "352.5486",
+                  "y" : "11.22277",
+                  "z" : "12.43614"
+               }
+            },
+            {
+               "id" : "rShldr",
+               "position" : {
+                  "x" : "0.1210851",
+                  "y" : "-0.0337267",
+                  "z" : "-0.01224029"
+               },
+               "rotation" : {
+                  "x" : "17.73145",
+                  "y" : "326.5014",
+                  "z" : "273.8285"
+               }
+            },
+            {
+               "id" : "rForeArm",
+               "position" : {
+                  "x" : "0.2907286",
+                  "y" : "-0.004022956",
+                  "z" : "0.004549026"
+               },
+               "rotation" : {
+                  "x" : "57.88128",
+                  "y" : "359.7713",
+                  "z" : "1.209836"
+               }
+            },
+            {
+               "id" : "rHand",
+               "position" : {
+                  "x" : "0.2257131",
+                  "y" : "0.0003668361",
+                  "z" : "-0.0002038223"
+               },
+               "rotation" : {
+                  "x" : "7.646575",
+                  "y" : "359.4725",
+                  "z" : "6.745966"
+               }
+            },
+            {
+               "id" : "rCarpal2",
+               "position" : {
+                  "x" : "0.02190169",
+                  "y" : "0.002175484",
+                  "z" : "-0.01160905"
+               },
+               "rotation" : {
+                  "x" : "349.5865",
+                  "y" : "11.0209",
+                  "z" : "355.1188"
+               }
+            },
+            {
+               "id" : "rRing1",
+               "position" : {
+                  "x" : "0.05679108",
+                  "y" : "0.003026031",
+                  "z" : "0.009614104"
+               },
+               "rotation" : {
+                  "x" : "5.103532",
+                  "y" : "356.9063",
+                  "z" : "354.99"
+               }
+            },
+            {
+               "id" : "rRing2",
+               "position" : {
+                  "x" : "0.03443925",
+                  "y" : "0.001827808",
+                  "z" : "-6.839007E-05"
+               },
+               "rotation" : {
+                  "x" : "358.7569",
+                  "y" : "357.7255",
+                  "z" : "345.0512"
+               }
+            },
+            {
+               "id" : "rRing3",
+               "position" : {
+                  "x" : "0.01946734",
+                  "y" : "-0.000139776",
+                  "z" : "-9.582678E-05"
+               },
+               "rotation" : {
+                  "x" : "350.5108",
+                  "y" : "0.9733425",
+                  "z" : "325.8725"
+               }
+            },
+            {
+               "id" : "rPinky1",
+               "position" : {
+                  "x" : "0.05271265",
+                  "y" : "-0.002004112",
+                  "z" : "-0.01006768"
+               },
+               "rotation" : {
+                  "x" : "1.00045",
+                  "y" : "0.2094363",
+                  "z" : "0.8192036"
+               }
+            },
+            {
+               "id" : "rPinky2",
+               "position" : {
+                  "x" : "0.02661018",
+                  "y" : "-0.0002476789",
+                  "z" : "0.0001900449"
+               },
+               "rotation" : {
+                  "x" : "359.4549",
+                  "y" : "356.1754",
+                  "z" : "335.5853"
+               }
+            },
+            {
+               "id" : "rPinky3",
+               "position" : {
+                  "x" : "0.01527761",
+                  "y" : "0.001880881",
+                  "z" : "0.0002037135"
+               },
+               "rotation" : {
+                  "x" : "349.8493",
+                  "y" : "1.837107",
+                  "z" : "346.8591"
+               }
+            },
+            {
+               "id" : "rCarpal1",
+               "position" : {
+                  "x" : "0.02133084",
+                  "y" : "0.003777313",
+                  "z" : "0.01159003"
+               },
+               "rotation" : {
+                  "x" : "0.8651976",
+                  "y" : "354.9052",
+                  "z" : "359.3139"
+               }
+            },
+            {
+               "id" : "rIndex1",
+               "position" : {
+                  "x" : "0.05908276",
+                  "y" : "0.001959876",
+                  "z" : "0.009059536"
+               },
+               "rotation" : {
+                  "x" : "4.102513",
+                  "y" : "354.7991",
+                  "z" : "348.1756"
+               }
+            },
+            {
+               "id" : "rIndex2",
+               "position" : {
+                  "x" : "0.03407931",
+                  "y" : "0.002154733",
+                  "z" : "-0.0003472337"
+               },
+               "rotation" : {
+                  "x" : "356.1503",
+                  "y" : "2.758772",
+                  "z" : "336.5504"
+               }
+            },
+            {
+               "id" : "rIndex3",
+               "position" : {
+                  "x" : "0.01991329",
+                  "y" : "-0.001819879",
+                  "z" : "1.684186E-05"
+               },
+               "rotation" : {
+                  "x" : "357.2449",
+                  "y" : "0.6941516",
+                  "z" : "342.8157"
+               }
+            },
+            {
+               "id" : "rMid1",
+               "position" : {
+                  "x" : "0.06040069",
+                  "y" : "0.0030681",
+                  "z" : "-0.01155006"
+               },
+               "rotation" : {
+                  "x" : "359.3086",
+                  "y" : "4.104693",
+                  "z" : "352.5235"
+               }
+            },
+            {
+               "id" : "rMid2",
+               "position" : {
+                  "x" : "0.03742162",
+                  "y" : "0.0008170021",
+                  "z" : "0.000116005"
+               },
+               "rotation" : {
+                  "x" : "356.4566",
+                  "y" : "359.3142",
+                  "z" : "332.8538"
+               }
+            },
+            {
+               "id" : "rMid3",
+               "position" : {
+                  "x" : "0.02356067",
+                  "y" : "-0.0002081243",
+                  "z" : "0.0002373328"
+               },
+               "rotation" : {
+                  "x" : "1.09682",
+                  "y" : "2.473086",
+                  "z" : "340.7852"
+               }
+            },
+            {
+               "id" : "rThumb1",
+               "position" : {
+                  "x" : "0.02345073",
+                  "y" : "-0.006583175",
+                  "z" : "0.01912886"
+               },
+               "rotation" : {
+                  "x" : "357.0365",
+                  "y" : "303.8173",
+                  "z" : "347.2118"
+               }
+            },
+            {
+               "id" : "rThumb2",
+               "position" : {
+                  "x" : "0.04053995",
+                  "y" : "-0.0001262301",
+                  "z" : "-0.0002029836"
+               },
+               "rotation" : {
+                  "x" : "332.1513",
+                  "y" : "28.44304",
+                  "z" : "358.4479"
+               }
+            },
+            {
+               "id" : "rThumb3",
+               "position" : {
+                  "x" : "0.02792658",
+                  "y" : "0.000359246",
+                  "z" : "-0.0007324941"
+               },
+               "rotation" : {
+                  "x" : "353.2114",
+                  "y" : "356.7829",
+                  "z" : "1.448375"
+               }
+            },
+            {
+               "id" : "lPectoral",
+               "position" : {
+                  "x" : "-0.0267115",
+                  "y" : "0.04059691",
+                  "z" : "-0.04478089"
+               },
+               "rotation" : {
+                  "x" : "343.339",
+                  "y" : "335.9925",
+                  "z" : "0.9594162"
+               }
+            },
+            {
+               "id" : "lNipple",
+               "position" : {
+                  "x" : "-0.2067803",
+                  "y" : "0.0009802897",
+                  "z" : "0.1458413"
+               },
+               "rotation" : {
+                  "x" : "10.57942",
+                  "y" : "131.8866",
+                  "z" : "354.048"
+               }
+            },
+            {
+               "id" : "lNippleTrigger",
+               "trigger" : {
+                  "startActions" : [
+                  ],
+                  "transitionActions" : [
+                  ],
+                  "endActions" : [
+                  ]
+               }
+            },
+            {
+               "id" : "rPectoral",
+               "position" : {
+                  "x" : "0.02667488",
+                  "y" : "0.04063328",
+                  "z" : "-0.04470345"
+               },
+               "rotation" : {
+                  "x" : "343.3424",
+                  "y" : "24.13891",
+                  "z" : "359.084"
+               }
+            },
+            {
+               "id" : "rNipple",
+               "position" : {
+                  "x" : "-0.0004932027",
+                  "y" : "-0.01179065",
+                  "z" : "0.2234942"
+               },
+               "rotation" : {
+                  "x" : "7.633939",
+                  "y" : "187.2562",
+                  "z" : "11.64777"
+               }
+            },
+            {
+               "id" : "rNippleTrigger",
+               "trigger" : {
+                  "startActions" : [
+                  ],
+                  "transitionActions" : [
+                  ],
+                  "endActions" : [
+                  ]
+               }
+            },
+            {
+               "id" : "neck",
+               "position" : {
+                  "x" : "-5.658902E-05",
+                  "y" : "0.2413722",
+                  "z" : "-0.009760082"
+               },
+               "rotation" : {
+                  "x" : "28.02659",
+                  "y" : "0.6407787",
+                  "z" : "3.619124"
+               }
+            },
+            {
+               "id" : "head",
+               "position" : {
+                  "x" : "-9.240955E-05",
+                  "y" : "0.08711486",
+                  "z" : "0.001917705"
+               },
+               "rotation" : {
+                  "x" : "350.7532",
+                  "y" : "0.2269255",
+                  "z" : "358.9744"
+               }
+            },
+            {
+               "id" : "LipTrigger",
+               "trigger" : {
+                  "startActions" : [
+                  ],
+                  "transitionActions" : [
+                  ],
+                  "endActions" : [
+                  ]
+               }
+            },
+            {
+               "id" : "HeadAudioSource",
+               "trigger" : {
+                  "startActions" : [
+                  ],
+                  "transitionActions" : [
+                  ],
+                  "endActions" : [
+                  ]
+               }
+            },
+            {
+               "id" : "MouthTrigger",
+               "trigger" : {
+                  "startActions" : [
+                  ],
+                  "transitionActions" : [
+                  ],
+                  "endActions" : [
+                  ]
+               }
+            },
+            {
+               "id" : "ThroatTrigger",
+               "trigger" : {
+                  "startActions" : [
+                  ],
+                  "transitionActions" : [
+                  ],
+                  "endActions" : [
+                  ]
+               }
+            },
+            {
+               "id" : "rEye",
+               "position" : {
+                  "x" : "0.032343",
+                  "y" : "0.05948526",
+                  "z" : "0.07498826"
+               },
+               "rotation" : {
+                  "x" : "4.397233",
+                  "y" : "29.95777",
+                  "z" : "359.4985"
+               }
+            },
+            {
+               "id" : "upperJaw",
+               "position" : {
+                  "x" : "-0.0001",
+                  "y" : "0.01397143",
+                  "z" : "0.01999692"
+               },
+               "rotation" : {
+                  "x" : "0.0896394",
+                  "y" : "359.99",
+                  "z" : "359.9902"
+               }
+            },
+            {
+               "id" : "lEye",
+               "position" : {
+                  "x" : "-0.03234275",
+                  "y" : "0.05948525",
+                  "z" : "0.07498788"
+               },
+               "rotation" : {
+                  "x" : "4.344147",
+                  "y" : "29.95823",
+                  "z" : "359.4985"
+               }
+            },
+            {
+               "id" : "lowerJaw",
+               "position" : {
+                  "x" : "1.584392E-05",
+                  "y" : "0.01290001",
+                  "z" : "0.0182885"
+               },
+               "rotation" : {
+                  "x" : "22.45373",
+                  "y" : "-0.0008563133",
+                  "z" : "0.07777558"
+               }
+            },
+            {
+               "id" : "tongueBase",
+               "position" : {
+                  "x" : "-3.83721E-05",
+                  "y" : "-0.01599052",
+                  "z" : "0.04640245"
+               },
+               "rotation" : {
+                  "x" : "274.9575",
+                  "y" : "179.8598",
+                  "z" : "180.1406"
+               }
+            },
+            {
+               "id" : "tongue01",
+               "position" : {
+                  "x" : "-0.0001846366",
+                  "y" : "0.002549698",
+                  "z" : "0.007061798"
+               },
+               "rotation" : {
+                  "x" : "46.04307",
+                  "y" : "359.9901",
+                  "z" : "359.9775"
+               }
+            },
+            {
+               "id" : "tongue02",
+               "position" : {
+                  "x" : "7.36199E-08",
+                  "y" : "-0.0006187335",
+                  "z" : "0.00688612"
+               },
+               "rotation" : {
+                  "x" : "15.75554",
+                  "y" : "0.03515619",
+                  "z" : "0.003286917"
+               }
+            },
+            {
+               "id" : "tongue03",
+               "position" : {
+                  "x" : "-0.0001066671",
+                  "y" : "-0.000248426",
+                  "z" : "0.005433054"
+               },
+               "rotation" : {
+                  "x" : "8.242397",
+                  "y" : "0.003820854",
+                  "z" : "-0.003704826"
+               }
+            },
+            {
+               "id" : "tongue04",
+               "position" : {
+                  "x" : "-9.774959E-08",
+                  "y" : "-0.0002800643",
+                  "z" : "0.005230665"
+               },
+               "rotation" : {
+                  "x" : "3.322205",
+                  "y" : "0.000895785",
+                  "z" : "0.002435371"
+               }
+            },
+            {
+               "id" : "tongue05",
+               "position" : {
+                  "x" : "-2.727558E-05",
+                  "y" : "-0.0003182201",
+                  "z" : "0.004164031"
+               },
+               "rotation" : {
+                  "x" : "359.3655",
+                  "y" : "0.004693842",
+                  "z" : "-0.002730753"
+               }
+            },
+            {
+               "id" : "tongueTip",
+               "position" : {
+                  "x" : "1.112501E-08",
+                  "y" : "-0.0003342636",
+                  "z" : "0.002899831"
+               },
+               "rotation" : {
+                  "x" : "354.2166",
+                  "y" : "-0.000838644",
+                  "z" : "0.000839836"
+               }
+            },
+            {
+               "id" : "lCollar",
+               "position" : {
+                  "x" : "-0.01498835",
+                  "y" : "0.1818204",
+                  "z" : "0.03077803"
+               },
+               "rotation" : {
+                  "x" : "355.0231",
+                  "y" : "349.6426",
+                  "z" : "343.718"
+               }
+            },
+            {
+               "id" : "lShldr",
+               "position" : {
+                  "x" : "-0.1217788",
+                  "y" : "-0.03217817",
+                  "z" : "-0.01065548"
+               },
+               "rotation" : {
+                  "x" : "11.71161",
+                  "y" : "38.41734",
+                  "z" : "96.70193"
+               }
+            },
+            {
+               "id" : "lForeArm",
+               "position" : {
+                  "x" : "-0.2889151",
+                  "y" : "0.0009640455",
+                  "z" : "0.002873965"
+               },
+               "rotation" : {
+                  "x" : "60.18935",
+                  "y" : "0.005408162",
+                  "z" : "358.3956"
+               }
+            },
+            {
+               "id" : "lHand",
+               "position" : {
+                  "x" : "-0.225592",
+                  "y" : "0.0004218994",
+                  "z" : "0.00157089"
+               },
+               "rotation" : {
+                  "x" : "3.210032",
+                  "y" : "0.1680524",
+                  "z" : "349.7318"
+               }
+            },
+            {
+               "id" : "lCarpal2",
+               "position" : {
+                  "x" : "-0.02169353",
+                  "y" : "0.002369734",
+                  "z" : "-0.009783766"
+               },
+               "rotation" : {
+                  "x" : "349.7566",
+                  "y" : "348.9962",
+                  "z" : "5.282214"
+               }
+            },
+            {
+               "id" : "lRing1",
+               "position" : {
+                  "x" : "-0.05626284",
+                  "y" : "0.002735785",
+                  "z" : "0.01124496"
+               },
+               "rotation" : {
+                  "x" : "5.303861",
+                  "y" : "2.576873",
+                  "z" : "10.22621"
+               }
+            },
+            {
+               "id" : "lRing2",
+               "position" : {
+                  "x" : "-0.03397148",
+                  "y" : "0.001127834",
+                  "z" : "0.0006962013"
+               },
+               "rotation" : {
+                  "x" : "3.668957",
+                  "y" : "3.255064",
+                  "z" : "20.0612"
+               }
+            },
+            {
+               "id" : "lRing3",
+               "position" : {
+                  "x" : "-0.02008616",
+                  "y" : "-0.0004095716",
+                  "z" : "0.000107257"
+               },
+               "rotation" : {
+                  "x" : "359.3092",
+                  "y" : "2.2242",
+                  "z" : "13.52589"
+               }
+            },
+            {
+               "id" : "lPinky1",
+               "position" : {
+                  "x" : "-0.05193571",
+                  "y" : "-0.002512892",
+                  "z" : "-0.008505477"
+               },
+               "rotation" : {
+                  "x" : "1.043377",
+                  "y" : "359.037",
+                  "z" : "5.213096"
+               }
+            },
+            {
+               "id" : "lPinky2",
+               "position" : {
+                  "x" : "-0.02613851",
+                  "y" : "-0.0007252552",
+                  "z" : "0.0009299021"
+               },
+               "rotation" : {
+                  "x" : "0.9599932",
+                  "y" : "4.546302",
+                  "z" : "26.43446"
+               }
+            },
+            {
+               "id" : "lPinky3",
+               "position" : {
+                  "x" : "-0.0160457",
+                  "y" : "0.001203354",
+                  "z" : "-0.000153535"
+               },
+               "rotation" : {
+                  "x" : "4.593518",
+                  "y" : "357.4669",
+                  "z" : "2.272845"
+               }
+            },
+            {
+               "id" : "lCarpal1",
+               "position" : {
+                  "x" : "-0.02105993",
+                  "y" : "0.004035058",
+                  "z" : "0.01338762"
+               },
+               "rotation" : {
+                  "x" : "0.9768577",
+                  "y" : "5.222062",
+                  "z" : "0.8575577"
+               }
+            },
+            {
+               "id" : "lIndex1",
+               "position" : {
+                  "x" : "-0.05895156",
+                  "y" : "0.002217009",
+                  "z" : "0.01081924"
+               },
+               "rotation" : {
+                  "x" : "3.276218",
+                  "y" : "5.00686",
+                  "z" : "13.88359"
+               }
+            },
+            {
+               "id" : "lIndex2",
+               "position" : {
+                  "x" : "-0.03349401",
+                  "y" : "0.002243398",
+                  "z" : "0.0006716182"
+               },
+               "rotation" : {
+                  "x" : "359.8584",
+                  "y" : "358.468",
+                  "z" : "17.35597"
+               }
+            },
+            {
+               "id" : "lIndex3",
+               "position" : {
+                  "x" : "-0.01997644",
+                  "y" : "-0.00209097",
+                  "z" : "0.0003481123"
+               },
+               "rotation" : {
+                  "x" : "359.6073",
+                  "y" : "359.5653",
+                  "z" : "13.87815"
+               }
+            },
+            {
+               "id" : "lMid1",
+               "position" : {
+                  "x" : "-0.06041381",
+                  "y" : "0.003026736",
+                  "z" : "-0.009863601"
+               },
+               "rotation" : {
+                  "x" : "359.348",
+                  "y" : "355.7693",
+                  "z" : "11.8644"
+               }
+            },
+            {
+               "id" : "lMid2",
+               "position" : {
+                  "x" : "-0.03693391",
+                  "y" : "0.0005201108",
+                  "z" : "0.001116471"
+               },
+               "rotation" : {
+                  "x" : "358.318",
+                  "y" : "1.599453",
+                  "z" : "20.45247"
+               }
+            },
+            {
+               "id" : "lMid3",
+               "position" : {
+                  "x" : "-0.02397024",
+                  "y" : "-0.0006957471",
+                  "z" : "0.0005426859"
+               },
+               "rotation" : {
+                  "x" : "2.703968",
+                  "y" : "357.83",
+                  "z" : "10.97718"
+               }
+            },
+            {
+               "id" : "lThumb1",
+               "position" : {
+                  "x" : "-0.02273207",
+                  "y" : "-0.005191563",
+                  "z" : "0.01920939"
+               },
+               "rotation" : {
+                  "x" : "359.0867",
+                  "y" : "54.01072",
+                  "z" : "12.82622"
+               }
+            },
+            {
+               "id" : "lThumb2",
+               "position" : {
+                  "x" : "-0.04114177",
+                  "y" : "0.0004040776",
+                  "z" : "0.0007653441"
+               },
+               "rotation" : {
+                  "x" : "333.8387",
+                  "y" : "343.0071",
+                  "z" : "357.2827"
+               }
+            },
+            {
+               "id" : "lThumb3",
+               "position" : {
+                  "x" : "-0.02815454",
+                  "y" : "3.704662E-05",
+                  "z" : "0.0003737677"
+               },
+               "rotation" : {
+                  "x" : "354.4372",
+                  "y" : "351.979",
+                  "z" : "0.1550894"
+               }
+            },
+            {
+               "id" : "skin",
+               "Diffuse Bumpiness" : "0.02931486",
+               "Specular Bumpiness" : "0.184708",
+               "Face" : "Makeup 4",
+               "Skin Color" : {
+                  "h" : "0.08949178",
+                  "s" : "0.1485449",
+                  "v" : "0.9890419"
+               }
+            },
+            {
+               "id" : "KrayonHairScalp",
+               "TextureSet" : "Black"
+            },
+            {
+               "id" : "KrayonHairMain",
+               "TextureSet" : "Black"
+            },
+            {
+               "id" : "KrayonHairBun1",
+               "TextureSet" : "Black"
+            },
+            {
+               "id" : "KrayonHairBun2",
+               "TextureSet" : "Black"
+            }
+         ]
+      },
+      {
+         "id" : "InvisibleLight#2",
+         "on" : "true",
+         "type" : "InvisibleLight",
+         "position" : {
+            "x" : "0.29",
+            "y" : "1.833",
+            "z" : "0.238"
+         },
+         "rotation" : {
+            "x" : "0",
+            "y" : "0",
+            "z" : "0"
+         },
+         "containerPosition" : {
+            "x" : "-3.132971",
+            "y" : "0.834772",
+            "z" : "1.938379"
+         },
+         "containerRotation" : {
+            "x" : "0",
+            "y" : "0",
+            "z" : "0"
+         },
+         "storables" : [
+            {
+               "id" : "CollisionTrigger",
+               "trigger" : {
+                  "startActions" : [
+                  ],
+                  "transitionActions" : [
+                  ],
+                  "endActions" : [
+                  ]
+               }
+            },
+            {
+               "id" : "Light",
+               "intensity" : "1.462872",
+               "range" : "7.484442",
+               "shadowStrength" : "0.07130275",
+               "shadowResolution" : "High",
+               "color" : {
+                  "h" : "0.086",
+                  "s" : "0.09059865",
+                  "v" : "1"
+               }
+            },
+            {
+               "id" : "PluginManager",
+               "plugins" : {
+               }
+            },
+            {
+               "id" : "control",
+               "interactableInPlayMode" : "false",
+               "position" : {
+                  "x" : "-3.132971",
+                  "y" : "0.834772",
+                  "z" : "1.938379"
+               },
+               "rotation" : {
+                  "x" : "0",
+                  "y" : "0",
+                  "z" : "0"
+               }
+            }
+         ]
+      },
+      {
+         "id" : "Person#2",
+         "on" : "true",
+         "type" : "Person",
+         "parentAtom" : "GrabPoint",
+         "position" : {
+            "x" : "-1.181774",
+            "y" : "0.1275561",
+            "z" : "1.760765"
+         },
+         "rotation" : {
+            "x" : "-3.385096E-05",
+            "y" : "2.271215E-06",
+            "z" : "-4.689914E-06"
+         },
+         "containerPosition" : {
+            "x" : "-1.181774",
+            "y" : "0.1275561",
+            "z" : "1.760765"
+         },
+         "containerRotation" : {
+            "x" : "-3.385096E-05",
+            "y" : "2.271215E-06",
+            "z" : "-4.689914E-06"
+         },
+         "storables" : [
+            {
+               "id" : "control",
+               "position" : {
+                  "x" : "-1.181774",
+                  "y" : "0.1275561",
+                  "z" : "1.760765"
+               },
+               "rotation" : {
+                  "x" : "-3.385096E-05",
+                  "y" : "2.271215E-06",
+                  "z" : "-4.689914E-06"
+               }
+            },
+            {
+               "id" : "hipControl",
+               "localPosition" : {
+                  "x" : "-0.04602849",
+                  "y" : "0.8571383",
+                  "z" : "-0.1097726"
+               },
+               "localRotation" : {
+                  "x" : "32.8709",
+                  "y" : "7.241272E-07",
+                  "z" : "1.334189E-06"
+               }
+            },
+            {
+               "id" : "pelvisControl",
+               "interactableInPlayMode" : "false",
+               "localPosition" : {
+                  "x" : "-0.04411562",
+                  "y" : "0.8423474",
+                  "z" : "0.147918"
+               },
+               "localRotation" : {
+                  "x" : "51.66063",
+                  "y" : "4.829818",
+                  "z" : "2.850038"
+               }
+            },
+            {
+               "id" : "chestControl",
+               "interactableInPlayMode" : "false",
+               "localPosition" : {
+                  "x" : "-0.0488534",
+                  "y" : "0.9754691",
+                  "z" : "0.505635"
+               },
+               "localRotation" : {
+                  "x" : "20.11204",
+                  "y" : "0",
+                  "z" : "0"
+               }
+            },
+            {
+               "id" : "headControl",
+               "localPosition" : {
+                  "x" : "-0.04483271",
+                  "y" : "1.185147",
+                  "z" : "0.69363"
+               },
+               "localRotation" : {
+                  "x" : "85.5425",
+                  "y" : "180",
+                  "z" : "180"
+               }
+            },
+            {
+               "id" : "rHandControl",
+               "localPosition" : {
+                  "x" : "0.09546781",
+                  "y" : "0.4251642",
+                  "z" : "0.8016621"
+               },
+               "localRotation" : {
+                  "x" : "4.601805",
+                  "y" : "279.2055",
+                  "z" : "13.55796"
+               }
+            },
+            {
+               "id" : "lHandControl",
+               "localPosition" : {
+                  "x" : "-0.1913301",
+                  "y" : "0.4497998",
+                  "z" : "0.8036529"
+               },
+               "localRotation" : {
+                  "x" : "358.9077",
+                  "y" : "98.22343",
+                  "z" : "356.6962"
+               }
+            },
+            {
+               "id" : "rFootControl",
+               "localPosition" : {
+                  "x" : "0.02655685",
+                  "y" : "0.6099668",
+                  "z" : "-1.002067"
+               },
+               "localRotation" : {
+                  "x" : "23.23705",
+                  "y" : "165.5491",
+                  "z" : "171.9003"
+               }
+            },
+            {
+               "id" : "lFootControl",
+               "localPosition" : {
+                  "x" : "-0.19096",
+                  "y" : "0.6099668",
+                  "z" : "-1.002067"
+               },
+               "localRotation" : {
+                  "x" : "23.23704",
+                  "y" : "194.4509",
+                  "z" : "188.0998"
+               }
+            },
+            {
+               "id" : "neckControl",
+               "localPosition" : {
+                  "x" : "-0.04202448",
+                  "y" : "1.041819",
+                  "z" : "0.5620618"
+               },
+               "localRotation" : {
+                  "x" : "77.33891",
+                  "y" : "358.4308",
+                  "z" : "358.9306"
+               }
+            },
+            {
+               "id" : "eyeTargetControl",
+               "interactableInPlayMode" : "false",
+               "mass" : "0.01",
+               "localPosition" : {
+                  "x" : "0",
+                  "y" : "1.7",
+                  "z" : "1"
+               },
+               "localRotation" : {
+                  "x" : "0",
+                  "y" : "0",
+                  "z" : "0"
+               }
+            },
+            {
+               "id" : "rNippleControl",
+               "localPosition" : {
+                  "x" : "0.1035072",
+                  "y" : "1.35048",
+                  "z" : "0.116487"
+               },
+               "localRotation" : {
+                  "x" : "16.40135",
+                  "y" : "208.6129",
+                  "z" : "12.8127"
+               }
+            },
+            {
+               "id" : "lNippleControl",
+               "localPosition" : {
+                  "x" : "-0.1035072",
+                  "y" : "1.35048",
+                  "z" : "0.116487"
+               },
+               "localRotation" : {
+                  "x" : "16.40135",
+                  "y" : "151.3871",
+                  "z" : "347.1873"
+               }
+            },
+            {
+               "id" : "testesControl",
+               "interactableInPlayMode" : "false",
+               "localPosition" : {
+                  "x" : "-0.04449349",
+                  "y" : "0.6767206",
+                  "z" : "0.02879708"
+               },
+               "localRotation" : {
+                  "x" : "2.52229",
+                  "y" : "3.862602",
+                  "z" : "0.1022098"
+               }
+            },
+            {
+               "id" : "penisBaseControl",
+               "interactableInPlayMode" : "false",
+               "jointDriveXTarget" : "-9.843822",
+               "localPosition" : {
+                  "x" : "-0.04327089",
+                  "y" : "0.6766407",
+                  "z" : "0.05560176"
+               },
+               "localRotation" : {
+                  "x" : "64.34882",
+                  "y" : "6.44158",
+                  "z" : "4.223248"
+               }
+            },
+            {
+               "id" : "penisMidControl",
+               "interactableInPlayMode" : "false",
+               "localPosition" : {
+                  "x" : "-0.04073196",
+                  "y" : "0.6287772",
+                  "z" : "0.07812704"
+               },
+               "localRotation" : {
+                  "x" : "65.74959",
+                  "y" : "6.814968",
+                  "z" : "4.56303"
+               }
+            },
+            {
+               "id" : "penisTipControl",
+               "interactableInPlayMode" : "false",
+               "localPosition" : {
+                  "x" : "-0.03812509",
+                  "y" : "0.5801486",
+                  "z" : "0.09995125"
+               },
+               "localRotation" : {
+                  "x" : "66.13605",
+                  "y" : "6.881094",
+                  "z" : "4.639253"
+               }
+            },
+            {
+               "id" : "rElbowControl",
+               "localPosition" : {
+                  "x" : "0.1504196",
+                  "y" : "0.6949964",
+                  "z" : "0.628222"
+               },
+               "localRotation" : {
+                  "x" : "346.1807",
+                  "y" : "270.9493",
+                  "z" : "303.019"
+               }
+            },
+            {
+               "id" : "lElbowControl",
+               "localPosition" : {
+                  "x" : "-0.2484074",
+                  "y" : "0.7251046",
+                  "z" : "0.6268134"
+               },
+               "localRotation" : {
+                  "x" : "346.9257",
+                  "y" : "91.91265",
+                  "z" : "56.4286"
+               }
+            },
+            {
+               "id" : "rKneeControl",
+               "positionState" : "On",
+               "localPosition" : {
+                  "x" : "0.3121673",
+                  "y" : "0.4760366",
+                  "z" : "-0.0128215"
+               },
+               "localRotation" : {
+                  "x" : "63.46347",
+                  "y" : "119.4542",
+                  "z" : "108.0921"
+               }
+            },
+            {
+               "id" : "lKneeControl",
+               "positionState" : "On",
+               "localPosition" : {
+                  "x" : "-0.3617723",
+                  "y" : "0.4012458",
+                  "z" : "0.07123981"
+               },
+               "localRotation" : {
+                  "x" : "69.47715",
+                  "y" : "234.457",
+                  "z" : "240.0117"
+               }
+            },
+            {
+               "id" : "rToeControl",
+               "localPosition" : {
+                  "x" : "0.143445",
+                  "y" : "0.5080171",
+                  "z" : "-0.8122483"
+               },
+               "localRotation" : {
+                  "x" : "40.41143",
+                  "y" : "155.1851",
+                  "z" : "152.0757"
+               }
+            },
+            {
+               "id" : "lToeControl",
+               "localPosition" : {
+                  "x" : "-0.2739453",
+                  "y" : "0.4903512",
+                  "z" : "-0.7862138"
+               },
+               "localRotation" : {
+                  "x" : "40.13803",
+                  "y" : "202.0065",
+                  "z" : "201.0912"
+               }
+            },
+            {
+               "id" : "abdomenControl",
+               "localPosition" : {
+                  "x" : "-0.04502733",
+                  "y" : "0.8496944",
+                  "z" : "0.1042111"
+               },
+               "localRotation" : {
+                  "x" : "69.29005",
+                  "y" : "357.9088",
+                  "z" : "358.4774"
+               }
+            },
+            {
+               "id" : "abdomen2Control",
+               "localPosition" : {
+                  "x" : "-0.04580172",
+                  "y" : "0.8771586",
+                  "z" : "0.1821125"
+               },
+               "localRotation" : {
+                  "x" : "67.70924",
+                  "y" : "351.4623",
+                  "z" : "352.2"
+               }
+            },
+            {
+               "id" : "rThighControl",
+               "localPosition" : {
+                  "x" : "0.03869527",
+                  "y" : "0.7953071",
+                  "z" : "0.05802285"
+               },
+               "localRotation" : {
+                  "x" : "35.11351",
+                  "y" : "30.29663",
+                  "z" : "42.74777"
+               }
+            },
+            {
+               "id" : "lThighControl",
+               "localPosition" : {
+                  "x" : "-0.1316128",
+                  "y" : "0.7890149",
+                  "z" : "0.06489645"
+               },
+               "localRotation" : {
+                  "x" : "37.65629",
+                  "y" : "341.4946",
+                  "z" : "326.9932"
+               }
+            },
+            {
+               "id" : "rArmControl",
+               "localPosition" : {
+                  "x" : "0.1396269",
+                  "y" : "0.963183",
+                  "z" : "0.5223746"
+               },
+               "localRotation" : {
+                  "x" : "352.1228",
+                  "y" : "295.8935",
+                  "z" : "290.0276"
+               }
+            },
+            {
+               "id" : "lArmControl",
+               "localPosition" : {
+                  "x" : "-0.2287956",
+                  "y" : "0.9889735",
+                  "z" : "0.5272148"
+               },
+               "localRotation" : {
+                  "x" : "354.3577",
+                  "y" : "65.21889",
+                  "z" : "69.64879"
+               }
+            },
+            {
+               "id" : "rShoulderControl",
+               "localPosition" : {
+                  "x" : "-0.02830134",
+                  "y" : "0.9677791",
+                  "z" : "0.5091295"
+               },
+               "localRotation" : {
+                  "x" : "52.17952",
+                  "y" : "350.4274",
+                  "z" : "8.109357"
+               }
+            },
+            {
+               "id" : "lShoulderControl",
+               "localPosition" : {
+                  "x" : "-0.06355725",
+                  "y" : "0.9700399",
+                  "z" : "0.5094512"
+               },
+               "localRotation" : {
+                  "x" : "53.56409",
+                  "y" : "359.1611",
+                  "z" : "337.8679"
+               }
+            },
+            {
+               "id" : "PluginManager",
+               "plugins" : {
+               }
+            },
+            {
+               "id" : "geometry",
+               "character" : "Male 1",
+               "clothing" : [
+               ],
+               "hair" : "Tyler Hair",
+               "morphs" : [
+               ]
+            },
+            {
+               "id" : "hip",
+               "rootPosition" : {
+                  "x" : "-1.226389",
+                  "y" : "0.972104",
+                  "z" : "1.882647"
+               },
+               "rootRotation" : {
+                  "x" : "50.72486",
+                  "y" : "1.618808",
+                  "z" : "0.7278918"
+               }
+            },
+            {
+               "id" : "pelvis",
+               "position" : {
+                  "x" : "-2.819346E-06",
+                  "y" : "0.01876192",
+                  "z" : "0.01818272"
+               },
+               "rotation" : {
+                  "x" : "1.005315",
+                  "y" : "1.973925",
+                  "z" : "359.6298"
+               }
+            },
+            {
+               "id" : "LabiaTrigger",
+               "trigger" : {
+                  "startActions" : [
+                  ],
+                  "transitionActions" : [
+                  ],
+                  "endActions" : [
+                  ]
+               }
+            },
+            {
+               "id" : "VaginaTrigger",
+               "trigger" : {
+                  "startActions" : [
+                  ],
+                  "transitionActions" : [
+                  ],
+                  "endActions" : [
+                  ]
+               }
+            },
+            {
+               "id" : "DeepVaginaTrigger",
+               "trigger" : {
+                  "startActions" : [
+                  ],
+                  "transitionActions" : [
+                  ],
+                  "endActions" : [
+                  ]
+               }
+            },
+            {
+               "id" : "DeeperVaginaTrigger",
+               "trigger" : {
+                  "startActions" : [
+                  ],
+                  "transitionActions" : [
+                  ],
+                  "endActions" : [
+                  ]
+               }
+            },
+            {
+               "id" : "Testes",
+               "position" : {
+                  "x" : "-0.0001034952",
+                  "y" : "-0.1961065",
+                  "z" : "0.05626252"
+               },
+               "rotation" : {
+                  "x" : "310.8621",
+                  "y" : "1.813808",
+                  "z" : "356.955"
+               }
+            },
+            {
+               "id" : "rThigh",
+               "position" : {
+                  "x" : "0.08529285",
+                  "y" : "-0.09833346",
+                  "z" : "-0.01434113"
+               },
+               "rotation" : {
+                  "x" : "348.183",
+                  "y" : "21.73273",
+                  "z" : "19.80249"
+               }
+            },
+            {
+               "id" : "rShin",
+               "position" : {
+                  "x" : "-0.007847279",
+                  "y" : "-0.4468855",
+                  "z" : "0.004345417"
+               },
+               "rotation" : {
+                  "x" : "56.91655",
+                  "y" : "342.2814",
+                  "z" : "340.466"
+               }
+            },
+            {
+               "id" : "rFoot",
+               "position" : {
+                  "x" : "0.006330188",
+                  "y" : "-0.4722638",
+                  "z" : "0.003728062"
+               },
+               "rotation" : {
+                  "x" : "34.14476",
+                  "y" : "8.478677",
+                  "z" : "18.18949"
+               }
+            },
+            {
+               "id" : "rToe",
+               "position" : {
+                  "x" : "0.0029431",
+                  "y" : "-0.003363922",
+                  "z" : "0.1332326"
+               },
+               "rotation" : {
+                  "x" : "356.0753",
+                  "y" : "0.3695728",
+                  "z" : "359.3039"
+               }
+            },
+            {
+               "id" : "rBigToe",
+               "position" : {
+                  "x" : "-0.0343546",
+                  "y" : "0.008876486",
+                  "z" : "0.01237436"
+               },
+               "rotation" : {
+                  "x" : "4.129839",
+                  "y" : "4.493893",
+                  "z" : "355.458"
+               }
+            },
+            {
+               "id" : "rSmallToe1",
+               "position" : {
+                  "x" : "-0.009265006",
+                  "y" : "0.01112438",
+                  "z" : "0.01938604"
+               },
+               "rotation" : {
+                  "x" : "9.064827",
+                  "y" : "3.524448",
+                  "z" : "355.488"
+               }
+            },
+            {
+               "id" : "rSmallToe2",
+               "position" : {
+                  "x" : "0.007216547",
+                  "y" : "0.01016665",
+                  "z" : "0.01841041"
+               },
+               "rotation" : {
+                  "x" : "13.03826",
+                  "y" : "1.08287",
+                  "z" : "355.9919"
+               }
+            },
+            {
+               "id" : "rSmallToe3",
+               "position" : {
+                  "x" : "0.01928158",
+                  "y" : "0.004252347",
+                  "z" : "0.01436452"
+               },
+               "rotation" : {
+                  "x" : "15.16745",
+                  "y" : "0.6272195",
+                  "z" : "353.0651"
+               }
+            },
+            {
+               "id" : "rSmallToe4",
+               "position" : {
+                  "x" : "0.03611193",
+                  "y" : "-0.002187862",
+                  "z" : "0.01100502"
+               },
+               "rotation" : {
+                  "x" : "16.86106",
+                  "y" : "355.8585",
+                  "z" : "349.4834"
+               }
+            },
+            {
+               "id" : "LGlute",
+               "position" : {
+                  "x" : "4.656613E-10",
+                  "y" : "-1.077393",
+                  "z" : "-0.01522584"
+               },
+               "rotation" : {
+                  "x" : "1.067217E-07",
+                  "y" : "-6.403301E-07",
+                  "z" : "-9.004642E-08"
+               }
+            },
+            {
+               "id" : "Gen1",
+               "position" : {
+                  "x" : "-9.76593E-05",
+                  "y" : "-0.1751001",
+                  "z" : "0.07295727"
+               },
+               "rotation" : {
+                  "x" : "12.7166",
+                  "y" : "0.09244756",
+                  "z" : "0.019056"
+               }
+            },
+            {
+               "id" : "Gen2",
+               "position" : {
+                  "x" : "-3.125297E-05",
+                  "y" : "-0.0002882648",
+                  "z" : "0.05295588"
+               },
+               "rotation" : {
+                  "x" : "1.406637",
+                  "y" : "0.06366234",
+                  "z" : "0.006316879"
+               }
+            },
+            {
+               "id" : "Gen3",
+               "position" : {
+                  "x" : "2.123987E-06",
+                  "y" : "6.467931E-05",
+                  "z" : "0.05336346"
+               },
+               "rotation" : {
+                  "x" : "0.3848366",
+                  "y" : "-0.004479257",
+                  "z" : "0.01915994"
+               }
+            },
+            {
+               "id" : "RGlute",
+               "position" : {
+                  "x" : "4.656613E-10",
+                  "y" : "-1.077393",
+                  "z" : "-0.01522584"
+               },
+               "rotation" : {
+                  "x" : "1.067217E-07",
+                  "y" : "-6.403301E-07",
+                  "z" : "-9.004642E-08"
+               }
+            },
+            {
+               "id" : "lThigh",
+               "position" : {
+                  "x" : "-0.0852671",
+                  "y" : "-0.0996373",
+                  "z" : "-0.01405219"
+               },
+               "rotation" : {
+                  "x" : "348.08",
+                  "y" : "341.9214",
+                  "z" : "342.6968"
+               }
+            },
+            {
+               "id" : "lShin",
+               "position" : {
+                  "x" : "0.006375104",
+                  "y" : "-0.4452885",
+                  "z" : "0.005228095"
+               },
+               "rotation" : {
+                  "x" : "58.98204",
+                  "y" : "17.73844",
+                  "z" : "20.16041"
+               }
+            },
+            {
+               "id" : "lFoot",
+               "position" : {
+                  "x" : "-0.006928679",
+                  "y" : "-0.4720663",
+                  "z" : "0.003256321"
+               },
+               "rotation" : {
+                  "x" : "35.25445",
+                  "y" : "351.2578",
+                  "z" : "346.9797"
+               }
+            },
+            {
+               "id" : "lToe",
+               "position" : {
+                  "x" : "-0.003269255",
+                  "y" : "-0.002815373",
+                  "z" : "0.1326436"
+               },
+               "rotation" : {
+                  "x" : "357.7162",
+                  "y" : "359.7705",
+                  "z" : "359.0466"
+               }
+            },
+            {
+               "id" : "lBigToe",
+               "position" : {
+                  "x" : "0.03453508",
+                  "y" : "0.008671506",
+                  "z" : "0.01291644"
+               },
+               "rotation" : {
+                  "x" : "7.513084",
+                  "y" : "356.6071",
+                  "z" : "0.9645301"
+               }
+            },
+            {
+               "id" : "lSmallToe1",
+               "position" : {
+                  "x" : "0.009395301",
+                  "y" : "0.01155701",
+                  "z" : "0.018603"
+               },
+               "rotation" : {
+                  "x" : "9.278331",
+                  "y" : "356.4362",
+                  "z" : "4.584632"
+               }
+            },
+            {
+               "id" : "lSmallToe2",
+               "position" : {
+                  "x" : "-0.007680556",
+                  "y" : "0.01032813",
+                  "z" : "0.01843083"
+               },
+               "rotation" : {
+                  "x" : "13.4143",
+                  "y" : "359.2967",
+                  "z" : "4.211097"
+               }
+            },
+            {
+               "id" : "lSmallToe3",
+               "position" : {
+                  "x" : "-0.0200213",
+                  "y" : "0.004411628",
+                  "z" : "0.0147244"
+               },
+               "rotation" : {
+                  "x" : "15.52666",
+                  "y" : "359.8904",
+                  "z" : "6.990451"
+               }
+            },
+            {
+               "id" : "lSmallToe4",
+               "position" : {
+                  "x" : "-0.03590323",
+                  "y" : "-0.001949663",
+                  "z" : "0.01031316"
+               },
+               "rotation" : {
+                  "x" : "17.0211",
+                  "y" : "4.514388",
+                  "z" : "10.6893"
+               }
+            },
+            {
+               "id" : "abdomen",
+               "position" : {
+                  "x" : "-4.024294E-05",
+                  "y" : "-0.01041421",
+                  "z" : "-0.01516867"
+               },
+               "rotation" : {
+                  "x" : "18.59089",
+                  "y" : "358.3786",
+                  "z" : "0.7618095"
+               }
+            },
+            {
+               "id" : "abdomen2",
+               "position" : {
+                  "x" : "-0.0001207825",
+                  "y" : "0.08256467",
+                  "z" : "0.001827562"
+               },
+               "rotation" : {
+                  "x" : "358.6268",
+                  "y" : "357.5232",
+                  "z" : "359.7798"
+               }
+            },
+            {
+               "id" : "chest",
+               "position" : {
+                  "x" : "-2.173771E-05",
+                  "y" : "0.1378175",
+                  "z" : "0.001686438"
+               },
+               "rotation" : {
+                  "x" : "356.5377",
+                  "y" : "359.7329",
+                  "z" : "359.1837"
+               }
+            },
+            {
+               "id" : "rCollar",
+               "position" : {
+                  "x" : "0.01790398",
+                  "y" : "0.196991",
+                  "z" : "0.04790564"
+               },
+               "rotation" : {
+                  "x" : "348.1791",
+                  "y" : "357.3285",
+                  "z" : "17.81663"
+               }
+            },
+            {
+               "id" : "rShldr",
+               "position" : {
+                  "x" : "0.1640836",
+                  "y" : "-0.03808419",
+                  "z" : "-0.005480452"
+               },
+               "rotation" : {
+                  "x" : "319.7288",
+                  "y" : "288.6722",
+                  "z" : "336.7066"
+               }
+            },
+            {
+               "id" : "rForeArm",
+               "position" : {
+                  "x" : "0.2885301",
+                  "y" : "0.001203254",
+                  "z" : "-0.000592798"
+               },
+               "rotation" : {
+                  "x" : "20.18433",
+                  "y" : "344.5958",
+                  "z" : "5.460677"
+               }
+            },
+            {
+               "id" : "rHand",
+               "position" : {
+                  "x" : "0.2457842",
+                  "y" : "-0.001293236",
+                  "z" : "-0.005993035"
+               },
+               "rotation" : {
+                  "x" : "3.085887",
+                  "y" : "13.65818",
+                  "z" : "52.83168"
+               }
+            },
+            {
+               "id" : "rCarpal2",
+               "position" : {
+                  "x" : "0.02575624",
+                  "y" : "0.002961139",
+                  "z" : "-0.01342614"
+               },
+               "rotation" : {
+                  "x" : "349.6358",
+                  "y" : "11.14202",
+                  "z" : "354.4704"
+               }
+            },
+            {
+               "id" : "rRing1",
+               "position" : {
+                  "x" : "0.06529217",
+                  "y" : "0.002904866",
+                  "z" : "0.0124157"
+               },
+               "rotation" : {
+                  "x" : "5.230458",
+                  "y" : "357.2885",
+                  "z" : "348.0177"
+               }
+            },
+            {
+               "id" : "rRing2",
+               "position" : {
+                  "x" : "0.03868717",
+                  "y" : "0.001530988",
+                  "z" : "0.0005242982"
+               },
+               "rotation" : {
+                  "x" : "358.71",
+                  "y" : "357.741",
+                  "z" : "342.8363"
+               }
+            },
+            {
+               "id" : "rRing3",
+               "position" : {
+                  "x" : "0.02260956",
+                  "y" : "-0.0006170319",
+                  "z" : "8.409638E-05"
+               },
+               "rotation" : {
+                  "x" : "3.854071",
+                  "y" : "357.1704",
+                  "z" : "349.3327"
+               }
+            },
+            {
+               "id" : "rPinky1",
+               "position" : {
+                  "x" : "0.06088656",
+                  "y" : "-0.004049502",
+                  "z" : "-0.01091298"
+               },
+               "rotation" : {
+                  "x" : "0.982273",
+                  "y" : "0.9944223",
+                  "z" : "351.0802"
+               }
+            },
+            {
+               "id" : "rPinky2",
+               "position" : {
+                  "x" : "0.02969277",
+                  "y" : "6.261833E-05",
+                  "z" : "0.0007766596"
+               },
+               "rotation" : {
+                  "x" : "0.02431643",
+                  "y" : "355.9207",
+                  "z" : "331.7234"
+               }
+            },
+            {
+               "id" : "rPinky3",
+               "position" : {
+                  "x" : "0.01836863",
+                  "y" : "0.001218077",
+                  "z" : "-0.000271314"
+               },
+               "rotation" : {
+                  "x" : "358.8111",
+                  "y" : "1.825753",
+                  "z" : "353.9344"
+               }
+            },
+            {
+               "id" : "rCarpal1",
+               "position" : {
+                  "x" : "0.02526289",
+                  "y" : "0.004497617",
+                  "z" : "0.01342419"
+               },
+               "rotation" : {
+                  "x" : "0.8739793",
+                  "y" : "354.8973",
+                  "z" : "359.1034"
+               }
+            },
+            {
+               "id" : "rIndex1",
+               "position" : {
+                  "x" : "0.06797442",
+                  "y" : "0.002490964",
+                  "z" : "0.0126605"
+               },
+               "rotation" : {
+                  "x" : "4.154911",
+                  "y" : "354.9161",
+                  "z" : "346.1553"
+               }
+            },
+            {
+               "id" : "rIndex2",
+               "position" : {
+                  "x" : "0.03741156",
+                  "y" : "0.002596568",
+                  "z" : "0.0002094365"
+               },
+               "rotation" : {
+                  "x" : "359.1438",
+                  "y" : "1.617087",
+                  "z" : "342.128"
+               }
+            },
+            {
+               "id" : "rIndex3",
+               "position" : {
+                  "x" : "0.0216609",
+                  "y" : "-0.002072282",
+                  "z" : "0.0001227046"
+               },
+               "rotation" : {
+                  "x" : "358.8423",
+                  "y" : "0.5921441",
+                  "z" : "346.5938"
+               }
+            },
+            {
+               "id" : "rMid1",
+               "position" : {
+                  "x" : "0.06931795",
+                  "y" : "0.003789706",
+                  "z" : "-0.01177929"
+               },
+               "rotation" : {
+                  "x" : "359.333",
+                  "y" : "4.263071",
+                  "z" : "348.4895"
+               }
+            },
+            {
+               "id" : "rMid2",
+               "position" : {
+                  "x" : "0.04095794",
+                  "y" : "0.0003038767",
+                  "z" : "0.0004876796"
+               },
+               "rotation" : {
+                  "x" : "357.829",
+                  "y" : "358.4328",
+                  "z" : "338.2776"
+               }
+            },
+            {
+               "id" : "rMid3",
+               "position" : {
+                  "x" : "0.02635225",
+                  "y" : "-0.0003511157",
+                  "z" : "0.0004314954"
+               },
+               "rotation" : {
+                  "x" : "1.77007",
+                  "y" : "2.236169",
+                  "z" : "349.8769"
+               }
+            },
+            {
+               "id" : "rThumb1",
+               "position" : {
+                  "x" : "0.02736079",
+                  "y" : "-0.007450062",
+                  "z" : "0.02133481"
+               },
+               "rotation" : {
+                  "x" : "357.4385",
+                  "y" : "304.6429",
+                  "z" : "338.1387"
+               }
+            },
+            {
+               "id" : "rThumb2",
+               "position" : {
+                  "x" : "0.04634213",
+                  "y" : "-0.0005445238",
+                  "z" : "9.890646E-06"
+               },
+               "rotation" : {
+                  "x" : "332.1157",
+                  "y" : "28.33244",
+                  "z" : "358.5143"
+               }
+            },
+            {
+               "id" : "rThumb3",
+               "position" : {
+                  "x" : "0.03078732",
+                  "y" : "-0.0002173162",
+                  "z" : "-0.0002919398"
+               },
+               "rotation" : {
+                  "x" : "354.2545",
+                  "y" : "356.5121",
+                  "z" : "0.4361141"
+               }
+            },
+            {
+               "id" : "lPectoral",
+               "position" : {
+                  "x" : "-0.03823175",
+                  "y" : "0.04813999",
+                  "z" : "-0.03296659"
+               },
+               "rotation" : {
+                  "x" : "348.5901",
+                  "y" : "340.5003",
+                  "z" : "359.6232"
+               }
+            },
+            {
+               "id" : "lNipple",
+               "position" : {
+                  "x" : "-0.1938104",
+                  "y" : "0.01166832",
+                  "z" : "0.1326339"
+               },
+               "rotation" : {
+                  "x" : "10.57828",
+                  "y" : "131.8915",
+                  "z" : "354.0336"
+               }
+            },
+            {
+               "id" : "lNippleTrigger",
+               "trigger" : {
+                  "startActions" : [
+                  ],
+                  "transitionActions" : [
+                  ],
+                  "endActions" : [
+                  ]
+               }
+            },
+            {
+               "id" : "rPectoral",
+               "position" : {
+                  "x" : "0.03837822",
+                  "y" : "0.04820405",
+                  "z" : "-0.03254891"
+               },
+               "rotation" : {
+                  "x" : "348.6209",
+                  "y" : "20.34601",
+                  "z" : "0.1421215"
+               }
+            },
+            {
+               "id" : "rNipple",
+               "position" : {
+                  "x" : "-0.0006797486",
+                  "y" : "0.0002367977",
+                  "z" : "0.2062638"
+               },
+               "rotation" : {
+                  "x" : "7.633837",
+                  "y" : "187.2699",
+                  "z" : "11.6437"
+               }
+            },
+            {
+               "id" : "rNippleTrigger",
+               "trigger" : {
+                  "startActions" : [
+                  ],
+                  "transitionActions" : [
+                  ],
+                  "endActions" : [
+                  ]
+               }
+            },
+            {
+               "id" : "neck",
+               "position" : {
+                  "x" : "0.000269989",
+                  "y" : "0.2763841",
+                  "z" : "0.004823369"
+               },
+               "rotation" : {
+                  "x" : "12.79738",
+                  "y" : "3.335335",
+                  "z" : "1.244863"
+               }
+            },
+            {
+               "id" : "head",
+               "position" : {
+                  "x" : "-2.72016E-06",
+                  "y" : "0.08970806",
+                  "z" : "0.0007438567"
+               },
+               "rotation" : {
+                  "x" : "359.2667",
+                  "y" : "0.1064764",
+                  "z" : "359.8102"
+               }
+            },
+            {
+               "id" : "LipTrigger",
+               "trigger" : {
+                  "startActions" : [
+                  ],
+                  "transitionActions" : [
+                  ],
+                  "endActions" : [
+                  ]
+               }
+            },
+            {
+               "id" : "HeadAudioSource",
+               "trigger" : {
+                  "startActions" : [
+                  ],
+                  "transitionActions" : [
+                  ],
+                  "endActions" : [
+                  ]
+               }
+            },
+            {
+               "id" : "MouthTrigger",
+               "trigger" : {
+                  "startActions" : [
+                  ],
+                  "transitionActions" : [
+                  ],
+                  "endActions" : [
+                  ]
+               }
+            },
+            {
+               "id" : "ThroatTrigger",
+               "trigger" : {
+                  "startActions" : [
+                  ],
+                  "transitionActions" : [
+                  ],
+                  "endActions" : [
+                  ]
+               }
+            },
+            {
+               "id" : "rEye",
+               "position" : {
+                  "x" : "0.03003272",
+                  "y" : "0.05951404",
+                  "z" : "0.07403359"
+               },
+               "rotation" : {
+                  "x" : "4.512916",
+                  "y" : "330.0432",
+                  "z" : "0.5015817"
+               }
+            },
+            {
+               "id" : "upperJaw",
+               "position" : {
+                  "x" : "0",
+                  "y" : "0.01027469",
+                  "z" : "0.02097649"
+               },
+               "rotation" : {
+                  "x" : "0.07958469",
+                  "y" : "-1.46868E-07",
+                  "z" : "-1.810025E-07"
+               }
+            },
+            {
+               "id" : "lEye",
+               "position" : {
+                  "x" : "-0.03003272",
+                  "y" : "0.05951404",
+                  "z" : "0.07403359"
+               },
+               "rotation" : {
+                  "x" : "4.569404",
+                  "y" : "330.0437",
+                  "z" : "0.5016211"
+               }
+            },
+            {
+               "id" : "lowerJaw",
+               "position" : {
+                  "x" : "-3.150191E-06",
+                  "y" : "0.01020976",
+                  "z" : "0.0180929"
+               },
+               "rotation" : {
+                  "x" : "21.57959",
+                  "y" : "0.00136701",
+                  "z" : "0.03248148"
+               }
+            },
+            {
+               "id" : "tongueBase",
+               "position" : {
+                  "x" : "-1.564247E-06",
+                  "y" : "-0.02956293",
+                  "z" : "0.04201606"
+               },
+               "rotation" : {
+                  "x" : "274.9656",
+                  "y" : "180.0083",
+                  "z" : "179.9925"
+               }
+            },
+            {
+               "id" : "tongue01",
+               "position" : {
+                  "x" : "-3.12651E-06",
+                  "y" : "-0.0008106101",
+                  "z" : "0.02457789"
+               },
+               "rotation" : {
+                  "x" : "45.94557",
+                  "y" : "0.0002133384",
+                  "z" : "0.0007200979"
+               }
+            },
+            {
+               "id" : "tongue02",
+               "position" : {
+                  "x" : "-3.032879E-06",
+                  "y" : "0.0007264018",
+                  "z" : "0.00592054"
+               },
+               "rotation" : {
+                  "x" : "16.09839",
+                  "y" : "0.004369713",
+                  "z" : "0.000265394"
+               }
+            },
+            {
+               "id" : "tongue03",
+               "position" : {
+                  "x" : "-3.221346E-06",
+                  "y" : "0.0008175718",
+                  "z" : "0.0047513"
+               },
+               "rotation" : {
+                  "x" : "8.284162",
+                  "y" : "0.001390909",
+                  "z" : "0.003603612"
+               }
+            },
+            {
+               "id" : "tongue04",
+               "position" : {
+                  "x" : "-2.458375E-06",
+                  "y" : "0.000794475",
+                  "z" : "0.004403583"
+               },
+               "rotation" : {
+                  "x" : "3.324481",
+                  "y" : "0.000732345",
+                  "z" : "0.001800263"
+               }
+            },
+            {
+               "id" : "tongue05",
+               "position" : {
+                  "x" : "-5.303916E-07",
+                  "y" : "0.0003891703",
+                  "z" : "0.003651576"
+               },
+               "rotation" : {
+                  "x" : "359.4066",
+                  "y" : "-0.0009525879",
+                  "z" : "-0.0002538101"
+               }
+            },
+            {
+               "id" : "tongueTip",
+               "position" : {
+                  "x" : "5.527507E-08",
+                  "y" : "9.797432E-05",
+                  "z" : "0.003257819"
+               },
+               "rotation" : {
+                  "x" : "354.2078",
+                  "y" : "-0.000456328",
+                  "z" : "-7.230051E-05"
+               }
+            },
+            {
+               "id" : "lCollar",
+               "position" : {
+                  "x" : "-0.01749408",
+                  "y" : "0.1977208",
+                  "z" : "0.04819189"
+               },
+               "rotation" : {
+                  "x" : "349.0329",
+                  "y" : "2.816779",
+                  "z" : "339.5219"
+               }
+            },
+            {
+               "id" : "lShldr",
+               "position" : {
+                  "x" : "-0.1631378",
+                  "y" : "-0.03667207",
+                  "z" : "-0.003282301"
+               },
+               "rotation" : {
+                  "x" : "315.75",
+                  "y" : "77.03851",
+                  "z" : "22.14531"
+               }
+            },
+            {
+               "id" : "lForeArm",
+               "position" : {
+                  "x" : "-0.2827355",
+                  "y" : "0.0003593937",
+                  "z" : "-0.002123743"
+               },
+               "rotation" : {
+                  "x" : "21.21188",
+                  "y" : "17.67795",
+                  "z" : "354.5417"
+               }
+            },
+            {
+               "id" : "lHand",
+               "position" : {
+                  "x" : "-0.2465497",
+                  "y" : "-0.001318658",
+                  "z" : "-0.006127521"
+               },
+               "rotation" : {
+                  "x" : "7.751456",
+                  "y" : "357.5326",
+                  "z" : "317.0396"
+               }
+            },
+            {
+               "id" : "lCarpal2",
+               "position" : {
+                  "x" : "-0.02587961",
+                  "y" : "0.003064181",
+                  "z" : "-0.01366228"
+               },
+               "rotation" : {
+                  "x" : "349.6356",
+                  "y" : "348.83",
+                  "z" : "5.462043"
+               }
+            },
+            {
+               "id" : "lRing1",
+               "position" : {
+                  "x" : "-0.06604786",
+                  "y" : "0.002307398",
+                  "z" : "0.01231697"
+               },
+               "rotation" : {
+                  "x" : "5.221902",
+                  "y" : "2.733086",
+                  "z" : "12.04966"
+               }
+            },
+            {
+               "id" : "lRing2",
+               "position" : {
+                  "x" : "-0.03894076",
+                  "y" : "0.001553047",
+                  "z" : "0.0003549891"
+               },
+               "rotation" : {
+                  "x" : "358.9435",
+                  "y" : "2.223236",
+                  "z" : "17.52689"
+               }
+            },
+            {
+               "id" : "lRing3",
+               "position" : {
+                  "x" : "-0.0230826",
+                  "y" : "-0.0005310746",
+                  "z" : "-0.0001227056"
+               },
+               "rotation" : {
+                  "x" : "4.004989",
+                  "y" : "2.727829",
+                  "z" : "10.70502"
+               }
+            },
+            {
+               "id" : "lPinky1",
+               "position" : {
+                  "x" : "-0.06102844",
+                  "y" : "-0.003902588",
+                  "z" : "-0.01109487"
+               },
+               "rotation" : {
+                  "x" : "0.9918604",
+                  "y" : "358.9911",
+                  "z" : "8.874743"
+               }
+            },
+            {
+               "id" : "lPinky2",
+               "position" : {
+                  "x" : "-0.03045825",
+                  "y" : "-0.000335394",
+                  "z" : "0.0006934109"
+               },
+               "rotation" : {
+                  "x" : "0.1214191",
+                  "y" : "4.13159",
+                  "z" : "28.33806"
+               }
+            },
+            {
+               "id" : "lPinky3",
+               "position" : {
+                  "x" : "-0.01881414",
+                  "y" : "0.001373576",
+                  "z" : "-0.0004677126"
+               },
+               "rotation" : {
+                  "x" : "358.8057",
+                  "y" : "358.0464",
+                  "z" : "6.209504"
+               }
+            },
+            {
+               "id" : "lCarpal1",
+               "position" : {
+                  "x" : "-0.02536735",
+                  "y" : "0.004587646",
+                  "z" : "0.01318536"
+               },
+               "rotation" : {
+                  "x" : "0.8913434",
+                  "y" : "5.066346",
+                  "z" : "0.8425952"
+               }
+            },
+            {
+               "id" : "lIndex1",
+               "position" : {
+                  "x" : "-0.0686737",
+                  "y" : "0.001808185",
+                  "z" : "0.01249568"
+               },
+               "rotation" : {
+                  "x" : "3.293262",
+                  "y" : "5.039686",
+                  "z" : "13.915"
+               }
+            },
+            {
+               "id" : "lIndex2",
+               "position" : {
+                  "x" : "-0.0374405",
+                  "y" : "0.002664227",
+                  "z" : "-5.726819E-05"
+               },
+               "rotation" : {
+                  "x" : "359.6885",
+                  "y" : "358.3888",
+                  "z" : "17.1755"
+               }
+            },
+            {
+               "id" : "lIndex3",
+               "position" : {
+                  "x" : "-0.02257115",
+                  "y" : "-0.002245438",
+                  "z" : "-5.47631E-05"
+               },
+               "rotation" : {
+                  "x" : "358.9385",
+                  "y" : "359.3238",
+                  "z" : "13.90472"
+               }
+            },
+            {
+               "id" : "lMid1",
+               "position" : {
+                  "x" : "-0.07020565",
+                  "y" : "0.002907136",
+                  "z" : "-0.01190795"
+               },
+               "rotation" : {
+                  "x" : "359.3362",
+                  "y" : "355.7432",
+                  "z" : "11.76931"
+               }
+            },
+            {
+               "id" : "lMid2",
+               "position" : {
+                  "x" : "-0.04101299",
+                  "y" : "0.0003808059",
+                  "z" : "0.0002526639"
+               },
+               "rotation" : {
+                  "x" : "357.8508",
+                  "y" : "1.425261",
+                  "z" : "20.53643"
+               }
+            },
+            {
+               "id" : "lMid3",
+               "position" : {
+                  "x" : "-0.02728556",
+                  "y" : "-0.000502457",
+                  "z" : "0.0002669349"
+               },
+               "rotation" : {
+                  "x" : "2.093801",
+                  "y" : "357.7097",
+                  "z" : "11.07319"
+               }
+            },
+            {
+               "id" : "lThumb1",
+               "position" : {
+                  "x" : "-0.02755694",
+                  "y" : "-0.007370963",
+                  "z" : "0.02109845"
+               },
+               "rotation" : {
+                  "x" : "357.572",
+                  "y" : "55.24073",
+                  "z" : "21.80513"
+               }
+            },
+            {
+               "id" : "lThumb2",
+               "position" : {
+                  "x" : "-0.04646717",
+                  "y" : "-0.0007238528",
+                  "z" : "-0.0004103202"
+               },
+               "rotation" : {
+                  "x" : "332.0955",
+                  "y" : "328.5283",
+                  "z" : "3.754889"
+               }
+            },
+            {
+               "id" : "lThumb3",
+               "position" : {
+                  "x" : "-0.03108892",
+                  "y" : "0.000154139",
+                  "z" : "-0.0004277136"
+               },
+               "rotation" : {
+                  "x" : "354.2469",
+                  "y" : "6.328304",
+                  "z" : "358.6311"
+               }
+            }
+         ]
+      },
+      {
+         "id" : "InvisibleLight",
+         "on" : "true",
+         "type" : "InvisibleLight",
+         "position" : {
+            "x" : "0.29",
+            "y" : "1.833",
+            "z" : "0.238"
+         },
+         "rotation" : {
+            "x" : "0",
+            "y" : "0",
+            "z" : "0"
+         },
+         "containerPosition" : {
+            "x" : "0.5444657",
+            "y" : "1.499269",
+            "z" : "2.223703"
+         },
+         "containerRotation" : {
+            "x" : "0",
+            "y" : "0",
+            "z" : "0"
+         },
+         "storables" : [
+            {
+               "id" : "CollisionTrigger",
+               "trigger" : {
+                  "startActions" : [
+                  ],
+                  "transitionActions" : [
+                  ],
+                  "endActions" : [
+                  ]
+               }
+            },
+            {
+               "id" : "materials",
+               "Diffuse Color" : {
+                  "h" : "0",
+                  "s" : "0",
+                  "v" : "0"
+               }
+            },
+            {
+               "id" : "Light",
+               "intensity" : "1.994883",
+               "range" : "5.237885",
+               "shadowStrength" : "0.09505038",
+               "shadowResolution" : "High",
+               "color" : {
+                  "h" : "0.9421172",
+                  "s" : "0.1067184",
+                  "v" : "0.9586298"
+               }
+            },
+            {
+               "id" : "PluginManager",
+               "plugins" : {
+               }
+            },
+            {
+               "id" : "control",
+               "interactableInPlayMode" : "false",
+               "position" : {
+                  "x" : "0.5444657",
+                  "y" : "1.499269",
+                  "z" : "2.223703"
+               },
+               "rotation" : {
+                  "x" : "0",
+                  "y" : "0",
+                  "z" : "0"
+               }
+            }
+         ]
+      }
+   ]
+}

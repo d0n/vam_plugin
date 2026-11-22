@@ -1,0 +1,139 @@
+{
+  "expressions": [
+    {
+      "audio": "./Audio/Celeste/CelesteMoan1.wav",
+      "minIntensity": 0.1,
+      "maxIntensity": 0.2,
+      "facial": [
+        "squint",
+        "AA",
+        "mouth open"
+      ]
+    },
+    {
+      "audio": "./Audio/Celeste/CelesteMoan2.wav",
+      "minIntensity": 0.1,
+      "maxIntensity": 0.3,
+      "facial": [
+        "squint",
+        "AA",
+        "mouth open"
+      ]
+    },
+    {
+      "audio": "./Audio/Celeste/CelesteMoan3.wav",
+      "minIntensity": 0.1,
+      "maxIntensity": 0.4,
+      "facial": [
+        "squint",
+        "AA",
+        "mouth open",
+        "snarl left"
+      ]
+    },
+    {
+      "audio": "./Audio/Celeste/CelesteMoan4.wav",
+      "minIntensity": 0.2,
+      "maxIntensity": 0.5,
+      "facial": [
+        "squint",
+        "AA",
+        "mouth open"
+      ]
+    },
+    {
+      "audio": "./Audio/Celeste/CelesteMoan5.wav",
+      "minIntensity": 0.3,
+      "maxIntensity": 0.5,
+      "facial": [
+        "squint",
+        "brow furrowed",
+        "OW",
+        "mouth open",
+        "retract lips"
+      ]
+    },
+    {
+      "audio": "./Audio/Celeste/CelesteMoan6.wav",
+      "minIntensity": 0.2,
+      "maxIntensity": 0.6,
+      "facial": [
+        "eyes closed pleasure",
+        "AA",
+        "mouth open",
+        "retract lips",
+        "snarl left"
+      ]
+    },
+    {
+      "audio": "./Audio/Celeste/CelesteMoan7.wav",
+      "minIntensity": 0.4,
+      "maxIntensity": 0.7,
+      "facial": [
+        "brow furrowed",
+        "eyes closed",
+        "AA",
+        "mouth open",
+        "retract lips"
+      ]
+    },
+    {
+      "audio": "./Audio/Celeste/CelesteMoan8.wav",
+      "minIntensity": 0.4,
+      "maxIntensity": 0.7,
+      "facial": [
+        "brow furrowed",
+        "eyes closed",
+        "AA",
+        "mouth open",
+        "retract lips",
+        "snarl left"
+      ]
+    },
+    {
+      "audio": "./Audio/Celeste/CelesteMoan9.wav",
+      "minIntensity": 0.4,
+      "maxIntensity": 0.8,
+      "facial": [
+        "brow furrowed",
+        "squint hard",
+        "AA",
+        "mouth open",
+        "retract lips"
+      ]
+    },
+    {
+      "audio": "./Audio/Celeste/CelesteMoan10.wav",
+      "minIntensity": 0.6,
+      "maxIntensity": 0.9,
+      "facial": [
+        "brow furrowed",
+        "squint hard",
+        "AA",
+        "mouth open",
+        "retract lips"
+      ]
+    },
+    {
+      "audio": "./Audio/Celeste/CelesteMoan11.wav",
+      "minIntensity": 0.6,
+      "maxIntensity": 1.0,
+      "facial": [
+        "eyes closed pleasure",
+        "AA",
+        "mouth open",
+        "retract lips",
+        "snarl left"
+      ]
+    }
+  ],
+  "climaxes": [
+    {
+      "audio": "./Audio/Celeste/CelesteOrgasm.wav",
+      "facial": [
+        "eyes closed pleasure",
+        "mouth open"
+      ]
+    }
+  ]
+}
