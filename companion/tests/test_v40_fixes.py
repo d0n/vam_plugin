@@ -154,8 +154,9 @@ class PersonaTests(TestCase):
 
     def test_plugin_empty_persona_is_none(self):
         link = source("AppLink.cs")
-        self.assertIn("if (string.IsNullOrEmpty(name)) name = PersonaNone;", method_body(link, "private void SetPersona(string name)"))
+        # version 50: no "(none)" any more; empty (or an old "(none)") means the default persona Anna
+        self.assertIn('if (string.IsNullOrEmpty(name) || name == "(none)") name = PersonaDefault;', method_body(link, "private void SetPersona(string name)"))
         refresh = method_body(link, "private void RefreshPersonaChoices()")
-        self.assertIn("if (string.IsNullOrEmpty(_personaJson.val)) _personaJson.val = PersonaNone;", refresh)
+        self.assertIn('if (string.IsNullOrEmpty(_personaJson.val) || _personaJson.val == "(none)") _personaJson.val = PersonaDefault;', refresh)
         self.assertIn("_personaJson.popupOpenCallback = RefreshPersonaChoices;", link)
         self.assertIn("the list comes from the app", link)

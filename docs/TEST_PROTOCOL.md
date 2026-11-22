@@ -877,3 +877,13 @@ Report: anything that stretched, fell or jumped back.
 7. Change some Dollmaster sliders, save the scene, reload: the values and Activate are kept.
 Report: any red line in the info field or the VaM log ("Dollmaster ..."), anything missing compared to the old Dollmaster.
 
+
+## T85 – Reset to Default and a fresh config (version 50, Leon 22.11.2026 20:35)
+1. Install v50, start AIBody Companion, then VaM; load AI-Buddy. Paste your xAI key into **XAI API Token** and check that the AI answers.
+2. Tab Config > **Reset to Default** > **Confirm Reset to Default**. The status line says "The XAI API Token is cleared"; the token field is empty; in config.json `ai.xai.api_key` is `""`; companion.log only says "XAI API Token from the plugin field cleared" (never the token).
+3. Tab Voice: **Language model** offers xai, ollama, echo; **Speech-to-text** offers xai, null; **Text-to-speech** offers xai, elevenlabs, tone; all three show **xai**. The lists are full even before the companion connects (start VaM without the companion).
+4. **Persona** offers Anna and Marc (no "(none)"), Anna is chosen. **Memory** is checked.
+5. Tab Client Character: **Mic enabled** and **Push-to-talk interrupts speech** are checked.
+6. Paste the token again and speak: you are heard and answered with the xAI voice. Without a token the info field says the test engines run (no xAI API key).
+7. Optional: close VaM and the companion, rename config.json, start again: the new config.json has the same defaults (engines xai, persona Anna, memory on, mic on).
+Report: any menu with only one entry, any '(none)', a token left anywhere after the reset.

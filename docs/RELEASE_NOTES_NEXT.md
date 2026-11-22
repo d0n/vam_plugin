@@ -1,25 +1,20 @@
-# Release notes of version 49 (22.11.2026)
+# Release notes of version 50 (22.11.2026)
 
-This text is the GitHub release v49.
+This text is the GitHub release v50.
 
-**AIBody v49**: download `AIBody Companion Setup.exe`; it installs AIBody Companion and the package `d0n.AIBody.49.var` (the plugin, the AI-Buddy scene and the Dollmaster assets) into your VaM folder. `d0n.AIBody.49.var` is attached too, for installing it by hand. The package is now about **98 MB** (it carries the Dollmaster personas, sounds, expressions and VAMasutra poses).
+**AIBody v50**: download `AIBody Companion Setup.exe`; it installs AIBody Companion and the package `d0n.AIBody.50.var` (the plugin, the AI-Buddy scene and the Dollmaster assets, about 98 MB) into your VaM folder. `d0n.AIBody.50.var` is attached too, for installing it by hand.
 
-**1. Install:** double-click `AIBody Companion Setup.exe` (for your Windows user, no admin). If Windows SmartScreen says "Windows protected your PC": **More info** > **Run anyway**. You can run it over an older version, no uninstall needed; a running AIBody Companion is closed by the setup. On the page **Your VaM folder** check the folder (the one with `VaM.exe`).
+**Install:** double-click `AIBody Companion Setup.exe` (SmartScreen: **More info** > **Run anyway**); it runs over v49, no uninstall needed. Start **AIBody Companion** first, then VaM, and load **AI-Buddy** from `d0n.AIBody.50` (or re-add AIBody from `d0n.AIBody.50` in your own scene and save it).
 
-**2. Use it:** start **AIBody Companion** from the Start menu first, then start VaM as usual. Load **AI-Buddy** from the package `d0n.AIBody.49`, or re-add AIBody from `d0n.AIBody.49` in your own scene and save it (a saved scene keeps loading the plugin version it names).
+**Fixed (Leon's test of v49 after a full config reset)**
+1. **Reset to Default now clears the XAI API Token** (field, config.json and the companion's copy). Paste your key again afterwards. The token is never written to a log.
+2. **Language model** menu: shows all engines again (xai, ollama, echo) instead of only "echo".
+3. **Persona** menu: no more "(none)"; it offers the female persona **Anna** (default) and the male persona **Marc** (plus persona folders of your own).
+4. **Memory** is on by default.
+5. **Speech-to-text** menu: shows its engines (xai, null) and is never empty.
+6. **Text-to-speech** menu: shows xai, elevenlabs and tone instead of only "tone"; and **spoken input works after a reset**: all three menus now default to **xai** (before: the offline test engines, and the test speech recognition understands nothing). Without an xAI key the companion still falls back to the test engines and the info field says why.
+7. **Mic enabled** and **Push-to-talk interrupts speech** are on by default (also after a reset and in a new config.json).
 
-**New**
-1. **Voice barge-in is on by default** (tab Client Character, **Voice barge-in (headphones)**), in chain and realtime mode. Echo protection is always on: while the AI speaks the mic stays closed for the AI; talking clearly louder than her echo stops her, cancels the running answer (realtime too) and your words are answered.
-2. **Language** chooser (tab Voice, AI section, under Persona): Auto or one of the 20 xAI voice languages, default **German (de)**. It sets the language for speech to text, the answers and the voice.
-3. **Setup notice:** the "already installed / update" box of the setup no longer names the buttons in English (Windows labels them in its own language); it just says what OK and Cancel do. Buttons and behaviour unchanged.
-4. **Apply Pose** button (tab AI Character > Poses, under Pose command): applies the chosen pose command now, also the same one again.
-5. **Apply idle default pose** button (tab AI Character > Idle poses): applies the idle default pose now and restarts the idle wait.
-6. **Body position** (tab AI Character, section *Body position*): **Move forward / back**, **Move right / left** (along the way she faces), **Turn**, and **Reset body position**. VaM saves the moved body with the scene.
-7. **Tab Dollmaster:** the old Dollmaster plugin (VAMDeluxe, 2019) ported in full into AIBody: the whole old Dollmaster menu, with an **Activate** checkbox at the top (off by default, saved with the scene; off = Dollmaster does nothing). Its assets ship inside the package.
+Why the menus were short: they were filled only by the companion app's status messages and started with just the test engine; now the full lists are built into the plugin.
 
-**Dollmaster notes**
-- While **Activate** is on, Dollmaster takes over the body: expressions, breathing, idle motion and idle poses come from Dollmaster, and AIBody's own ones pause. **AIBody keeps speech**: Dollmaster's voice lines are skipped while the AI speaks or has speech queued. Turning Activate off gives the body back to AIBody.
-- Credit: Dollmaster code by VAMDeluxe, MIT license (`third_party/dollmaster/LICENSE`, see `docs/CREDITS.md`).
-- The package is about 98 MB because of the Dollmaster assets.
-
-Test steps: `docs/TEST_PROTOCOL.md` T78-T84.
+Test steps: `docs/TEST_PROTOCOL.md` T85.

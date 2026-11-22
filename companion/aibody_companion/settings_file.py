@@ -99,7 +99,9 @@ DEFAULTS: dict[str, dict[str, Any]] = {
             "audio": "",
         },
     },
-    "engines": {"stt": "null", "llm": "echo", "tts": "tone"},
+    # Version 50 (Leon, call 20:35): xai by default, the real engines (before: the offline test engines null / echo /
+    # tone, so a fresh or reset config understood no speech). Without an xAI key the app uses ai.fallback below.
+    "engines": {"stt": "xai", "llm": "xai", "tts": "xai"},
     "mic": MicSettings().to_dict(),
     "body": {
         "speech_volume": 1.0,
@@ -173,12 +175,13 @@ DEFAULTS: dict[str, dict[str, Any]] = {
         "language": "de",
         # Persona folder below Saves/PluginData/AIBody/personas ("" = none: the persona text above). The plugin's
         # menu "Persona" sets it; a persona.json can replace persona text, language and voice (personas.py).
-        "persona_name": "",
+        # Version 50 (Leon 20:35): no "none" in the menu any more; default the female starter persona Anna (Marc = male).
+        "persona_name": "Anna",
         # Memory (opt-in, menu switch "Memory"): facts the user told the AI, kept in personas/<name>/memory.json and
         # given to the AI as notes. Updated after session_idle_minutes of silence (at least min_exchanges questions),
         # on a persona change and when the app stops.
         "memory": {
-            "enabled": False,
+            "enabled": True,  # on by default since version 50 (Leon 20:35)
             "max_facts": 30,
             "session_idle_minutes": 10,
             "min_exchanges": 2,

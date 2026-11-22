@@ -116,8 +116,8 @@ class MemoryTextTests(unittest.TestCase):
 class ConfigTests(unittest.TestCase):
     def test_keys(self):
         ai = settings_file.DEFAULTS["ai"]
-        self.assertEqual(ai["persona_name"], "")
-        self.assertEqual(ai["memory"], {"enabled": False, "max_facts": 30, "session_idle_minutes": 10, "min_exchanges": 2})
+        self.assertEqual(ai["persona_name"], "Anna")   # version 50: default the female starter, no "none"
+        self.assertEqual(ai["memory"], {"enabled": True, "max_facts": 30, "session_idle_minutes": 10, "min_exchanges": 2})
         data, errors = settings_file.validate({"ai": {"memory": {"enabled": "true", "max_facts": "1000"}, "persona_name": "Anna"}})
         self.assertEqual(errors, [])
         self.assertEqual((data["ai"]["memory"]["enabled"], data["ai"]["memory"]["max_facts"], data["ai"]["persona_name"]),
@@ -254,8 +254,9 @@ class PersonaFlowTests(RealtimeSim):
 
     # -- memory ------------------------------------------------------------------------------
 
-    def test_memory_is_off_by_default(self):
-        self.begin("", memory=None)
+    def test_memory_switched_off_keeps_nothing(self):
+        """Version 50: Memory is ON by default (Leon 20:35); switched off, nothing is summarized or stored."""
+        self.begin("", memory=False)
         self.ask("Ich heiße Leon")
         self.ask("Ich mag Katzen")
         self.sim.run(self.plugin, 800, dt=5)
@@ -403,7 +404,7 @@ class PluginSourceTests(unittest.TestCase):
         self.link = source("AppLink.cs")
 
     def test_menu_controls(self):
-        for needle in ('new JSONStorableStringChooser("Persona"', 'new JSONStorableBool("Memory", false', "page.Popup(_personaJson)",
+        for needle in ('new JSONStorableStringChooser("Persona"', 'new JSONStorableBool("Memory", true', "page.Popup(_personaJson)",
                        "page.Toggle(_memoryJson)", 'page.Button("Forget memory", ForgetMemory)',
                        'ai["persona_name"] = PersonaName', 'memory["enabled"].AsBool = _memoryJson.val',
                        'MergeSection(target, ui, "memory", "enabled")', 'target["persona_name"] = ui["persona_name"].Value',
@@ -411,12 +412,14 @@ class PluginSourceTests(unittest.TestCase):
             self.assertIn(needle, self.link + source("Protocol.cs"))
         self.assertIn('EvtMemoryForget = "memory_forget"', source("Protocol.cs"))
 
-    def test_menu_does_not_send_the_none_label(self):
-        self.assertIn('_personaJson.val == PersonaNone ? "" : _personaJson.val', self.link)
+    def test_menu_has_no_none_label(self):
+        """Version 50: no "(none)" entry; an empty value means the default persona Anna."""
+        self.assertNotIn("PersonaNone", self.link)
+        self.assertIn('string.IsNullOrEmpty(_personaJson.val) ? PersonaDefault : _personaJson.val', self.link)
 
     def test_info_text_explains_persona_and_memory(self):
         info = method_body(self.link, "private string PersonaInfoText()")
-        for text in ("docs/PERSONAS.md", "<b>Memory</b> is off", "Forget memory", "is not in use"):
+        for text in ("docs/PERSONAS.md", "<b>Memory</b> is off (on by default)", "Forget memory", "is not in use"):
             self.assertIn(text, info)
         self.assertIn("PersonaInfoText()", method_body(self.link, "public string VoiceInfoText()"))
 

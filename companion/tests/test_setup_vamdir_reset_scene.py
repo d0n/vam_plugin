@@ -138,7 +138,7 @@ class ResetToDefaultTests(TestCase):
             self.assertIn('<b>" + ' + label + ' + "</b>', info)
         for label in ("XAI API Token", "xAI key file", "ElevenLabs key file"):
             self.assertIn(f"<b>{label}</b>", info)
-        self.assertIn("never deletes your", info)
+        self.assertIn("also clears your <b>XAI API Token</b>", info)   # version 50 (Leon 20:35)
         self.assertIn("+ ResetInfo()", self.plugin)
 
     def test_every_saved_setting_is_tracked_except_keys_and_hooks(self):

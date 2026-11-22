@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "written_by": "AIBody companion app 49 (example)",
+  "written_by": "AIBody companion app 50 (example)",
   "connection": {
     "active": true,
     "network_active": true,
@@ -12,9 +12,9 @@
     }
   },
   "engines": {
-    "stt": "null",
-    "llm": "echo",
-    "tts": "tone"
+    "stt": "xai",
+    "llm": "xai",
+    "tts": "xai"
   },
   "mic": {
     "enabled": true,
@@ -120,9 +120,9 @@
     "mode": "qa",
     "persona": "You are a friendly, curious character living in a 3D scene. You talk with the user face to face. Answer briefly and naturally, in the language the user speaks.",
     "language": "de",
-    "persona_name": "",
+    "persona_name": "Anna",
     "memory": {
-      "enabled": false,
+      "enabled": true,
       "max_facts": 30,
       "session_idle_minutes": 10,
       "min_exchanges": 2

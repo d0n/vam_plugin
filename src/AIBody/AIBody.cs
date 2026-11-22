@@ -43,7 +43,7 @@ namespace AIBody
 {
     public class AIBodyPlugin : MVRScript
     {
-        public const string PluginVersion = "49";   // = package number d0n.AIBody.49.var (scheme since version 12)
+        public const string PluginVersion = "50";   // = package number d0n.AIBody.50.var (scheme since version 12)
 
         private AppLink _link;
         private Body _body;
@@ -473,12 +473,13 @@ namespace AIBody
             try
             {
                 int changed = Defaults.ResetAll(this);
+                if (_link != null) _link.ClearToken();   // version 50 (Leon 20:35): the reset clears the XAI API Token too
                 ApplyBackground();
                 if (_link != null) _link.MarkConfigDirty();
                 if (_body != null && _body.OnSettingsChanged != null) _body.OnSettingsChanged();
                 if (_body != null) _body.RebuildTab = true;
                 _configStatus = "Reset to Default done (" + DateTime.Now.ToString("HH:mm:ss") + "): " + changed + " of "
-                    + Defaults.Count + " settings changed back to their defaults. Kept: the XAI API Token, the key file paths, "
+                    + Defaults.Count + " settings changed back to their defaults. The XAI API Token is cleared. Kept: the key file paths, "
                     + "the pose commands and the companion's own settings in config.json.";
                 _diag.Step("Reset to Default: " + changed + " setting(s) back to default");
             }
@@ -496,7 +497,7 @@ namespace AIBody
                 + "with: all tabs (connection, AI mode, voice, persona, microphone, body, idle poses, breathing, logging and "
                 + "<b>" + BackgroundToggleName + "</b> with its color) and the character wizard, which then asks "
                 + "<b>" + CharacterWizard.GateQuestion + "</b> again. It asks first: press <b>" + ResetConfirmLabel + "</b> to do it "
-                + "or <b>" + ResetCancelLabel + "</b> to keep everything. It never deletes your <b>XAI API Token</b>, and it keeps the "
+                + "or <b>" + ResetCancelLabel + "</b> to keep everything. It also clears your <b>XAI API Token</b> (paste it again afterwards), and it keeps the "
                 + "<b>xAI key file</b> and <b>ElevenLabs key file</b> paths, your pose commands, your personas and the companion's own "
                 + "settings (engine details, remote control, its setup answers); the reset values are written to config.json as usual. "
                 + "Save the scene afterwards to keep the reset in the scene.\n";

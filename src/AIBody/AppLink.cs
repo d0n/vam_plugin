@@ -71,8 +71,13 @@ namespace AIBody
         private JSONStorableBool _bargeInJson;
         private JSONStorableStringChooser _voiceJson;       // ai.realtime.voice + ai.xai.voice
         // Version 27: persona (folder in Saves/PluginData/AIBody/personas, listed by the companion app) and memory
-        public const string PersonaNone = "(none)";
-        private JSONStorableStringChooser _personaJson;     // ai.persona_name ("(none)" = "")
+        // Version 50 (Leon, call 20:35): no "(none)" entry any more; the menu offers the female and the male starter
+        // persona (Anna, Marc; companion personas.STARTER_PERSONAS) plus persona folders of your own. Default: Anna.
+        public const string PersonaFemale = "Anna";
+        public const string PersonaMale = "Marc";
+        public const string PersonaDefault = PersonaFemale;
+        public static readonly string[] StarterPersonas = { PersonaFemale, PersonaMale };
+        private JSONStorableStringChooser _personaJson;     // ai.persona_name
         private JSONStorableStringChooser _languageJson;    // ai.language (22.11.2026, Leon): "German (de)" -> "de", "Auto" -> "auto"
 
         public const string LanguageAuto = "Auto";
@@ -257,9 +262,12 @@ namespace AIBody
             _filePollJson = new JSONStorableFloat("File poll interval (s)", 0.1f, (float v) => Restart(), 0.02f, 2f);
             SettingsDefaults.Float(_plugin, _filePollJson);
             // Engine choices are refreshed from the companion app's companion_heartbeat.
-            _sttJson = Engine("Speech-to-text", "null");
-            _llmJson = Engine("Language model", "echo");
-            _ttsJson = Engine("Text-to-speech", "tone");
+            // Version 50 (Leon, call 20:35): the menus always list every engine of the companion app (EngineChoices, the
+            // same lists as companion config.ENGINES_AVAILABLE), also before the app connected; default xai, the real
+            // engines (without an xAI key the companion app falls back to the offline test engines null / echo / tone).
+            _sttJson = Engine("Speech-to-text", SttChoices, EngineDefault);
+            _llmJson = Engine("Language model", LlmChoices, EngineDefault);
+            _ttsJson = Engine("Text-to-speech", TtsChoices, EngineDefault);
             // qa = simple questions and answers (STT -> LLM -> TTS with xAI, speech only; the default);
             // auto = realtime voice if the companion has an xAI key, else the chain
             _aiModeJson = new JSONStorableStringChooser("AI mode", new List<string> { ModeQa, "auto", "realtime", "chain" },
@@ -278,17 +286,17 @@ namespace AIBody
             _voiceJson = new JSONStorableStringChooser("Voice", new List<string>(XaiVoices), "eve", "Voice",
                 (string v) => MarkConfigDirty());
             SettingsDefaults.Chooser(_plugin, _voiceJson);
-            // The persona list comes from the companion app's heartbeat; "(none)" = the plain ai.persona text of config.json.
-            _personaJson = new JSONStorableStringChooser("Persona", new List<string> { PersonaNone }, PersonaNone, "Persona",
+            // The persona list: Anna (female) and Marc (male) always, plus the folders the companion app reports (version 50).
+            _personaJson = new JSONStorableStringChooser("Persona", new List<string>(StarterPersonas), PersonaDefault, "Persona",
                 (string v) => MarkConfigDirty());
             // Version 35: the menu is refilled from the last list the companion app reported each time it opens, so it
-            // always shows at least "(none)" and the app's personas (E25).
+            // always shows at least Anna and Marc and the app's personas (E25).
             _personaJson.popupOpenCallback = RefreshPersonaChoices;
             SettingsDefaults.Chooser(_plugin, _personaJson);
             _languageJson = new JSONStorableStringChooser("Language", new List<string>(Languages), LanguageDefault, "Language",
                 (string v) => MarkConfigDirty());
             SettingsDefaults.Chooser(_plugin, _languageJson);
-            _memoryJson = new JSONStorableBool("Memory", false, (bool v) => MarkConfigDirty());
+            _memoryJson = new JSONStorableBool("Memory", true, (bool v) => MarkConfigDirty());   // on by default since version 50 (Leon 20:35)
             SettingsDefaults.Bool(_plugin, _memoryJson);
             // No format check on purpose (Leon, 18.11.2026): whatever is typed or pasted is sent as is.
             // Not registered (version 31): same as the first-run note's field; the token lives in config.json only.
@@ -392,6 +400,21 @@ namespace AIBody
         }
 
         /// <summary>
+        /// Version 50 (Leon, call 20:35): 'Reset to Default' clears the XAI API Token too, like emptying the field: the
+        /// field is emptied, config.json ai.xai.api_key is written as "" and the config event carries keys.xai = "", so the
+        /// companion app forgets the token (EngineSet.set_ui_key). The token is never logged or shown.
+        /// </summary>
+        public void ClearToken()
+        {
+            _xaiToken = "";
+            _hintTyped = "";
+            _maskPending = false;
+            ShowTokenMask();
+            UpdateKeyStatus();
+            MarkConfigDirty();
+        }
+
+        /// <summary>
         /// On start (and "Reload Config JSON") the token comes from config.json ai.xai.api_key and fills the field.
         /// If the file has none, a token typed before the file was read is kept and written to the file.
         /// </summary>
@@ -452,9 +475,15 @@ namespace AIBody
             if (_mic != null) _mic.MarkDirty();
         }
 
-        private JSONStorableStringChooser Engine(string name, string defaultValue)
+        public const string EngineDefault = "xai";
+        /// <summary>Version 50: the engine lists of companion config.ENGINES_AVAILABLE (real engines first).</summary>
+        public static readonly string[] SttChoices = { "xai", "null" };
+        public static readonly string[] LlmChoices = { "xai", "ollama", "echo" };
+        public static readonly string[] TtsChoices = { "xai", "elevenlabs", "tone" };
+
+        private JSONStorableStringChooser Engine(string name, string[] choices, string defaultValue)
         {
-            JSONStorableStringChooser c = new JSONStorableStringChooser(name, new List<string> { defaultValue },
+            JSONStorableStringChooser c = new JSONStorableStringChooser(name, new List<string>(choices),
                 defaultValue, name, (string v) => MarkConfigDirty());
             SettingsDefaults.Chooser(_plugin, c);
             return c;
@@ -732,14 +761,13 @@ namespace AIBody
                 ? "Auto: the persona's language, else every sentence is detected on its own (short sentences can come out in an English accent). "
                 : _languageJson.val + ": every sentence is spoken in it, speech recognition expects it, and the AI is told to always answer in it (also in realtime mode); it wins over a persona's language. ");
             text += "The <b>Persona</b> menu " + (_personaListSeen
-                ? "lists " + _personaNames.Count + " persona(s) from the companion app" + (_personaNames.Count == 0 ? " (only '(none)', because no folder in Saves/PluginData/AIBody/personas has a persona.json yet)" : "")
-                : "shows only '(none)' because the companion app has not connected yet: the list comes from the app, so start it "
-                  + "from the Windows Start menu ('AIBody Companion') and it lists its personas, including the starters "
-                  + "Anna and Marc it writes on its first start") + ". ";   // version 40
-            if (PersonaName.Length == 0) text += "No persona is chosen, so the text ai.persona from config.json is used; personas are folders in Saves/PluginData/AIBody/personas/<name>/ with a persona.json (docs/PERSONAS.md) that you pick in <b>Persona</b>.\n";
-            else if (_appAlive && _personaInUse != PersonaName) text += "The persona '" + PersonaName + "' is not in use: " + (_personaNote.Length > 0 ? _personaNote : "the companion app has not confirmed it yet") + "\n";
+                ? "offers the female persona " + PersonaFemale + " and the male persona " + PersonaMale + (_personaNames.Count > 0 ? " and lists " + _personaNames.Count + " persona folder(s) from the companion app" : "")
+                : "offers the female persona " + PersonaFemale + " and the male persona " + PersonaMale + "; persona folders of your own appear once the companion app "
+                  + "has connected (start it from the Windows Start menu, 'AIBody Companion'; it writes Anna and Marc on its first start)") + "; the list comes from the app, and personas are folders in "
+                + "Saves/PluginData/AIBody/personas/<name>/ with a persona.json (docs/PERSONAS.md). ";   // version 40 / 50
+            if (_appAlive && _personaInUse != PersonaName) text += "The persona '" + PersonaName + "' is not in use: " + (_personaNote.Length > 0 ? _personaNote : "the companion app has not confirmed it yet") + "\n";
             else text += "The persona " + PersonaName + " is in use, and its prompt and voice replace ai.persona and <b>Voice</b> (its language counts only when <b>Language</b> is Auto).\n";
-            if (!_memoryJson.val) text += "<b>Memory</b> is off; switched on, the AI keeps short notes about what you tell it (personas/<name>/memory.json, local; the summary request goes to xAI) and uses them next time.\n";
+            if (!_memoryJson.val) text += "<b>Memory</b> is off (on by default); switched on, the AI keeps short notes about what you tell it (personas/<name>/memory.json, local; the summary request goes to xAI) and uses them next time.\n";
             else
             {
                 string facts = _memoryInfo != null && Protocol.Has(_memoryInfo, "facts") ? _memoryInfo["facts"].Value : "?";
@@ -1114,7 +1142,7 @@ namespace AIBody
         }
 
         /// <summary>The persona's folder name for config.json and the companion app ("" = none).</summary>
-        private string PersonaName { get { return _personaJson.val == PersonaNone ? "" : _personaJson.val; } }
+        private string PersonaName { get { return string.IsNullOrEmpty(_personaJson.val) ? PersonaDefault : _personaJson.val; } }
 
         /// <summary>config.json ai.language into the menu; an unknown code is added as a choice so it is not lost.</summary>
         private void SetLanguage(string code)
@@ -1132,8 +1160,8 @@ namespace AIBody
 
         private void SetPersona(string name)
         {
-            // Version 40: an empty ai.persona_name means "(none)"; before, it was ignored and the old choice stayed.
-            if (string.IsNullOrEmpty(name)) name = PersonaNone;
+            // Version 40: an empty ai.persona_name was "(none)"; version 50 (no "(none)" any more): Anna.
+            if (string.IsNullOrEmpty(name) || name == "(none)") name = PersonaDefault;   // version 50: no "(none)" any more
             if (!_personaJson.choices.Contains(name))
             {
                 List<string> choices = new List<string>(_personaJson.choices);
@@ -1148,8 +1176,8 @@ namespace AIBody
         private readonly List<string> _personaNames = new List<string>();
         private bool _personaListSeen;
 
-        /// <summary>The persona list from the companion app: "(none)" first, then the folders; the chosen one is kept.
-        /// Version 35: a missing list (older app) keeps the last one; an empty list still gives the menu "(none)".</summary>
+        /// <summary>The persona list from the companion app: Anna and Marc first, then the folders; the chosen one is kept.
+        /// Version 35: a missing list (older app) keeps the last one; version 50: no "(none)" entry.</summary>
         private void SetPersonaChoices(JSONArray names)
         {
             if (names == null || _personaJson == null) return;
@@ -1158,18 +1186,18 @@ namespace AIBody
             for (int i = 0; i < names.Count; i++)
             {
                 string n = names[i].Value;
-                if (n.Length > 0 && n != PersonaNone && !_personaNames.Contains(n)) _personaNames.Add(n);
+                if (n.Length > 0 && n != "(none)" && !_personaNames.Contains(n)) _personaNames.Add(n);
             }
             RefreshPersonaChoices();
         }
 
-        /// <summary>Sets the Persona menu from _personaNames: always "(none)" first, the chosen one is kept.</summary>
+        /// <summary>Sets the Persona menu from _personaNames: always Anna and Marc first (version 50, no "(none)"), the chosen one is kept.</summary>
         private void RefreshPersonaChoices()
         {
             if (_personaJson == null) return;
-            // Version 40: an empty value (old scene or config) is "(none)", never a blank menu entry.
-            if (string.IsNullOrEmpty(_personaJson.val)) _personaJson.val = PersonaNone;
-            List<string> choices = new List<string> { PersonaNone };
+            // Version 40: never a blank menu entry; version 50: an empty or "(none)" value (old scene or config) is Anna.
+            if (string.IsNullOrEmpty(_personaJson.val) || _personaJson.val == "(none)") _personaJson.val = PersonaDefault;
+            List<string> choices = new List<string>(StarterPersonas);   // version 50: female + male starter, no "(none)"
             for (int i = 0; i < _personaNames.Count; i++) if (!choices.Contains(_personaNames[i])) choices.Add(_personaNames[i]);
             if (!choices.Contains(_personaJson.val)) choices.Add(_personaJson.val);
             bool same = choices.Count == _personaJson.choices.Count;
@@ -1441,12 +1469,27 @@ namespace AIBody
 
         private bool _choicesWarned;
 
+        private string[] BuiltInChoices(JSONStorableStringChooser chooser)
+        {
+            if (chooser == _sttJson) return SttChoices;
+            if (chooser == _llmJson) return LlmChoices;
+            return TtsChoices;
+        }
+
         private void SetChoices(JSONStorableStringChooser chooser, JSONArray names)
         {
             if (names == null || chooser == null) return;
-            List<string> choices = new List<string>();
-            for (int i = 0; i < names.Count; i++) choices.Add(names[i].Value);
-            if (!choices.Contains(chooser.val)) choices.Add(chooser.val);
+            // Version 50: the built-in list first (never empty or reduced to the test engine), then what the app reports.
+            List<string> choices = new List<string>(BuiltInChoices(chooser));
+            for (int i = 0; i < names.Count; i++)
+            {
+                string n = names[i].Value;
+                if (n.Length > 0 && !choices.Contains(n)) choices.Add(n);
+            }
+            if (!string.IsNullOrEmpty(chooser.val) && !choices.Contains(chooser.val)) choices.Add(chooser.val);
+            bool same = choices.Count == chooser.choices.Count;
+            for (int i = 0; same && i < choices.Count; i++) same = choices[i] == chooser.choices[i];
+            if (same) return;
             try
             {
                 // choices = ... refreshes a shown popup (E24, E25).

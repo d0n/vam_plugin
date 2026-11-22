@@ -84,7 +84,7 @@ class QaFlowTests(unittest.TestCase):
     def test_spoken_question_is_answered_audibly(self):
         app = self.start()
         self.assertEqual(app.engine_set.active_names, {"stt": "xai", "llm": "xai", "tts": "xai"})
-        self.assertEqual(app.engines, {"stt": "null", "llm": "echo", "tts": "tone"}, "the menus stay as they are")
+        self.assertEqual(app.engines, {"stt": "xai", "llm": "xai", "tts": "xai"}, "the menus stay as they are (v50 default xai)")
         self.speak_mic_question()
         stt = self.requests("/stt")
         self.assertEqual(len(stt), 1)

@@ -32,11 +32,11 @@ Since version 41 a loose file `personas\<name>.json` (same content) is listed to
 | `elevenlabs_voice_id` | Voice for ElevenLabs speech output, replaces `ai.elevenlabs.voice_id`. Optional. |
 | `memory` | `false` = nothing is ever remembered for this persona (default `true`; only applies if **Memory** is on). |
 
-Selection: tab **Voice** > **AI Character** > **Persona** (the list comes from the app, 5 s after a folder is created). `(none)` = the text `ai.persona` from `config.json`, as before version 27. The menu saves the choice with the scene (and in `config.json`: `ai.persona_name`). A change starts a **new conversation** (history emptied, new instructions, new voice; a realtime session is rebuilt) and saves the old persona's memory first. A persona that does not exist or is not readable is not used; the info field (tab Voice) and the app window say why. Errors in the file (wrong type, unknown key) are reported and skipped.
+Selection: tab **Voice** > **AI Character** > **Persona** (the list comes from the app, 5 s after a folder is created). Since version 50 there is no `(none)` entry: the menu always offers the female starter **Anna** (default) and the male starter **Marc**, plus your own folders; an empty `ai.persona_name` in `config.json` (or `(none)` in an old scene) means Anna. `ai.persona` is used only when the chosen persona's folder is missing. The menu saves the choice with the scene (and in `config.json`: `ai.persona_name`). A change starts a **new conversation** (history emptied, new instructions, new voice; a realtime session is rebuilt) and saves the old persona's memory first. A persona that does not exist or is not readable is not used; the info field (tab Voice) and the app window say why. Errors in the file (wrong type, unknown key) are reported and skipped.
 
 ## Memory
 
-Opt-in: toggle **Memory** (tab Voice, `ai.memory.enabled`, default off). When on, the app keeps a short list of facts that **the user said about themselves** (name, preferences, plans …) in
+Toggle **Memory** (tab Voice, `ai.memory.enabled`, default **on** since version 50, Leon 22.11.2026; before: off). When on, the app keeps a short list of facts that **the user said about themselves** (name, preferences, plans …) in
 
 ```
 <VaM main folder>\Saves\PluginData\AIBody\personas\<name>\memory.json      (without a persona: …\personas\default\memory.json)

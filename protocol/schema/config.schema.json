@@ -100,15 +100,15 @@
       "properties": {
         "stt": {
           "type": "string",
-          "default": "null"
+          "default": "xai"
         },
         "llm": {
           "type": "string",
-          "default": "echo"
+          "default": "xai"
         },
         "tts": {
           "type": "string",
-          "default": "tone"
+          "default": "xai"
         }
       },
       "description": "Tab 'Voice', section 'Voice > AI Character': stt null|xai, llm echo|xai, tts tone|xai|elevenlabs. A cloud engine without API key stays selected but the fallback (ai.fallback) runs"
@@ -842,7 +842,7 @@
         },
         "persona_name": {
           "type": "string",
-          "default": ""
+          "default": "Anna"
         },
         "memory": {
           "type": "object",
@@ -863,7 +863,7 @@
                   ]
                 }
               ],
-              "default": false
+              "default": true
             },
             "max_facts": {
               "anyOf": [

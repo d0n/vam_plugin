@@ -146,7 +146,7 @@ class FakePlugin:
                                          "expression_morphs_missing": [], "timeline_gestures": 0, "timeline": False}
         self.ai_ui: dict[str, Any] = {"mode": mode, "language": "de", "proactive": {"enabled": True, "idle_seconds": 90.0},
                                       "barge_in": {"enabled": True}, "realtime": {},
-                                      "persona_name": "", "memory": {"enabled": False}}  # version 27: menu Persona / Memory
+                                      "persona_name": "Anna", "memory": {"enabled": True}}  # menu Persona / Memory (v50 defaults: Anna, on)
         self.personas: list[str] = []  # companion heartbeat "personas" (the Persona menu's choices after "(none)")
         self.persona_in_use = ""       # companion heartbeat "persona"
         self.persona_note = ""         # companion heartbeat "persona_note"
@@ -158,7 +158,7 @@ class FakePlugin:
             "connection": {"active": True,
                            "paths": {"expressions": "Saves/PluginData/AIBody/expressions.json",
                                      "gestures": "Saves/PluginData/AIBody/gestures.json", "audio": ""}},
-            "engines": {"stt": "null", "llm": "echo", "tts": "tone"},
+            "engines": {"stt": "xai", "llm": "xai", "tts": "xai"},   # version 50 defaults of the plugin menus
             "mic": {"enabled": True, "mode": "vad", "vad_engine": "auto", "vad_strictness": 2, "vad_threshold": 0.01,
                     "end_silence_ms": 700,
                     "min_utterance_ms": 300, "max_utterance_ms": 20000, "echo_tail_s": 0.4, "gain": 1.0,

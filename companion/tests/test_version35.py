@@ -179,7 +179,7 @@ class PersonaMenuTests(unittest.TestCase):
         link = source("AppLink.cs")
         self.assertIn("_personaJson.popupOpenCallback = RefreshPersonaChoices;", link)
         refresh = method_body(link, "private void RefreshPersonaChoices()")
-        self.assertIn("new List<string> { PersonaNone }", refresh)
+        self.assertIn("new List<string>(StarterPersonas)", refresh)   # version 50: Anna + Marc, no "(none)"
         self.assertIn("page.Popup(_personaJson);", method_body(link, "public void BuildAiSection(UiPage page)"))
         self.assertIn("RefreshPersonaChoices();", method_body(link, "private void SetPersonaChoices(JSONArray names)"))
 

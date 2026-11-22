@@ -318,7 +318,8 @@ class Companion:
         if mode == "qa":
             if has_key:
                 return False, "Question and Answer: xAI speech recognition -> Grok -> xAI voice, speech only"
-            if any(v != OFFLINE_ENGINES[k] for k, v in self.engine_set.requested.items()):
+            # version 50: the menus default to xai; without a key those fall back to the test engines, so look at what runs
+            if any(self.engine_set.active_names.get(k, v) != OFFLINE_ENGINES[k] for k, v in self.engine_set.requested.items()):
                 return False, "Question and Answer with the engines selected in the menu (no xAI API key)"
             return False, ("Question and Answer without an xAI API key: test engines only (echo + tone) - "
                            "enter an API key from console.x.ai (not a Grok subscription token) in the plugin field "
