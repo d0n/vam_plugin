@@ -374,6 +374,7 @@ namespace AIBody
             page.Header("<b>Idle poses</b>");
             page.Toggle(_idlePosesJson);
             page.ScrollablePopup(_idlePoseDefaultJson);
+            page.Button("Apply idle default pose", ApplyIdleDefaultPose);   // 22.11.2026 (Leon): go there now
             page.Slider(_idlePoseMinJson);
             page.Slider(_idlePoseMaxJson);
             page.Header("<b>Idle motion and breathing</b>");
@@ -455,7 +456,7 @@ namespace AIBody
             return "<b>Idle poses</b> is " + (_idlePoses.Enabled ? _idlePoses.Status : "off") + ": after " + _idlePoses.MinSeconds.ToString("0")
                 + "-" + _idlePoses.MaxSeconds.ToString("0") + " s (<b>Idle pose min wait (s)</b> to <b>Idle pose max wait (s)</b>) without speech "
                 + "or a pose command the character takes one of the " + count + " available pose command poses and next time goes back to "
-                + "<b>Idle default pose</b> (" + (home ?? "'" + _idlePoses.DefaultPose + "' not found, so it does not go back")
+                + "<b>Idle default pose</b> (<b>Apply idle default pose</b> goes there now) (" + (home ?? "'" + _idlePoses.DefaultPose + "' not found, so it does not go back")
                 + "); after your own pose command it waits " + IdlePoseScheduler.CooldownSeconds.ToString("0")
                 + " s first, and <b>Idle head motion</b> and <b>Breathing</b> keep running in every pose.\n";
         }
@@ -742,6 +743,18 @@ namespace AIBody
         {
             if (_syncingPoseMenu || string.IsNullOrEmpty(command)) return;
             ApplyPoseCommand(command);
+        }
+
+        /// <summary>Button "Apply idle default pose" (22.11.2026, Leon: idle pose control in the menu): the pose chosen in
+        /// "Idle default pose", applied now; the idle poses then wait their full time again.</summary>
+        private void ApplyIdleDefaultPose()
+        {
+            if (_poses == null || _idlePoses == null) { Note("<color=red>Apply idle default pose: poses not available</color>", true); return; }
+            string pose = IdlePoseScheduler.ResolveName(_idlePoseDefaultJson.val, _poses.PoseNames);
+            if (pose == null) { Note("<color=red>Apply idle default pose: this character has no pose '" + _idlePoseDefaultJson.val + "' (Reload poses)</color>", true); return; }
+            string error = _poses.ApplyPose(pose);
+            if (error == null) { _idlePoses.NoteUserPose(); Note("Idle default pose applied: " + pose, false); }
+            else Note("<color=red>Apply idle default pose '" + pose + "': " + error + "</color>", true);
         }
 
         /// <summary>Button "Apply Pose" (22.11.2026): the command chosen in "Pose command", applied now.</summary>

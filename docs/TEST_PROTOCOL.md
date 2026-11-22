@@ -850,3 +850,9 @@ Report: screenshots of both boxes.
 1. Tab **AI Character** > *Poses*: under **Pose command** there is a button **Apply Pose**.
 2. Choose a command: the pose is applied at once (as before). Move the character a bit (or let an idle pose run), press **Apply Pose**: the same pose is applied again right away; the left field says "Last action: Pose command applied: ...".
 3. **Apply Pose** with nothing chosen: red note "choose the command in Pose command first".
+
+## T82 – Idle pose control: Apply idle default pose (main after v48, Leon 22.11.2026 call)
+
+1. Tab **AI Character** > *Idle poses*: **Idle poses**, **Idle default pose**, then the new button **Apply idle default pose**, then the two wait sliders.
+2. Choose a pose in **Idle default pose** and press **Apply idle default pose**: the character takes it at once ("Last action: Idle default pose applied: ..."), and the next idle pose comes only after the min wait.
+3. A default pose the character does not have: red note, nothing moves.
