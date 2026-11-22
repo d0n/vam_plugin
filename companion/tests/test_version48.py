@@ -1,6 +1,6 @@
 """Version 48 (Leon, 22.11.2026 12:58-12:59): "Full volume distance (m)" back, EasyMoan's way - only minDistance (and
 maxDistance 500), only from Body.Update, only when changed and idle, default 3 m; README/T77 output device note; the
-companion logs the Windows default output device once; release notes in English (Leon 13:03)."""
+companion logs the Windows default output device once; release notes in English (Leon 13:03). Released as v48 (22.11.2026)."""
 from __future__ import annotations
 
 import json
@@ -37,36 +37,9 @@ def method(src: str, signature: str) -> str:
 
 
 class VersionTests(TestCase):
-    def test_version_48_everywhere(self):
-        self.assertEqual(__version__, "48")
-        self.assertIn('PluginVersion = "48"', source("AIBody.cs"))
-        self.assertIn('version = "48"', (ROOT / "companion" / "pyproject.toml").read_text())
-        self.assertEqual(json.loads((ROOT / "packaging" / "AIBody.json").read_text())["version"], 48)
-        self.assertTrue(re.search(r"d0n\.AIBody\.48:", first_start.TEMPLATE.read_text()))
-        self.assertIn("AIBody companion app 48 (example)", (ROOT / "examples" / "config.json").read_text(encoding="utf-8"))
-        for f in ("README.md", "docs/REQUIREMENTS.md", "docs/SCENE_GREENSCREEN.md", "docs/RELEASE_NOTES_NEXT.md"):
-            self.assertNotIn("AIBody.47", (ROOT / f).read_text(encoding="utf-8"), f)
-
-    def test_docs(self):
-        readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertIn("Status: version 48, package `d0n.AIBody.48.var`, release `v48`", readme)
-        self.assertIn("| `body.full_volume_distance` | number | 3.0 | [0.3–10] |", readme)
-        self.assertIn("Windows default output device that is active when VaM starts", readme)
-        self.assertIn("(version 48; Leon, 12:58-12:59", (ROOT / "docs" / "SPEC.md").read_text(encoding="utf-8"))
-        tp = (ROOT / "docs" / "TEST_PROTOCOL.md").read_text(encoding="utf-8")
-        t77 = tp[tp.index("## T77"):]
-        for part in ("Windows default output device", "headset app first", "**Full volume distance (m)** 3",
-                     "While the AI is speaking", "1–2 m", "every answer is spoken"):
-            self.assertIn(part, t77)
-
-    def test_release_notes_english(self):
-        notes = (ROOT / "docs" / "RELEASE_NOTES_NEXT.md").read_text(encoding="utf-8")
-        self.assertIn("**AIBody v48**", notes)
-        for part in ("d0n.AIBody.48.var", "Full volume distance (m)", "Default **3 m**", "minDistance", "not speaking",
-                     "Windows default output device", "headset app first", "T77"):
-            self.assertIn(part, notes)
-        self.assertNotIn("Default **2 m**", notes)
-        self.assertNotIn("RELEASE_NOTES_NEXT", (ROOT / "tools" / "check_plugin.py").read_text(encoding="utf-8"))
+    def test_version_48_is_historical(self):
+        """Historical: version 48 sources are gone after the v49 bump; consistency is test_version49."""
+        self.assertTrue((ROOT / "companion" / "tests" / "test_version49.py").is_file())
 
 
 class DistanceTests(TestCase):
