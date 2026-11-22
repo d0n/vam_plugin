@@ -527,3 +527,8 @@ Rules kept: no `UnityWebRequest`, no `UnityEngine.Networking`, no TCP/HTTP/WebCl
 
 - **Bold control names in the left info fields (20.11.2026):** Unity rich text `<b>...</b>` in the value of the existing
   info `JSONStorableString` shown by `CreateTextField` (E35; `<color=red>` was already used in the same field). No new API.
+
+- **Version 54 (22.11.2026): rigid Body position, place guard, speech backlog.** `BodyMover.Relocate` uses only the
+  audited `Atom.freeControllers`, `Atom.mainController`, `FreeControllerV3.transform.position/rotation`,
+  `Quaternion.Inverse/Euler`, `Vector3` math; the idle-pool file check uses `FileManagerSecure.FileExists`; the speech
+  backlog uses `DateTime.UtcNow` and the existing `AudioSource`/`JSONStorable` calls. No new API.

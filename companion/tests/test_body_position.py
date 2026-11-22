@@ -33,22 +33,24 @@ class MenuTests(unittest.TestCase):
 
 
 class MoveTests(unittest.TestCase):
-    def test_only_the_difference_is_applied(self):
+    """Version 54 (Leon 23:28): absolute offsets from a home placement, one rigid Relocate per change (test_v54_items)."""
+
+    def test_sliders_go_to_home_plus_offsets(self):
         move = method_body(BODY, "private void OnBodyMove()")
-        for part in ("_turnJson.val - _turned", "_moveForwardJson.val - _movedForward", "BodyMover.Turn(_atom, turn)",
-                     "BodyMover.ShiftFor(_atom, forward, right)", "_movedShift = _movedShift + shift", "if (_syncingMove"):
+        for part in ("if (_syncingMove", "_homePos = _atom.mainController.transform.position", "BodyMover.TargetPosition(_homePos, _homeRot",
+                     "Quaternion.Euler(0f, _turnJson.val, 0f) * _homeRot", "BodyMover.Relocate(_atom, pos, rot)"):
             self.assertIn(part, move)
 
-    def test_reset_takes_everything_back(self):
+    def test_reset_goes_home(self):
         reset = method_body(BODY, "private void ResetBodyPosition()")
-        self.assertLess(reset.index("BodyMover.Turn(_atom, -_turned)"), reset.index("BodyMover.Shift(_atom, _movedShift * -1f)"))
+        self.assertIn("BodyMover.Relocate(_atom, _homePos, _homeRot)", reset)
         self.assertIn("_syncingMove = true", reset)
         self.assertIn("finally", reset)
 
     def test_mover_uses_the_audited_controller_calls(self):
         mover = POSE[POSE.index("public static class BodyMover"):]
-        for part in ("atom.freeControllers", "atom.mainController.transform", "c.transform.position", "c.transform.rotation",
-                     "Quaternion.Euler(0f, degrees, 0f)", "Vector3.Cross(Vector3.up, f)"):
+        for part in ("atom.freeControllers", "atom.mainController", "main.transform.position = wantPos", ".transform.rotation",
+                     "Quaternion.Euler(0f, degrees, 0f)", "Vector3.Cross(Vector3.up, f)", "Quaternion.Inverse("):
             self.assertIn(part, mover)
         for banned in ("GetComponent", "Reflection", "foreach"):
             self.assertNotIn(banned, mover)

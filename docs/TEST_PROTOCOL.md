@@ -907,6 +907,34 @@ Report: a dropdown without entries after the reset, the same pose twice in a row
 7. Idle head motion on: watch the head and chest for 2 s after each pose load: no jerk; the idle sway starts again after about 1 s.
 Report: a pose that does not apply, any twitching, a pose applied by just choosing an entry, Body control off after using Dollmaster.
 
+## T89 – Body position moves the whole character and stays (version 54, Leon 23:27-23:31)
+1. Install v54, start AIBody Companion, then VaM; load AI-Buddy. Tab AI Character, section *Body position*.
+2. Move **Move forward / back (m)** to 1, then **Move right / left (m)** to -1, then **Turn (degrees)** to 90: the WHOLE character moves and turns as one piece (no bent limbs, no part left behind).
+3. Wait for an idle pose switch (or set Idle pose min/max wait to 30 s) and press a pose command button (e.g. Apply Pose): she may flicker briefly but stays at the moved place; the log may say "Pose 'x' moved the whole character N cm ... put back to her place".
+4. Drag her by hand to another place, apply a pose: she stays where you put her.
+5. Press **Reset body position**: she goes back to where she stood before the first move; the sliders are 0.
+Report: a part of the body left behind, her jumping back after a pose, Reset not returning her.
+
+## T90 – Idle poses from the AIBody folder, toggle, bad pose files (version 54)
+1. Tab AI Character > Idle poses: the info field says the pool is the AIBody pose folder (Custom/Atom/Person/Pose/AIBody) plus the linked poses; **Idle poses from all pose files** is off.
+2. Watch idle switches for a few minutes (min/max wait 30 s): only AIBody poses and pose-command poses are used.
+3. Switch **Idle poses from all pose files** on: the pool count grows to all pose files. Switch it off again.
+4. If a pose fails ("failed and is left out from now on"), it never comes again; the info field counts it as left out.
+Report: a pose from another folder while the toggle is off, a bad pose coming again.
+
+## T91 – Scene thumbnail and Freeze Motion/Sound (version 54)
+1. Close VaM. In AddonPackages remove every old `d0n.AIBody.*.var` except 54; remove a loose `Saves/scene/AIBody/AI-Buddy.json` if you copied one by hand (the setup writes it together with AI-Buddy.jpg). Delete VaM's cache (VaM Settings > Clear cache, or the `Cache` folder).
+2. Start VaM, Open Scene, browse to AIBody: AI-Buddy shows its picture.
+3. In VaM switch Freeze Motion and Sound off (top bar), load AI-Buddy: it stays off (the scene stores no freeze state).
+Report: no picture (with a screenshot of the AddonPackages folder), freeze on after loading.
+
+## T92 – Speech backlog / stall test (version 54)
+1. Talk to her normally: answers come one after another as before.
+2. While she answers, freeze VaM for more than 5 s (Freeze Motion/Sound on, or alt-tab away with VaM paused, or keep the main menu open) and say two or three short sentences.
+3. Unfreeze: she does NOT play a burst of old answers; within a few seconds she answers only the newest thing you said. The companion log says "Plugin back after about N s" and maybe "Merged N queued utterance(s) into one turn".
+4. Freeze Motion/Sound on while she should talk: after about 3 s the log says the clip did not play (it names Freeze Motion/Sound); stale clips older than 8 s are dropped ("Speech backlog: N clip(s) ... dropped as stale").
+Report: a burst of late answers, answers to old sentences after unfreezing, a stuck mouth/voice.
+
 ## T88 – Expressions, Show expression, Reload Config JSON (version 53, Leon 22.11.2026 20:49 / 20:57)
 1. Install v53, start AIBody Companion, then VaM; load AI-Buddy. Tab AI Character, part *Expression and gesture*: the buttons are **Show expression** and **Reset expression** (no "Reload expressions (expressions.json)").
 2. Without opening the menu, press **Show expression**: the face shows "happy" clearly (the first entry); the left field says "Expression 'happy': N of N morphs found". VaM's Auto Expressions (person tab Auto Expressions) are off while it shows.

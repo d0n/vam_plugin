@@ -33,6 +33,9 @@ namespace AIBody
         private JSONStorableBool _bodyControlJson;
         // Idle poses (version 35): the character changes on its own to an available pose now and then.
         private JSONStorableBool _idlePosesJson;
+        private JSONStorableBool _idleAllFilesJson;   // version 54
+        private bool _poolDirty = true;               // version 54: the info field recounts the pool only after a change
+        private int _poolCount, _poolVocabCount = -1, _poolNamesCount = -1;
         private JSONStorableFloat _idlePoseMinJson;
         private JSONStorableFloat _idlePoseMaxJson;
         private JSONStorableStringChooser _idlePoseDefaultJson;
@@ -258,6 +261,10 @@ namespace AIBody
             SettingsDefaults.Text(_plugin, _breathMorphJson);
             _idlePosesJson = new JSONStorableBool("Idle poses", true, (bool v) => { if (_idlePoses != null) _idlePoses.Enabled = v; });
             SettingsDefaults.Bool(_plugin, _idlePosesJson);
+            // Version 54 (Leon 23:31): idle poses use the AIBody pose folder (+ the poses linked by pose commands and the Idle
+            // default pose); this toggle adds every pose file of the library again (as in v51-v53). Off by default.
+            _idleAllFilesJson = new JSONStorableBool("Idle poses from all pose files", false, (bool v) => { _poolDirty = true; });
+            SettingsDefaults.Bool(_plugin, _idleAllFilesJson);
             // Version 51 (Leon 20:38-20:51): these two sliders set how often the random idle pose changes (30 / 300 s,
             // 30 - 18000 s); the storable names stay, so old scenes keep their values. Min never above max.
             _idlePoseMinJson = new JSONStorableFloat("Idle pose min wait (s)", IdlePoseScheduler.DefaultMinSeconds,
@@ -267,7 +274,7 @@ namespace AIBody
                 OnIdleMaxChanged, IdlePoseScheduler.LowestSeconds, IdlePoseScheduler.HighestSeconds);
             SettingsDefaults.Float(_plugin, _idlePoseMaxJson);
             _idlePoseDefaultJson = new JSONStorableStringChooser("Idle default pose", new List<string> { IdlePoseScheduler.DefaultIdlePose },
-                IdlePoseScheduler.DefaultIdlePose, "Idle default pose", (string v) => { if (_idlePoses != null) _idlePoses.DefaultPose = v; });
+                IdlePoseScheduler.DefaultIdlePose, "Idle default pose", (string v) => { if (_idlePoses != null) _idlePoses.DefaultPose = v; _poolDirty = true; });
             _idlePoseDefaultJson.popupOpenCallback = RefreshCharacterChoices;
             SettingsDefaults.Chooser(_plugin, _idlePoseDefaultJson);
 
@@ -397,6 +404,7 @@ namespace AIBody
             page.Button("Reset body position", ResetBodyPosition);
             page.Header("<b>Idle poses</b>");
             page.Toggle(_idlePosesJson);
+            page.Toggle(_idleAllFilesJson);
             page.ScrollablePopup(_idlePoseDefaultJson);
             page.Button("Apply idle default pose", ApplyIdleDefaultPose);   // 22.11.2026 (Leon): go there now
             page.Slider(_idlePoseMinJson);
@@ -455,6 +463,7 @@ namespace AIBody
             text += Characters != null ? Characters.InfoText() : "";
             text += "Poses: " + (_poses != null ? _poses.PoseNames.Count + " in the menu (" + _poses.PoseScanNote + ")" : "PoseController missing") + "\n";
             if (_poses != null && !string.IsNullOrEmpty(_poses.LastLoadCheck)) text += "Last pose load: " + _poses.LastLoadCheck + "\n";
+            if (_poses != null && !string.IsNullOrEmpty(_poses.LastPlaceNote)) text += "Last place kept: " + _poses.LastPlaceNote + "\n";   // version 54
             text += PoseCommandsInfo();
             text += IdlePosesInfo();
             text += ExpressionHelp + "\n" + BodyControlHelp + "\n" + BodyPositionHelp + "\n" + BreathingHelp + "\n";
@@ -476,13 +485,26 @@ namespace AIBody
         {
             if (_idlePoses == null) return "Idle poses: not available (see the log)\n";
             List<string> names = _poses != null ? _poses.PoseNames : new List<string>();
-            int pool = _poses != null ? _idlePoses.Pool(_poses.Vocabulary, names).Count : 0;
+            // Version 54: the pool is counted only after something changed (Reload poses, the toggle, the default pose, a
+            // dropped pose), not on every refresh of the open menu (up to v53 every 0.5 s over up to 200 poses).
+            if (_poses != null && (_poses.Vocabulary.Count != _poolVocabCount || names.Count != _poolNamesCount)) _poolDirty = true;
+            if (_poolDirty && _poses != null)
+            {
+                _poolDirty = false;
+                _poolVocabCount = _poses.Vocabulary.Count;
+                _poolNamesCount = names.Count;
+                _poolCount = _idlePoses.Pool(_poses.Vocabulary, _poses.IdlePoolNames(IdleAllFiles), names).Count;
+            }
+            int pool = _poolCount;
             string home = IdlePoseScheduler.ResolveName(_idlePoses.DefaultPose, names);
             return "<b>Idle poses</b> is " + (_idlePoses.Enabled ? _idlePoses.Status : "off") + ". <b>Idle pose min wait (s)</b> and "
                 + "<b>Idle pose max wait (s)</b> control how often the idle pose changes: after a random wait between "
                 + WaitText(_idlePoses.MinSeconds) + " and " + WaitText(_idlePoses.MaxSeconds) + " without speech or a pose command the "
-                + "character takes a random pose of all " + pool + " poses it has (its pose files, gestures.json poses, the poses of "
-                + "your pose commands and the Idle default pose), never the same one twice in a row. Defaults 30 s and 300 s (5 min), "
+                + "character takes a random pose of its " + pool + " idle poses (the pose files in " + PoseController.OwnPoseFolder
+                + ", gestures.json poses, the poses of your pose commands and the Idle default pose; <b>Idle poses from all pose files</b> "
+                + "(" + (IdleAllFiles ? "on" : "off") + ") adds every pose file of your library), never the same one twice in a row"
+                + (_idlePoses.ExcludedCount > 0 ? "; " + _idlePoses.ExcludedCount + " pose(s) that failed to load are left out" : "")
+                + ". A pose that stores its own root position no longer moves her away: she is put back to her place. Defaults 30 s and 300 s (5 min), "
                 + "range 30 to 18000 s (300 min); both the same = a fixed interval; min is never above max. For an exact value type "
                 + "the number into the slider's value field, or set body.idle_pose_min_s / body.idle_pose_max_s in config.json. "
                 + "<b>Idle default pose</b> (" + (home ?? "'" + _idlePoses.DefaultPose + "' not found") + ") is one of the poses and "
@@ -789,45 +811,56 @@ namespace AIBody
         private JSONStorableFloat _moveForwardJson;
         private JSONStorableFloat _moveRightJson;
         private JSONStorableFloat _turnJson;
-        private float _movedForward, _movedRight, _turned;   // what the sliders have applied so far
-        private Vector3 _movedShift = Vector3.zero;          // the world shift of all moves (for Reset body position)
+        // Version 54 (Leon 23:28): the sliders are offsets from her HOME placement (the main controller when the first slider
+        // moved away from 0); every change puts her there ABSOLUTELY and rigidly (BodyMover.Relocate), Reset puts her home.
+        private bool _homeSet;
+        private Vector3 _homePos;
+        private Quaternion _homeRot;
         private bool _syncingMove;
 
         public const string BodyPositionHelp = "<b>Body position</b> moves the whole AI character: <b>Move forward / back (m)</b> and "
             + "<b>Move right / left (m)</b> go the way she faces, <b>Turn (degrees)</b> turns her on the spot, and <b>Reset body position</b> "
-            + "takes all of it back. Save the scene to keep the new place.";
+            + "takes all of it back. Save the scene to keep the new place. Since version 54 the whole character moves as one piece, and a "
+            + "pose that stores its own root position (idle poses, pose commands) no longer pulls her away: she is put back to her place.";
 
-        /// <summary>A slider changed: apply only the difference to what was applied (a slider fires while it is dragged).</summary>
+        /// <summary>A slider changed: the person goes to home + the three offsets (absolute; a slider fires while it is dragged).</summary>
         private void OnBodyMove()
         {
-            if (_syncingMove || _atom == null) return;
-            float turn = _turnJson.val - _turned;
-            if (Math.Abs(turn) > 0.01f) { BodyMover.Turn(_atom, turn); _turned = _turnJson.val; }
-            float forward = _moveForwardJson.val - _movedForward;
-            float right = _moveRightJson.val - _movedRight;
-            if (Math.Abs(forward) > 0.0001f || Math.Abs(right) > 0.0001f)
+            if (_syncingMove || _atom == null || _atom.mainController == null) return;
+            if (!_homeSet)
             {
-                Vector3 shift = BodyMover.ShiftFor(_atom, forward, right);
-                BodyMover.Shift(_atom, shift);
-                _movedShift = _movedShift + shift;
-                _movedForward = _moveForwardJson.val;
-                _movedRight = _moveRightJson.val;
+                _homePos = _atom.mainController.transform.position;
+                _homeRot = _atom.mainController.transform.rotation;
+                _homeSet = true;
             }
+            Vector3 pos = BodyMover.TargetPosition(_homePos, _homeRot, _moveForwardJson.val, _moveRightJson.val, _turnJson.val);
+            Quaternion rot = Quaternion.Euler(0f, _turnJson.val, 0f) * _homeRot;
+            int n = BodyMover.Relocate(_atom, pos, rot);
             if (_idle != null) _idle.Rebase();   // the idle head motion starts from the new place
+            Log.Debug("Body position: forward " + _moveForwardJson.val.ToString("0.00") + " m, right " + _moveRightJson.val.ToString("0.00")
+                + " m, turn " + _turnJson.val.ToString("0") + " degrees (" + n + " controllers)");
         }
 
-        /// <summary>Button "Reset body position": turn back, then move back; the sliders show 0 again.</summary>
+        /// <summary>Button "Reset body position": back to the home placement; the sliders show 0 again.</summary>
         private void ResetBodyPosition()
         {
             if (_atom == null) return;
-            if (Math.Abs(_turned) > 0.01f) BodyMover.Turn(_atom, -_turned);
-            BodyMover.Shift(_atom, _movedShift * -1f);
-            _turned = 0f; _movedForward = 0f; _movedRight = 0f; _movedShift = Vector3.zero;
+            if (_homeSet) BodyMover.Relocate(_atom, _homePos, _homeRot);
+            _homeSet = false;
             _syncingMove = true;
             try { _moveForwardJson.val = 0f; _moveRightJson.val = 0f; _turnJson.val = 0f; }
             finally { _syncingMove = false; }
             if (_idle != null) _idle.Rebase();
             Note("Body position reset", false);
+        }
+
+        /// <summary>Version 54: Reset poses put her back to the scene placement; the Body position offsets start at 0 again.</summary>
+        public void ForgetBodyPosition()
+        {
+            _homeSet = false;
+            _syncingMove = true;
+            try { _moveForwardJson.val = 0f; _moveRightJson.val = 0f; _turnJson.val = 0f; }
+            finally { _syncingMove = false; }
         }
 
         /// <summary>Version 51: min wait raised above max moves max up with it (and the other way round).</summary>
@@ -959,6 +992,7 @@ namespace AIBody
             body["breath_depth"].AsFloat = _breathDepthJson.val;
             body["breath_morph"] = _breathMorphJson.val;
             body["idle_poses"].AsBool = _idlePosesJson.val;
+            body["idle_poses_all_files"].AsBool = _idleAllFilesJson.val;   // version 54
             body["idle_pose_min_s"].AsFloat = _idlePoseMinJson.val;
             body["idle_pose_max_s"].AsFloat = _idlePoseMaxJson.val;
             body["idle_pose_default"] = _idlePoseDefaultJson.val;
@@ -995,6 +1029,7 @@ namespace AIBody
             _breathDepthJson.val = Protocol.GetFloat(body, "breath_depth", _breathDepthJson.val);
             _breathMorphJson.val = Protocol.GetString(body, "breath_morph", _breathMorphJson.val);
             _idlePosesJson.val = Protocol.GetBool(body, "idle_poses", _idlePosesJson.val);
+            _idleAllFilesJson.val = Protocol.GetBool(body, "idle_poses_all_files", _idleAllFilesJson.val);   // version 54
             _idlePoseMinJson.val = Protocol.GetFloat(body, "idle_pose_min_s", _idlePoseMinJson.val);
             _idlePoseMaxJson.val = Protocol.GetFloat(body, "idle_pose_max_s", _idlePoseMaxJson.val);
             string home = Protocol.GetString(body, "idle_pose_default", _idlePoseDefaultJson.val);
@@ -1047,6 +1082,7 @@ namespace AIBody
             if (_poses == null) return;
             _poses.LoadGestureFile(GesturesPath);
             _poses.ScanPoseFiles();
+            _poolDirty = true;
             Log.Info(_poses.PoseScanNote + "; " + _poses.PoseNames.Count + " poses in the menu / available to the AI");
             _selfTestAge = 999f;
         }
@@ -1185,17 +1221,26 @@ namespace AIBody
 
         private bool _idlePosesBroken;
 
+        /// <summary>Version 54: setting "Idle poses from all pose files" (config.json body.idle_poses_all_files).</summary>
+        private bool IdleAllFiles { get { return _idleAllFilesJson != null && _idleAllFilesJson.val; } }
+
         private void UpdateIdlePoses(float dt, bool speaking)
         {
             if (_idlePoses == null || _poses == null || _idlePosesBroken) return;
             try
             {
                 bool busy = speaking || (UserSpeaking != null && UserSpeaking()) || (_speech != null && _speech.QueueLength > 0);
-                string pose = _idlePoses.Update(dt, busy, BodyControl, _poses.Vocabulary, _poses.PoseNames);
+                string pose = _idlePoses.Update(dt, busy, BodyControl, _poses.Vocabulary, _poses.IdlePoolNames(IdleAllFiles), _poses.PoseNames);
                 if (pose == null) return;
-                string error = _poses.ApplyPose(pose);
+                // Version 54: a pose file that is gone or cannot be loaded is dropped from the pool for this session.
+                string error = _poses.PoseFileProblem(pose) ?? _poses.ApplyPose(pose);
                 if (error == null) Log.Debug("Idle pose: " + pose + " (random of a pool of " + _idlePoses.PoolSize + " poses)");
-                else Log.Warn("Idle pose '" + pose + "' failed: " + error);
+                else
+                {
+                    _idlePoses.Exclude(pose);
+                    _poolDirty = true;
+                    Log.Warn("Idle pose '" + pose + "' failed and is left out from now on: " + error);
+                }
             }
             catch (Exception e)
             {

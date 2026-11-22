@@ -60,6 +60,43 @@ namespace AIBody
         /// <summary>Version 52: the result of the last pose load once it settled ("" while none), for the info field and the log.</summary>
         public string LastLoadCheck { get; private set; }
 
+        /// <summary>Version 54 (Leon 23:31): a pose file may store the root node (its XYZ / turn). VaM then puts the whole person
+        /// there and she leaves her place (moved by Body position, or vanished off-screen after an idle pose). With KeepPlace on
+        /// (always, no menu) the main controller's placement is taken right BEFORE every pose load (idle pose, pose command,
+        /// Apply Pose, Apply idle default pose) and the person is put back there rigidly (the new pose kept) right after the
+        /// load and on every frame of the next GuardSeconds while VaM settles. The pose files are never changed.</summary>
+        public bool KeepPlace = true;
+        public const float GuardSeconds = SettleSeconds + 0.5f;
+        private float _guardFor = -1f;
+        private Vector3 _placePos;
+        private Quaternion _placeRot;
+        private bool _placeRestored;
+        /// <summary>Version 54: "" or the last time a pose moved the root and the plugin put the person back (info field).</summary>
+        public string LastPlaceNote { get; private set; }
+
+        private void TakePlace()
+        {
+            _guardFor = -1f;
+            _placeRestored = false;
+            if (!KeepPlace || _atom == null || _atom.mainController == null) return;
+            _placePos = _atom.mainController.transform.position;
+            _placeRot = _atom.mainController.transform.rotation;
+            _guardFor = GuardSeconds;
+        }
+
+        /// <summary>Version 54: puts the person back to the placement taken before the pose load if the load moved the root.</summary>
+        private void GuardPlace()
+        {
+            if (_guardFor < 0f || _atom == null || !BodyMover.Moved(_atom, _placePos, _placeRot)) return;
+            float cm = (_atom.mainController.transform.position - _placePos).magnitude * 100f;
+            BodyMover.Relocate(_atom, _placePos, _placeRot);
+            if (_placeRestored) return;   // one note per load (VaM may push it again for a frame or two)
+            _placeRestored = true;
+            LastPlaceNote = "pose " + Short(_checkPose) + " stores a root position (" + cm.ToString("0") + " cm away): the character was put back to her place";
+            Log.Info("Pose " + Short(_checkPose) + " moved the whole character " + cm.ToString("0") + " cm (its file stores the root node): "
+                + "put back to her place, the pose kept (the pose file is not changed)");
+        }
+
         /// <summary>
         /// Pose presets by name: gestures.json entries of kind "pose" first, then the preset files in
         /// PoseFolders (name = file name without "Preset_" and extension). Used by the pose menu in
@@ -76,6 +113,39 @@ namespace AIBody
                     if (!names.Contains(kv.Key)) names.Add(kv.Key);
                 return names;
             }
+        }
+
+        /// <summary>Version 54: the folder whose pose files idle poses use on their own (the others only with
+        /// "Idle poses from all pose files", or when a pose command links them).</summary>
+        public const string OwnPoseFolder = "Custom/Atom/Person/Pose/AIBody";
+
+        /// <summary>True for a pose file in OwnPoseFolder (the path as GetFiles returned it, any slash, any case).</summary>
+        public static bool IsOwnPoseFile(string path)
+        {
+            string p = (path ?? "").Replace('\\', '/').ToLowerInvariant();
+            return p.Contains("/pose/aibody/") || p.StartsWith("pose/aibody/");
+        }
+
+        /// <summary>Version 54: the poses idle poses may pick on their own: gestures.json poses and OwnPoseFolder files, or every
+        /// listed pose file with allFiles (setting "Idle poses from all pose files").</summary>
+        public List<string> IdlePoolNames(bool allFiles)
+        {
+            List<string> names = new List<string>();
+            foreach (KeyValuePair<string, JSONClass> kv in _gestures)
+                if (kv.Value["kind"].Value == "pose") names.Add(kv.Key);
+            foreach (KeyValuePair<string, string> kv in _poseFiles)   // not the key collection (CS584 in VaM)
+                if ((allFiles || IsOwnPoseFile(kv.Value)) && !names.Contains(kv.Key)) names.Add(kv.Key);
+            return names;
+        }
+
+        /// <summary>Version 54: why a listed pose FILE cannot be used (missing), or null (also for gestures.json / unknown names).</summary>
+        public string PoseFileProblem(string name)
+        {
+            string path;
+            if (string.IsNullOrEmpty(name) || !_poseFiles.TryGetValue(name, out path)) return null;
+            bool exists = true;
+            try { exists = FileManagerSecure.FileExists(path); } catch (Exception) { exists = true; }   // E10
+            return exists ? null : "pose file not found: " + path;
         }
 
         /// <summary>The menu name of a listed pose file (Add Pose, version 42), or null if the file is not in PoseFolders.</summary>
@@ -268,6 +338,7 @@ namespace AIBody
             bool onSelectWas = onSelect != null && onSelect.val;
             if (BeforePoseLoad != null) BeforePoseLoad();
             StartCheck(path);
+            TakePlace();   // version 54: her place (incl. Body position) before the pose; GuardPlace puts her back
             try
             {
                 if (onSelect != null && onSelectWas) onSelect.val = false;
@@ -278,6 +349,7 @@ namespace AIBody
             {
                 if (onSelect != null && onSelectWas) onSelect.val = true;
             }
+            GuardPlace();   // version 54: right after the load (no visible jump when VaM applied it at once)
             Log.Debug("Pose preset loaded once: " + path + " on '" + _atom.uid + "' (Load On Select was " + (onSelectWas ? "on" : "off") + ")");
             if (OnPoseLoaded != null) OnPoseLoaded();
             return null;
@@ -295,6 +367,12 @@ namespace AIBody
         /// <summary>Version 52: SettleSeconds after a pose load, how far the controllers moved (the log says if none did).</summary>
         public void Update(float dt)
         {
+            if (_guardFor >= 0f)
+            {
+                GuardPlace();   // version 54: every frame while VaM settles the pose
+                _guardFor -= dt;
+                if (_guardFor < 0f) _guardFor = -1f;
+            }
             if (_checkIn < 0f) return;
             _checkIn -= dt;
             if (_checkIn > 0f) return;
@@ -471,16 +549,28 @@ namespace AIBody
     /// <summary>Body position (22.11.2026, Leon: body position control in the menu): moves the whole Person by moving every
     /// controller, the same calls as PlacementSnapshot (Atom.freeControllers, E12/E28; FreeControllerV3.transform position /
     /// rotation, E6). Forward / right follow the way the character faces (its main controller, flat); the turn is about the
-    /// vertical axis through the main controller.</summary>
+    /// vertical axis through the main controller.
+    /// Version 54 (Leon 23:28 "relocating the body does not work"): up to v53 every controller got "+ shift" on top of where
+    /// it was, one after the other. In VaM the other controllers of a Person ride on its main controller (the root node
+    /// carries the whole person), so moving the main controller first already moved them and the "+ shift" moved them a
+    /// second time: the body was pulled apart and physics pulled it back. Now every move is RIGID and ABSOLUTE: all
+    /// positions / rotations are read first, the main controller is set first, then every other controller is set to its
+    /// own absolute target - right whether VaM moves the others with the main controller or not.</summary>
     public static class BodyMover
     {
+        /// <summary>The flat facing direction of a rotation (forward without its up/down part).</summary>
+        public static Vector3 FacingOf(Quaternion rotation)
+        {
+            Vector3 f = rotation * Vector3.forward;
+            f = new Vector3(f.x, 0f, f.z);
+            return f.magnitude < 0.001f ? Vector3.forward : f.normalized;
+        }
+
         /// <summary>The flat facing direction of the atom (main controller forward without its up/down part).</summary>
         public static Vector3 Facing(Atom atom)
         {
             if (atom == null || atom.mainController == null) return Vector3.forward;
-            Vector3 f = atom.mainController.transform.rotation * Vector3.forward;
-            f = new Vector3(f.x, 0f, f.z);
-            return f.magnitude < 0.001f ? Vector3.forward : f.normalized;
+            return FacingOf(atom.mainController.transform.rotation);
         }
 
         /// <summary>The world shift of a move of `forward` / `right` metres along the facing.</summary>
@@ -490,37 +580,68 @@ namespace AIBody
             return f * forward + Vector3.Cross(Vector3.up, f) * right;
         }
 
-        /// <summary>Moves every controller by `shift`; returns how many moved.</summary>
-        public static int Shift(Atom atom, Vector3 shift)
+        /// <summary>Version 54: where the main controller goes for a Body position of `forward` / `right` metres and `degrees`,
+        /// counted from its home placement (absolute, so dragging a slider never adds up rounding errors).</summary>
+        public static Vector3 TargetPosition(Vector3 homePos, Quaternion homeRot, float forward, float right, float degrees)
         {
-            if (atom == null || atom.freeControllers == null) return 0;
-            int moved = 0;
-            for (int i = 0; i < atom.freeControllers.Length; i++)
+            Quaternion turn = Quaternion.Euler(0f, degrees, 0f);
+            Vector3 f = FacingOf(turn * homeRot);
+            return homePos + f * forward + Vector3.Cross(Vector3.up, f) * right;
+        }
+
+        /// <summary>Version 54: moves the whole person RIGIDLY so its main controller ends at `wantPos` / `wantRot`; every
+        /// other controller keeps its place relative to the main controller (the pose is kept). Returns how many were set.</summary>
+        public static int Relocate(Atom atom, Vector3 wantPos, Quaternion wantRot)
+        {
+            if (atom == null || atom.freeControllers == null || atom.mainController == null) return 0;
+            FreeControllerV3 main = atom.mainController;
+            Vector3 fromPos = main.transform.position;
+            Quaternion delta = wantRot * Quaternion.Inverse(main.transform.rotation);
+            FreeControllerV3[] all = atom.freeControllers;
+            Vector3[] pos = new Vector3[all.Length];
+            Quaternion[] rot = new Quaternion[all.Length];
+            for (int i = 0; i < all.Length; i++)
             {
-                FreeControllerV3 c = atom.freeControllers[i];
-                if (c == null) continue;
-                c.transform.position = c.transform.position + shift;
+                if (all[i] == null) continue;
+                pos[i] = all[i].transform.position;
+                rot[i] = all[i].transform.rotation;
+            }
+            main.transform.position = wantPos;   // the main controller first ...
+            main.transform.rotation = wantRot;
+            int moved = 1;
+            for (int i = 0; i < all.Length; i++)
+            {
+                FreeControllerV3 c = all[i];
+                if (c == null || c == main) continue;
+                c.transform.position = wantPos + delta * (pos[i] - fromPos);   // ... then each other one to its own absolute target
+                c.transform.rotation = delta * rot[i];
                 moved++;
             }
             return moved;
         }
 
-        /// <summary>Turns every controller by `degrees` about the vertical axis through the main controller.</summary>
+        /// <summary>Moves the whole person by `shift` (rigid); returns how many controllers were set.</summary>
+        public static int Shift(Atom atom, Vector3 shift)
+        {
+            if (atom == null || atom.mainController == null) return 0;
+            return Relocate(atom, atom.mainController.transform.position + shift, atom.mainController.transform.rotation);
+        }
+
+        /// <summary>Turns the whole person by `degrees` about the vertical axis through the main controller (rigid).</summary>
         public static int Turn(Atom atom, float degrees)
         {
-            if (atom == null || atom.freeControllers == null || atom.mainController == null) return 0;
-            Vector3 pivot = atom.mainController.transform.position;
-            Quaternion turn = Quaternion.Euler(0f, degrees, 0f);
-            int moved = 0;
-            for (int i = 0; i < atom.freeControllers.Length; i++)
-            {
-                FreeControllerV3 c = atom.freeControllers[i];
-                if (c == null) continue;
-                c.transform.position = pivot + turn * (c.transform.position - pivot);
-                c.transform.rotation = turn * c.transform.rotation;
-                moved++;
-            }
-            return moved;
+            if (atom == null || atom.mainController == null) return 0;
+            return Relocate(atom, atom.mainController.transform.position, Quaternion.Euler(0f, degrees, 0f) * atom.mainController.transform.rotation);
+        }
+
+        /// <summary>Version 54: true when the main controller is more than 1 cm or about half a degree away from the placement.</summary>
+        public static bool Moved(Atom atom, Vector3 pos, Quaternion rot)
+        {
+            if (atom == null || atom.mainController == null) return false;
+            Transform t = atom.mainController.transform;
+            if ((t.position - pos).magnitude > 0.01f) return true;
+            return ((t.rotation * Vector3.forward) - (rot * Vector3.forward)).magnitude > 0.01f
+                || ((t.rotation * Vector3.up) - (rot * Vector3.up)).magnitude > 0.01f;
         }
     }
 }

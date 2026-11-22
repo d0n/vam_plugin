@@ -43,7 +43,7 @@ namespace AIBody
 {
     public class AIBodyPlugin : MVRScript
     {
-        public const string PluginVersion = "53";   // = package number d0n.AIBody.53.var (scheme since version 12)
+        public const string PluginVersion = "54";   // = package number d0n.AIBody.54.var (scheme since version 12)
 
         private AppLink _link;
         private Body _body;
@@ -76,6 +76,7 @@ namespace AIBody
         private bool _linkBroken;
         private bool _bodyBroken;
         private float _uiTimer;
+        public const float UiRefreshSeconds = 2f;   // version 54
         private string _atomType = "?";
         private string _writable = "not checked yet";
         private string _linkLive = "";   // connection / companion live lines (tab Voice)
@@ -321,6 +322,7 @@ namespace AIBody
             if (_aiPlacement == null && _clientPlacement == null) return "<color=red>Reset poses: no person with controllers found</color>";
             string text = "Reset poses: ";
             if (_aiPlacement != null) text += "'" + _aiPlacement.Atom.uid + "' back to the scene placement (" + _aiPlacement.Restore() + " controllers)";
+            if (_aiPlacement != null && _body != null) _body.ForgetBodyPosition();   // version 54: the Body position sliders start at 0 again
             if (_clientPlacement != null)
             {
                 _clientResetIn = ClientResetDelay;
@@ -520,6 +522,7 @@ namespace AIBody
             catch (Exception e) { _diag.Fail("Switch tab (remove old controls)", e); }
             if (index != _tab) _resetPending = false;   // leaving the tab Config cancels a pending reset
             _tab = index;
+            _uiTimer = UiRefreshSeconds;   // version 54: the new tab's info at once (next frame), then every UiRefreshSeconds
             ShowDollmasterMenu(index == DollmasterTab);
             try
             {
@@ -844,7 +847,9 @@ namespace AIBody
             bool opened = visible && !_uiVisible;
             _uiVisible = visible;
             if (!visible) return;
-            if (_uiTimer < 0.5f && !opened) return;
+            // Version 54 (Leon's sound diagnosis 22:23): the long info texts are rebuilt every 2 s (was 0.5 s) and at once when
+            // the menu opens or the tab changes; Unity lays out a long rich text again on every change of it.
+            if (_uiTimer < UiRefreshSeconds && !opened) return;
             _uiTimer = 0f;
             try
             {

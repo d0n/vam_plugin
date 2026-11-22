@@ -434,6 +434,24 @@
           "default": true,
           "description": "Toggle 'Idle poses' (version 35): when nothing happens for a while the character takes an available pose of the pose commands by itself and next time goes back to idle_pose_default"
         },
+        "idle_poses_all_files": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "true",
+                "false",
+                "True",
+                "False"
+              ]
+            }
+          ],
+          "default": false,
+          "description": "Toggle 'Idle poses from all pose files' (version 54, default off): off = idle poses use Custom/Atom/Person/Pose/AIBody plus the pose-command poses and idle_pose_default; on = every pose file of the library"
+        },
         "idle_pose_min_s": {
           "anyOf": [
             {

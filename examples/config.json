@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "written_by": "AIBody companion app 53 (example)",
+  "written_by": "AIBody companion app 54 (example)",
   "connection": {
     "active": true,
     "network_active": true,
@@ -41,6 +41,7 @@
     "breath_depth": 0.35,
     "breath_morph": "Breath1",
     "idle_poses": true,
+    "idle_poses_all_files": false,
     "idle_pose_min_s": 30.0,
     "idle_pose_max_s": 300.0,
     "idle_pose_default": "Stand Up"

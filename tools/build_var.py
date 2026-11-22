@@ -31,7 +31,9 @@ import importlib.util
 import io
 import json
 import math
+import re
 import struct
+import time
 import wave
 import zipfile
 from pathlib import Path
@@ -64,6 +66,45 @@ TEXT_SUFFIXES = {".cs", ".cslist", ".json", ".vap", ".txt", ".md"}
 STORED_SUFFIXES = {".mp3", ".jpg", ".png", ".ogg"}   # already compressed
 
 
+# Version 54 (Leon 23:27): the scene must not carry VaM's global Freeze Motion/Sound (or any other "freeze" state) - the
+# template has none today; any such key is removed when the package is built and the build check refuses it.
+FREEZE_RE = re.compile(r"(?i)freeze")
+# Version 54: scene and thumbnail get the SAME fixed entry date and attributes in every build (the thumbnail used to keep
+# the file date of the checkout and default attributes, the scene the build time), the JPG stored, not deflated.
+FIXED_ENTRY_ATTR = 0o644 << 16
+
+
+def strip_global_state(data):
+    """Removes every key matching FREEZE_RE (any depth); returns the removed paths."""
+    removed = []
+
+    def walk(node, path):
+        if isinstance(node, dict):
+            for key in list(node.keys()):
+                if FREEZE_RE.search(str(key)):
+                    removed.append(f"{path}/{key}")
+                    del node[key]
+                else:
+                    walk(node[key], f"{path}/{key}")
+        elif isinstance(node, list):
+            for i, item in enumerate(node):
+                walk(item, f"{path}[{i}]")
+
+    walk(data, "")
+    return removed
+
+
+def global_state_keys(text: str) -> list:
+    """The scene's top-level keys and its CoreControl storable keys (what it stores besides the atoms)."""
+    data = json.loads(text)
+    keys = [k for k in data if k != "atoms"]
+    for atom in data.get("atoms", []):
+        if atom.get("type") == "CoreControl":
+            for st in atom.get("storables", []):
+                keys += [f"CoreControl/{st.get('id')}/{k}" for k in st if k != "id"]
+    return keys
+
+
 def check_aibody_atom(data: dict) -> None:
     """AIBody (PluginManager entry and its saved values) on AIBODY_ATOM only; the scene's saved background is on."""
     holders, settings = [], []
@@ -90,6 +131,8 @@ def example_scene(creator: str, package: str, version: int, script_dir: str, ins
     TODO(verify) in VaM: the scene is listed by Open Scene, PluginManager resolves SELF:, and missing dependencies
     are shown."""
     data = json.loads(SCENE_TEMPLATE.read_text(encoding="utf-8"))
+    for path in strip_global_state(data):
+        print(f"scene: removed global state key {path} (version 54: no Freeze Motion/Sound in the shipped scene)")
     prefix = "SELF" if inside_package else f"{creator}.{package}.{version}"
     cslist = f"{prefix}:/{script_dir}/AIBody.cslist"
     for atom in data.get("atoms", []):
@@ -204,8 +247,16 @@ def build(version_override: int | None = None) -> Path:
         for f in files:
             z.write(STAGE / f, f"{script_dir}/{f}")
         z.writestr(PRESET_PATH, plugin_preset(creator, meta["packageName"], version, script_dir))
-        z.writestr(SCENE_PATH, example_scene(creator, meta["packageName"], version, script_dir))
-        z.write(SCENE_THUMB, SCENE_THUMB_PATH)
+        # Version 54: scene and thumbnail as a pair with the same fixed names, date and attributes in every build
+        stamp = time.localtime()[:6]
+        scene_info = zipfile.ZipInfo(SCENE_PATH, stamp)
+        scene_info.compress_type = zipfile.ZIP_DEFLATED
+        scene_info.external_attr = FIXED_ENTRY_ATTR
+        z.writestr(scene_info, example_scene(creator, meta["packageName"], version, script_dir))
+        thumb_info = zipfile.ZipInfo(SCENE_THUMB_PATH, stamp)
+        thumb_info.compress_type = zipfile.ZIP_STORED
+        thumb_info.external_attr = FIXED_ENTRY_ATTR
+        z.writestr(thumb_info, SCENE_THUMB.read_bytes())
         for src, rel in dollmaster:
             stored = src.suffix.lower() in STORED_SUFFIXES
             z.write(src, f"{script_dir}/{DOLLMASTER_FOLDER}/{rel}", zipfile.ZIP_STORED if stored else zipfile.ZIP_DEFLATED)
@@ -229,18 +280,45 @@ def check_scene_thumbnail(var: Path) -> str | None:
     the SAME folder as the scene JSON. Every .var must carry it, byte for byte the one in examples/scenes/."""
     with zipfile.ZipFile(var) as z:
         names = z.namelist()
-        scenes = [n for n in names if n.startswith("Saves/scene/") and n.endswith(".json")]
+        scenes = [n for n in names if n.startswith("Saves/scene/") and n.lower().endswith(".json")]
         if not scenes:
             return "no scene JSON below Saves/scene/"
+        # Version 54 (Leon 23:27): exactly the one scene with the fixed name, its JPG with the identical base name and a
+        # lower-case .jpg in the same folder, both in meta.json's contentList, same entry date, no Freeze state.
+        if scenes != [SCENE_PATH]:
+            return f"the package must carry exactly {SCENE_PATH}, found {scenes}"
+        lowered = [n for n in names if n.lower() == SCENE_THUMB_PATH.lower() and n != SCENE_THUMB_PATH]
+        if lowered:
+            return f"thumbnail with other upper/lower case: {lowered} (must be {SCENE_THUMB_PATH})"
+        content = json.loads(z.read("meta.json")).get("contentList", [])
+        for entry in (SCENE_PATH, SCENE_THUMB_PATH):
+            if entry not in content:
+                return f"{entry} missing in meta.json contentList"
+        if SCENE_THUMB_PATH not in names:
+            return f"{SCENE_PATH} has no {SCENE_THUMB_PATH} next to it"
+        if z.getinfo(SCENE_PATH).date_time != z.getinfo(SCENE_THUMB_PATH).date_time:
+            return "scene and thumbnail entries have different dates"
+        scene_text = z.read(SCENE_PATH).decode("utf-8")
+        frozen = [k for k in global_state_keys(scene_text) if FREEZE_RE.search(k)]
+        if frozen or '"freeze' in scene_text.lower():
+            return f"the scene stores a freeze state: {frozen or 'a freeze key'}"
         for scene in scenes:
             thumb = scene[: -len(".json")] + ".jpg"
             if thumb not in names:
                 return f"{scene} has no {thumb} next to it"
             data = z.read(thumb)
-            if not data.startswith(b"\xff\xd8"):
-                return f"{thumb} is not a JPEG"
+            if not data.startswith(b"\xff\xd8") or not data.rstrip(b"\x00").endswith(b"\xff\xd9"):
+                return f"{thumb} is not a complete JPEG"
             if thumb == SCENE_THUMB_PATH and data != SCENE_THUMB.read_bytes():
                 return f"{thumb} differs from {SCENE_THUMB.relative_to(ROOT)}"
+    # the loose release pair next to the .var: same fixed names, the same JPG bytes
+    loose_scene, loose_thumb = var.parent / LOOSE_SCENE, var.parent / LOOSE_THUMB
+    if not loose_scene.is_file() or not loose_thumb.is_file():
+        return f"loose release pair missing: {LOOSE_SCENE} + {LOOSE_THUMB} next to {var.name}"
+    if loose_thumb.read_bytes() != SCENE_THUMB.read_bytes():
+        return f"{LOOSE_THUMB} differs from {SCENE_THUMB.relative_to(ROOT)}"
+    if '"freeze' in loose_scene.read_text(encoding="utf-8").lower():
+        return f"{LOOSE_SCENE} stores a freeze state"
     return None
 
 

@@ -3,7 +3,10 @@
 // so it never freezes. The idle head motion and the breathing (IdleController, BreathingController) keep running on top.
 //
 // Rules:
-//   - the pool: every pose of the character (gestures.json poses + the pose files the plugin lists), the poses linked by
+//   - version 54 (Leon 23:31): the pool is the gestures.json poses and the pose files in Custom/Atom/Person/Pose/AIBody
+//     plus the poses linked by pose commands and the Idle default pose; "Idle poses from all pose files" (off by default)
+//     adds every pose file of the library again; a pose that fails to load is dropped for the session;
+//   - up to v53 the pool: every pose of the character (gestures.json poses + the pose files the plugin lists), the poses linked by
 //     pose commands (also files chosen with Add Pose) and the Idle default pose; never the same pose twice in a row when
 //     the pool has more than one (version 51; up to v50 only pose-command poses were used and every second change went
 //     back to the default pose, so with one usable command the character only switched between two poses);
@@ -95,6 +98,13 @@ namespace AIBody
         /// </summary>
         public string Update(float dt, bool busy, bool bodyControl, PoseVocabulary vocabulary, List<string> poseNames)
         {
+            return Update(dt, busy, bodyControl, vocabulary, poseNames, poseNames);
+        }
+
+        /// <summary>Version 54: poolNames = the poses idle may pick on their own (gestures.json poses and the AIBody pose folder,
+        /// or every pose file with "Idle poses from all pose files"); allNames = every pose (to resolve the linked poses).</summary>
+        public string Update(float dt, bool busy, bool bodyControl, PoseVocabulary vocabulary, List<string> poolNames, List<string> allNames)
+        {
             if (_cooldown > 0f) _cooldown = Math.Max(0f, _cooldown - dt);
             if (!Enabled) { _quiet = 0f; _shownSeconds = -1; Status = "off"; return null; }
             if (!bodyControl) { _quiet = 0f; _shownSeconds = -1; Status = "paused (Body control is off)"; return null; }
@@ -113,7 +123,7 @@ namespace AIBody
             }
             _quiet = 0f;
             PlanNext();
-            List<string> pool = Pool(vocabulary, poseNames);
+            List<string> pool = Pool(vocabulary, poolNames, allNames);
             PoolSize = pool.Count;
             List<string> candidates = WithoutLast(pool);
             if (candidates.Count == 0)
@@ -139,21 +149,41 @@ namespace AIBody
         /// </summary>
         public List<string> Pool(PoseVocabulary vocabulary, List<string> poseNames)
         {
+            return Pool(vocabulary, poseNames, poseNames);
+        }
+
+        /// <summary>Version 54 (Leon 23:31): the pool is poolNames (gestures.json poses + the AIBody pose folder, or every pose
+        /// file with "Idle poses from all pose files") plus the poses linked by pose commands and the Idle default pose
+        /// (resolved in allNames), without the poses that failed to load (Exclude).</summary>
+        public List<string> Pool(PoseVocabulary vocabulary, List<string> poolNames, List<string> allNames)
+        {
             List<string> result = new List<string>();
             List<string> keys = new List<string>();
-            if (poseNames != null)
-                for (int i = 0; i < poseNames.Count; i++) AddOnce(result, keys, poseNames[i]);
+            if (poolNames != null)
+                for (int i = 0; i < poolNames.Count; i++) AddOnce(result, keys, poolNames[i]);
             if (vocabulary != null)
-                for (int i = 0; i < vocabulary.Count; i++) AddOnce(result, keys, PoseVocabulary.Resolve(vocabulary.Get(i), poseNames));
-            AddOnce(result, keys, ResolveName(DefaultPose, poseNames));
+                for (int i = 0; i < vocabulary.Count; i++) AddOnce(result, keys, PoseVocabulary.Resolve(vocabulary.Get(i), allNames));
+            AddOnce(result, keys, ResolveName(DefaultPose, allNames));
             return result;
         }
 
-        private static void AddOnce(List<string> result, List<string> keys, string pose)
+        private readonly List<string> _bad = new List<string>();
+
+        /// <summary>Version 54: a pose that could not be loaded (file missing, not a .vap, ...) is never picked again this session.</summary>
+        public void Exclude(string pose)
+        {
+            string key = PoseVocabulary.PoseKey(pose ?? "");
+            if (key.Length > 0 && !_bad.Contains(key)) _bad.Add(key);
+        }
+
+        /// <summary>Poses dropped by Exclude (info field).</summary>
+        public int ExcludedCount { get { return _bad.Count; } }
+
+        private void AddOnce(List<string> result, List<string> keys, string pose)
         {
             if (string.IsNullOrEmpty(pose)) return;
             string key = PoseVocabulary.PoseKey(pose);
-            if (key.Length == 0 || keys.Contains(key)) return;
+            if (key.Length == 0 || keys.Contains(key) || _bad.Contains(key)) return;
             keys.Add(key);
             result.Add(pose);
         }

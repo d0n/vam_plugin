@@ -79,6 +79,12 @@ LEVEL_INTERVAL_S = 0.2  # mic_level rate (5 Hz)
 SCENE_EVENT_MAX_PENDING = 5  # scene events waiting for the AI to be free (older ones drop out)
 SCENE_EVENT_MAX_AGE_S = 30.0  # a scene event older than this is not worth reacting to any more
 HEARTBEAT_INTERVAL_S = 2.0  # companion_heartbeat rate
+# Version 54 (Leon 22:23-23:31, his v46 log 03:04-03:07): answers piled up behind clips the plugin did not play and came
+# out all at once later. A spoken answer the plugin has not STARTED this long after it was sent counts as a stalled
+# backlog: the next answer replaces it (stop_speaking + interrupt) instead of queueing behind it; the backlog is logged.
+BACKLOG_STALL_S = 4.0
+BACKLOG_LOG_EVERY_S = 10.0
+MERGE_SILENCE_S = 0.3  # between utterances merged into one turn
 KEY_REFRESH_S = 10.0  # how often key files are re-read (a key added later is picked up)
 DEFAULT_EXPRESSIONS = ["neutral", "happy", "sad", "angry", "surprised", "thinking"]
 DEFAULT_GESTURES = ["nod", "shake", "tilt"]
@@ -230,6 +236,15 @@ class Companion:
         self.audio_note = ""  # audio folder problems / switch, shown in the plugin's status box
         self._recent_speech: dict[str, tuple[str, Path, float]] = {}  # id -> (text, path, duration)
         self._utt_turn: dict[str, Turn] = {}  # utterance id -> its turn (trace of the plugin's answers)
+        # version 54: speech sent to the plugin and not started yet (id -> time sent), the turn of the last speak,
+        # user input held while the plugin is away, and whether an answer could not be delivered
+        self._unstarted: dict[str, float] = {}
+        self._last_speak_turn: Any = None
+        self._last_backlog_log = -1e9
+        self._held_input: list[tuple[str, Any, float | None]] = []
+        self._last_input: tuple[str, Any, float | None] | None = None
+        self._answer_dropped = False
+        self._disconnected_at: float | None = None
         self._null_stt_warned = False
         self._stt_error = ""
         self._last_exchange: float | None = None
@@ -287,6 +302,7 @@ class Companion:
             self._send_level()
         self._send_mic_state_if_changed()
         self._drain_results()
+        self._log_backlog()
         self._maybe_nudge()
         self._maybe_scene_event()
         self._maybe_emotion()
@@ -685,6 +701,30 @@ class Companion:
             self._last_heartbeat = -HEARTBEAT_INTERVAL_S  # heartbeat right away on (re)connect
             if not connected:
                 self.gate.force_open()
+                self._disconnected_at = self._clock()
+            elif self._disconnected_at is not None:
+                self._after_gap(self._clock() - self._disconnected_at)
+                self._disconnected_at = None
+
+    def _after_gap(self, away_s: float) -> None:
+        """Version 54: the plugin was silent for 5 s or more (VaM froze or reloaded) and is back. Whatever was queued for it
+        is stale: stop_speaking clears its speech queue, the answer being prepared is dropped, and only the NEWEST thing the
+        user said meanwhile is answered (or, if nothing, the last question whose answer could not be delivered)."""
+        gap = away_s + 5.0  # "disconnected" itself is declared after 5 s of silence (SOCKET_ALIVE_S / FILE_ALIVE_S)
+        newest = self._held_input[-1] if self._held_input else (self._last_input if self._answer_dropped else None)
+        log.info("Plugin back after about %.0f s: speech backlog cleared (stop_speaking), %d utterance(s) said meanwhile, "
+                 "answering %s", gap, len(self._held_input), "only the newest" if newest else "nothing (no question waiting)")
+        self._held_input = []
+        self._answer_dropped = False
+        if newest is not None:
+            self.cancel_turns()  # an older answer still being prepared would only add to the backlog
+        self._unstarted.clear()
+        self._last_speak_turn = None
+        self.gate.force_open()
+        self.send(self.body_command("stop_speaking"))
+        if newest is not None:
+            kind, data, _ = newest
+            self._submit(kind, data, self._clock())
 
     # -- events from the body ------------------------------------------------------------
 
@@ -701,6 +741,8 @@ class Companion:
                 continue
             self.gate.on_event(event)
             type_ = event.get("type")
+            if type_ in ("speech_started", "speech_ended") or (type_ == "error" and event.get("code") in ("audio_failed", "command_failed")):
+                self._unstarted.pop(str(event.get("utterance_id") or event.get("reply_to") or ""), None)  # version 54
             self._trace_plugin_event(event)
             if type_ in ("speech_started", "speech_ended"):
                 self.proactive.ai_activity()
@@ -709,6 +751,7 @@ class Companion:
                     log.info("AIBody plugin ready on %r: plugin=%s channel=%s", event.get("atom"),
                              event.get("plugin_version"), event.get("channel"))
                     self._last_mic_state = None  # make sure the plugin gets a fresh mic_state
+                    self._unstarted.clear()  # version 54: a (re)started plugin plays nothing of ours
                     note = version_mismatch(event.get("plugin_version"), __version__)
                     if note:
                         log.warning(note)
@@ -1097,6 +1140,12 @@ class Companion:
         self.on_user_activity()
         t0 = self._clock()  # VAD end / push-to-talk release: the utterance is complete
         if self.background_turns:
+            if self._disconnected_at is not None:
+                # Version 54: the plugin is away; answered when it is back (only the newest, _after_gap)
+                self._held_input.append(("audio", utterance, t0))
+                log.info("Utterance held: the plugin is not connected (answered when it is back)")
+                return ""
+            self._last_input = ("audio", utterance, t0)
             self._submit("audio", utterance, t0)
             return ""
         text = ""
@@ -1195,6 +1244,8 @@ class Companion:
             kind, data, generation, t0 = job
             if generation != self._generation:
                 continue  # cancelled before it started
+            if kind == "audio":
+                data, t0 = self._merge_queued_audio(data, generation, t0)
             self._busy.set()
             try:
                 for step in self._turn(kind, data, generation, t0):
@@ -1204,6 +1255,23 @@ class Companion:
                 log.exception("Turn failed")
             finally:
                 self._busy.clear()
+
+    def _merge_queued_audio(self, data: bytes, generation: int, t0: float | None) -> tuple[bytes, float | None]:
+        """Version 54: utterances that queued up behind a slow turn become ONE turn (one answer), not one answer each."""
+        merged = 0
+        gap = b"\x00\x00" * int(self.cfg.sample_rate * MERGE_SILENCE_S)
+        while True:
+            with self._jobs.mutex:
+                nxt = self._jobs.queue[0] if self._jobs.queue else None
+                if not (nxt and nxt[0] == "audio" and nxt[2] == generation):
+                    break
+                self._jobs.queue.popleft()
+            data = data + gap + nxt[1]
+            t0 = nxt[3]
+            merged += 1
+        if merged:
+            log.info("Merged %d queued utterance(s) into one turn (%.1f s of audio)", merged + 1, len(data) / 2 / self.cfg.sample_rate)
+        return data, t0
 
     def _drain_results(self) -> None:
         while True:
@@ -1562,10 +1630,45 @@ class Companion:
         duration = self._synthesize(text, path)
         return self._queue_speech(utterance_id, text, path, duration, interrupt)
 
+    def _oldest_unstarted(self) -> float:
+        return max((self._clock() - t for t in self._unstarted.values()), default=0.0)
+
+    def _backlog_stalled(self) -> bool:
+        """Version 54: speech was sent and the plugin started none of it for BACKLOG_STALL_S (nothing plays either)."""
+        if not self._unstarted or self.gate.is_speaking:
+            return False
+        return self._oldest_unstarted() >= BACKLOG_STALL_S
+
+    def _log_backlog(self) -> None:
+        """Version 54: one line every BACKLOG_LOG_EVERY_S while the plugin sits on speech it does not start."""
+        if not self._backlog_stalled():
+            return
+        now = self._clock()
+        if now - self._last_backlog_log < BACKLOG_LOG_EVERY_S:
+            return
+        self._last_backlog_log = now
+        log.warning("Speech backlog: %d clip(s) sent to the plugin have not started (oldest %.0f s) - VaM is not playing "
+                    "them (frozen, Freeze Motion/Sound on, or the clip does not load)", len(self._unstarted), self._oldest_unstarted())
+
     def _queue_speech(self, utterance_id: str, text: str, path: Path, duration: float,
                       interrupt: bool = False) -> str:
         self._track_audio_file(path)
         self._recent_speech[utterance_id] = (text, path, duration)
+        turn_obj = self._utt_turn.get(utterance_id)
+        if self._disconnected_at is not None:
+            # Version 54: the plugin was connected and is away (VaM froze): an answer sent now would wait in its inbox and play late with
+            # everything else. Not sent; after the gap the newest question is answered again (_after_gap).
+            self._answer_dropped = True
+            log.info("Not sent (the plugin is not connected): %s", _short(text, 80))
+            return utterance_id
+        if not interrupt and turn_obj is not self._last_speak_turn and self._backlog_stalled():
+            # Version 54: the plugin has not started the previous answer: do not queue behind it, replace it.
+            log.warning("Speech backlog: %d clip(s) sent %.0f s ago or earlier have not started in the plugin - dropped, "
+                        "the new answer plays instead", len(self._unstarted), self._oldest_unstarted())
+            self.send(self.body_command("stop_speaking"))
+            self._unstarted.clear()
+            interrupt = True
+        self._last_speak_turn = turn_obj
         while len(self._recent_speech) > self.cfg.keep_audio_files:
             self._recent_speech.pop(next(iter(self._recent_speech)))
         while len(self._utt_turn) > 4 * self.cfg.keep_audio_files:
@@ -1578,6 +1681,7 @@ class Companion:
             turn.step("speak sent", utterance=utterance_id, audio=rel, seconds=round(duration, 2),
                       queue="interrupt" if interrupt else "append")
         self.gate.on_speak_sent(utterance_id, duration, interrupt=interrupt)
+        self._unstarted[utterance_id] = self._clock()
         self._emotion_for_speech(text)
         self.emotion.note_speech()
         self.send(self.body_command(

@@ -68,6 +68,8 @@ namespace AIBody
             public float LoadTimer;          // time since the last LoadAudioData() call
             public string LastState = "";    // last logged readiness (Verbose log)
             public bool LoadFailed;          // sourceClip.loadState == Failed: Unity could not decode the file
+            public float FirstPlayAt = -1f;  // version 54: PlayTime of the first PlayNow (the clip data was loaded then)
+            public DateTime EnqueuedUtc;     // version 54: when speak arrived (wall clock: a VaM freeze counts too)
         }
 
         private readonly Atom _atom;
@@ -82,6 +84,16 @@ namespace AIBody
 
         /// <summary>Seconds to wait for a clip to start playing before reporting it as failed.</summary>
         public float StartTimeout = 15f;
+        /// <summary>Version 54 (Leon's v46 log 03:04-03:07: ten clips failed one by one after 15 s each and every later answer
+        /// waited behind them): a clip whose data IS loaded and was handed to the head audio but does not start within this
+        /// many seconds fails at once, so it no longer blocks the queue for 15 s.</summary>
+        public float StuckTimeout = 3f;
+        /// <summary>Version 54: when nothing has started or ended for this many seconds (wall clock) while clips wait, every
+        /// waiting clip older than this is dropped as "stale" (an answer to something said long ago is not played late).</summary>
+        public float StaleSeconds = 8f;
+        private DateTime _lastProgressUtc = DateTime.UtcNow;
+        /// <summary>Version 54: clips dropped as stale so far (info field, log).</summary>
+        public int StaleDropped { get; private set; }
         /// <summary>PlayNow is called again at this interval until the clip plays (it may still be loading).</summary>
         public float RetryInterval = 0.5f;
         /// <summary>A clip that was handed to the head audio but did not start gets the next play call after this time.</summary>
@@ -314,7 +326,8 @@ namespace AIBody
             // yet anyway (slow disk, another VaM folder), the utterance stays queued and Update asks again
             // each time FileCheckInterval has passed; an error comes only after StartTimeout.
             if (interrupt) StopAll("interrupted");
-            _queue.Add(new Utterance { Id = id, Path = path, WaitingForFile = missing });
+            if (_current == null && _queue.Count == 0) _lastProgressUtc = DateTime.UtcNow;   // version 54: a new start, not a stall
+            _queue.Add(new Utterance { Id = id, Path = path, WaitingForFile = missing, EnqueuedUtc = DateTime.UtcNow });
             if (missing) Log.Debug("Audio file not visible yet, waiting for it: " + path);
             if (_current == null) Status = (missing ? "Waiting for file: " : "Loading: ") + FileName(path);
             return null;
@@ -352,6 +365,7 @@ namespace AIBody
                 Queue(u);
             }
 
+            DropStale(DateTime.UtcNow);   // version 54
             if (_current != null) Track(deltaTime);
 
             if (_current == null && _queue.Count > 0 && _queue[0].Queued)
@@ -366,6 +380,36 @@ namespace AIBody
                 }
                 else Play(next);
             }
+        }
+
+        /// <summary>Version 54: nothing started or ended for StaleSeconds while clips wait (a stuck clip, a VaM freeze): the
+        /// waiting clips older than StaleSeconds are dropped ("stale"), and a current clip that never started fails.</summary>
+        private void DropStale(DateTime now)
+        {
+            if (_current == null && _queue.Count == 0) { _lastProgressUtc = now; return; }
+            if (_current != null && _current.Started) { _lastProgressUtc = now; return; }   // a clip plays: that is progress
+            if ((now - _lastProgressUtc).TotalSeconds < StaleSeconds) return;
+            int dropped = 0;
+            for (int i = _queue.Count - 1; i >= 0; i--)
+            {
+                Utterance u = _queue[i];
+                if ((now - u.EnqueuedUtc).TotalSeconds < StaleSeconds) continue;
+                _queue.RemoveAt(i);
+                Release(u);
+                Fire(OnEnded, u.Id, "cancelled");   // "cancelled" (the protocol's reason list); the log says stale
+                dropped++;
+            }
+            if (_current != null && !_current.Started && (now - _current.EnqueuedUtc).TotalSeconds >= StaleSeconds)
+            {
+                Fire(OnError, _current.Id, "did not start playing for " + StaleSeconds.ToString("0") + " s (stale): " + _current.Path);
+                Finish("failed");
+                dropped++;
+            }
+            _lastProgressUtc = now;
+            if (dropped == 0) return;
+            StaleDropped += dropped;
+            Log.Warn("Speech backlog: " + dropped + " clip(s) waited more than " + StaleSeconds.ToString("0") + " s without any speech "
+                + "starting and were dropped as stale (the newest answers play; see the VaM log for why the clips did not start)");
         }
 
         /// <summary>
@@ -544,10 +588,12 @@ namespace AIBody
             u.PlayTime += deltaTime;
             if (!u.Started)
             {
+                if (u.Plays > 0 && u.FirstPlayAt < 0f) u.FirstPlayAt = u.PlayTime;   // version 54: StuckTimeout counts from the first play call
                 AudioClip clip = _audio.clip;
                 if (u.Plays > 0 && OursPlaying(u))
                 {
                     u.Started = true;
+                    _lastProgressUtc = DateTime.UtcNow;   // version 54
                     u.StartedClip = clip;
                     u.StartedAt = u.PlayTime;
                     u.Length = clip.length;
@@ -562,6 +608,16 @@ namespace AIBody
                     SetError("Unity could not decode the audio file " + u.Path + " (loadState Failed). It must be a normal PCM WAV; "
                         + "see the companion log for how it was written. (" + ClipState(u.Clip) + ")");
                     Fire(OnError, u.Id, "audio data could not be loaded (loadState Failed): " + u.Path);
+                    Finish("failed");
+                    return;
+                }
+                if (u.FirstPlayAt >= 0f && u.PlayTime - u.FirstPlayAt > StuckTimeout)
+                {
+                    // Version 54: loaded and handed to the head audio, but it does not play: fail now, not after 15 s.
+                    SetError("The audio was loaded but did not start playing within " + StuckTimeout.ToString("0") + " s (" + u.Plays
+                        + " play calls): " + u.Path + ". Check that VaM's Freeze Motion/Sound is off, that the character's head audio "
+                        + "is not muted, and that Speech volume (%) (tab Voice) is above 0. (" + SourceState() + "; " + ClipState(u.Clip) + ".)");
+                    Fire(OnError, u.Id, "did not start playing within " + StuckTimeout.ToString("0") + " s of loading: " + u.Path);
                     Finish("failed");
                     return;
                 }
@@ -605,6 +661,7 @@ namespace AIBody
         {
             Utterance done = _current;
             _current = null;
+            _lastProgressUtc = DateTime.UtcNow;   // version 54
             if (reason != "failed") Status = (reason == "completed" ? "Done: " : "Cancelled (" + reason + "): ") + FileName(done.Path);
             Release(done);
             Log.Debug("End " + done.Id + ": " + reason);

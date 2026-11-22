@@ -9,7 +9,7 @@ README.md section 4. Categories (kept from the first schema; they no longer matc
   engines     stt, llm, tts (tab Voice > AI Character)
   mic         microphone + push-to-talk settings (tab Client Character; audio/mic_settings.py)
   body        speech_volume, full_volume_distance, body_control, idle_motion, idle_intensity, breathing,
-              breaths_per_minute, breath_depth, breath_morph, idle_poses, idle_pose_min_s, idle_pose_max_s, idle_pose_default
+              breaths_per_minute, breath_depth, breath_morph, idle_poses, idle_poses_all_files, idle_pose_min_s, idle_pose_max_s, idle_pose_default
               (tab AI Character)
   advanced    file_poll_interval_s (slider "Companion inbox poll interval (s)": how often the
               plugin reads the companion inbox, not config.json), verbose_log (tab Config)
@@ -117,6 +117,9 @@ DEFAULTS: dict[str, dict[str, Any]] = {
         # Idle poses (version 35): after idle_pose_min_s..idle_pose_max_s seconds without speech or a pose command the
         # character takes a random pose of all its poses (version 51; idle_pose_default is one of them, never twice in a row).
         "idle_poses": True,
+        # version 54 (Leon 23:31): idle poses use Custom/Atom/Person/Pose/AIBody (+ pose-command poses and idle_pose_default);
+        # true = every pose file of the library again (as in v51-v53)
+        "idle_poses_all_files": False,
         # version 51 (Leon 20:38-20:51): random pose of ALL poses, every idle_pose_min_s..idle_pose_max_s seconds
         "idle_pose_min_s": 30.0,
         "idle_pose_max_s": 300.0,

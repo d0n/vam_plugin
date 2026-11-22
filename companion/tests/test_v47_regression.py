@@ -57,7 +57,12 @@ class HeadAudioLikeV45Tests(TestCase):
         for start, end in (("private bool Resolve()", "public bool IsSpeaking"),
                            ("private void Play(Utterance u)", "/// <summary>\n        /// True once the clip's audio DATA"),
                            ("public void Update(float deltaTime)", "/// <summary>\n        /// Readiness signal")):
-            self.assertEqual(old[old.index(start):old.index(end)], new[new.index(start):new.index(end)], start)
+            seg = new[new.index(start):new.index(end)]
+            # version 54 (Leon 23:31): the only additions are the stale-clip check in Update and its own method
+            seg = seg.replace("            DropStale(DateTime.UtcNow);   // version 54\n", "")
+            if "/// <summary>Version 54: nothing started" in seg:
+                seg = seg[:seg.index("/// <summary>Version 54: nothing started")]
+            self.assertEqual(old[old.index(start):old.index(end)], seg, start)
 
     def test_scene_head_audio_back_to_v45(self):
         scene = json.loads((ROOT / "examples" / "scenes" / "AI-Buddy.json").read_text(encoding="utf-8"))
@@ -116,22 +121,30 @@ class SceneThumbnailTests(TestCase):
             sys.path.pop(0)
         self.assertEqual(build_var.SCENE_THUMB_PATH, "Saves/scene/AIBody/AI-Buddy.jpg")
         self.assertEqual(build_var.SCENE_PATH[:-5], build_var.SCENE_THUMB_PATH[:-4])   # same folder, same base name
+        import json
         import tempfile
+        meta = json.dumps({"contentList": [build_var.SCENE_PATH, build_var.SCENE_THUMB_PATH]})
         with tempfile.TemporaryDirectory() as tmp:
+            # version 54: the check also wants meta.json's contentList and the loose release pair next to the .var
+            (Path(tmp) / build_var.LOOSE_SCENE).write_text("{}", encoding="utf-8")
+            (Path(tmp) / build_var.LOOSE_THUMB).write_bytes(build_var.SCENE_THUMB.read_bytes())
             good = Path(tmp) / "good.var"
             with zipfile.ZipFile(good, "w") as z:
+                z.writestr("meta.json", meta)
                 z.writestr(build_var.SCENE_PATH, "{}")
                 z.writestr(build_var.SCENE_THUMB_PATH, build_var.SCENE_THUMB.read_bytes())
             self.assertIsNone(build_var.check_scene_thumbnail(good))
             bad = Path(tmp) / "bad.var"
             with zipfile.ZipFile(bad, "w") as z:
+                z.writestr("meta.json", meta)
                 z.writestr(build_var.SCENE_PATH, "{}")
                 z.writestr("Saves/scene/AI-Buddy.jpg", build_var.SCENE_THUMB.read_bytes())   # wrong folder
             self.assertIn("has no", build_var.check_scene_thumbnail(bad))
             other = Path(tmp) / "other.var"
             with zipfile.ZipFile(other, "w") as z:
+                z.writestr("meta.json", meta)
                 z.writestr(build_var.SCENE_PATH, "{}")
-                z.writestr(build_var.SCENE_THUMB_PATH, b"\xff\xd8not leons")
+                z.writestr(build_var.SCENE_THUMB_PATH, b"\xff\xd8not leons\xff\xd9")
             self.assertIn("differs", build_var.check_scene_thumbnail(other))
 
     def test_built_var_has_it(self):

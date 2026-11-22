@@ -119,7 +119,7 @@ class IdlePosePluginTests(unittest.TestCase):
         for part in ('new JSONStorableBool("Idle poses", true', '"Idle pose min wait (s)"', '"Idle pose max wait (s)"',
                      '"Idle default pose"', "page.Toggle(_idlePosesJson);", "page.ScrollablePopup(_idlePoseDefaultJson);",
                      'body["idle_poses"]', 'body["idle_pose_min_s"]', 'body["idle_pose_max_s"]', 'body["idle_pose_default"]',
-                     "_idlePoses.Update(dt, busy, BodyControl, _poses.Vocabulary, _poses.PoseNames)", "_idlePoses.NoteUserPose();",
+                     "_idlePoses.Update(dt, busy, BodyControl, _poses.Vocabulary, _poses.IdlePoolNames(IdleAllFiles), _poses.PoseNames)", "_idlePoses.NoteUserPose();",
                      "_poses.OnPoseLoaded = () => { if (_idle != null) _idle.Rebase(); };"):
             self.assertIn(part, body, part)
         self.assertIn("IdlePoses.cs", source("AIBody.cslist"))

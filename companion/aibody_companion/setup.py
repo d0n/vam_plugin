@@ -149,7 +149,9 @@ def write_scene(vam_root: str | Path, background: bool, color: str = DEFAULT_COL
     atomic_write_bytes(path, (json.dumps(scene_data(background, color, template), indent=3) + "\n").encode("utf-8"))
     thumb_src = Path(template).with_suffix(".jpg")
     if thumb_src.is_file():
-        shutil.copyfile(thumb_src, Path(vam_root) / THUMB_REL)
+        shutil.copyfile(thumb_src, Path(vam_root) / THUMB_REL)  # always the same base name next to the scene (VaM's rule)
+    else:
+        log.warning("Setup: no thumbnail %s next to the scene template - VaM shows %s without a picture", thumb_src, SCENE_REL)
     return path
 
 

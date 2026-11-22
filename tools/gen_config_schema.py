@@ -63,6 +63,9 @@ DESCRIPTIONS = {
                                         "written by the plugin)",
     ("body", "idle_poses"): "Toggle 'Idle poses' (version 35): when nothing happens for a while the character takes an "
                             "available pose of the pose commands by itself and next time goes back to idle_pose_default",
+    ("body", "idle_poses_all_files"): "Toggle 'Idle poses from all pose files' (version 54, default off): off = idle poses "
+                                      "use Custom/Atom/Person/Pose/AIBody plus the pose-command poses and idle_pose_default; "
+                                      "on = every pose file of the library",
     ("body", "idle_pose_min_s"): "Slider 'Idle pose min wait (s)': shortest quiet time before an idle pose change (10-1800)",
     ("body", "idle_pose_max_s"): "Slider 'Idle pose max wait (s)': longest quiet time before an idle pose change (10-1800)",
     ("body", "idle_pose_default"): "Menu 'Idle default pose': the pose the character returns to between idle poses "
