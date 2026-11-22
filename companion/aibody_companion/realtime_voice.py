@@ -9,8 +9,9 @@ segment.
   input_audio_buffer.speech_started -> barge-in: stop the body (stop_speaking), drop the rest
 
 Echo: without headphones the mic hears the body's voice. Like the chain mode, the mic is muted
-(silence is sent) while the body speaks, unless ai.realtime.send_while_speaking is on (use
-headphones then); voice barge-in needs that. Push-to-talk always interrupts.
+(silence is sent) while the body speaks (echo protection, always on). Voice barge-in (ai.barge_in, on by default) stops
+the body when the user is clearly louder than its echo: stop_speaking, response.cancel, conversation.item.truncate, and the
+user's first words go to the server. Push-to-talk always interrupts.
 """
 from __future__ import annotations
 
@@ -96,6 +97,11 @@ class RealtimeVoice:
         self._audio_bytes = 0
         self._suppress_until = 0.0  # a pose command was heard: the answer the server may still start is dropped
         self._answered_since_stop = False  # a response was created after the user stopped talking
+        # barge-in truncate (22.11.2026): the assistant item being played, its audio handed to the body (s) and when the
+        # first piece of it was handed over, so conversation.item.truncate can tell the server how much the user heard
+        self._item_id: str | None = None
+        self._emitted_s = 0.0
+        self._first_emit: float | None = None
 
     # -- session ---------------------------------------------------------------------------
 
@@ -182,8 +188,8 @@ class RealtimeVoice:
         send = s.enabled
         if s.mode == "ptt":
             send = send and self.c.input.ptt_active and (s.ptt_interrupts or self.c.gate.is_open)
-        elif self.echo_locked() and not bool(self.settings["send_while_speaking"]):
-            send = False  # the body is talking: the mic would hear it (no echo cancellation)
+        elif self.echo_locked():
+            send = False  # the body is talking: the mic would hear it (echo protection, always on)
             frames = self.c.input.watch_barge(frame, frame_rms(frame))  # ... unless the user clearly talks over it
             if frames:
                 self.c.voice_barge_in(frames)
@@ -273,6 +279,8 @@ class RealtimeVoice:
             except (binascii.Error, ValueError):
                 return
             self._audio_bytes += len(pcm)
+            if event.get("item_id"):
+                self._item_id = str(event.get("item_id"))
             if self.turn is not None and self.turn.latency is not None:
                 self.turn.latency.mark("first_audio", self.c._clock())
             self._emit(self.assembler.feed_audio(pcm))
@@ -350,6 +358,9 @@ class RealtimeVoice:
         self.c.emotion.begin_answer()
         self.response_id = rid or protocol.new_id("rt")
         self._response_started = time.monotonic()
+        self._item_id = None
+        self._emitted_s = 0.0
+        self._first_emit = None
         self.assembler.reset()
         self._held = []
         self._sent_any = False
@@ -453,6 +464,9 @@ class RealtimeVoice:
                     self.turn.latency.mark("segment", self.c._clock())
             self.c._queue_speech(uid, text or "…", path, duration)
             self._sent_any = True
+            if self._first_emit is None:
+                self._first_emit = time.monotonic()
+            self._emitted_s += duration
 
     # -- actions from the companion --------------------------------------------------------
 
@@ -465,9 +479,26 @@ class RealtimeVoice:
             self.cancelled.add(self.response_id)
         if manual and active:
             self.client.send({"type": "response.cancel"})
-        if active or not self.c.gate.is_open:
+        playing = not self.c.gate.is_open
+        if active or playing:
             self.c.stop_speaking()
+        if active or playing:
+            self._truncate()
         self._reset_response()
+
+    def _truncate(self) -> None:
+        """Barge-in (22.11.2026): conversation.item.truncate tells the server how much of its answer the user heard, so
+        the model does not think it said the rest. Heard = the audio handed to the body, at most the time since its first
+        piece was handed over. TODO(verify) with xAI: truncate is accepted like in the OpenAI-style realtime API."""
+        if not self._item_id or self._first_emit is None:
+            return
+        heard_ms = int(min(self._emitted_s, max(0.0, time.monotonic() - self._first_emit)) * 1000)
+        if heard_ms < int(self._emitted_s * 1000) - 100:
+            self.client.send({"type": "conversation.item.truncate", "item_id": self._item_id,
+                              "content_index": 0, "audio_end_ms": heard_ms})
+        self._item_id = None
+        self._first_emit = None
+        self._emitted_s = 0.0
 
     def nudge(self, text: str) -> bool:
         """Proactive turn: an app note as user text, then response.create."""

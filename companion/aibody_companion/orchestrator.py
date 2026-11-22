@@ -807,7 +807,7 @@ class Companion:
 
     # ai keys the plugin's tabs may change live (AI, AI Character, Client Character)
     AI_LIVE_KEYS = {("mode",), ("proactive", "enabled"), ("proactive", "idle_seconds"),
-                    ("realtime", "send_while_speaking"), ("realtime", "voice"), ("xai", "voice"),
+                    ("barge_in", "enabled"), ("realtime", "voice"), ("xai", "voice"),
                     ("xai", "key_file"), ("elevenlabs", "key_file"), ("persona_name",), ("memory", "enabled")}
 
     def reconnect_api(self) -> None:
@@ -882,6 +882,8 @@ class Companion:
             self.engine_set.refresh()
         if ("xai", "voice") in changed:
             self.engine_set.rebuild("tts")
+        if ("barge_in", "enabled") in changed:
+            self._configure_barge()
         if ("realtime", "voice") in changed and self.realtime is not None:
             self.realtime.stop()  # the voice is part of the session: reconnect with the new one
             self.realtime = None
@@ -960,9 +962,8 @@ class Companion:
                      "ai": {"mode": self.mode_requested,
                             "proactive": {"enabled": self.proactive.enabled,
                                           "idle_seconds": self.proactive.idle_seconds},
-                            "realtime": {"send_while_speaking":
-                                         bool(self.engine_set.ai["realtime"]["send_while_speaking"]),
-                                         "voice": str(self.engine_set.ai["realtime"]["voice"])}},
+                            "barge_in": {"enabled": bool(self.engine_set.ai["barge_in"]["enabled"])},
+                            "realtime": {"voice": str(self.engine_set.ai["realtime"]["voice"])}},
                      "advanced": {"verbose_log": logsetup.is_verbose()}},
             errors=errors, mic_state=state,
         ))
@@ -1051,14 +1052,17 @@ class Companion:
             http_module.warm(url, min(count, 2))
 
     def _configure_barge(self) -> None:
-        """ai.barge_in (config.json only): the loudness rule for talking over the body without headphones."""
+        """ai.barge_in (menu toggle "Voice barge-in (headphones)", on by default since 22.11.2026): talking over the
+        body stops it, in chain and realtime mode. Echo protection is always on: the mic stays closed for the AI while
+        the body speaks, and only a stretch clearly louder than the learned echo for min_ms counts (BargeInRule)."""
         cfg = self.engine_set.ai.get("barge_in") or {}
         if not cfg.get("enabled"):
             self.input.barge = None
+            log.info("Voice barge-in: off (push-to-talk with 'Push-to-talk interrupts speech' still stops the body)")
             return
         self.input.barge = BargeInRule(float(cfg["ratio"]), int(cfg["min_ms"]), self.cfg.frame_ms, float(cfg["floor"]))
-        log.info("Voice barge-in by loudness rule: on (user %.1f times louder than the echo for %d ms) - only "
-                 "voice activation mode; see docs/LOCAL_ENGINES.md", float(cfg["ratio"]), int(cfg["min_ms"]))
+        log.info("Voice barge-in: on, echo protection on (user %.1f times louder than the echo of the body's voice for "
+                 "%d ms) - voice activation mode", float(cfg["ratio"]), int(cfg["min_ms"]))
 
     def voice_barge_in(self, frames: list[bytes]) -> str | None:
         """The loudness rule fired: the user talks over the body. The body stops, the

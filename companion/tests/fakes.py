@@ -145,7 +145,7 @@ class FakePlugin:
                                          "expression_morphs_found": 9, "expression_morphs_total": 9,
                                          "expression_morphs_missing": [], "timeline_gestures": 0, "timeline": False}
         self.ai_ui: dict[str, Any] = {"mode": mode, "proactive": {"enabled": True, "idle_seconds": 90.0},
-                                      "realtime": {"send_while_speaking": False},
+                                      "barge_in": {"enabled": True}, "realtime": {},
                                       "persona_name": "", "memory": {"enabled": False}}  # version 27: menu Persona / Memory
         self.personas: list[str] = []  # companion heartbeat "personas" (the Persona menu's choices after "(none)")
         self.persona_in_use = ""       # companion heartbeat "persona"
@@ -322,7 +322,7 @@ class FakePlugin:
             ai = data.get("ai") or {}
             if ai.get("mode") in ("qa", "auto", "realtime", "chain"):
                 self.ai_ui["mode"] = ai["mode"]
-            for section, keys in (("proactive", ("enabled", "idle_seconds")), ("realtime", ("send_while_speaking",))):
+            for section, keys in (("proactive", ("enabled", "idle_seconds")), ("barge_in", ("enabled",))):
                 for key in keys:
                     if key in (ai.get(section) or {}):
                         self.ai_ui[section][key] = _from_vam(ai[section][key], self.ai_ui[section][key])
@@ -353,7 +353,7 @@ class FakePlugin:
                 ui = self.build_ai_json()
                 ai["mode"] = ui["mode"]
                 ai["persona_name"] = ui["persona_name"]
-                for section in ("proactive", "realtime", "xai", "elevenlabs", "memory"):
+                for section in ("proactive", "barge_in", "realtime", "xai", "elevenlabs", "memory"):
                     if section not in ui:
                         continue
                     if not isinstance(ai.get(section), dict):

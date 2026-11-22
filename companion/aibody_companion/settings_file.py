@@ -29,7 +29,7 @@ it has controls for):
   ai          mode, persona, persona_name, memory {...}, emotion {...}, language, fallback {stt, llm, tts}, realtime {...}, proactive {...},
               xai {...}, elevenlabs {...}
               plugin controls: mode (tab Voice), persona_name and memory.enabled (tab Voice), proactive.enabled /
-              idle_seconds (tab Voice), realtime.send_while_speaking (tab Client Character),
+              idle_seconds (tab Voice), barge_in.enabled (tab Client Character),
               realtime.voice + xai.voice (tab Voice), xai.key_file /
               elevenlabs.key_file (no menu field since version 15; the plugin keeps the path it read)
 
@@ -157,7 +157,7 @@ DEFAULTS: dict[str, dict[str, Any]] = {
         "token": "",  # secret for the HTTP API; empty = the app generates one when remote.enabled is true
     },
     # Companion app; the plugin's tabs set only mode, proactive.enabled / idle_seconds,
-    # realtime.send_while_speaking / voice, xai.voice and the key file paths (xai / elevenlabs
+    # barge_in.enabled, realtime.voice, xai.voice and the key file paths (xai / elevenlabs
     # key_file), and keep the rest of this section.
     "ai": {
         # qa = simple questions and answers: STT -> LLM -> TTS with xai instead of the offline test
@@ -189,7 +189,6 @@ DEFAULTS: dict[str, dict[str, Any]] = {
             "sample_rate": 24000,  # answer audio (16-bit PCM, written as WAV for VaM)
             "speed": 1.0,
             "reasoning_effort": "none",  # "none" = faster answers, "high" = API default
-            "send_while_speaking": False,  # true = mic stays open while the body talks (headphones!)
             "first_segment_s": 1.2,  # first audio segment as soon as a sentence ends after this
             "max_segment_s": 6.0,  # longer stretches without a sentence end are cut
             "connect_timeout_s": 15.0,
@@ -215,11 +214,13 @@ DEFAULTS: dict[str, dict[str, Any]] = {
             "fade_seconds": 2.5,
             "listening": True,
         },
-        # Voice barge-in without headphones by a loudness rule (version 29, config.json only, off by default): while the
-        # body speaks, a stretch of min_ms that is `ratio` times louder than the learned echo (and above `floor`, RMS 0..1)
-        # counts as the user talking: the body stops and the app listens. Needs a clearly louder voice than the speakers.
+        # Voice barge-in (version 29 rule; since 22.11.2026 the menu toggle "Voice barge-in (headphones)", ON by default,
+        # chain and realtime mode, Leon): while the body speaks the mic stays closed for the AI (echo protection, always on);
+        # a stretch of min_ms that is `ratio` times louder than the learned echo of her own voice (and above `floor`,
+        # RMS 0..1) counts as the user talking: the body stops, the running answer is cancelled and what the user said is
+        # processed. With headphones there is no echo and a normal voice is enough; with speakers talk clearly louder.
         "barge_in": {
-            "enabled": False,
+            "enabled": True,
             "ratio": 2.0,
             "min_ms": 600,
             "floor": 0.02,
@@ -383,7 +384,9 @@ LEGACY_KEYS = {("connection", "channel"), ("ai", "channels"),
                ("setup", "green_background"), ("setup", "example_scene"),  # version 35 answers (replaced in 36)
                # removed after version 36 (Leon, 20.11.2026): the eyes (gaze, blinking) belong to VaM
                ("body", "gaze_follows_speaker"), ("body", "gaze_control"), ("body", "gaze_default"),
-               ("body", "blink_control")}
+               ("body", "blink_control"),
+               # replaced on 22.11.2026 by ai.barge_in.enabled (the menu toggle; echo protection always on, Leon)
+               ("ai", "realtime", "send_while_speaking")}
 
 
 def _merge(path: tuple[str, ...], default: dict[str, Any], data: dict[str, Any], errors: list[str]) -> dict[str, Any]:

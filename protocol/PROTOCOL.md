@@ -163,7 +163,7 @@ All events come from the one plugin:
 | `heartbeat`      | status fields                                       | every 2 s |
 | `pong`           | status fields, `reply_to`                           | answer to `ping` |
 | `error`          | `reply_to`, `code`, `message`                       | `bad_json`, `command_failed`, `audio_failed` |
-| `config`         | `mic` (see below), `engines` (`{"stt", "llm", "tts"}`), `ai` (`{"mode", "persona_name"?, "memory": {"enabled"}, "proactive": {"enabled", "idle_seconds"}, "realtime": {"send_while_speaking", "voice"}, "xai": {"voice", "key_file"?}, "elevenlabs": {"key_file"}?}`, key file paths only when set), `keys` (`{"xai": "<token>"}`, version 21: the plugin field "XAI API Token", plain text, `""` = field empty; always sent; wins over `XAI_API_KEY` and `ai.xai.key_file`; masked in logs on both sides, never in `config.json`), `advanced` (`{"verbose_log"}`: Erweitert > Verbose log, turns the companion's turn trace on/off live) | after (re)connect and 0.3 s after the last settings change |
+| `config`         | `mic` (see below), `engines` (`{"stt", "llm", "tts"}`), `ai` (`{"mode", "persona_name"?, "memory": {"enabled"}, "proactive": {"enabled", "idle_seconds"}, "barge_in": {"enabled"}, "realtime": {"voice"}, "xai": {"voice", "key_file"?}, "elevenlabs": {"key_file"}?}`, key file paths only when set), `keys` (`{"xai": "<token>"}`, version 21: the plugin field "XAI API Token", plain text, `""` = field empty; always sent; wins over `XAI_API_KEY` and `ai.xai.key_file`; masked in logs on both sides, never in `config.json`), `advanced` (`{"verbose_log"}`: Erweitert > Verbose log, turns the companion's turn trace on/off live) | after (re)connect and 0.3 s after the last settings change |
 | `ptt`            | `active` (bool)                                     | push-to-talk pressed / released |
 | `test_tone`      | -                                                   | button "Test tone via companion": the app answers with a `speak` (queue `interrupt`, text "Test tone") of a 1.5 s chime WAV in its audio folder |
 | `memory_forget`  | -                                                   | button "Forget memory" (version 27): the app deletes the memory file of the persona in use and starts a fresh conversation without the notes |
@@ -234,7 +234,7 @@ logged masked. There is no `keys.elevenlabs`. Since version 24 the plugin also s
 ### AI controls (`config.ai`)
 
 `mode` (`qa` | `auto` | `realtime` | `chain`), `proactive.enabled` (plugin toggle "Proactive talking"), `proactive.idle_seconds` (0..3600; 0 = proactive speech off; the plugin slider is "Speech delay timer (s)", the key keeps its name),
-`realtime.send_while_speaking`, `realtime.voice` / `xai.voice` (a changed realtime voice reconnects),
+`barge_in.enabled`, `realtime.voice` / `xai.voice` (a changed realtime voice reconnects),
 `xai.key_file` / `elevenlabs.key_file` (paths; a value that looks like a key is refused with an error in
 `config_ack.errors` and the old path stays): applied live, echoed in `config_ack.applied.ai`; all other `ai`
 settings live in `config.json` only (docs/CONFIG.md). In realtime mode the answer audio arrives as

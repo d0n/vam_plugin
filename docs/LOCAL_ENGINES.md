@@ -20,20 +20,20 @@ Not tested in VaM and not against a real Ollama (T18).
 
 The info field shows what really runs (`silero (onnxruntime), strictness 2`) or why not (file missing, onnxruntime missing, wrong model version). On an error during operation the level rule decides again. Silero listens in 32 ms chunks; the app collects the 30 ms frames. With the model running on the CPU with one thread, a chunk costs fractions of a millisecond.
 
-## Voice barge-in without headphones (loudness rule)
+## Voice barge-in (loudness rule, echo protection)
 
-Key `ai.barge_in` in `config.json` (file only), **off** by default:
+Key `ai.barge_in` in `config.json`; since 22.11.2026 (Leon) **on** by default and switched by the toggle **Voice barge-in (headphones)** (tab Client Character), in chain and realtime mode. It replaces `ai.realtime.send_while_speaking` (ignored now): the microphone always stays closed for the AI while the character speaks (echo protection), only this rule can interrupt her.
 
 | Key | Default | Meaning |
 |---|---|---|
-| `enabled` | false | rule on |
+| `enabled` | true | rule on (the menu toggle) |
 | `ratio` | 2.0 | how much louder than the learned echo the voice must be |
 | `min_ms` | 600 | how long it must be continuously louder |
 | `floor` | 0.02 | below this level (0 to 1) it is never the user |
 
-While the character speaks (from the reported `speech_started`), the app learns the echo level on the microphone as a slowly decaying peak value (the first 450 ms only teach). If a stretch of `min_ms` stays clearly above `ratio` times the echo, it counts as the user: the character stops, the echo gate opens, and the loud stretch goes on as the beginning of the utterance to the recognition (chain) or to the realtime server. Only in voice activation mode, not with push-to-talk (which interrupts anyway).
+While the character speaks (from the reported `speech_started`), the app learns the echo level on the microphone as a slowly decaying peak value (the first 450 ms only teach; afterwards the estimate rises at most 10 % per 30 ms frame and not while a loud stretch builds up, so the first syllables of the user do not raise it). If a stretch of `min_ms` stays clearly above `ratio` times the echo, it counts as the user: the character stops (`stop_speaking`: the plugin clears its queue and stops the clip), the running answer is cancelled (realtime: `response.cancel` and `conversation.item.truncate` with the part the user heard), the echo gate opens, and the loud stretch goes on as the beginning of the utterance to the recognition (chain) or to the realtime server. Only in voice activation mode, not with push-to-talk (which interrupts anyway).
 
-Limits: it is a rule, not echo cancellation. A quiet voice or loud speakers do not trigger it; a very loud sentence of the character, a door slam or a cough can. With headphones the toggle **Voice barge-in (headphones)** stays better. Change `ratio` and `min_ms` and compare with the level meter (T18).
+Limits: it is a rule, not echo cancellation. A quiet voice or loud speakers do not trigger it; a very loud sentence of the character, a door slam or a cough can. With headphones there is no echo and a normal voice is enough. Change `ratio` and `min_ms` and compare with the level meter (T18).
 
 ## What is not there
 

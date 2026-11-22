@@ -578,7 +578,7 @@ Agreed spec: [docs/SPEC.md](SPEC.md); status done / open: [docs/REQUIREMENTS.md]
   learn from the echo). Realtime mode: `feed_mic` sends silence frames while `RealtimeVoice.echo_locked()`, which is
   the gate OR an answer still being delivered (flaw fixed: between two clips of one answer the gate could open
   and the server heard the body; failsafe 90 s). Not solved: there is no acoustic echo cancellation, so
-  interrupting by voice still needs headphones (`send_while_speaking`); push-to-talk always works.
+  interrupting by voice uses the barge-in rule `ai.barge_in` (on by default since 22.11.2026, echo protection always on); push-to-talk always works.
 - Not testable without hardware: how a real microphone, room and speakers behave (thresholds, the tail length, whether
   speaker sound leaks after the tail). See `docs/TEST_PROTOCOL.md` T13.
 

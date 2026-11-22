@@ -172,7 +172,6 @@ Column "Where": tab in the plugin menu; "file only" = no control. Range in squar
 | `ai.realtime.sample_rate` | int | 24000 | 8000, 16000, 22050, 24000, 32000, 44100, 48000 | sample rate of the answer (16-bit PCM, as WAV) | file only |
 | `ai.realtime.speed` | number | 1.0 | [0.7–1.5] | speaking speed | file only |
 | `ai.realtime.reasoning_effort` | string | `none` | `none`, `high` | `none` answers faster; `high` = API default | file only |
-| `ai.realtime.send_while_speaking` | bool | false | | the microphone keeps streaming while the character speaks (barge-in by voice); only with headphones | Client Character: **Voice barge-in (headphones)** |
 | `ai.realtime.first_segment_s` | number | 1.2 | [0.3–5] | the first audio piece is played as soon as a sentence ends after this much audio | file only |
 | `ai.realtime.max_segment_s` | number | 6.0 | [1–20] | longer pieces without a sentence end are cut at the quietest point | file only |
 | `ai.realtime.connect_timeout_s` | number | 15 | [3–60] | connection timeout | file only |
@@ -196,7 +195,7 @@ Column "Where": tab in the plugin menu; "file only" = no control. Range in squar
 | `ai.ollama.base_url` | string | `http://127.0.0.1:11434` | | address of Ollama (version 29, local language model without a key) | file only |
 | `ai.ollama.model` | string | `llama3.2` | | model name (`ollama pull <model>`) | file only |
 | `ai.ollama.max_output_tokens` / `temperature` / `keep_alive` / `max_messages` / `timeout_s` | number / number / string / number / number | 400 / 0.7 / `10m` / 40 / 120 | [16–8000] / [0–2] / – / [2–400] / [5–3600] | length of the answer, randomness, how long the model stays loaded, conversation messages that are sent along, timeout | file only |
-| `ai.barge_in.enabled` | bool | false | | voice barge-in without headphones by a loudness rule (version 29, see [docs/LOCAL_ENGINES.md](docs/LOCAL_ENGINES.md)) | file only |
+| `ai.barge_in.enabled` | bool | true | | voice barge-in (since 22.11.2026 on by default, chain and realtime mode, voice activation): while the character speaks the mic stays closed for the AI (echo protection, always on); talking clearly louder than her echo for `min_ms` stops her, cancels the running answer (realtime: `response.cancel` + `conversation.item.truncate`) and your words are answered. Replaces `ai.realtime.send_while_speaking` (ignored) | Client Character: **Voice barge-in (headphones)** |
 | `ai.barge_in.ratio` / `min_ms` / `floor` | number | 2.0 / 600 / 0.02 | [1.2–10] / [150–3000] / [0.002–0.5] | how much louder than the echo, for how long, from which level | file only |
 | `ai.elevenlabs.base_url` | string | `https://api.elevenlabs.io/v1` | | REST base | file only |
 | `ai.elevenlabs.key_file` | string | `""` | as `ai.xai.key_file` | file with the ElevenLabs key; `ELEVENLABS_API_KEY` wins | file only (no menu field since version 15; no ElevenLabs field in version 21 either) |

@@ -1001,23 +1001,6 @@
                 "high"
               ]
             },
-            "send_while_speaking": {
-              "anyOf": [
-                {
-                  "type": "boolean"
-                },
-                {
-                  "type": "string",
-                  "enum": [
-                    "true",
-                    "false",
-                    "True",
-                    "False"
-                  ]
-                }
-              ],
-              "default": false
-            },
             "first_segment_s": {
               "anyOf": [
                 {
@@ -1234,7 +1217,7 @@
                   ]
                 }
               ],
-              "default": false
+              "default": true
             },
             "ratio": {
               "anyOf": [

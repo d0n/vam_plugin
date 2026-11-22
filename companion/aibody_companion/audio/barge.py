@@ -6,7 +6,7 @@ speech the mic level of the echo is learned as a decaying peak; a stretch of fra
 echo (`ratio` times, and above `floor`) that lasts `min_ms` is the user talking over the character. Then the
 caller stops the body, opens the gate and gets the frames of that stretch back (so the first words are kept).
 
-Off by default (ai.barge_in.enabled). It needs the user to be clearly louder at the microphone than the speakers
+On by default since 22.11.2026 (ai.barge_in.enabled = the menu toggle "Voice barge-in (headphones)"). It needs the user to be clearly louder at the microphone than the speakers
 are: a quiet voice or loud speakers will not trigger it, a very loud TTS peak or a door slam may.
 """
 from __future__ import annotations
@@ -15,6 +15,8 @@ from collections import deque
 
 
 class BargeInRule:
+    RISE = 1.1  # 22.11.2026: max. rise of the echo estimate per frame after the warm-up (+10 % per 30 ms)
+
     def __init__(self, ratio: float = 2.0, min_ms: int = 600, frame_ms: int = 30, floor: float = 0.02,
                  warmup_ms: int = 450, decay: float = 0.995):
         self.ratio = ratio
@@ -48,5 +50,13 @@ class BargeInRule:
                 return frames
             return None
         self._loud = max(0, self._loud - 1)
-        self.echo = max(rms, self.echo * self.decay)  # echo teaches only with frames that are not loud
+        if self._loud == 0:
+            # echo teaches only with frames that are not loud, and not while a loud stretch is building (22.11.2026: the
+            # quieter syllables of the user talking over the body raised the echo and the rule never fired)
+            if self._warm <= self.warmup_frames or self.echo <= 0.0:
+                self.echo = max(rms, self.echo * self.decay)   # warm-up: learn her level fast
+            else:
+                # after the warm-up the estimate rises at most RISE per frame: her own voice gets louder smoothly and is
+                # followed within a few frames, the first (quieter) syllable of the user does not raise it at once
+                self.echo = max(self.echo * self.decay, min(rms, self.echo * self.RISE))
         return None

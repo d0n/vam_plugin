@@ -139,7 +139,6 @@
       "sample_rate": 24000,
       "speed": 1.0,
       "reasoning_effort": "none",
-      "send_while_speaking": false,
       "first_segment_s": 1.2,
       "max_segment_s": 6.0,
       "connect_timeout_s": 15.0
@@ -161,7 +160,7 @@
       "listening": true
     },
     "barge_in": {
-      "enabled": false,
+      "enabled": true,
       "ratio": 2.0,
       "min_ms": 600,
       "floor": 0.02

@@ -241,7 +241,7 @@ namespace AIBody
             SettingsDefaults.Bool(_plugin, _proactiveJson);
             _proactiveIdleJson = new JSONStorableFloat("Speech delay timer (s)", 90f, (float v) => MarkConfigDirty(), 0f, 3600f);   // 0 = proactive speech off; config.json key ai.proactive.idle_seconds; was "Proactive idle (s)" up to version 22
             SettingsDefaults.Float(_plugin, _proactiveIdleJson);
-            _bargeInJson = new JSONStorableBool("Voice barge-in (headphones)", false, (bool v) => MarkConfigDirty());
+            _bargeInJson = new JSONStorableBool("Voice barge-in (headphones)", true, (bool v) => MarkConfigDirty());   // on by default since 22.11.2026 (Leon); config.json ai.barge_in.enabled
             SettingsDefaults.Bool(_plugin, _bargeInJson);
             // xAI voices: the 28 built-in voices of docs.x.ai (text-to-speech page, 21.11.2026); the companion app
             // replaces the list with the answer of GET /v1/tts/voices (heartbeat "voices"). A custom id is kept.
@@ -455,8 +455,10 @@ namespace AIBody
             proactive["enabled"].AsBool = _proactiveJson.val;
             proactive["idle_seconds"].AsFloat = (float)Math.Round(_proactiveIdleJson.val);
             ai["proactive"] = proactive;
+            JSONClass barge = new JSONClass();
+            barge["enabled"].AsBool = _bargeInJson.val;   // 22.11.2026: chain and realtime, echo protection always on
+            ai["barge_in"] = barge;
             JSONClass realtime = new JSONClass();
-            realtime["send_while_speaking"].AsBool = _bargeInJson.val;
             realtime["voice"] = _voiceJson.val;
             ai["realtime"] = realtime;
             ai["persona_name"] = PersonaName;
@@ -515,7 +517,7 @@ namespace AIBody
             MergeSection(target, ui, "memory", "enabled");
             MergeSection(target, ui, "proactive", "enabled");
             MergeSection(target, ui, "proactive", "idle_seconds");
-            MergeSection(target, ui, "realtime", "send_while_speaking");
+            MergeSection(target, ui, "barge_in", "enabled");
             MergeSection(target, ui, "realtime", "voice");
             MergeSection(target, ui, "xai", "voice");
             MergeSection(target, ui, "xai", "key_file");
@@ -1056,11 +1058,9 @@ namespace AIBody
                     _proactiveIdleJson.val = Protocol.GetFloat(proactive, "idle_seconds", _proactiveIdleJson.val);
                 }
                 JSONClass realtime = ai["realtime"] as JSONClass;
-                if (realtime != null)
-                {
-                    _bargeInJson.val = Protocol.GetBool(realtime, "send_while_speaking", _bargeInJson.val);
-                    SetVoice(Protocol.GetString(realtime, "voice", _voiceJson.val));
-                }
+                if (realtime != null) SetVoice(Protocol.GetString(realtime, "voice", _voiceJson.val));
+                JSONClass barge = ai["barge_in"] as JSONClass;   // the old realtime.send_while_speaking is ignored (legacy)
+                if (barge != null) _bargeInJson.val = Protocol.GetBool(barge, "enabled", _bargeInJson.val);
                 JSONClass xai = ai["xai"] as JSONClass;
                 if (xai != null && Protocol.Has(xai, "key_file") && !LooksLikeKey(xai["key_file"].Value))
                     _xaiKeyFileJson.val = xai["key_file"].Value;

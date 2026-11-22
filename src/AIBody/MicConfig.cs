@@ -112,8 +112,10 @@ namespace AIBody
                 + "file is installed (docs/TECHNICAL.md), else WebRTC (part of the installed AIBody Companion), otherwise "
                 + "the built-in detector. A higher <b>VAD strictness</b> (0-3) ignores more background noise, <b>VAD threshold</b> is the quietest level "
                 + "that can count as speech, <b>Silence timeout (ms)</b> ends an utterance and <b>Min utterance (ms)</b> and <b>Max utterance (ms)</b> "
-                + "limit its length. While the character talks, and for <b>Echo gate tail (s)</b> afterwards, the microphone is muted on purpose so the "
-                + "AI never hears itself, unless <b>Voice barge-in (headphones)</b> lets you interrupt it.");
+                + "limit its length. While the character talks, and for <b>Echo gate tail (s)</b> afterwards, the microphone is muted for the AI on purpose "
+                + "so it never hears itself (echo protection, always on). <b>Voice barge-in (headphones)</b> (on by default, voice activation, all AI modes) "
+                + "still lets you interrupt: when you talk clearly louder than her voice coming back into the microphone for about half a second, she stops "
+                + "at once and what you said is answered. With headphones a normal voice is enough; with speakers speak up. Fine tuning: config.json ai.barge_in.");
 
             _plugin.RegisterAction(new JSONStorableAction("Push-to-talk start", () => _pttActive.val = true));
             _plugin.RegisterAction(new JSONStorableAction("Push-to-talk stop", () => _pttActive.val = false));

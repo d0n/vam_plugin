@@ -820,3 +820,12 @@ Sound output: VaM plays on the Windows default output device that is active when
 5. Save the scene, reload it: the slider keeps its value; config.json has `body.full_volume_distance`.
 6. Remove the AIBody plugin: the head audio's minDistance is the scene's value again (Client > Head audio, or save and look at `minDistance` 0.04).
 Report: companion.log and VaM's output_log.txt lines starting with `AIBody` (the line "Head audio of ... before AIBody: minDistance ...").
+
+## T78 – Voice barge-in on by default, chain and realtime, echo protection (main after v48, Leon 22.11.2026 call)
+
+1. Fresh config (or tab Client Character): **Voice barge-in (headphones)** is ON; Mic mode voice activation. companion.log at start: "Voice barge-in: on, echo protection on ...".
+2. Speakers, AI mode Chain (or Q&A): ask for a long story and stay silent: she tells it to the end (her own voice never interrupts her).
+3. Talk over her clearly louder than her voice for about half a second: she stops at once (log "Voice barge-in: the user talks over the body - stopping it"), and your words get an answer (not the rest of the old story).
+4. Same in AI mode Realtime; with Verbose log the log shows response.cancel and conversation.item.truncate.
+5. With headphones: a normal voice is enough. Toggle off: talking over her does nothing; push-to-talk with "Push-to-talk interrupts speech" still stops her.
+Report: companion.log, and whether a cough, laugh or loud sentence of hers interrupted her.
