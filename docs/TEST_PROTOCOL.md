@@ -907,3 +907,13 @@ Report: a dropdown without entries after the reset, the same pose twice in a row
 7. Idle head motion on: watch the head and chest for 2 s after each pose load: no jerk; the idle sway starts again after about 1 s.
 Report: a pose that does not apply, any twitching, a pose applied by just choosing an entry, Body control off after using Dollmaster.
 
+## T88 – Expressions, Show expression, Reload Config JSON (version 53, Leon 22.11.2026 20:49 / 20:57)
+1. Install v53, start AIBody Companion, then VaM; load AI-Buddy. Tab AI Character, part *Expression and gesture*: the buttons are **Show expression** and **Reset expression** (no "Reload expressions (expressions.json)").
+2. Without opening the menu, press **Show expression**: the face shows "happy" clearly (the first entry); the left field says "Expression 'happy': N of N morphs found". VaM's Auto Expressions (person tab Auto Expressions) are off while it shows.
+3. Choose sad, angry, surprised, thinking and press **Show expression** each time: each is visible and stays. Press **Reset expression**: the face goes back; Auto Expressions are on again (if they were on before).
+4. If a note says "0 of N morphs found" (red), report it with the missing names (the character's morphs differ).
+5. Edit Saves/PluginData/AIBody/expressions.json (add e.g. `"wink": {"Eyes Closed Left": 1}`), then tab Config > **Reload Config JSON**: the status line says "expressions.json reloaded: ... expressions"; "wink" is in the Expression menu and shows.
+6. A VaM trigger calling the plugin action **Reload config files** also reloads expressions.json.
+7. Let the AI talk with expressions (normal conversation): the expressions are visible during the answer.
+Report: an expression that shows nothing, Auto Expressions left off after Reset expression, a missing button.
+

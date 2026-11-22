@@ -43,7 +43,7 @@ namespace AIBody
 {
     public class AIBodyPlugin : MVRScript
     {
-        public const string PluginVersion = "52";   // = package number d0n.AIBody.52.var (scheme since version 12)
+        public const string PluginVersion = "53";   // = package number d0n.AIBody.53.var (scheme since version 12)
 
         private AppLink _link;
         private Body _body;
@@ -591,7 +591,8 @@ namespace AIBody
                 if (_body != null) _body.ReloadConfigFiles();
                 ApplyBackgroundSetup(file);
                 _link.MarkConfigDirty();
-                _configStatus = "config.json reloaded (" + DateTime.Now.ToString("HH:mm:ss") + "): " + _link.SettingsPath;
+                _configStatus = "config.json reloaded (" + DateTime.Now.ToString("HH:mm:ss") + "): " + _link.SettingsPath
+                    + (_body != null ? "; expressions.json reloaded: " + _body.ExpressionsNote : "");   // version 53
             }
             catch (Exception e)
             {

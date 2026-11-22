@@ -312,7 +312,11 @@ namespace AIBody
             });
             if (_morphs != null)
             {
-                _diag.Run("Expressions (ExpressionController)", () => _expressions = new ExpressionController(_morphs));
+                _diag.Run("Expressions (ExpressionController)", () =>
+                {
+                    _expressions = new ExpressionController(_morphs);
+                    _expressions.OnShowingChanged = PauseAutoExpressions;   // version 53: one writer on the face
+                });
                 _diag.Run("Breathing (BreathingController)", () =>
                 {
                     BreathingController breathing = new BreathingController(_morphs, _breathMorphJson != null ? _breathMorphJson.val : "Breath1");
@@ -409,7 +413,8 @@ namespace AIBody
             page.Popup(_expressionChoiceJson);
             page.Button("Show expression", ShowChosenExpression);
             page.Button("Reset expression", () => { if (_expressions != null) _expressions.Reset(0.4f); });
-            page.Button("Reload expressions (expressions.json)", ReloadExpressions);
+            // Version 53 (Leon 20:57): no separate "Reload expressions (expressions.json)" button; Reload Config JSON (tab
+            // Config) and the trigger action "Reload config files" reload expressions.json.
             page.Popup(_gestureChoiceJson);
             page.Button("Play gesture", PlayChosenGesture);
             page.Header("<b>Poses</b>");
@@ -452,7 +457,7 @@ namespace AIBody
             if (_poses != null && !string.IsNullOrEmpty(_poses.LastLoadCheck)) text += "Last pose load: " + _poses.LastLoadCheck + "\n";
             text += PoseCommandsInfo();
             text += IdlePosesInfo();
-            text += BodyControlHelp + "\n" + BodyPositionHelp + "\n" + BreathingHelp + "\n";
+            text += ExpressionHelp + "\n" + BodyControlHelp + "\n" + BodyPositionHelp + "\n" + BreathingHelp + "\n";
             return text;
         }
 
@@ -881,12 +886,51 @@ namespace AIBody
             else Note("<color=red>Pose command '" + command + "': " + error + "</color>", true);
         }
 
+        /// <summary>Button "Show expression" (version 53: works without opening the menu first, never starts on "neutral",
+        /// and says how many of the expression's morphs the character has).</summary>
         private void ShowChosenExpression()
         {
-            if (_expressions == null) { CharacterNote = "Expression: no morphs on this character"; return; }
+            if (_expressions == null) { Note("<color=red>Show expression: no morphs on this character (see the Self-test in tab Config)</color>", true); return; }
+            if (DollmasterOwns) { Note("<color=red>Show expression: Dollmaster is active and owns the face (tab Dollmaster)</color>", true); return; }
+            if (string.IsNullOrEmpty(_expressionChoiceJson.val)) RefreshCharacterChoices();
             string name = _expressionChoiceJson.val;
-            CharacterNote = _expressions.SetExpression(name, 1f, 0.4f, -1f)
-                ? "Expression: " + name : "<color=red>Unknown expression '" + name + "'</color>";
+            if (!_expressions.SetExpression(name, 1f, 0.4f, -1f)) { Note("<color=red>Show expression: unknown expression '" + name + "'</color>", true); return; }
+            bool none = _expressions.LastResult.StartsWith("0 of ") && !_expressions.LastResult.StartsWith("0 of 0");
+            Note((none ? "<color=red>" : "") + "Expression '" + name + "': " + _expressions.LastResult
+                + (none ? " - check the morph names in expressions.json against the character's Morphs tab</color>" : ""), none);
+        }
+
+        // ---------------------------------------------------------------- VaM's Auto Expressions (version 53)
+
+        private bool _autoPaused;
+        private bool _autoWasOn;
+
+        /// <summary>
+        /// Version 53 (Leon 20:49, "expressions do not work / are not visible"): VaM's own Auto Expressions (storable
+        /// "AutoExpressions", param "enabled", on by default) animates the same face morphs every frame and covered ours -
+        /// two writers on the face, the same pattern as the pose twitching. While an AIBody expression is shown it is paused,
+        /// afterwards it is put back as it was. Dollmaster switches it off the same way (DmConfig, E39).
+        /// </summary>
+        private void PauseAutoExpressions(bool showing)
+        {
+            try
+            {
+                JSONStorable auto = _atom != null ? _atom.GetStorableByID("AutoExpressions") : null;
+                JSONStorableBool enabled = auto != null ? auto.GetBoolJSONParam("enabled") : null;
+                if (enabled == null) return;
+                if (showing && !_autoPaused)
+                {
+                    _autoWasOn = enabled.val;
+                    _autoPaused = true;
+                    if (_autoWasOn) { enabled.val = false; Log.Debug("Auto Expressions paused while an AIBody expression shows"); }
+                }
+                else if (!showing && _autoPaused)
+                {
+                    _autoPaused = false;
+                    if (_autoWasOn) { enabled.val = true; Log.Debug("Auto Expressions back on"); }
+                }
+            }
+            catch (Exception e) { Log.Warn("Auto Expressions could not be switched: " + Diag.Describe(e)); }
         }
 
         private void PlayChosenGesture()
@@ -982,6 +1026,20 @@ namespace AIBody
         {
             if (_expressions != null) _expressions.LoadPresetFile(ExpressionsPath);
             _selfTestAge = 999f;   // self test checks the new morph names
+            RefreshCharacterChoices();   // version 53: the Expression menu shows the new presets at once
+        }
+
+        /// <summary>Version 53: help of the Expression part (left info field).</summary>
+        public const string ExpressionHelp = "<b>Expression</b>: choose one and press <b>Show expression</b>; it stays until "
+            + "<b>Reset expression</b> (or the next expression). The note above says how many of its morphs this character has; "
+            + "while an AIBody expression shows, VaM's own Auto Expressions pause so they do not cover it, and come back afterwards. "
+            + "Your own expressions: Saves/PluginData/AIBody/expressions.json (morph display names from the Morphs tab), "
+            + "reloaded by <b>Reload Config JSON</b> in tab Config (and by the trigger action \"Reload config files\").";
+
+        /// <summary>Version 53: for the Reload Config JSON status line.</summary>
+        public string ExpressionsNote
+        {
+            get { return _expressions != null ? _expressions.PresetCount + " expressions (" + ExpressionsPath + ")" : "expressions not available (no morphs)"; }
         }
 
         public void ReloadGestures()

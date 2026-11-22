@@ -31,7 +31,43 @@ namespace AIBody
 
         public string Current { get { return _current; } }
 
-        public IEnumerable<string> PresetNames { get { return new List<string>(_presets.Keys); } }   // copy: see MorphNames
+        /// <summary>Version 53: true while an expression (not neutral) is shown; Body pauses VaM's Auto Expressions meanwhile.</summary>
+        public Action<bool> OnShowingChanged;
+        private bool _showing;
+
+        /// <summary>Version 53: what the last SetExpression found ("2 of 2 morphs"), for the Show expression note.</summary>
+        public string LastResult { get; private set; }
+
+        /// <summary>Names for the menu (version 53): the visible expressions first in a fixed order, then the others,
+        /// "listening" and "neutral" last, so the menu never starts on an expression that shows nothing.</summary>
+        public IEnumerable<string> PresetNames
+        {
+            get
+            {
+                List<string> names = new List<string>();
+                foreach (string n in MenuOrder) if (_presets.ContainsKey(n)) names.Add(n);
+                foreach (KeyValuePair<string, Dictionary<string, float>> kv in _presets)   // not the key collection (CS584)
+                    if (!ContainsIgnoreCase(names, kv.Key) && !IsQuiet(kv.Key)) names.Add(kv.Key);
+                foreach (string n in new[] { "listening", "neutral" })
+                    if (_presets.ContainsKey(n) && !ContainsIgnoreCase(names, n)) names.Add(n);
+                return names;
+            }
+        }
+
+        private static readonly string[] MenuOrder = { "happy", "smile", "sad", "angry", "surprised", "thinking" };
+
+        private static bool IsQuiet(string name)
+        {
+            return string.Equals(name, "neutral", StringComparison.OrdinalIgnoreCase) || string.Equals(name, "listening", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool ContainsIgnoreCase(List<string> list, string name)
+        {
+            for (int i = 0; i < list.Count; i++) if (string.Equals(list[i], name, StringComparison.OrdinalIgnoreCase)) return true;
+            return false;
+        }
+
+        public int PresetCount { get { return _presets.Count; } }
 
         /// <summary>Every morph name used by a preset, once (self test: which ones the character has).</summary>
         public List<string> MorphNames
@@ -112,9 +148,12 @@ namespace AIBody
         {
             Dictionary<string, float> preset;
             if (!_presets.TryGetValue(name ?? "", out preset)) return false;
-            ApplyTargets(preset, intensity, blendTime, true);
+            List<string> missing = ApplyTargets(preset, intensity, blendTime, true);
             _current = name;
             _holdRemaining = hold > 0f ? hold : -1f;
+            LastResult = (preset.Count - missing.Count) + " of " + preset.Count + " morphs found"
+                + (missing.Count > 0 ? " (missing: " + string.Join(", ", missing.ToArray()) + ")" : "");
+            SetShowing(preset.Count > missing.Count);
             return true;
         }
 
@@ -124,6 +163,7 @@ namespace AIBody
             List<string> missing = ApplyTargets(morphs, 1f, blendTime, releaseOthers);
             _current = "custom";
             _holdRemaining = -1f;
+            SetShowing(morphs.Count > missing.Count);
             return missing;
         }
 
@@ -133,12 +173,21 @@ namespace AIBody
             _layer.ReleaseAll();
             _current = "neutral";
             _holdRemaining = -1f;
+            SetShowing(false);
         }
 
         public void RestoreNow()
         {
             _layer.RestoreNow();
             _current = "neutral";
+            SetShowing(false);
+        }
+
+        private void SetShowing(bool on)
+        {
+            if (on == _showing) return;
+            _showing = on;
+            if (OnShowingChanged != null) OnShowingChanged(on);
         }
 
         private List<string> ApplyTargets(Dictionary<string, float> targets, float intensity, float blendTime, bool releaseOthers)
@@ -151,7 +200,11 @@ namespace AIBody
             if (releaseOthers) _layer.ReleaseAllExcept(targets.Keys);
             foreach (KeyValuePair<string, float> kv in targets)
             {
-                if (!_layer.SetTarget(kv.Key, kv.Value * intensity)) missing.Add(kv.Key);
+                if (_layer.SetTarget(kv.Key, kv.Value * intensity)) continue;
+                // Version 53: a two-sided name the character only has as Left / Right morphs (e.g. "Brow Inner Up").
+                bool left = _layer.SetTarget(kv.Key + " Left", kv.Value * intensity);
+                bool right = _layer.SetTarget(kv.Key + " Right", kv.Value * intensity);
+                if (!left && !right) missing.Add(kv.Key);
             }
             return missing;
         }

@@ -123,11 +123,11 @@ class Version17MenuTests(unittest.TestCase):
         body = method_body(source("AppLink.cs"), "private void UpdateKeyStatus()")
         self.assertIn("KeyConfigured(", body)
 
-    def test_reload_expressions_sits_with_the_expressions(self):
+    def test_reload_expressions_is_part_of_reload_config_json(self):
+        # version 53 (Leon 20:57): the separate button is gone; Reload Config JSON reloads expressions.json
         body = method_body(source("Body.cs"), "public void BuildCharacterTab(UiPage page)")
-        reload = body.index("ReloadExpressions")
-        self.assertLess(body.index("<b>Expression and gesture</b>"), reload)
-        self.assertLess(reload, body.index("<b>Poses</b>"))
+        self.assertNotIn('page.Button("Reload expressions (expressions.json)"', body)
+        self.assertIn("_body.ReloadConfigFiles();", method_body(source("AIBody.cs"), "private void ReloadConfigJson()"))
 
 
 class OneCharacterTests(unittest.TestCase):

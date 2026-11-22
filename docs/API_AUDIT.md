@@ -76,6 +76,7 @@ Enforcement:
 | Scene hooks | `RegisterBool` / `RegisterString` / `RegisterAction` with `isStorable` / `isRestorable` false, `GetBoolJSONParam`, `GetStringJSONParam` (read / set by triggers and other plugins) | E9, E12 (L66), E13 |
 | Timeline gestures | `GetStorableIDs()` + suffix match, `CallAction("Play <animation>")` | E8, E9 |
 | Pose presets | `GetStorableByID("PosePresets")`, `GetUrlJSONParam("presetBrowsePath")`, `NormalizePath`, `CallAction("LoadPreset")`; since version 52 `GetBoolJSONParam("loadPresetOnSelect")` off while the path is set; `Atom.freeControllers` positions read for the settle check | E7, E40, E12/E28 |
+| Pausing VaM's Auto Expressions (version 53) | `GetStorableByID("AutoExpressions")`, `GetBoolJSONParam("enabled")`, `.val` read and set (put back afterwards) | E39 (Dollmaster `DmConfig.Apply`: `GetStorableByID("AutoExpressions").SetBoolParamValue("enabled", ...)`), E12 (`GetBoolJSONParam`) |
 | Generic trigger | `CallAction`, `GetFloatJSONParam`, `GetBoolJSONParam`, `GetStringJSONParam`, `GetStringChooserJSONParam` | E8, E12, E13 |
 | Settings tabs | `RemoveToggle`, `RemoveSlider`, `RemovePopup`, `RemoveButton`, `RemoveTextField` on the controls of the old tab, then `Create*` for the new one (`UiPage` in `UiHelper.cs`) | E17, E18 |
 | Shared settings file `Saves/PluginData/AIBody/config.json` | `FileExists`, `ReadAllText`, `CreateDirectory`, `WriteAllText` in the plugin's own folder below `Saves/PluginData` | E10, E11, E19, E20 (see "Config file location") |
