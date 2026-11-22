@@ -199,10 +199,13 @@ class InstallerTests(TestCase):
         init = self.iss[self.iss.index("function InitializeSetup"):self.iss.index("procedure InitializeWizard")]
         self.assertIn("Result := CheckExistingInstall();", init)
         check = self.iss[self.iss.index("function CheckExistingInstall"):self.iss.index("function InitializeSetup")]
-        for text in ("' is already installed ('", "'OK: reinstall / repair.", "'Update from AIBody '",
-                     "'Cancel: stop the setup and change nothing.'", "if WizardSilent() then",
+        for text in ("' is already installed ('", "'Reinstall / repair it? ", "'Update from AIBody '",
+                     "if WizardSilent() then",
                      "MsgBox(Text, mbConfirmation, MB_OKCANCEL) <> IDOK", "ThisVarState(Dir)"):
             self.assertIn(text, check)
+        # 22.11.2026 (Leon): no English button names in the text (Windows shows OK / Abbrechen in its own language)
+        for text in ("OK:", "Cancel:", "'Okay", "Cancel the"):
+            self.assertNotIn(text, check)
         self.assertIn("Sha := GetSHA256OfFile(Path);", self.iss)
         self.assertIn("RegQueryStringValue(HKCU, UninstKey(), 'DisplayVersion', Result)", self.iss)
         wf = WF.read_text(encoding="utf-8")

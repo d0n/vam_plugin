@@ -838,3 +838,9 @@ Report: companion.log, and whether a cough, laugh or loud sentence of hers inter
 4. AI mode Realtime: same check; the session reconnects after a change (log "Realtime: connected").
 5. Auto: the persona's language is used (Anna: de); a persona without a language falls back to detection per sentence.
 Report: companion.log and the sentences that still sounded English.
+
+## T80 – Setup notice without English button text (main after v48, Leon 22.11.2026 call)
+
+1. Run the next setup over an installed AIBody: the box says **Update from AIBody <old> to <new>.** and what it will do, with no "OK: ... Cancel: ..." line; the buttons are Windows' own (OK / Abbrechen on German Windows). OK continues, Abbrechen stops without changes.
+2. Run the same setup again: **AIBody <n> is already installed (...). Reinstall / repair it? ...** with the same two Windows buttons.
+Report: screenshots of both boxes.

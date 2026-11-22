@@ -295,7 +295,9 @@ begin
 end;
 
 { Version 44 (Leon 21:02): say what is already there. Same version: OK = reinstall / repair, Cancel = stop.
-  Older (or newer) companion: "Update from <old> to <new>", OK continues. Silent setups never ask (they reinstall). }
+  Older (or newer) companion: "Update from <old> to <new>", OK continues. Silent setups never ask (they reinstall).
+  22.11.2026 (Leon): the text names no buttons any more - Windows shows them in its own language (OK / Abbrechen), so
+  the English "OK: ... Cancel: ..." lines did not match them. }
 function CheckExistingInstall(): Boolean;
 var
   Dir, Old, VarState, Parts, Text: String;
@@ -324,8 +326,8 @@ begin
     end;
     Log('Existing install: same version ' + ThisVersion + ' (' + Parts + ')');
     Text := 'AIBody ' + ThisVersion + ' is already installed (' + Parts + ').' + #13#10#13#10 +
-      'OK: reinstall / repair. AIBody Companion is closed if it is running, its files and the package ' + ThisVar +
-      ' are replaced.' + #13#10 + 'Cancel: stop the setup and change nothing.';
+      'Reinstall / repair it? AIBody Companion is closed if it is running, its files and the package ' + ThisVar +
+      ' are replaced.';
   end
   else if Old <> '' then
   begin
@@ -340,7 +342,6 @@ begin
     if GetArrayLength(Found) > 0 then
       Text := Text + #13#10#13#10 + 'AIBody packages in AddonPackages now: ' + JoinNames(Found) + '. ' +
         'The older ones are removed once the new package is in place.';
-    Text := Text + #13#10#13#10 + 'OK: continue. Cancel: stop the setup and change nothing.';
   end
   else
   begin
