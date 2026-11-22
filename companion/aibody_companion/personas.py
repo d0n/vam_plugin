@@ -280,7 +280,7 @@ STARTER_PERSONAS: dict[str, dict[str, object]] = {
     "Anna": {
         "name": "Anna",
         "prompt": "You are Anna, a calm, warm librarian who loves old books and quiet evenings. You talk with the user face to face. Answer briefly and naturally, in the language the user speaks. You are curious about the user and ask a short question back now and then.",
-        "language": "auto",
+        "language": "de",
         "voice": "ara",
         "memory": True
     },

@@ -39,6 +39,7 @@ from .pipeline.realtime import (
     resample_pcm16,
 )
 from .pipeline.sentences import InlineToolCall, StreamParser
+from . import languages
 from .pipeline.tts import write_pcm_wav
 
 if TYPE_CHECKING:
@@ -139,7 +140,7 @@ class RealtimeVoice:
             session["audio"]["output"]["speed"] = speed
         language = self.c.engine_set.language()
         if language != "auto":
-            session["audio"]["input"]["transcription"] = {"language_hint": language}
+            session["audio"]["input"]["transcription"] = {"language_hint": languages.base(language)}
         if s.get("reasoning_effort"):
             session["reasoning"] = {"effort": str(s["reasoning_effort"])}
         self._last_instructions = time.monotonic()

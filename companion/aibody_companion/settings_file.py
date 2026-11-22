@@ -28,7 +28,7 @@ it has controls for):
 
   ai          mode, persona, persona_name, memory {...}, emotion {...}, language, fallback {stt, llm, tts}, realtime {...}, proactive {...},
               xai {...}, elevenlabs {...}
-              plugin controls: mode (tab Voice), persona_name and memory.enabled (tab Voice), proactive.enabled /
+              plugin controls: mode (tab Voice), language, persona_name and memory.enabled (tab Voice), proactive.enabled /
               idle_seconds (tab Voice), barge_in.enabled (tab Client Character),
               realtime.voice + xai.voice (tab Voice), xai.key_file /
               elevenlabs.key_file (no menu field since version 15; the plugin keeps the path it read)
@@ -167,7 +167,10 @@ DEFAULTS: dict[str, dict[str, Any]] = {
         "mode": "qa",
         "persona": "You are a friendly, curious character living in a 3D scene. You talk with the user "
                    "face to face. Answer briefly and naturally, in the language the user speaks.",
-        "language": "auto",  # "auto" or a language code such as "de" / "en" (STT bias, TTS language)
+        # the menu "Language" (tab Voice, 22.11.2026 Leon): "auto" or a code of the xAI TTS list (languages.py);
+        # default "de". Sent to text to speech with every sentence, to speech to text, and as "Always answer in ..." to
+        # the language model / realtime session. Not "auto": it wins over a persona's language.
+        "language": "de",
         # Persona folder below Saves/PluginData/AIBody/personas ("" = none: the persona text above). The plugin's
         # menu "Persona" sets it; a persona.json can replace persona text, language and voice (personas.py).
         "persona_name": "",

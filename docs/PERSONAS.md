@@ -16,7 +16,7 @@ Since version 41 a loose file `personas\<name>.json` (same content) is listed to
 {
   "name": "Anna",
   "prompt": "You are Anna, a calm librarian ...",
-  "language": "auto",
+  "language": "de",
   "voice": "ara",
   "elevenlabs_voice_id": "",
   "memory": true
@@ -27,7 +27,7 @@ Since version 41 a loose file `personas\<name>.json` (same content) is listed to
 |---|---|
 | `prompt` | Character text of the AI; **replaces** `ai.persona` from `config.json` while the persona is selected (empty = `ai.persona`). At most 8000 characters. |
 | `name` | Display name; the AI is told "Your name is Anna." Optional. |
-| `language` | `auto` or a language code (`de`, `en`, …); replaces `ai.language` (language hint for recognition and voice). Optional. |
+| `language` | `auto` or a language code (`de`, `en`, …); used when the menu **Language** (`ai.language`) is Auto (since 22.11.2026 the menu wins otherwise). Optional. |
 | `voice` | xAI voice (one of the built-in voices in the menu **Voice**, e.g. `eve` or `ara`, or an own id); **replaces the menu "Voice"** for this persona (chain and realtime). Optional. |
 | `elevenlabs_voice_id` | Voice for ElevenLabs speech output, replaces `ai.elevenlabs.voice_id`. Optional. |
 | `memory` | `false` = nothing is ever remembered for this persona (default `true`; only applies if **Memory** is on). |

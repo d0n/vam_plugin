@@ -73,6 +73,36 @@ namespace AIBody
         // Version 27: persona (folder in Saves/PluginData/AIBody/personas, listed by the companion app) and memory
         public const string PersonaNone = "(none)";
         private JSONStorableStringChooser _personaJson;     // ai.persona_name ("(none)" = "")
+        private JSONStorableStringChooser _languageJson;    // ai.language (22.11.2026, Leon): "German (de)" -> "de", "Auto" -> "auto"
+
+        public const string LanguageAuto = "Auto";
+        public const string LanguageDefault = "German (de)";
+        /// <summary>The menu "Language": Auto plus the 20 languages of xAI text to speech (docs.x.ai, 22.11.2026), shown as
+        /// "Name (code)"; the code in brackets is what goes to config.json ai.language. Same list as companion languages.py.</summary>
+        public static readonly string[] Languages = {
+            LanguageAuto, "German (de)", "English (en)", "French (fr)", "Spanish (Spain) (es-ES)", "Spanish (Mexico) (es-MX)",
+            "Italian (it)", "Portuguese (Brazil) (pt-BR)", "Portuguese (Portugal) (pt-PT)", "Russian (ru)", "Turkish (tr)",
+            "Chinese (zh)", "Japanese (ja)", "Korean (ko)", "Hindi (hi)", "Bengali (bn)", "Indonesian (id)", "Vietnamese (vi)",
+            "Arabic (Egypt) (ar-EG)", "Arabic (Saudi Arabia) (ar-SA)", "Arabic (UAE) (ar-AE)" };
+
+        /// <summary>"German (de)" -> "de"; "Auto" (or anything without brackets) -> "auto".</summary>
+        public static string LanguageCode(string label)
+        {
+            if (string.IsNullOrEmpty(label)) return "auto";
+            int open = label.LastIndexOf('(');
+            int close = label.LastIndexOf(')');
+            if (open < 0 || close <= open + 1) return "auto";
+            return label.Substring(open + 1, close - open - 1);
+        }
+
+        /// <summary>"de" -> "German (de)"; "auto" -> "Auto"; an unknown code -> "<code> (<code>)" so it is kept.</summary>
+        public static string LanguageLabel(string code)
+        {
+            if (string.IsNullOrEmpty(code) || code == "auto") return LanguageAuto;
+            for (int i = 0; i < Languages.Length; i++)
+                if (string.Equals(LanguageCode(Languages[i]), code, StringComparison.OrdinalIgnoreCase)) return Languages[i];
+            return code + " (" + code + ")";
+        }
         private JSONStorableBool _memoryJson;               // ai.memory.enabled
         private string _personaInUse = "";                  // companion heartbeat "persona"
         private string _personaNote = "";                   // companion heartbeat "persona_note"
@@ -255,6 +285,9 @@ namespace AIBody
             // always shows at least "(none)" and the app's personas (E25).
             _personaJson.popupOpenCallback = RefreshPersonaChoices;
             SettingsDefaults.Chooser(_plugin, _personaJson);
+            _languageJson = new JSONStorableStringChooser("Language", new List<string>(Languages), LanguageDefault, "Language",
+                (string v) => MarkConfigDirty());
+            SettingsDefaults.Chooser(_plugin, _languageJson);
             _memoryJson = new JSONStorableBool("Memory", false, (bool v) => MarkConfigDirty());
             SettingsDefaults.Bool(_plugin, _memoryJson);
             // No format check on purpose (Leon, 18.11.2026): whatever is typed or pasted is sent as is.
@@ -451,6 +484,7 @@ namespace AIBody
         {
             JSONClass ai = new JSONClass();
             ai["mode"] = _aiModeJson.val;
+            ai["language"] = LanguageCode(_languageJson.val);
             JSONClass proactive = new JSONClass();
             proactive["enabled"].AsBool = _proactiveJson.val;
             proactive["idle_seconds"].AsFloat = (float)Math.Round(_proactiveIdleJson.val);
@@ -514,6 +548,7 @@ namespace AIBody
             if (target == null || ui == null) return;
             target["mode"] = ui["mode"].Value;
             target["persona_name"] = ui["persona_name"].Value;
+            if (Protocol.Has(ui, "language")) target["language"] = ui["language"].Value;
             MergeSection(target, ui, "memory", "enabled");
             MergeSection(target, ui, "proactive", "enabled");
             MergeSection(target, ui, "proactive", "idle_seconds");
@@ -668,6 +703,7 @@ namespace AIBody
             page.Popup(_aiModeJson);
             page.Popup(_llmJson);
             page.Popup(_personaJson);
+            page.ScrollablePopup(_languageJson);   // 21 entries: the plain popup cannot scroll (version 42)
             page.Toggle(_memoryJson);
             page.Button("Forget memory", ForgetMemory);
             page.Toggle(_proactiveJson);
@@ -692,14 +728,17 @@ namespace AIBody
         /// <summary>Persona and memory lines for the Voice tab's info field.</summary>
         private string PersonaInfoText()
         {
-            string text = "The <b>Persona</b> menu " + (_personaListSeen
+            string text = "<b>Language</b> is " + (_languageJson.val == LanguageAuto
+                ? "Auto: the persona's language, else every sentence is detected on its own (short sentences can come out in an English accent). "
+                : _languageJson.val + ": every sentence is spoken in it, speech recognition expects it, and the AI is told to always answer in it (also in realtime mode); it wins over a persona's language. ");
+            text += "The <b>Persona</b> menu " + (_personaListSeen
                 ? "lists " + _personaNames.Count + " persona(s) from the companion app" + (_personaNames.Count == 0 ? " (only '(none)', because no folder in Saves/PluginData/AIBody/personas has a persona.json yet)" : "")
                 : "shows only '(none)' because the companion app has not connected yet: the list comes from the app, so start it "
                   + "from the Windows Start menu ('AIBody Companion') and it lists its personas, including the starters "
                   + "Anna and Marc it writes on its first start") + ". ";   // version 40
             if (PersonaName.Length == 0) text += "No persona is chosen, so the text ai.persona from config.json is used; personas are folders in Saves/PluginData/AIBody/personas/<name>/ with a persona.json (docs/PERSONAS.md) that you pick in <b>Persona</b>.\n";
             else if (_appAlive && _personaInUse != PersonaName) text += "The persona '" + PersonaName + "' is not in use: " + (_personaNote.Length > 0 ? _personaNote : "the companion app has not confirmed it yet") + "\n";
-            else text += "The persona " + PersonaName + " is in use, and its prompt, language and voice replace ai.persona, the config.json language and <b>Voice</b>.\n";
+            else text += "The persona " + PersonaName + " is in use, and its prompt and voice replace ai.persona and <b>Voice</b> (its language counts only when <b>Language</b> is Auto).\n";
             if (!_memoryJson.val) text += "<b>Memory</b> is off; switched on, the AI keeps short notes about what you tell it (personas/<name>/memory.json, local; the summary request goes to xAI) and uses them next time.\n";
             else
             {
@@ -1049,6 +1088,7 @@ namespace AIBody
                 string mode = Protocol.GetString(ai, "mode", _aiModeJson.val);
                 if (mode == ModeQa || mode == "auto" || mode == "realtime" || mode == "chain") _aiModeJson.val = mode;
                 if (Protocol.Has(ai, "persona_name")) SetPersona(ai["persona_name"].Value);
+                if (Protocol.Has(ai, "language")) SetLanguage(ai["language"].Value);
                 JSONClass memory = ai["memory"] as JSONClass;
                 if (memory != null) _memoryJson.val = Protocol.GetBool(memory, "enabled", _memoryJson.val);
                 JSONClass proactive = ai["proactive"] as JSONClass;
@@ -1075,6 +1115,20 @@ namespace AIBody
 
         /// <summary>The persona's folder name for config.json and the companion app ("" = none).</summary>
         private string PersonaName { get { return _personaJson.val == PersonaNone ? "" : _personaJson.val; } }
+
+        /// <summary>config.json ai.language into the menu; an unknown code is added as a choice so it is not lost.</summary>
+        private void SetLanguage(string code)
+        {
+            string label = LanguageLabel(code);
+            if (!_languageJson.choices.Contains(label))
+            {
+                List<string> choices = new List<string>(_languageJson.choices);
+                choices.Add(label);
+                try { _languageJson.choices = choices; }   // choices refresh: E9, E24, E25
+                catch (Exception e) { _diag.Fail("Extend language list", e); }
+            }
+            _languageJson.val = label;
+        }
 
         private void SetPersona(string name)
         {

@@ -133,7 +133,7 @@ class ConfigRoundTripTests(unittest.TestCase):
         self.plugin.seed_from_file()  # no file yet
         self.plugin.write_settings()
         path = settings_file.settings_path(self.tmp.name)
-        self.assertEqual(set(json.loads(path.read_text())["ai"]), {"mode", "persona_name", "memory", "proactive", "barge_in", "realtime", "xai"},
+        self.assertEqual(set(json.loads(path.read_text())["ai"]), {"mode", "language", "persona_name", "memory", "proactive", "barge_in", "realtime", "xai"},
                          "only the plugin's ai controls")
         self.sim.start_app()
         data = json.loads(path.read_text())

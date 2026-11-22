@@ -837,7 +837,7 @@
         },
         "language": {
           "type": "string",
-          "default": "auto",
+          "default": "de",
           "description": "'auto' or a language code (de, en, ...): STT bias and TTS language"
         },
         "persona_name": {

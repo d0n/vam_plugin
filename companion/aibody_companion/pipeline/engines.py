@@ -33,6 +33,7 @@ from . import elevenlabs, ollama, xai
 from .http import HttpClient, is_key_rejection
 from ..logsetup import add_secret
 from ..characters import context_text, normalize as normalize_characters
+from .. import languages
 from ..personas import Persona, memory_block
 from .keys import resolve_key
 from .llm import EchoLlm
@@ -171,12 +172,17 @@ class EngineSet:
         parts = [f"Your name is {p.display_name}." if p and p.display_name else "", base,
                  memory_block(self.memory_facts),
                  context_text(str(self.characters.get("ai_gender") or ""),
-                              str(self.characters.get("user_gender") or ""))]
+                              str(self.characters.get("user_gender") or "")),
+                 languages.answer_rule(self.language())]   # "Always answer in German ..." (chain and realtime)
         return "\n\n".join(x for x in parts if x)
 
     def language(self) -> str:
-        return (self.persona.language if self.persona and self.persona.language else "") \
-            or str(self.ai.get("language") or "auto")
+        """The menu "Language" (ai.language) when it is not "auto"; else the persona's language; else "auto"
+        (22.11.2026, Leon: the menu choice must reach every engine)."""
+        menu = str(self.ai.get("language") or "auto")
+        if menu != "auto":
+            return menu
+        return (self.persona.language if self.persona and self.persona.language else "") or "auto"
 
     def xai_settings(self) -> dict[str, Any]:
         """ai.xai; with a persona voice a copy with that voice (else the live dict, so menu changes still count)."""
@@ -234,7 +240,7 @@ class EngineSet:
         if name == "xai":
             settings, key = self.xai_settings(), self.key("xai")
             if kind == "stt":
-                return xai.XaiStt(settings, key, self.http, language=language)
+                return xai.XaiStt(settings, key, self.http, language=languages.base(language))
             if kind == "llm":
                 return xai.XaiLlm(settings, key, self.http, persona=self.persona_text())
             return xai.XaiTts(settings, key, self.http, language=language)

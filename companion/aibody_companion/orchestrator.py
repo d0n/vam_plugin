@@ -806,7 +806,7 @@ class Companion:
         return errors
 
     # ai keys the plugin's tabs may change live (AI, AI Character, Client Character)
-    AI_LIVE_KEYS = {("mode",), ("proactive", "enabled"), ("proactive", "idle_seconds"),
+    AI_LIVE_KEYS = {("mode",), ("language",), ("proactive", "enabled"), ("proactive", "idle_seconds"),
                     ("barge_in", "enabled"), ("realtime", "voice"), ("xai", "voice"),
                     ("xai", "key_file"), ("elevenlabs", "key_file"), ("persona_name",), ("memory", "enabled")}
 
@@ -884,6 +884,13 @@ class Companion:
             self.engine_set.rebuild("tts")
         if ("barge_in", "enabled") in changed:
             self._configure_barge()
+        if ("language",) in changed and ("persona_name",) not in changed:
+            log.info("Language: %s", self.engine_set.language())
+            for kind in ("stt", "llm", "tts"):
+                self.engine_set.rebuild(kind)  # TTS language per sentence, STT language, "Always answer in ..."
+            if self.realtime is not None:
+                self.realtime.stop()  # instructions and language hint are part of the session: reconnect
+                self.realtime = None
         if ("realtime", "voice") in changed and self.realtime is not None:
             self.realtime.stop()  # the voice is part of the session: reconnect with the new one
             self.realtime = None
@@ -959,7 +966,7 @@ class Companion:
         self.send(protocol.make_command(
             "config_ack", reply_to=event.get("id", ""),
             applied={"mic": settings.to_dict(), "engines": dict(self.engines),
-                     "ai": {"mode": self.mode_requested,
+                     "ai": {"mode": self.mode_requested, "language": str(self.engine_set.ai.get("language") or "auto"),
                             "proactive": {"enabled": self.proactive.enabled,
                                           "idle_seconds": self.proactive.idle_seconds},
                             "barge_in": {"enabled": bool(self.engine_set.ai["barge_in"]["enabled"])},

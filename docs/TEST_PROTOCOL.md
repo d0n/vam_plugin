@@ -829,3 +829,12 @@ Report: companion.log and VaM's output_log.txt lines starting with `AIBody` (the
 4. Same in AI mode Realtime; with Verbose log the log shows response.cancel and conversation.item.truncate.
 5. With headphones: a normal voice is enough. Toggle off: talking over her does nothing; push-to-talk with "Push-to-talk interrupts speech" still stops her.
 Report: companion.log, and whether a cough, laugh or loud sentence of hers interrupted her.
+
+## T79 – Menu Language, German by default (main after v48, Leon 22.11.2026 call)
+
+1. Tab **Voice**, AI section: **Language** under Persona shows **German (de)** in a new scene (a scene or config.json saved earlier with `auto` shows Auto: pick German once). The list scrolls: Auto, German, English, French, Spanish, Italian, Portuguese, ... (21 entries).
+2. AI mode Chain or Q&A, persona Anna: talk German for a few minutes, also mix in a few English words: every answer is German, "die" is pronounced German, no English accent words (companion.log "Language: de" after a change).
+3. Pick English (en): the next answers are English with an English voice; pick German again.
+4. AI mode Realtime: same check; the session reconnects after a change (log "Realtime: connected").
+5. Auto: the persona's language is used (Anna: de); a persona without a language falls back to detection per sentence.
+Report: companion.log and the sentences that still sounded English.
