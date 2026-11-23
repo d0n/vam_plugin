@@ -45,6 +45,7 @@ namespace AIBody
         public const string EvtPtt = "ptt";
         public const string EvtTestTone = "test_tone";
         public const string EvtReconnect = "reconnect";
+        public const string EvtMute = "mute";   // since version 55: toggle "Mute AI (stop talking and listening)"
 
         /// <summary>Command types handled by the body (CommandRouter); the rest is handled by the app link.</summary>
         public static readonly string[] BodyCommands =

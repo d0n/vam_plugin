@@ -532,3 +532,7 @@ Rules kept: no `UnityWebRequest`, no `UnityEngine.Networking`, no TCP/HTTP/WebCl
   audited `Atom.freeControllers`, `Atom.mainController`, `FreeControllerV3.transform.position/rotation`,
   `Quaternion.Inverse/Euler`, `Vector3` math; the idle-pool file check uses `FileManagerSecure.FileExists`; the speech
   backlog uses `DateTime.UtcNow` and the existing `AudioSource`/`JSONStorable` calls. No new API.
+
+- **Version 55 (23.11.2026): toggle "Mute AI (stop talking and listening)".** `JSONStorableBool` with `isStorable` /
+  `isRestorable` false and `RegisterBool` (as the scene hooks, E9/E12), `CreateToggle` through `UiPage.Toggle`, the
+  existing `JSONClass` event / heartbeat fields over the existing link (`SocketLink` / file outbox). No new API.

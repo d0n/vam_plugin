@@ -22,7 +22,7 @@ import logging
 import time
 from typing import TYPE_CHECKING, Any
 
-from . import body_tools, protocol
+from . import body_tools, protocol, voice_mute
 from .emotion import offered as offered_expressions
 from .audio.vad import frame_rms
 from .latency import LatencyTrace
@@ -212,6 +212,8 @@ class RealtimeVoice:
                 self.handle(event)
             except Exception:  # noqa: BLE001 - one bad event must not stop the companion
                 log.exception("Realtime event failed: %.200s", event)
+        if self.c.muted:
+            self._waiting_since = None  # version 55: no answer is expected while muted
         if self._waiting_since is not None and not self.responding and self.client.ready \
                 and self.c._clock() - self._waiting_since > ANSWER_TIMEOUT_S:
             self._waiting_since = None
@@ -264,11 +266,19 @@ class RealtimeVoice:
             text = str(event.get("transcript") or "").strip()
             if text:
                 log.info("Heard: %r", text)
+                if self._mute_command(text):
+                    return  # version 55: mute / unmute or muted: no history, no spoken answer
                 if self._pose_command(text):
                     return  # a pose command is not a conversation: no history, no spoken answer
                 self.c.history.append({"role": "user", "content": text})
         elif type_ == "response.created":
             self._answered_since_stop = True
+            if self.c.muted:  # version 55: muted - every answer of the server is cancelled before it is played
+                self._waiting_since = None
+                if rid:
+                    self.cancelled.add(str(rid))
+                self.client.send({"type": "response.cancel"})
+                return
             if self._suppressed(rid):
                 return
             self._start_response(rid)
@@ -332,6 +342,24 @@ class RealtimeVoice:
             self.c.stop_speaking()
             self._reset_response()
         # the answer to this utterance may not have started yet (the transcript can arrive first): drop that one too
+        self._suppress_until = 0.0 if self._answered_since_stop else self.c._clock() + self.SUPPRESS_S
+        return True
+
+    def _mute_command(self, text: str) -> bool:
+        """Version 55: a mute / unmute phrase (voice_mute) or anything heard while muted. The server's answer to it is
+        dropped (started or still to come), like for a pose command. True = the transcript is handled here."""
+        command = voice_mute.detect(text, self.c.muted)
+        if command is None and not self.c.muted:
+            return False
+        if command is not None:
+            self.c.set_muted(command == "mute", f"voice: {command}")
+        else:
+            log.info("Muted: ignored %r (no answer)", text[:80])
+        if self.responding and self.response_id:
+            self.cancelled.add(self.response_id)
+            self.client.send({"type": "response.cancel"})
+            self.c.stop_speaking()
+            self._reset_response()
         self._suppress_until = 0.0 if self._answered_since_stop else self.c._clock() + self.SUPPRESS_S
         return True
 

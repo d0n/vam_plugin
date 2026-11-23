@@ -335,6 +335,14 @@
     "command": {
       "type": "string",
       "description": "pose: the matched command text (informational)"
+    },
+    "muted": {
+      "type": "boolean",
+      "description": "companion_heartbeat (version 55): the companion's mute state (single source of truth); the AIBody plugin's toggle 'Mute AI' follows it"
+    },
+    "mute_by": {
+      "type": "string",
+      "description": "companion_heartbeat (version 55): who switched mute last: menu, voice: mute, voice: unmute (empty = not yet)"
     }
   },
   "allOf": [

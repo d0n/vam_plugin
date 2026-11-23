@@ -907,6 +907,32 @@ Report: a dropdown without entries after the reset, the same pose twice in a row
 7. Idle head motion on: watch the head and chest for 2 s after each pose load: no jerk; the idle sway starts again after about 1 s.
 Report: a pose that does not apply, any twitching, a pose applied by just choosing an entry, Body control off after using Dollmaster.
 
+## T93 – Mute by voice and unmute by voice (version 55, Leon 23.11.2026)
+1. Install v55, start AIBody Companion, then VaM; load AI-Buddy. Ask something long so she talks.
+2. While she talks say **"shut up"** (or "halt's Maul", "halts Maul", "halt die Klappe", "sei still"): she stops at once; nothing queued plays afterwards. The companion log says "Muted (voice: mute) ...". Tab Config: the toggle **Mute AI (stop talking and listening)** is now on.
+3. Talk to her normally and say a pose command (e.g. "Sit Down"): no answer, no pose, no gesture; the log says "Muted: ignored ...".
+4. Say **"sprich mit mir"** (or "speak again", "go ahead talking"): she stays silent (no answer to that sentence), the toggle goes off, the log says "Unmuted (voice: unmute)". Ask something: she answers normally; a pose command works again.
+Report: a phrase that is not recognised (with the "Heard:" line of the companion log), any answer or pose while muted.
+
+## T94 – Phrases inside a longer sentence, other speakers (version 55)
+1. Say "okay okay, shut up now, please" and "yes yes, halt die Klappe, listen": both mute.
+2. While muted, say "well, go ahead talking again" and "okay, sprich mit mir bitte": both unmute.
+3. With another person talking on the same headset, a phrase in the middle of their sentence also counts. Normal sentences ("shut the door", "speak") do nothing.
+Report: a false mute in a normal conversation, a missed phrase.
+
+## T95 – Menu toggle both ways (version 55)
+1. Tab Config: the first control in the right column is **Mute AI (stop talking and listening)**, off. The left info field starts with its explanation (label in bold, all phrases). No new text field on the right.
+2. Switch it on while she talks: she stops at once and ignores what she hears. Switch it off: she answers again.
+3. Switch it on, then say "speak again": the toggle switches itself off. Say "sei still": it switches itself on.
+4. Close the companion with the toggle on, start the companion again: the toggle goes off (unmuted on every start).
+Report: the toggle not following the voice within about 2 s, the AI still answering while the toggle is on.
+
+## T96 – Reset to Default and restart (version 55)
+1. Switch **Mute AI (stop talking and listening)** on. Tab Config > **Reset to Default** > **Confirm Reset to Default**: the status line ends with "Mute AI is off"; the toggle is off and she answers again.
+2. Mute by voice, save the scene, reload the scene (or restart VaM): the toggle is never saved in the scene; it shows the companion's state (still muted while the same companion runs; off after a companion restart).
+3. Realtime mode (AI mode realtime or auto with an xAI key): repeat T93 steps 2-4; while muted nothing is spoken.
+Report: muted after Reset to Default, a muted state saved in the scene.
+
 ## T89 – Body position moves the whole character and stays (version 54, Leon 23:27-23:31)
 1. Install v54, start AIBody Companion, then VaM; load AI-Buddy. Tab AI Character, section *Body position*.
 2. Move **Move forward / back (m)** to 1, then **Move right / left (m)** to -1, then **Turn (degrees)** to 90: the WHOLE character moves and turns as one piece (no bent limbs, no part left behind).

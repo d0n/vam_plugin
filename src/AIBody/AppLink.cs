@@ -69,6 +69,13 @@ namespace AIBody
         private JSONStorableBool _proactiveJson;
         private JSONStorableFloat _proactiveIdleJson;
         private JSONStorableBool _bargeInJson;
+        // Version 55 (Leon 23.11.2026): mute switch. The companion holds the state (single source of truth); this toggle
+        // sends it ("mute" event) and shows what the companion reports (heartbeat "muted"). Not saved: off on every start.
+        public const string MuteLabel = "Mute AI (stop talking and listening)";
+        private JSONStorableBool _mutedJson;
+        private bool _syncingMute;     // the heartbeat sets the toggle: do not send it back
+        private bool _mutePending;     // switched while the companion was not connected: sent when it is
+        private string _muteBy = "";   // companion heartbeat "mute_by" (menu / voice: <phrase>)
         private JSONStorableStringChooser _voiceJson;       // ai.realtime.voice + ai.xai.voice
         // Version 27: persona (folder in Saves/PluginData/AIBody/personas, listed by the companion app) and memory
         // Version 50 (Leon, call 20:35): no "(none)" entry any more; the menu offers the female and the male starter
@@ -281,6 +288,10 @@ namespace AIBody
             SettingsDefaults.Float(_plugin, _proactiveIdleJson);
             _bargeInJson = new JSONStorableBool("Voice barge-in (headphones)", true, (bool v) => MarkConfigDirty());   // on by default since 22.11.2026 (Leon); config.json ai.barge_in.enabled
             SettingsDefaults.Bool(_plugin, _bargeInJson);
+            _mutedJson = new JSONStorableBool(MuteLabel, false, OnMuteToggled);
+            _mutedJson.isStorable = false;     // never saved in the scene: unmuted on every start (version 55)
+            _mutedJson.isRestorable = false;
+            _plugin.RegisterBool(_mutedJson);  // a VaM trigger can mute / unmute too
             // xAI voices: the 28 built-in voices of docs.x.ai (text-to-speech page, 21.11.2026); the companion app
             // replaces the list with the answer of GET /v1/tts/voices (heartbeat "voices"). A custom id is kept.
             _voiceJson = new JSONStorableStringChooser("Voice", new List<string>(XaiVoices), "eve", "Voice",
@@ -404,6 +415,69 @@ namespace AIBody
         /// field is emptied, config.json ai.xai.api_key is written as "" and the config event carries keys.xai = "", so the
         /// companion app forgets the token (EngineSet.set_ui_key). The token is never logged or shown.
         /// </summary>
+        // ---------------------------------------------------------------- mute (version 55)
+
+        /// <summary>The menu toggle changed (by the user or a trigger): tell the companion, which holds the state.</summary>
+        private void OnMuteToggled(bool muted)
+        {
+            if (_syncingMute) return;
+            _muteBy = "menu";
+            if (!_appAlive)
+            {
+                _mutePending = true;   // sent as soon as the companion is connected
+                return;
+            }
+            SendMute(muted);
+        }
+
+        private void SendMute(bool muted)
+        {
+            _mutePending = false;
+            JSONClass evt = Protocol.NewEvent(Protocol.EvtMute);
+            evt["muted"].AsBool = muted;
+            Send(evt);
+            Log.Info(muted ? "Mute AI: on (menu) - the AI stops talking and ignores what it hears"
+                           : "Mute AI: off (menu) - the AI listens and answers again");
+        }
+
+        /// <summary>The companion's state (heartbeat "muted"): a voice command flips the toggle here.</summary>
+        private void ApplyMuteState(JSONClass msg)
+        {
+            if (_mutePending)
+            {
+                SendMute(_mutedJson.val);   // the user's latest choice wins over the companion's older state
+                return;
+            }
+            if (!Protocol.Has(msg, "muted")) return;
+            bool muted = Protocol.GetBool(msg, "muted", false);
+            _muteBy = Protocol.GetString(msg, "mute_by", _muteBy);
+            if (muted == _mutedJson.val) return;
+            _syncingMute = true;
+            try { _mutedJson.val = muted; }
+            finally { _syncingMute = false; }
+            Log.Info("Mute AI: " + (muted ? "on" : "off") + " (companion: " + _muteBy + ")");
+        }
+
+        /// <summary>Reset to Default (version 55): unmuted.</summary>
+        public void ResetMute()
+        {
+            if (_mutedJson != null) _mutedJson.val = false;
+        }
+
+        public bool Muted { get { return _mutedJson != null && _mutedJson.val; } }
+
+        /// <summary>Left info field of the tab Config: what the toggle does, with its exact label in bold.</summary>
+        public string MuteInfoText()
+        {
+            string state = !_appAlive ? (Muted ? "on (sent when the companion app connects)" : "off (companion app not connected)")
+                : Muted ? "<color=orange>on</color>" + (_muteBy.Length > 0 ? " (" + _muteBy + ")" : "") : "off";
+            return "<b>" + MuteLabel + "</b>: " + state + ". On = the AI stops talking at once, its queued speech is dropped, "
+                + "and it ignores everything it hears (no answer, no pose or gesture from speech) until you switch it off. "
+                + "By voice: \"shut up\", \"halt's Maul\", \"halt die Klappe\" or \"sei still\" switch it on; "
+                + "\"sprich mit mir\", \"speak again\" or \"go ahead talking\" switch it off (also inside a longer sentence). "
+                + "Not saved: off after a restart and after Reset to Default.\n";
+        }
+
         public void ClearToken()
         {
             _xaiToken = "";
@@ -962,6 +1036,7 @@ namespace AIBody
         /// <summary>Tab "Config" (former Config + Advanced): the shared config.json and the file link.</summary>
         public void BuildConfigTab(UiPage page, UnityEngine.Events.UnityAction reload)
         {
+            page.Toggle(_mutedJson);   // version 55: explanation in the left info field (MuteInfoText)
             page.Header("<b>Config file</b>");
             page.Button("Reload Config JSON", reload);
             page.Header("<b>Connection</b>");
@@ -1442,6 +1517,7 @@ namespace AIBody
                 SetChoices(_llmJson, available["llm"] as JSONArray);
                 SetChoices(_ttsJson, available["tts"] as JSONArray);
             }
+            ApplyMuteState(msg);   // version 55
             SetPersonaChoices(msg["personas"] as JSONArray);
             SetVoiceChoices(msg["voices"] as JSONArray);
             _personaInUse = msg["persona"].Value;

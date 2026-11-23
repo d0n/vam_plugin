@@ -148,6 +148,16 @@ GERMAN_WORDS = {"und", "oder", "nicht", "für", "wird", "ist", "eine", "einen", 
                 "diese", "dieser", "nach", "über", "vom", "zum", "zur", "beim", "keine", "kein", "datei", "fehler",
                 "starten", "gestartet", "verbunden", "getrennt", "bereit", "läuft", "gefunden", "test-ton"}
 STRING_RE = re.compile(r'"((?:[^"\\]|\\.)*)"')
+# Version 55: the German voice commands (companion voice_mute.py) are quoted on purpose in help texts and docs.
+VOICE_COMMANDS = ("halt's maul", "halts maul", "halt das maul", "halt dein maul", "halt die klappe", "halt deine klappe",
+                  "sei still", "seid still", "sprich wieder mit mir", "sprich mit mir")
+
+
+def without_voice_commands(text: str) -> str:
+    low = text.lower()
+    for phrase in VOICE_COMMANDS:
+        low = low.replace(phrase, " ")
+    return low
 
 
 def language_scan() -> list[str]:
@@ -159,7 +169,7 @@ def language_scan() -> list[str]:
             if line.lstrip().startswith("//"):
                 continue
             for m in STRING_RE.finditer(line):
-                text = m.group(1)
+                text = without_voice_commands(m.group(1))
                 words = [w.lower() for w in re.findall(r"[A-Za-zÄÖÜäöüß-]+", text)]
                 if re.search(r"[äöüÄÖÜß]", text) or (len(words) >= 2 and any(w in GERMAN_WORDS for w in words)) \
                         or "test-ton" in words:
@@ -181,7 +191,7 @@ def docs_language_scan() -> list[str]:
         if rel in DOC_EXEMPT or any(part in {"dist", "build", ".git", "node_modules"} for part in path.parts):
             continue
         for number, line in enumerate(path.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
-            words = re.findall(r"[a-zäöüß]+", line.lower())
+            words = re.findall(r"[a-zäöüß]+", without_voice_commands(line))
             if re.search(r"[äöüÄÖÜß]", line) or sum(1 for w in words if w in DOC_GERMAN_MARKERS) >= 2:
                 problems.append(f"{rel}:{number}: German text? {line.strip()[:80]!r}")
     return problems

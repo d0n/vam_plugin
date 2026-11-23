@@ -175,6 +175,7 @@ class FakePlugin:
         self.last_session: str | None = None
         self.app_age = 999.0
         self.app_alive = False
+        self.muted = False  # version 55: toggle "Mute AI", not saved
         self.seen_epoch = 0
         self.epoch = 0
         self.hb_timer = 0.0
@@ -305,6 +306,11 @@ class FakePlugin:
     def press_ptt(self, active: bool) -> None:
         self.send("ptt", active=active)
 
+    def set_mute(self, on: bool) -> None:
+        """Version 55: toggle "Mute AI (stop talking and listening)" (AppLink.OnMuteToggled); VaM writes "true"/"false"."""
+        self.muted = on
+        self.send("mute", muted="true" if on else "false")
+
     # -- config.json (AIBody.cs UpdateSettings / WriteSettings) ----------------------------
 
     @property
@@ -409,6 +415,8 @@ class FakePlugin:
             self.persona_in_use = str(msg.get("persona", ""))
             self.persona_note = str(msg.get("persona_note", ""))
             self.memory_info = dict(msg.get("memory", {}))
+            if "muted" in msg:  # version 55: AppLink.ApplyMuteState - the companion's state flips the toggle
+                self.muted = bool(msg["muted"])
             session = msg.get("session")
             if session != self.app_session:
                 restarted = self.last_session is not None and session != self.last_session

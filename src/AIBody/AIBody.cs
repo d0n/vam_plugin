@@ -43,7 +43,7 @@ namespace AIBody
 {
     public class AIBodyPlugin : MVRScript
     {
-        public const string PluginVersion = "54";   // = package number d0n.AIBody.54.var (scheme since version 12)
+        public const string PluginVersion = "55";   // = package number d0n.AIBody.55.var (scheme since version 12)
 
         private AppLink _link;
         private Body _body;
@@ -476,6 +476,7 @@ namespace AIBody
             {
                 int changed = Defaults.ResetAll(this);
                 if (_link != null) _link.ClearToken();   // version 50 (Leon 20:35): the reset clears the XAI API Token too
+                if (_link != null) _link.ResetMute();    // version 55: Reset to Default unmutes the AI
                 // Version 51 (Leon 20:58): every menu gets its full list again, so no dropdown is empty after the reset.
                 if (_link != null) _link.RefreshAllChoices();
                 if (_body != null) _body.RefreshCharacterChoices();
@@ -484,7 +485,7 @@ namespace AIBody
                 if (_body != null && _body.OnSettingsChanged != null) _body.OnSettingsChanged();
                 if (_body != null) _body.RebuildTab = true;
                 _configStatus = "Reset to Default done (" + DateTime.Now.ToString("HH:mm:ss") + "): " + changed + " of "
-                    + Defaults.Count + " settings changed back to their defaults. The XAI API Token is cleared. Kept: the key file paths, "
+                    + Defaults.Count + " settings changed back to their defaults. The XAI API Token is cleared, Mute AI is off. Kept: the key file paths, "
                     + "the pose commands and the companion's own settings in config.json.";
                 _diag.Step("Reset to Default: " + changed + " setting(s) back to default");
             }
@@ -744,7 +745,8 @@ namespace AIBody
                         text = DollmasterInfoText();
                         break;
                     default:
-                        text = (_link != null ? "config.json: " + _link.SettingsPath + "\n" + _link.ChannelInfoText() + "\n" + _link.NetworkInfoText() + "\n"
+                        text = (_link != null ? _link.MuteInfoText() + "\n" : "")
+                            + (_link != null ? "config.json: " + _link.SettingsPath + "\n" + _link.ChannelInfoText() + "\n" + _link.NetworkInfoText() + "\n"
                                 + _link.FilePollInfoText() + "\n" : "")
                             + (_configStatus.Length > 0 ? _configStatus + "\n" : "")
                             + BackgroundInfo()

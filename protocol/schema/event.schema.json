@@ -29,7 +29,8 @@
         "config",
         "ptt",
         "test_tone",
-        "reconnect"
+        "reconnect",
+        "mute"
       ]
     },
     "id": {
@@ -134,6 +135,10 @@
         "file",
         "none"
       ]
+    },
+    "muted": {
+      "type": "boolean",
+      "description": "mute (version 55): toggle 'Mute AI (stop talking and listening)'; true = the AI stops talking and ignores what it hears"
     },
     "active": {
       "type": "boolean",

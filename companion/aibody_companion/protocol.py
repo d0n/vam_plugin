@@ -46,10 +46,11 @@ COMMANDS: dict[str, tuple[set[str], set[str]]] = {
     # proactive: {enabled, idle_seconds, status?}; audio_out: {folder, auto, note?} (speech WAV folder);
     # turn: last question / answer step or problem as text (status box)
     # voices: xAI voice ids for the Voice menu (after version 40, voices.py)
+    # muted / mute_by: version 55, the companion's mute state (toggle "Mute AI") and who switched it last
     "companion_heartbeat": ({"session"}, {"version", "engines_available", "engines_status", "engines_active",
                                           "mic_capturing", "mode", "proactive", "keys", "audio_out", "turn",
                                           "latency", "personas", "persona", "persona_note", "memory",
-                                          "voices"}),
+                                          "voices", "muted", "mute_by"}),
 }
 
 # Commands for the plugin's body (everything else is handled by its app link).
@@ -84,6 +85,7 @@ EVENTS = {
     "scene_event",
     "memory_forget",
     "shutdown",
+    "mute",
 }
 
 _counter = itertools.count(1)
@@ -173,4 +175,6 @@ def validate_event(msg: Any) -> list[str]:
         errors.append("scene_event: 'text' must be a non-empty string")
     if type_ == "ptt" and as_bool(msg.get("active")) is None:  # VaM writes "true"/"false"
         errors.append("ptt: 'active' must be true/false")
+    if type_ == "mute" and as_bool(msg.get("muted")) is None:  # version 55: toggle "Mute AI"
+        errors.append("mute: 'muted' must be true/false")
     return errors

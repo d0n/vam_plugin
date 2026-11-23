@@ -146,6 +146,8 @@ class ResetToDefaultTests(TestCase):
         self.assertEqual(sorted(registered), sorted(["_settingsInitJson", "_xaiKeyFileJson", "_elevenKeyFileJson",
                                                      "_aiSpeakingJson", "_userSpeakingJson", "_sceneEventJson",
                                                      "_backgroundColorJson",
+                                                     # version 55: mute toggle, a trigger hook (not saved, reset by ResetMute)
+                                                     "_mutedJson",
                                                      # tab Dollmaster: saved with the scene like the old plugin's settings
                                                      "_dmActivateJson"]))
         self.assertIn("Defaults.TrackColor(BackgroundColorName, _backgroundColorJson.val);", self.plugin)

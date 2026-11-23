@@ -39,7 +39,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from . import __version__, body_tools, logsetup, pose_commands, protocol, wakeup
+from . import __version__, body_tools, logsetup, pose_commands, protocol, voice_mute, wakeup
 from .atomicfile import atomic_copy
 from .audio import (
     BargeInRule,
@@ -245,6 +245,10 @@ class Companion:
         self._last_input: tuple[str, Any, float | None] | None = None
         self._answer_dropped = False
         self._disconnected_at: float | None = None
+        # version 55: mute (voice "shut up" / menu toggle "Mute AI"); this is the one place the state lives. Never saved:
+        # unmuted on every start. mute_by says who switched it last ("menu", "voice: mute", "voice: unmute").
+        self.muted = False
+        self.mute_by = ""
         self._null_stt_warned = False
         self._stt_error = ""
         self._last_exchange: float | None = None
@@ -641,6 +645,8 @@ class Companion:
         return True
 
     def _maybe_nudge(self) -> None:
+        if self.muted:
+            return  # version 55: muted = no proactive talking either
         if not self.proactive.due(self._can_speak_now()) or not self._can_nudge_engine():
             return
         prompt = str(self.engine_set.ai["proactive"].get("prompt") or "")
@@ -668,6 +674,9 @@ class Companion:
     def handle_scene_event(self, event: dict[str, Any]) -> None:
         text = clean_scene_event(event.get("text"))
         if not text:
+            return
+        if self.muted:
+            log.info("Scene event ignored (muted): %s", text)
             return
         if not as_bool(self._scene_events_cfg().get("enabled", True)):
             log.info("Scene event ignored (ai.scene_events.enabled is false): %s", text)
@@ -726,6 +735,40 @@ class Companion:
             kind, data, _ = newest
             self._submit(kind, data, self._clock())
 
+    # -- mute (version 55) -----------------------------------------------------------------
+
+    def set_muted(self, muted: bool, by: str) -> None:
+        """Tick thread. Mute: the body stops at once (stop_speaking), the answer being prepared and every queued input
+        and speech are dropped; from now on what is heard is ignored (see _turn and RealtimeVoice). Unmute: answers
+        again, silently. The plugin's toggle follows through the next heartbeat (sent right away)."""
+        muted = bool(muted)
+        self.mute_by = by
+        self._last_heartbeat = -HEARTBEAT_INTERVAL_S  # the plugin's toggle shows the new state right away
+        if muted == self.muted:
+            return
+        self.muted = muted
+        if muted:
+            log.info("Muted (%s): the AI stops talking and ignores what it hears until 'sprich mit mir' / 'speak again' / "
+                     "'go ahead talking' or the menu toggle 'Mute AI' is switched off", by)
+            self.cancel_turns()
+            self._held_input = []
+            self._answer_dropped = False
+            self._unstarted.clear()
+            self._last_speak_turn = None
+            self._scene_events.clear()
+            if self.realtime is not None and self.active_mode == "realtime":
+                self.realtime.barge_in(manual=True)  # cancels the server's answer
+            self.send(self.body_command("stop_speaking"))
+            self.gate.force_open()
+            self._set_turn("Muted: the AI does not talk or answer (say 'speak again' or switch 'Mute AI' off)")
+        else:
+            log.info("Unmuted (%s): the AI listens and answers again", by)
+            self.proactive.ai_activity()  # no proactive line right after unmuting
+            self._set_turn("Unmuted: the AI listens and answers again")
+
+    def mute_info(self) -> tuple[bool, str]:
+        return self.muted, self.mute_by
+
     # -- events from the body ------------------------------------------------------------
 
     def process_events(self) -> list[dict[str, Any]]:
@@ -770,6 +813,8 @@ class Companion:
                 self.forget_memory()
             elif type_ == "reconnect":
                 self.reconnect_api()
+            elif type_ == "mute":
+                self.set_muted(bool(as_bool(event.get("muted"))), "menu")
             elif type_ == "error":
                 log.warning("The plugin reported a problem (%s): %s - see the VaM log (lines starting with AIBody) for details",
                             event.get("code"), event.get("message"))
@@ -814,7 +859,7 @@ class Companion:
             mode=self.mode_info(), proactive=self.proactive_info(), keys=self.engine_set.key_info(),
             audio_out=self.audio_info(), turn=self.turn_status, latency=self.latency.info(),
             personas=self.persona_names(), persona=self.persona_in_use, persona_note=self.persona_note,
-            memory=self.memory_info(), voices=self.voice_names(),
+            memory=self.memory_info(), voices=self.voice_names(), muted=self.muted, mute_by=self.mute_by,
         ))
 
     def voice_names(self) -> list[str]:
@@ -1341,6 +1386,17 @@ class Companion:
                 if kind == "text":
                     yield ("status", f"Question (typed): {_short(text)}")
             self._check(generation)
+            if kind in ("audio", "text"):
+                # version 55: mute / unmute by voice, locally, before the pose gate and any AI request
+                command = voice_mute.detect(text, self.muted)
+                if command is not None:
+                    turn.step("end", result=f"voice {command}", text=text)
+                    yield ("mute", command == "mute", f"voice: {command}")
+                    return
+                if self.muted:
+                    log.info("Muted: ignored %r (no answer)", _short(text))
+                    turn.step("end", result="muted (ignored)")
+                    return
             if kind in ("audio", "text") and self.pose_gate_active():
                 decision = self.pose_decision(text)  # the HARD GATE: the whole input must equal a pose command
                 if decision is not None:
@@ -1565,6 +1621,8 @@ class Companion:
             self._set_turn(step[1])
         elif kind == "command":
             self.send(step[1])
+        elif kind == "mute":
+            self.set_muted(step[1], step[2])
         elif kind == "speak":
             _, utterance_id, text, path, duration, *rest = step
             self._queue_speech(utterance_id, text, path, duration, bool(rest and rest[0]))

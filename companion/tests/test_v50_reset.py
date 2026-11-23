@@ -70,7 +70,7 @@ class PluginDefaultsTests(TestCase):
     def test_1_reset_clears_the_token(self):
         confirm = method_body(source("AIBody.cs"), "private void ConfirmReset()")
         self.assertLess(confirm.index("Defaults.ResetAll(this)"), confirm.index("_link.ClearToken()"))
-        self.assertIn("The XAI API Token is cleared.", confirm)
+        self.assertIn("The XAI API Token is cleared", confirm)
         clear = method_body(self.link, "public void ClearToken()")
         for part in ('_xaiToken = "";', "ShowTokenMask();", "UpdateKeyStatus();", "MarkConfigDirty();"):
             self.assertIn(part, clear)

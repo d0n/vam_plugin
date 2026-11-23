@@ -333,7 +333,8 @@ class Version31LayoutTests(unittest.TestCase):
 
     def test_config_tab_holds_only_what_is_not_character_bound(self):
         config = method_body(source("AppLink.cs"), "public void BuildConfigTab(UiPage page")
-        self.assertEqual(re.findall(r'page\.(\w+)\(', config), ["Header", "Button", "Header", "Toggle", "Slider"])
+        # version 55: the toggle "Mute AI (stop talking and listening)" first
+        self.assertEqual(re.findall(r'page\.(\w+)\(', config), ["Toggle", "Header", "Button", "Header", "Toggle", "Slider"])
         self.assertIn('"Reload Config JSON"', config)
         for word in ("pose", "Pose", "xpression", "esture", "Body", "Gaze"):
             self.assertNotIn(word, config)
