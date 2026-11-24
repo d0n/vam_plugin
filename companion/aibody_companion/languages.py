@@ -1,4 +1,4 @@
-"""Languages of the menu "Language" (tab Voice; Leon, 22.11.2026).
+"""Languages of the menu "Language" (tab Voice; Don, 22.11.2026).
 
 The codes are the ones xAI text to speech supports (docs.x.ai, Text to Speech > Supported Languages, read 22.11.2026):
 auto plus 20 BCP-47 codes; every built-in voice speaks every one of them. The plugin's chooser shows "German (de)" etc.

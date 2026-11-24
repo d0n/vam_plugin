@@ -26,8 +26,8 @@ namespace AIBody
         public const string VadSilero = "Silero";
 
         /// <summary>Start command of the companion app: written to the VaM log once when the app is not running (version 35:
-        /// no longer in the menu, Leon 20.11.2026).</summary>
-        // Leon, 21.11.2026: users install the companion with "AIBody Companion Setup.exe" and start it from the Start menu;
+        /// no longer in the menu, Don 20.11.2026).</summary>
+        // Don, 21.11.2026: users install the companion with "AIBody Companion Setup.exe" and start it from the Start menu;
         // no Python or console command in user-facing plugin text.
         public const string StartHint = "start 'AIBody Companion' from the Windows Start menu (installed with 'AIBody Companion Setup.exe'); it then runs in the background";
         // Version 40: static = once per VaM session, not once per plugin instance or scene load.
@@ -190,7 +190,7 @@ namespace AIBody
             _levelAge += deltaTime;
             _speechAge += deltaTime;
             // The companion app is the only thing that listens: say plainly when it is not there.
-            // Version 35 (Leon): only a neutral one-line status in the menu; the start command goes to the log once.
+            // Version 35 (Don): only a neutral one-line status in the menu; the start command goes to the log once.
             _appHint = !linkActive
                 ? "Companion app: link switched off ('Active' in tab Voice)"
                 : !appRunning ? "Companion app: not connected" : "";

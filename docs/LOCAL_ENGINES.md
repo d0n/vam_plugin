@@ -22,7 +22,7 @@ The info field shows what really runs (`silero (onnxruntime), strictness 2`) or 
 
 ## Voice barge-in (loudness rule, echo protection)
 
-Key `ai.barge_in` in `config.json`; since 22.11.2026 (Leon) **on** by default and switched by the toggle **Voice barge-in (headphones)** (tab Client Character), in chain and realtime mode. It replaces `ai.realtime.send_while_speaking` (ignored now): the microphone always stays closed for the AI while the character speaks (echo protection), only this rule can interrupt her.
+Key `ai.barge_in` in `config.json`; since 22.11.2026 (Don) **on** by default and switched by the toggle **Voice barge-in (headphones)** (tab Client Character), in chain and realtime mode. It replaces `ai.realtime.send_while_speaking` (ignored now): the microphone always stays closed for the AI while the character speaks (echo protection), only this rule can interrupt her.
 
 | Key | Default | Meaning |
 |---|---|---|

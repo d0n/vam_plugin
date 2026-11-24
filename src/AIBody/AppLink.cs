@@ -69,7 +69,7 @@ namespace AIBody
         private JSONStorableBool _proactiveJson;
         private JSONStorableFloat _proactiveIdleJson;
         private JSONStorableBool _bargeInJson;
-        // Version 55 (Leon 23.11.2026): mute switch. The companion holds the state (single source of truth); this toggle
+        // Version 55 (Don 23.11.2026): mute switch. The companion holds the state (single source of truth); this toggle
         // sends it ("mute" event) and shows what the companion reports (heartbeat "muted"). Not saved: off on every start.
         public const string MuteLabel = "Mute AI (stop talking and listening)";
         private JSONStorableBool _mutedJson;
@@ -78,14 +78,14 @@ namespace AIBody
         private string _muteBy = "";   // companion heartbeat "mute_by" (menu / voice: <phrase>)
         private JSONStorableStringChooser _voiceJson;       // ai.realtime.voice + ai.xai.voice
         // Version 27: persona (folder in Saves/PluginData/AIBody/personas, listed by the companion app) and memory
-        // Version 50 (Leon, call 20:35): no "(none)" entry any more; the menu offers the female and the male starter
+        // Version 50 (Don, call 20:35): no "(none)" entry any more; the menu offers the female and the male starter
         // persona (Anna, Marc; companion personas.STARTER_PERSONAS) plus persona folders of your own. Default: Anna.
         public const string PersonaFemale = "Anna";
         public const string PersonaMale = "Marc";
         public const string PersonaDefault = PersonaFemale;
         public static readonly string[] StarterPersonas = { PersonaFemale, PersonaMale };
         private JSONStorableStringChooser _personaJson;     // ai.persona_name
-        private JSONStorableStringChooser _languageJson;    // ai.language (22.11.2026, Leon): "German (de)" -> "de", "Auto" -> "auto"
+        private JSONStorableStringChooser _languageJson;    // ai.language (22.11.2026, Don): "German (de)" -> "de", "Auto" -> "auto"
 
         public const string LanguageAuto = "Auto";
         public const string LanguageDefault = "German (de)";
@@ -127,7 +127,7 @@ namespace AIBody
         // still saved with the scene and sent to the companion (docs/BACKLOG.md).
         // "XAI API Token": a plain free-text field (tab Voice, section Companion connection), no format check.
         // Version 21: saved with the scene only. Version 24: the real token lives in _xaiToken and is
-        // saved in config.json (ai.xai.api_key, plain text, at Leon's explicit request); the storable
+        // saved in config.json (ai.xai.api_key, plain text, at Don's explicit request); the storable
         // _xaiTokenJson is only what the field SHOWS: the masked token ("xai-****...****abcd") once it is saved,
         // and the mask never overwrites the token (see OnTokenEdited). Version 31: the storable is NOT registered
         // with VaM, so no scene ever holds the token, not even the raw text typed or pasted into the field.
@@ -269,7 +269,7 @@ namespace AIBody
             _filePollJson = new JSONStorableFloat("File poll interval (s)", 0.1f, (float v) => Restart(), 0.02f, 2f);
             SettingsDefaults.Float(_plugin, _filePollJson);
             // Engine choices are refreshed from the companion app's companion_heartbeat.
-            // Version 50 (Leon, call 20:35): the menus always list every engine of the companion app (EngineChoices, the
+            // Version 50 (Don, call 20:35): the menus always list every engine of the companion app (EngineChoices, the
             // same lists as companion config.ENGINES_AVAILABLE), also before the app connected; default xai, the real
             // engines (without an xAI key the companion app falls back to the offline test engines null / echo / tone).
             _sttJson = Engine("Speech-to-text", SttChoices, EngineDefault);
@@ -286,7 +286,7 @@ namespace AIBody
             SettingsDefaults.Bool(_plugin, _proactiveJson);
             _proactiveIdleJson = new JSONStorableFloat("Speech delay timer (s)", 90f, (float v) => MarkConfigDirty(), 0f, 3600f);   // 0 = proactive speech off; config.json key ai.proactive.idle_seconds; was "Proactive idle (s)" up to version 22
             SettingsDefaults.Float(_plugin, _proactiveIdleJson);
-            _bargeInJson = new JSONStorableBool("Voice barge-in (headphones)", true, (bool v) => MarkConfigDirty());   // on by default since 22.11.2026 (Leon); config.json ai.barge_in.enabled
+            _bargeInJson = new JSONStorableBool("Voice barge-in (headphones)", true, (bool v) => MarkConfigDirty());   // on by default since 22.11.2026 (Don); config.json ai.barge_in.enabled
             SettingsDefaults.Bool(_plugin, _bargeInJson);
             _mutedJson = new JSONStorableBool(MuteLabel, false, OnMuteToggled);
             _mutedJson.isStorable = false;     // never saved in the scene: unmuted on every start (version 55)
@@ -307,9 +307,9 @@ namespace AIBody
             _languageJson = new JSONStorableStringChooser("Language", new List<string>(Languages), LanguageDefault, "Language",
                 (string v) => MarkConfigDirty());
             SettingsDefaults.Chooser(_plugin, _languageJson);
-            _memoryJson = new JSONStorableBool("Memory", true, (bool v) => MarkConfigDirty());   // on by default since version 50 (Leon 20:35)
+            _memoryJson = new JSONStorableBool("Memory", true, (bool v) => MarkConfigDirty());   // on by default since version 50 (Don 20:35)
             SettingsDefaults.Bool(_plugin, _memoryJson);
-            // No format check on purpose (Leon, 18.11.2026): whatever is typed or pasted is sent as is.
+            // No format check on purpose (Don, 18.11.2026): whatever is typed or pasted is sent as is.
             // Not registered (version 31): same as the first-run note's field; the token lives in config.json only.
             _xaiTokenJson = new JSONStorableString(XaiTokenLabel, "", OnTokenEdited);
             _xaiKeyFileJson = new JSONStorableString("xAI key file", "", (string v) => CheckKeyFile(_xaiKeyFileJson, v));
@@ -411,7 +411,7 @@ namespace AIBody
         }
 
         /// <summary>
-        /// Version 50 (Leon, call 20:35): 'Reset to Default' clears the XAI API Token too, like emptying the field: the
+        /// Version 50 (Don, call 20:35): 'Reset to Default' clears the XAI API Token too, like emptying the field: the
         /// field is emptied, config.json ai.xai.api_key is written as "" and the config event carries keys.xai = "", so the
         /// companion app forgets the token (EngineSet.set_ui_key). The token is never logged or shown.
         /// </summary>
@@ -731,7 +731,7 @@ namespace AIBody
         {
             if (!_appAlive)
             {
-                // Version 40 (Leon, 21.11.2026: six presses gave six log lines): at most ONE request waits; more presses
+                // Version 40 (Don, 21.11.2026: six presses gave six log lines): at most ONE request waits; more presses
                 // only say so in the left info field, and the VaM log gets this line once per VaM session.
                 if (_testTonePending)
                 {
@@ -816,7 +816,7 @@ namespace AIBody
         /// <summary>Tab "Voice", section "Voice and sound": the voice, speech-to-text, text-to-speech, the companion sound test.</summary>
         public void BuildVoiceSection(UiPage page)
         {
-            page.ScrollablePopup(_voiceJson);   // version 42: 28+ voices; the plain popup cannot scroll, so Leon saw only part of the list
+            page.ScrollablePopup(_voiceJson);   // version 42: 28+ voices; the plain popup cannot scroll, so Don saw only part of the list
             page.Popup(_sttJson);
             page.Popup(_ttsJson);
             page.Button("Test tone via companion", RequestTestTone);
@@ -889,7 +889,7 @@ namespace AIBody
 
         public const string ModeQa = "qa";
 
-        /// <summary>Version 44 (Leon 21:01): Speech volume above 1.</summary>
+        /// <summary>Version 44 (Don 21:01): Speech volume above 1.</summary>
         public const string SpeechVolumeHelp = "<b>Speech volume (%)</b> 100 is the full volume of the character's head audio (0 to 1000, "
             + "default 100). Above 100 the companion app makes its speech and <b>Test tone via companion</b> louder by that factor (200 = "
             + "twice, 1000 = ten times; no limiter: very high values distort), and <b>Play test tone</b> plays a 2x copy from 150 and a "
@@ -1546,7 +1546,7 @@ namespace AIBody
         private bool _choicesWarned;
 
         /// <summary>
-        /// Version 51 (Leon 20:58: "after Reset to Default the dropdowns are empty, must never happen"): every menu of the
+        /// Version 51 (Don 20:58: "after Reset to Default the dropdowns are empty, must never happen"): every menu of the
         /// link gets its built-in list again (kept: entries the companion app reported, the current value), so no menu
         /// is ever empty or reduced to one entry after a reset or before the companion app reported anything.
         /// </summary>

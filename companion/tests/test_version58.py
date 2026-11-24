@@ -1,4 +1,4 @@
-"""Version 58 (Leon, voice 24.11.2026 16:07-16:09, explicit go): pose commands inside a sentence, substitute pose for
+"""Version 58 (Don, voice 24.11.2026 16:07-16:09, explicit go): pose commands inside a sentence, substitute pose for
 built-in commands, no empty dropdown (test_v58_items.py). Version everywhere and English release notes."""
 from __future__ import annotations
 
@@ -31,7 +31,7 @@ class VersionTests(TestCase):
         self.assertIn("Status: version 58, package `d0n.AIBody.58.var`, release `v58`", readme)
         self.assertIn("version 58: `please sit down now` works too", readme)
         spec = (ROOT / "docs" / "SPEC.md").read_text(encoding="utf-8")
-        self.assertIn("(version 58, release; Leon, voice 24.11.2026 16:07-16:09", spec)
+        self.assertIn("(version 58, release; Don, voice 24.11.2026 16:07-16:09", spec)
         proto = (ROOT / "docs" / "TEST_PROTOCOL.md").read_text(encoding="utf-8")
         for step in ("## T103", "## T104", "## T105", "## T106"):
             self.assertIn(step, proto)

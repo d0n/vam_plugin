@@ -112,7 +112,7 @@ class UnitTests(unittest.TestCase):
         self.assertFalse(p.due(True))
 
     def test_idle_zero_switches_the_nudges_off(self):
-        """Leon, 19.11.2026: slider "Speech delay timer (s)" at 0 = off. Never a nudge on every tick."""
+        """Don, 19.11.2026: slider "Speech delay timer (s)" at 0 = off. Never a nudge on every tick."""
         for idle in (0, 0.0, 0.5, -3):
             clock = FakeClock()
             p = ProactiveTimer(True, idle, clock)

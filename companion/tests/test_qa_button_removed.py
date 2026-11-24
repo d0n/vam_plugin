@@ -1,4 +1,4 @@
-"""Leon, call 21.11.2026 15:59 (version 39): the button "Question and Answer" is removed from the plugin menu.
+"""Don, call 21.11.2026 15:59 (version 39): the button "Question and Answer" is removed from the plugin menu.
 
 Answering questions is simply what the character does while "Proactive talking" is off; the button's side effect
 (switching Body control off) disappears with it, Body control itself is untouched. The button never had a storable,

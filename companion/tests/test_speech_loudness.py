@@ -1,7 +1,7 @@
-"""After v45 (Leon, 22.11.2026 04:02): "Speech volume 3 made no noticeable difference" and "much quieter away from the
+"""After v45 (Don, 22.11.2026 04:02): "Speech volume 3 made no noticeable difference" and "much quieter away from the
 head". (1) The plugin -> companion -> WAV gain chain works; a WAV cannot go above full scale, so above ~1.5x the gain
 mostly clips (measured below) and the companion now logs that. (2) VaM's head audio is 3D with a logarithmic rolloff
-beyond its minDistance. v46 set it from the plugin ("Full volume distance (m)"); v47 removed that again (Leon 12:17,
+beyond its minDistance. v46 set it from the plugin ("Full volume distance (m)"); v47 removed that again (Don 12:17,
 v46 regression: test_v47_regression.py)."""
 from __future__ import annotations
 
@@ -82,7 +82,7 @@ class GainChainTests(TestCase):
 
 
 class PercentSliderTests(TestCase):
-    """Leon 22.11.2026 04:15: Speech volume in percent 0..1000 (04:16; 0..300 at 04:15), default 100 (= factor 0..10, default 1). The companion,
+    """Don 22.11.2026 04:15: Speech volume in percent 0..1000 (04:16; 0..300 at 04:15), default 100 (= factor 0..10, default 1). The companion,
     config.json and the config event keep the factor; scenes saved with the old factor storable load as percent."""
 
     def test_percent_slider_and_factor_everywhere_else(self):

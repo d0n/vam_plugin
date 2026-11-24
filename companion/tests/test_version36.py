@@ -1,4 +1,4 @@
-"""Version 36 (Leon, 20.11.2026): background color in the plugin (greenscreen), the two independent setup points
+"""Version 36 (Don, 20.11.2026): background color in the plugin (greenscreen), the two independent setup points
 (background + color / Scene or Plugin, Abort on the first step), and latency work without any new feature."""
 from __future__ import annotations
 
@@ -88,7 +88,7 @@ class WizardTests(unittest.TestCase):
         result, _, _ = self.answer("yes", "#8000ff", "scene")
         self.assertEqual(result["choice"], "scene")
         holder, st = self.aibody_storable(self.scene())
-        self.assertEqual(holder, "Client")  # version 42 (Leon 18:27): AIBody on the male Client, before on BryanGosling
+        self.assertEqual(holder, "Client")  # version 42 (Don 18:27): AIBody on the male Client, before on BryanGosling
         self.assertEqual(st[first_start.TOGGLE_NAME], "true")
         self.assertEqual(st[first_start.COLOR_NAME], first_start.hsv_of("#8000FF"))
         toggle, color = plugin_after(self.config(), st)
@@ -96,7 +96,7 @@ class WizardTests(unittest.TestCase):
         self.assertEqual(color, first_start.hsv_of("#8000FF"))
 
     def test_2_background_yes_and_plugin_only_purple(self):
-        """Leon's example: purple, background yes, NOT Scene -> background on (toggle ON, purple), no scene."""
+        """Don's example: purple, background yes, NOT Scene -> background on (toggle ON, purple), no scene."""
         result, _, said = self.answer("y", "#800080", "plugin")
         self.assertFalse((self.root / first_start.SCENE_REL).exists(), "no scene is written")
         self.assertIsNone(result["scene_path"])
@@ -191,7 +191,7 @@ class SceneTests(unittest.TestCase):
         self.assertEqual(plugins, [f"d0n.AIBody.{__version__}:/Custom/Scripts/d0n/AIBody/AIBody.cslist"])
 
     def test_two_people_female_and_male(self):
-        female = self.atom("AI")       # version 42: Leon's scene, the female "AI" and the male "Client"
+        female = self.atom("AI")       # version 42: Don's scene, the female "AI" and the male "Client"
         male = self.atom("Client")
         self.assertEqual(female["type"], "Person")
         self.assertEqual(male["type"], "Person")
@@ -313,7 +313,7 @@ class PluginSetupSourceTests(unittest.TestCase):
 
 
 class LatencyCodeTests(unittest.TestCase):
-    """Latency work is code only (Leon): no new setting, UI or metric."""
+    """Latency work is code only (Don): no new setting, UI or metric."""
 
     def test_no_new_latency_setting(self):
         keys = json.dumps(settings_file.DEFAULTS).lower()
@@ -427,7 +427,7 @@ class PooledHttpTests(unittest.TestCase):
 
 
 class EyesBelongToVaMTests(unittest.TestCase):
-    """Leon (calls 20.11.2026 22:34-22:36): no gaze and no blink control in AIBody any more. Removed: Gaze follows
+    """Don (calls 20.11.2026 22:34-22:36): no gaze and no blink control in AIBody any more. Removed: Gaze follows
     speaker, Gaze control, Default gaze (incl. Natural), the AI's look_at tool / command, the remote 'look' action,
     the scene actions Look at client / camera / straight ahead / away / Gaze back to default, Blink control and
     'Blink now'. VaM's own gaze and blinking are untouched. Expressions and gestures stay."""
@@ -447,7 +447,7 @@ class EyesBelongToVaMTests(unittest.TestCase):
             for word in self.GONE_UI:
                 self.assertNotIn(word, text, f"{word!r} in {path.name}")
             if path.name.startswith("Dm"):
-                # Tab Dollmaster (22.11.2026, Leon: full port, nothing dropped): the old Dollmaster's head / eye look and
+                # Tab Dollmaster (22.11.2026, Don: full port, nothing dropped): the old Dollmaster's head / eye look and
                 # its blink switch run only while its checkbox Activate is on (DmPlugin; Activate off by default).
                 continue
             for code in ("GazeController", "BlinkController", "_gaze", "_blink", "gaze_control", "gaze_default",
@@ -500,7 +500,7 @@ class EyesBelongToVaMTests(unittest.TestCase):
 
 
 class BodyControlDefaultTests(unittest.TestCase):
-    """Leon: Body control is ON for a fresh install, a fresh scene and a missing key; since version 39 nothing in
+    """Don: Body control is ON for a fresh install, a fresh scene and a missing key; since version 39 nothing in
     AIBody switches it off by itself (the Question and Answer button that did is gone)."""
 
     def test_every_default_is_on(self):
@@ -533,7 +533,7 @@ class VersionTests(unittest.TestCase):
 
 
 class MenuLayoutTests(unittest.TestCase):
-    """Leon, 20.11.2026: menus ordered by topic; right column = category headers and controls only;
+    """Don, 20.11.2026: menus ordered by topic; right column = category headers and controls only;
     left info field = running prose with every control name in bold (rich text evidenced, API_AUDIT E35)."""
 
     RIGHT = [
@@ -553,7 +553,7 @@ class MenuLayoutTests(unittest.TestCase):
         self.assertEqual(idx, sorted(idx), parts)
 
     def test_right_column_has_only_headers_and_controls(self):
-        # GateQuestion (version 40, Leon: "the wizard shows no question at all") is the label of the Yes / No pair below it
+        # GateQuestion (version 40, Don: "the wizard shows no question at all") is the label of the Yes / No pair below it
         allowed_labels = {"XaiTokenLabel", "BreathMorphLabel", "NewPoseCommandLabel", "GateQuestion"}
         for file, sig in self.RIGHT:
             body = method_body(source(file), sig)
@@ -565,7 +565,7 @@ class MenuLayoutTests(unittest.TestCase):
         show = method_body(source("AIBody.cs"), "private void ShowTab(int index)")
         for m in re.finditer(r"_page\.Header\(([^;]*)\);", show):
             self.assertRegex(m.group(1), r'^"<b>[^<"]{1,40}</b>"$')
-        # the one caption Leon asked for in version 36 stays under the color picker
+        # the one caption Don asked for in version 36 stays under the color picker
         self.assertEqual(re.findall(r"_page\.Note\((\w+)\)", source("AIBody.cs")), ["BackgroundHint"])
         self.assertIn('HintText = "<b>First start: XAI API Token</b>"', source("AppLink.cs"))
 
@@ -578,7 +578,7 @@ class MenuLayoutTests(unittest.TestCase):
         self.order(char, ["Characters.Build(page)", '"<b>Body control</b>"', "_bodyControlJson", '"<b>Idle poses</b>"', "_idlePosesJson", "_idlePoseMaxJson",
                           '"<b>Idle motion and breathing</b>"', "_idleJson", "_breathingJson", "_breathRateJson", "_breathDepthJson",
                           '"<b>Expression and gesture</b>"', '"<b>Poses</b>"'])
-        # version 47 (Leon 22.11.2026): no "Breath morph" header / "Breath1" input box in the menu any more
+        # version 47 (Don 22.11.2026): no "Breath morph" header / "Breath1" input box in the menu any more
         self.assertNotIn("page.Header(BreathMorphLabel)", char)
         self.assertNotIn("TextInput(_breathMorphJson)", char)
         wizard = method_body(source("CharacterWizard.cs"), "public void Build(UiPage page)")
@@ -622,8 +622,8 @@ class MenuLayoutTests(unittest.TestCase):
         self.assertIn("| E35 |", audit)
         self.assertIn("ManageAnimationsScreen.cs", audit)
         spec = (ROOT / "docs" / "SPEC.md").read_text(encoding="utf-8")
-        self.assertIn("**Left info field (Leon, 20.11.2026, standing rule):**", spec)
-        self.assertIn("**Right column (Leon, 20.11.2026, standing rule):**", spec)
+        self.assertIn("**Left info field (Don, 20.11.2026, standing rule):**", spec)
+        self.assertIn("**Right column (Don, 20.11.2026, standing rule):**", spec)
 
     def test_every_bold_label_names_a_real_control(self):
         cs = "".join(source(f) for f in ("AIBody.cs", "AppLink.cs", "Body.cs", "MicConfig.cs", "CharacterWizard.cs"))

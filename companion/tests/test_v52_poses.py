@@ -1,4 +1,4 @@
-"""Version 52 (Leon, 22.11.2026 20:47-20:48): pose commands and Apply Pose, the twitching, the pose menu race.
+"""Version 52 (Don, 22.11.2026 20:47-20:48): pose commands and Apply Pose, the twitching, the pose menu race.
 Root causes and fixes: the pose was loaded twice (VaM's Load On Select + LoadPreset), the idle head / chest motion went on
 writing the controllers while VaM applied the pose (two writers = twitching), Body control was saved as OFF after
 Dollmaster had been active (voice pose commands then went to the chat), the Pose command menu applied on choosing (choosing

@@ -9,10 +9,10 @@
 //   - play:  the "HeadAudioSource" AudioSourceControl's PlayNow(namedClip) (Dollmaster), so VaM's
 //            built-in lip sync follows it; Stop() and .audioSource            (FreeMMD); .volume (Dollmaster SFX)
 //   - free:  URLAudioClipManager.singleton.RemoveClip(namedClip)           (Dollmaster SFX)
-// Audio fix (21.11.2026, after version 40; Leon: audio never played in any version). Root cause analysis from first
+// Audio fix (21.11.2026, after version 40; Don: audio never played in any version). Root cause analysis from first
 // principles against the audited plugins (docs/API_AUDIT.md E36): "loaded" was taken as NamedAudioClip.sourceClip != null,
 // but that only means Unity has read the WAV header (its length is known); the sample data can still be Unloaded or
-// Loading, and an AudioSource with such a clip does not start (AudioSource.isPlaying stays false: Leon's log said
+// Loading, and an AudioSource with such a clip does not start (AudioSource.isPlaying stays false: Don's log said
 // "playing=False, clip=1.3 s long" for every file, the packaged test tone too). mmd2timeline calls
 // sourceClip.LoadAudioData() and waits for loadState == Loaded; this player now does the same, uses the load sequence of
 // Dollmaster / FreeMMD / mmd2timeline (GetClip(NormalizeLoadPath) for an already loaded clip, else QueueClip +
@@ -84,7 +84,7 @@ namespace AIBody
 
         /// <summary>Seconds to wait for a clip to start playing before reporting it as failed.</summary>
         public float StartTimeout = 15f;
-        /// <summary>Version 54 (Leon's v46 log 03:04-03:07: ten clips failed one by one after 15 s each and every later answer
+        /// <summary>Version 54 (Don's v46 log 03:04-03:07: ten clips failed one by one after 15 s each and every later answer
         /// waited behind them): a clip whose data IS loaded and was handed to the head audio but does not start within this
         /// many seconds fails at once, so it no longer blocks the queue for 15 s.</summary>
         public float StuckTimeout = 3f;
@@ -186,12 +186,12 @@ namespace AIBody
         public bool IsSpeaking { get { return _current != null; } }
         public int QueueLength { get { return _queue.Count; } }
 
-        /// <summary>Version 44 (Leon 21:01): Speech volume goes up to 3; since 22.11.2026 (Leon 04:16) up to 10 (1000 %). VaM's head audio stops at 1 (full volume); the part
+        /// <summary>Version 44 (Don 21:01): Speech volume goes up to 3; since 22.11.2026 (Don 04:16) up to 10 (1000 %). VaM's head audio stops at 1 (full volume); the part
         /// above 1 is added to the samples by the companion app (louder WAVs, plain linear gain) and, for "Play test tone", by
         /// a louder copy of the bundled tone (Body.TestToneFileFor).</summary>
         public const float MaxVolume = 10f;
 
-        // Version 47 (Leon 22.11.2026 12:17): v46 also wrote the head audio's storable params "volume", "minDistance" and
+        // Version 47 (Don 22.11.2026 12:17): v46 also wrote the head audio's storable params "volume", "minDistance" and
         // "maxDistance" (when found, on every volume change and before every clip) and the scene had minDistance 2. With it
         // speech clips stopped starting and the sound got worse; v45 only set _control.volume = HeadVolume. Back to exactly
         // that: the plugin does not touch the head audio's distance settings (test_v47_regression.py).
@@ -199,7 +199,7 @@ namespace AIBody
         /// <summary>What the head AudioSourceControl gets: the volume, at most 1.</summary>
         public float HeadVolume { get { return Mathf.Min(_volume, 1f); } }
 
-        // ---------------------------------------------------------------- full volume distance (version 48, Leon 22.11.2026 12:58)
+        // ---------------------------------------------------------------- full volume distance (version 48, Don 22.11.2026 12:58)
         // EasyMoan's pattern (docs/API_AUDIT.md E38, EasyMoan.cs L1215-1219): only "minDistance" (and "maxDistance" 500 when it is
         // smaller) through SetFloatParamValue, only when the wanted value differs from the applied one, and only while nothing plays
         // or waits (otherwise it waits until then). Driven by Body.Update alone: never in Resolve, the Volume setter, Play or
@@ -207,7 +207,7 @@ namespace AIBody
         // written; the head volume stays _control.volume = HeadVolume as in v45. The scene's values are kept once and put back
         // only when the plugin is removed or disabled (RestoreDistance).
 
-        public const float DefaultFullVolumeDistance = 3f;   // Leon 12:58: 3 m
+        public const float DefaultFullVolumeDistance = 3f;   // Don 12:58: 3 m
         public const float MinFullVolumeDistance = 0.3f;     // EasyMoan's range 0.3..10
         public const float MaxFullVolumeDistance = 10f;
         public const float FarDistance = 500f;               // EasyMoan: maxDistance 500
@@ -647,7 +647,7 @@ namespace AIBody
             else if (!_audio.isPlaying) Finish("completed");
         }
 
-        /// <summary>Version 43 (Leon's v42 companion.log: every clip, also the 1.5 s test tone, ended "interrupted" exactly
+        /// <summary>Version 43 (Don's v42 companion.log: every clip, also the 1.5 s test tone, ended "interrupted" exactly
         /// after its length): at the natural end VaM's head audio leaves our clip (the clip changes), which is not an
         /// interruption. Played to the end = at least the clip length minus EndTolerance since it started.</summary>
         public const float EndTolerance = 0.25f;

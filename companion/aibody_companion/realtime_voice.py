@@ -85,7 +85,7 @@ class RealtimeVoice:
         self._parser: StreamParser | None = None
         self._nudge_pending = False  # next response.created answers a nudge
         self._nudge_response: str | None = None
-        # After version 41 (Leon's companion.log 21.11.2026 17:56-18:11): a response that was ONLY a tool call (express)
+        # After version 41 (Don's companion.log 21.11.2026 17:56-18:11): a response that was ONLY a tool call (express)
         # ends with no audio, and the server waits; then one response.create lets the model say its answer.
         self._tool_call_rids: set[str] = set()
         self._followups_this_turn = 0

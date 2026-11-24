@@ -1,4 +1,4 @@
-"""Version 47 (Leon 22.11.2026 12:17, v46 test): in v46 the AI's speech no longer started (companion.log: every clip
+"""Version 47 (Don 22.11.2026 12:17, v46 test): in v46 the AI's speech no longer started (companion.log: every clip
 "did not start playing within 15 s", also from the Saves/PluginData fallback folder), only the test tone was heard,
 and the sound was worse than in v45. Diff v45 (169940c) .. v46 (eb7992b) on the audio path: the companion writes the
 same WAV bytes (only a level log was added), the percent slider maps 100 % to the old factor 1; the plugin's
@@ -58,7 +58,7 @@ class HeadAudioLikeV45Tests(TestCase):
                            ("private void Play(Utterance u)", "/// <summary>\n        /// True once the clip's audio DATA"),
                            ("public void Update(float deltaTime)", "/// <summary>\n        /// Readiness signal")):
             seg = new[new.index(start):new.index(end)]
-            # version 54 (Leon 23:31): the only additions are the stale-clip check in Update and its own method
+            # version 54 (Don 23:31): the only additions are the stale-clip check in Update and its own method
             seg = seg.replace("            DropStale(DateTime.UtcNow);   // version 54\n", "")
             if "/// <summary>Version 54: nothing started" in seg:
                 seg = seg[:seg.index("/// <summary>Version 54: nothing started")]

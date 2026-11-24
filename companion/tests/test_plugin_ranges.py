@@ -49,7 +49,7 @@ class SliderRangeTests(unittest.TestCase):
                 self.assertEqual(found[label], (float(lo), float(hi)))
 
     def test_speech_volume_percent_slider(self):
-        """22.11.2026 (Leon 04:15/04:16): the visible slider is percent 0..1000 = 100 x the companion factor range."""
+        """22.11.2026 (Don 04:15/04:16): the visible slider is percent 0..1000 = 100 x the companion factor range."""
         body = (SRC / "Body.cs").read_text(encoding="utf-8")
         self.assertIn('new JSONStorableFloat("Speech volume (%)", 100f, (float v) => SetSpeechVolume(v), 0f, VolumePercentMax);', body)
         self.assertIn("public const float VolumePercentMax = 1000f;", body)

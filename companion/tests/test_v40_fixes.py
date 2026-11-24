@@ -1,4 +1,4 @@
-"""Fixes after Leon's v38 test (call 21.11.2026 16:06), on main without a new version yet:
+"""Fixes after Don's v38 test (call 21.11.2026 16:06), on main without a new version yet:
 
 1. Companion console noise: the start hint and the test-tone wait line go to the VaM log once per VaM session; while
    the app is not connected at most ONE test-tone request waits; a double-click starter companion/start_companion.bat.
@@ -143,7 +143,7 @@ class PersonaTests(TestCase):
             root = Path(tmp)
             (root / "Mine").mkdir()
             (root / "Mine" / "persona.json").write_text('{"name": "Mine", "prompt": "x"}', encoding="utf-8")
-            # after version 40 (Leon 17:19): the starters are added NEXT TO your own; yours is never touched
+            # after version 40 (Don 17:19): the starters are added NEXT TO your own; yours is never touched
             self.assertEqual(personas.seed_starter_personas(root), ["Anna", "Marc"])
             self.assertEqual(personas.PersonaStore(root).names(), ["Anna", "Marc", "Mine"])
             self.assertEqual((root / "Mine" / "persona.json").read_text(encoding="utf-8"), '{"name": "Mine", "prompt": "x"}')

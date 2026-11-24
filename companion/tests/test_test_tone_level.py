@@ -1,4 +1,4 @@
-"""Leon, 21.11.2026 20:04: the test tone was very quiet in v42. Both test tones (the bundled AIBodyTest.wav of the
+"""Don, 21.11.2026 20:04: the test tone was very quiet in v42. Both test tones (the bundled AIBodyTest.wav of the
 package and the companion's "Test tone via companion" WAV) peak at 0.70 of full scale (+6 dB over 0.35), below 0.8."""
 from __future__ import annotations
 

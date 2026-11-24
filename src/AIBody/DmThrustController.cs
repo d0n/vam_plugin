@@ -1,5 +1,5 @@
-// Dollmaster (VAMDeluxe, 2019; Leon's copy of Dollmaster, upstream github.com/vamdeluxe/DeluxePlugin, MIT) ported into
-// AIBody (22.11.2026, Leon): same code, types prefixed Dm, namespace AIBody; changes only where the project rules need them
+// Dollmaster (VAMDeluxe, 2019; Don's copy of Dollmaster, upstream github.com/vamdeluxe/DeluxePlugin, MIT) ported into
+// AIBody (22.11.2026, Don): same code, types prefixed Dm, namespace AIBody; changes only where the project rules need them
 // (marked "AIBody port:").
 using System;
 using UnityEngine;
@@ -57,7 +57,7 @@ namespace AIBody
             moduleEnableToggle.label = "Enable Thrusting";
             moduleEnableToggle.backgroundColor = Color.green;
 
-            // AIBody port, version 58 (Leon 16:09): "None" instead of an empty entry, so the dropdown is never empty
+            // AIBody port, version 58 (Don 16:09): "None" instead of an empty entry, so the dropdown is never empty
             thrustAtomChooser = new JSONStorableStringChooser("thrustTarget", GetAnimationPatternNames(), NoThrustTarget, "Thrust Control", (string name)=>
             {
                 RestoreOriginalSlider();

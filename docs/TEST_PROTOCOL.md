@@ -294,7 +294,7 @@ Needs VaM with the AI Character (AIBody 27 or later) and the companion app from 
 2. **Fade:** about 6 s after the AI has finished talking the face blends back to neutral over about 2.5 s. Change `ai.emotion.fade_after_s` / `fade_seconds` in `config.json` (restart the app) if it is too slow or too fast.
 3. **Listening face:** while you talk, a very small brow raise appears (preset `listening`); when the AI starts to answer it is replaced. Report whether it is visible at all or too much (preset values in `ExpressionController.cs`; you can override `listening` in `expressions.json`).
 4. **Persona:** copy `examples/personas/Anna` to `Saves/PluginData/AIBody/personas/Anna` (so `…/personas/Anna/persona.json`). Tab Voice > **Persona**: after a few seconds *Anna* is in the list; pick it: the voice changes to *ara*, the AI calls itself Anna, the console says `Persona: Anna`. *(none)* = back to `ai.persona`. Info field (left, tab Voice): persona and memory lines. Pick a name that does not exist (edit `ai.persona_name` in `config.json`): the info field says *not in use … not found*.
-5. **Memory:** switch **Memory** on, say "My name is Leon and I like cats" and one more sentence, then be silent for 10 minutes (or lower `ai.memory.session_idle_minutes`, or stop the app with Ctrl+C: it summarizes first). `personas/default/memory.json` (or `personas/Anna/memory.json`) holds the notes; restart the app, ask "What is my name?". **Forget memory** deletes the file and the AI no longer knows. Report: did the summary request work (console lines `Memory: …`), are the notes correct, any invented facts?
+5. **Memory:** switch **Memory** on, say "My name is Don and I like cats" and one more sentence, then be silent for 10 minutes (or lower `ai.memory.session_idle_minutes`, or stop the app with Ctrl+C: it summarizes first). `personas/default/memory.json` (or `personas/Anna/memory.json`) holds the notes; restart the app, ask "What is my name?". **Forget memory** deletes the file and the AI no longer knows. Report: did the summary request work (console lines `Memory: …`), are the notes correct, any invented facts?
 6. One character per app (since version 30): for a second persona run a second VaM instance and app.
 7. Report the VaM error log lines with `AIBody:` and `companion.log`.
 
@@ -699,7 +699,7 @@ Report: screenshots; the "plugin ready" lines.
 
 ## T63 – Speech audio in VaM, first real run of the v41 fix (version 42)
 
-Leon's v41 test ran the v40 plugin (every log line said plugin=40), so the v41 audio code has never run in VaM. Repeat T55 with the v42 scene of step T62.1 and **Verbose log** on, then copy every `AIBody: [audio]` line from VaM's own log (`output_log.txt` / message log; they are not in companion.log).
+Don's v41 test ran the v40 plugin (every log line said plugin=40), so the v41 audio code has never run in VaM. Repeat T55 with the v42 scene of step T62.1 and **Verbose log** on, then copy every `AIBody: [audio]` line from VaM's own log (`output_log.txt` / message log; they are not in companion.log).
 
 Report: heard yes/no for **Play test tone**, **Test tone via companion** and one answer; the `[audio]` lines.
 
@@ -741,7 +741,7 @@ Report: the speech_ended lines.
 
 ## T69 – Installer of v43 (version 43, Windows)
 
-Leon reported "the v42 installer no longer works" without details. Run `AIBody Companion Setup.exe` of v43 and note exactly what happens: SmartScreen (**More info** > **Run anyway**), each wizard page, any message text, whether AIBody Companion starts afterwards. If it fails, send the setup log and `%LOCALAPPDATA%\AIBody Companion\launcher.log`.
+Don reported "the v42 installer no longer works" without details. Run `AIBody Companion Setup.exe` of v43 and note exactly what happens: SmartScreen (**More info** > **Run anyway**), each wizard page, any message text, whether AIBody Companion starts afterwards. If it fails, send the setup log and `%LOCALAPPDATA%\AIBody Companion\launcher.log`.
 
 Correction (version 44): the v43 setup writes no log by itself. Start it from a command prompt with `"AIBody Companion Setup.exe" /LOG="%USERPROFILE%\Desktop\aibody-setup.log"` and send that file. Since v44 every setup run writes `%TEMP%\Setup Log <date> #<n>.txt` (`SetupLogging=yes`); send the newest one. Found cause of the v42/v43 failures: see T72.
 
@@ -780,7 +780,7 @@ Report: the loudest setting that still sounds clean on speakers and on the heads
 
 ## T74 – The package is placed even after a failed setup run (version 45, Windows)
 
-Leon's v44 test (21:25): the v44 setup removed the old VAR, but `d0n.AIBody.44.var` never arrived. Cause: v44 deleted the older packages before copying; when the install then failed or was cancelled, Inno Setup's rollback removed the new package as well. Since v45 the older ones are removed only after the install succeeded and the new package is in place (SHA-256 checked), always (there is no option any more).
+Don's v44 test (21:25): the v44 setup removed the old VAR, but `d0n.AIBody.44.var` never arrived. Cause: v44 deleted the older packages before copying; when the install then failed or was cancelled, Inno Setup's rollback removed the new package as well. Since v45 the older ones are removed only after the install succeeded and the new package is in place (SHA-256 checked), always (there is no option any more).
 1. In `<VaM>\AddonPackages` put an old `d0n.AIBody.42.var` (and keep any other packages). Run the v45 setup. Page **Select Additional Tasks** shows only **Create a desktop shortcut** and **Start with Windows**.
 2. Finish: `<VaM>\AddonPackages` has `d0n.AIBody.45.var` and no other `d0n.AIBody.<number>.var`; other packages untouched. Setup log: `Dest filename: D:\VaM\AddonPackages\d0n.AIBody.45.var`, then `Package: ... in place (SHA-256 checked)`, then `Remove older AIBody packages: found ...` and `Deleted ...`.
 3. Put `d0n.AIBody.42.var` back, run the setup again and press **Cancel** on the page **Installing** while files are copied (or on the progress page as early as you can): `d0n.AIBody.42.var` is still there (with v44 it was gone and no package was left).
@@ -798,7 +798,7 @@ Cause of "too quiet / much quieter away from the head": VaM's head audio is a 3D
 6. Remove the plugin (or disable it): the head audio's distance goes back to what the scene had (VaM log: `Head audio of 'AI' before AIBody: volume ..., minDistance ... m, maxDistance ... m` shows the values it restores).
 Report: from which distance the voice gets too quiet with the default 2 m, the `Head audio of ...` and `Speech level:` lines, and whether anything sounds distorted at 100 %. **Play test tone** at 200 % and 300 % plays the 2x / 3x copy (switch points 150 % and 250 %).
 
-## T76 – v46 regression fixed: speech, sound like v45, body, Breath boxes, thumbnail (version 47, Leon 22.11.2026 12:17)
+## T76 – v46 regression fixed: speech, sound like v45, body, Breath boxes, thumbnail (version 47, Don 22.11.2026 12:17)
 
 v46 wrote the head audio's "volume" / "minDistance" / "maxDistance" params before every clip and shipped the scene with minDistance 2; version 47 goes back to v45 there (only the head volume is set, scene minDistance 0.04, no "Full volume distance (m)" slider).
 1. Install v47 with the setup, start AIBody Companion, then VaM; load **AI-Buddy** from `d0n.AIBody.47` (not a scene saved with v46: its head audio still has minDistance 2 – load the package scene or set it back by hand).
@@ -810,7 +810,7 @@ v46 wrote the head audio's "volume" / "minDistance" / "maxDistance" params befor
 7. Main menu > Open Scene: AI-Buddy of `d0n.AIBody.47` shows its thumbnail (two characters in T-pose on black).
 Report: companion.log and, if speech still fails, VaM's output_log.txt lines starting with `AIBody` (Verbose log on in tab Config for the `[audio]` lines).
 
-## T77 – Full volume distance (m) back, EasyMoan way (version 48, Leon 22.11.2026 12:58)
+## T77 – Full volume distance (m) back, EasyMoan way (version 48, Don 22.11.2026 12:58)
 
 Sound output: VaM plays on the Windows default output device that is active when VaM starts. With SteamVR / Oculus start the headset app first (or set the Windows sound output to the headset), then start VaM. companion.log shows `Windows default output device: ...` at start.
 1. Install v48 with the setup, start AIBody Companion, then VaM; load **AI-Buddy** from `d0n.AIBody.48`. Tab **Voice** > *Voice and sound*: **Speech volume (%)** 100, **Full volume distance (m)** 3 (default; range 0.3–10).
@@ -821,7 +821,7 @@ Sound output: VaM plays on the Windows default output device that is active when
 6. Remove the AIBody plugin: the head audio's minDistance is the scene's value again (Client > Head audio, or save and look at `minDistance` 0.04).
 Report: companion.log and VaM's output_log.txt lines starting with `AIBody` (the line "Head audio of ... before AIBody: minDistance ...").
 
-## T78 – Voice barge-in on by default, chain and realtime, echo protection (main after v48, Leon 22.11.2026 call)
+## T78 – Voice barge-in on by default, chain and realtime, echo protection (main after v48, Don 22.11.2026 call)
 
 1. Fresh config (or tab Client Character): **Voice barge-in (headphones)** is ON; Mic mode voice activation. companion.log at start: "Voice barge-in: on, echo protection on ...".
 2. Speakers, AI mode Chain (or Q&A): ask for a long story and stay silent: she tells it to the end (her own voice never interrupts her).
@@ -830,7 +830,7 @@ Report: companion.log and VaM's output_log.txt lines starting with `AIBody` (the
 5. With headphones: a normal voice is enough. Toggle off: talking over her does nothing; push-to-talk with "Push-to-talk interrupts speech" still stops her.
 Report: companion.log, and whether a cough, laugh or loud sentence of hers interrupted her.
 
-## T79 – Menu Language, German by default (main after v48, Leon 22.11.2026 call)
+## T79 – Menu Language, German by default (main after v48, Don 22.11.2026 call)
 
 1. Tab **Voice**, AI section: **Language** under Persona shows **German (de)** in a new scene (a scene or config.json saved earlier with `auto` shows Auto: pick German once). The list scrolls: Auto, German, English, French, Spanish, Italian, Portuguese, ... (21 entries).
 2. AI mode Chain or Q&A, persona Anna: talk German for a few minutes, also mix in a few English words: every answer is German, "die" is pronounced German, no English accent words (companion.log "Language: de" after a change).
@@ -839,25 +839,25 @@ Report: companion.log, and whether a cough, laugh or loud sentence of hers inter
 5. Auto: the persona's language is used (Anna: de); a persona without a language falls back to detection per sentence.
 Report: companion.log and the sentences that still sounded English.
 
-## T80 – Setup notice without English button text (main after v48, Leon 22.11.2026 call)
+## T80 – Setup notice without English button text (main after v48, Don 22.11.2026 call)
 
 1. Run the next setup over an installed AIBody: the box says **Update from AIBody <old> to <new>.** and what it will do, with no "OK: ... Cancel: ..." line; the buttons are Windows' own (OK / Abbrechen on German Windows). OK continues, Abbrechen stops without changes.
 2. Run the same setup again: **AIBody <n> is already installed (...). Reinstall / repair it? ...** with the same two Windows buttons.
 Report: screenshots of both boxes.
 
-## T81 – Apply Pose button (main after v48, Leon 22.11.2026 call)
+## T81 – Apply Pose button (main after v48, Don 22.11.2026 call)
 
 1. Tab **AI Character** > *Poses*: under **Pose command** there is a button **Apply Pose**.
 2. Choose a command: the pose is applied at once (as before). Move the character a bit (or let an idle pose run), press **Apply Pose**: the same pose is applied again right away; the left field says "Last action: Pose command applied: ...".
 3. **Apply Pose** with nothing chosen: red note "choose the command in Pose command first".
 
-## T82 – Idle pose control: Apply idle default pose (main after v48, Leon 22.11.2026 call)
+## T82 – Idle pose control: Apply idle default pose (main after v48, Don 22.11.2026 call)
 
 1. Tab **AI Character** > *Idle poses*: **Idle poses**, **Idle default pose**, then the new button **Apply idle default pose**, then the two wait sliders.
 2. Choose a pose in **Idle default pose** and press **Apply idle default pose**: the character takes it at once ("Last action: Idle default pose applied: ..."), and the next idle pose comes only after the min wait.
 3. A default pose the character does not have: red note, nothing moves.
 
-## T83 – Body position (main after v48, Leon 22.11.2026 call)
+## T83 – Body position (main after v48, Don 22.11.2026 call)
 
 1. Tab **AI Character**: under *Body control* the new section *Body position*: **Move forward / back (m)**, **Move right / left (m)**, **Turn (degrees)**, **Reset body position**.
 2. Drag **Move forward / back (m)** to 0.5: the AI character moves half a metre the way she faces (whole body, no stretching); **Move right / left (m)** sideways; **Turn (degrees)** 90: she turns on the spot.
@@ -866,7 +866,7 @@ Report: screenshots of both boxes.
 5. After a move: idle head motion, breathing, a pose command and an idle pose still work.
 Report: anything that stretched, fell or jumped back.
 
-## T84 – Tab Dollmaster (main after v48, Leon 22.11.2026)
+## T84 – Tab Dollmaster (main after v48, Don 22.11.2026)
 
 1. Load AI-Buddy. New tab **Dollmaster** between *Client Character* and *Config*. At the top **Activate** (off); below it the old Dollmaster menu (Test Emotion Trigger, Test Climax Trigger, Zero Pose Morphs, Enable Arousal, ... Enable Sound Effects). The other tabs show none of these controls.
 2. With **Activate** off: no Dollmaster panel, no new atoms in the scene (no "Thrust AP", no "Doll SFX"), the AI speaks, breathes and moves as before.
@@ -878,7 +878,7 @@ Report: anything that stretched, fell or jumped back.
 Report: any red line in the info field or the VaM log ("Dollmaster ..."), anything missing compared to the old Dollmaster.
 
 
-## T85 – Reset to Default and a fresh config (version 50, Leon 22.11.2026 20:35)
+## T85 – Reset to Default and a fresh config (version 50, Don 22.11.2026 20:35)
 1. Install v50, start AIBody Companion, then VaM; load AI-Buddy. Paste your xAI key into **XAI API Token** and check that the AI answers.
 2. Tab Config > **Reset to Default** > **Confirm Reset to Default**. The status line says "The XAI API Token is cleared"; the token field is empty; in config.json `ai.xai.api_key` is `""`; companion.log only says "XAI API Token from the plugin field cleared" (never the token).
 3. Tab Voice: **Language model** offers xai, ollama, echo; **Speech-to-text** offers xai, null; **Text-to-speech** offers xai, elevenlabs, tone; all three show **xai**. The lists are full even before the companion connects (start VaM without the companion).
@@ -888,7 +888,7 @@ Report: any red line in the info field or the VaM log ("Dollmaster ..."), anythi
 7. Optional: close VaM and the companion, rename config.json, start again: the new config.json has the same defaults (engines xai, persona Anna, memory on, mic on).
 Report: any menu with only one entry, any '(none)', a token left anywhere after the reset.
 
-## T86 – Idle poses random of all poses, idle timer, dropdowns after Reset (version 51, Leon 22.11.2026 20:38-20:58)
+## T86 – Idle poses random of all poses, idle timer, dropdowns after Reset (version 51, Don 22.11.2026 20:38-20:58)
 1. Install v51, start AIBody Companion, then VaM; load AI-Buddy. Put three or more pose files into `Custom/Atom/Person/Pose/AIBody` (or have them in `Custom/Atom/Person/Pose`), press **Reload poses**.
 2. Tab AI Character > Idle poses: the info field says "random pose of all N poses" with N = your pose files + gestures.json poses + the Idle default pose; **Idle pose min wait (s)** shows 30, **Idle pose max wait (s)** 300 (after a reset or in a new scene).
 3. Set both sliders to 30 (type 30 into the value field). Stay silent for 5 minutes: the pose changes about every 30 s, to different poses (not only two), never the same pose twice in a row, and not back to the default pose every second time. Logging Verbose: the log shows `Idle pose: X (random of a pool of N poses)`.
@@ -897,7 +897,7 @@ Report: any menu with only one entry, any '(none)', a token left anywhere after 
 6. Tab Config > **Reset to Default** > **Confirm Reset to Default**. Then open every dropdown of every tab (AI mode, Voice, Persona, Language, Speech-to-text, Language model, Text-to-speech, Mic mode, VAD engine, Idle default pose, Pose command, Expression, Gesture, AI gender/body, Your character gender): every one has its entries and a chosen value (the gender menus are empty until you answer, by design). The AI model field may be empty (expected).
 Report: a dropdown without entries after the reset, the same pose twice in a row, only two poses alternating, a change while someone speaks or while Dollmaster is active.
 
-## T87 – Pose commands, Apply Pose, no twitching (version 52, Leon 22.11.2026 20:47-20:48)
+## T87 – Pose commands, Apply Pose, no twitching (version 52, Don 22.11.2026 20:47-20:48)
 1. Install v52, start AIBody Companion, then VaM; load AI-Buddy. Have at least two pose presets (.vap) in `Custom/Atom/Person/Pose` or `.../AIBody`; tab AI Character > **Reload poses**. Link two commands with **Add Pose** (e.g. "Sit Down" and "Stand Up") if no file has the command's name.
 2. Choose "Sit Down" in **Pose command**: nothing moves, the left field says "Pose command chosen ... press Apply Pose". Press **Apply Pose**: the AI person takes the pose fully, without twitching. Press it again: it is applied again. Choose "Stand Up", press **Apply Pose**.
 3. The left field shows "Last pose load: pose '...': N controllers moved". Logging Verbose: the log says "Pose preset loaded once ... (Load On Select was on)". If it ever says "no controller moved" for a different pose, report the file name.
@@ -907,7 +907,7 @@ Report: a dropdown without entries after the reset, the same pose twice in a row
 7. Idle head motion on: watch the head and chest for 2 s after each pose load: no jerk; the idle sway starts again after about 1 s.
 Report: a pose that does not apply, any twitching, a pose applied by just choosing an entry, Body control off after using Dollmaster.
 
-## T103 – Pose commands inside a sentence (version 58, Leon 24.11.2026 16:07)
+## T103 – Pose commands inside a sentence (version 58, Don 24.11.2026 16:07)
 1. Install v58, start AIBody Companion, then VaM; load AI-Buddy. Use a command whose pose exists (or any built-in, see T104).
 2. Say "please sit down now": she sits; no spoken answer. Say "kannst du dich hinsetzen": she sits. Say "steh auf" / "dreh dich um": Stand Up / Turn Around.
 3. Say "don't sit down" and "I like sitting down": no pose; the AI answers normally.
@@ -915,13 +915,13 @@ Report: a pose that does not apply, any twitching, a pose applied by just choosi
 5. Type the same sentences into the companion's text input, and repeat 2-4 in realtime mode: same results.
 Report: a pose from an ordinary sentence (with the sentence), a missed command, no answer in step 4.
 
-## T104 – Built-in command without its pose file: substitute pose (version 58, Leon 23.11.2026)
+## T104 – Built-in command without its pose file: substitute pose (version 58, Don 23.11.2026)
 1. A character without a pose file named like a built-in command (e.g. no "Sit Down" pose). Tab AI Character > Poses: the info lists it as "no pose 'Sit Down': uses another pose (substitute)", not UNAVAILABLE.
 2. Say "sit down" (or choose it in **Pose command** and press **Apply Pose**): she takes another pose of the idle pool; the status line says "this character has no pose 'Sit Down', used 'X' instead (substitute)", the log names it too.
 3. A command of your own linked to a missing pose: still unavailable, nothing happens.
 Report: "unavailable" for a built-in command, no pose, a pose from outside the idle pool.
 
-## T105 – No empty dropdown after Reset to Default (version 58, Leon 24.11.2026 16:09)
+## T105 – No empty dropdown after Reset to Default (version 58, Don 24.11.2026 16:09)
 1. Change several dropdowns in every tab (AI Character: Pose command, Idle default pose, Expression, Gesture, AI gender/body, Your character gender; Voice: AI mode, Voice, Persona, Language, engines, Mic mode, VAD engine; Dollmaster: Personality, Thrust Control and the others).
 2. Tab Config > **Reset to Default** > **Confirm Reset to Default**.
 3. Open every tab again, including Dollmaster: NO dropdown is empty; each shows a valid value (Pose command the first command, the gender dropdowns "Not set", Thrust Control "None", the rest their defaults).
@@ -933,14 +933,14 @@ Report: every empty dropdown with its tab and name (screenshot).
 2. Tab Dollmaster: **Thrust Control** "None" drives nothing; choosing an animation pattern works as before; back to "None" stops it.
 Report: a gender sent for Not set, thrusting with None.
 
-## T102 – Idle poses: a failing pose is dropped, the next comes at once (version 57, Leon 24.11.2026 15:57)
+## T102 – Idle poses: a failing pose is dropped, the next comes at once (version 57, Don 24.11.2026 15:57)
 1. Install v57. Put one broken pose file into `Custom/Atom/Person/Pose/AIBody` (e.g. an empty or truncated `.vap`), or rename a pose file after VaM listed it. Idle poses on, min/max wait 30 s, load AI-Buddy.
 2. Wait until the broken pose is picked: the log says "Idle pose 'x' (path) failed and is dropped from the idle pool for this session; next pose now", and another pose is loaded right away (within a frame or two, no 30 s pause).
 3. Keep watching for several minutes: the broken pose never comes again, idle poses keep switching.
 4. Optional: make every pose of the pool fail (AIBody folder with only broken files, no linked poses): each fails once, then the log says once "no pose left in the idle pool" and VaM stays responsive (no loop, no log flood).
 Report: a pause after a failure, the broken pose coming again, idle poses stopping, a log flood.
 
-## T97 – Every pose change keeps her place (version 56, Leon 24.11.2026 15:27)
+## T97 – Every pose change keeps her place (version 56, Don 24.11.2026 15:27)
 1. Install v56, start AIBody Companion, then VaM; load AI-Buddy. Drag her by hand to a new place and turn her about 90 degrees.
 2. Tab AI Character: choose a pose in the pose dropdown and press **Apply Pose**: the pose changes, she stays at the new place and keeps facing the same way (a short flicker is ok). The log may say "... moved the whole character N cm (its file stores the root node): put back to her place".
 3. Press **Apply idle default pose**, and wait for an idle pose switch (Idle pose min/max wait 30 s): same result.
@@ -972,7 +972,7 @@ Report: an empty dropdown, Auto Expressions left off, a jump during a montage.
 3. Start VaM again: realtime opens again by itself. Start the companion alone and wait 1 minute: "Realtime waiting for VaM", no session.
 Report: realtime staying open without VaM, not coming back with VaM.
 
-## T93 – Mute by voice and unmute by voice (version 55, Leon 23.11.2026)
+## T93 – Mute by voice and unmute by voice (version 55, Don 23.11.2026)
 1. Install v55, start AIBody Companion, then VaM; load AI-Buddy. Ask something long so she talks.
 2. While she talks say **"shut up"** (or "halt's Maul", "halts Maul", "halt die Klappe", "sei still"): she stops at once; nothing queued plays afterwards. The companion log says "Muted (voice: mute) ...". Tab Config: the toggle **Mute AI (stop talking and listening)** is now on.
 3. Talk to her normally and say a pose command (e.g. "Sit Down"): no answer, no pose, no gesture; the log says "Muted: ignored ...".
@@ -998,7 +998,7 @@ Report: the toggle not following the voice within about 2 s, the AI still answer
 3. Realtime mode (AI mode realtime or auto with an xAI key): repeat T93 steps 2-4; while muted nothing is spoken.
 Report: muted after Reset to Default, a muted state saved in the scene.
 
-## T89 – Body position moves the whole character and stays (version 54, Leon 23:27-23:31)
+## T89 – Body position moves the whole character and stays (version 54, Don 23:27-23:31)
 1. Install v54, start AIBody Companion, then VaM; load AI-Buddy. Tab AI Character, section *Body position*.
 2. Move **Move forward / back (m)** to 1, then **Move right / left (m)** to -1, then **Turn (degrees)** to 90: the WHOLE character moves and turns as one piece (no bent limbs, no part left behind).
 3. Wait for an idle pose switch (or set Idle pose min/max wait to 30 s) and press a pose command button (e.g. Apply Pose): she may flicker briefly but stays at the moved place; the log may say "Pose 'x' moved the whole character N cm ... put back to her place".
@@ -1026,7 +1026,7 @@ Report: no picture (with a screenshot of the AddonPackages folder), freeze on af
 4. Freeze Motion/Sound on while she should talk: after about 3 s the log says the clip did not play (it names Freeze Motion/Sound); stale clips older than 8 s are dropped ("Speech backlog: N clip(s) ... dropped as stale").
 Report: a burst of late answers, answers to old sentences after unfreezing, a stuck mouth/voice.
 
-## T88 – Expressions, Show expression, Reload Config JSON (version 53, Leon 22.11.2026 20:49 / 20:57)
+## T88 – Expressions, Show expression, Reload Config JSON (version 53, Don 22.11.2026 20:49 / 20:57)
 1. Install v53, start AIBody Companion, then VaM; load AI-Buddy. Tab AI Character, part *Expression and gesture*: the buttons are **Show expression** and **Reset expression** (no "Reload expressions (expressions.json)").
 2. Without opening the menu, press **Show expression**: the face shows "happy" clearly (the first entry); the left field says "Expression 'happy': N of N morphs found". VaM's Auto Expressions (person tab Auto Expressions) are off while it shows.
 3. Choose sad, angry, surprised, thinking and press **Show expression** each time: each is visible and stays. Press **Reset expression**: the face goes back; Auto Expressions are on again (if they were on before).

@@ -1,4 +1,4 @@
-"""Version 38 (Leon, 21.11.2026): version bump of the character configuration wizard
+"""Version 38 (Don, 21.11.2026): version bump of the character configuration wizard
 and the AI-Buddy example scene already on main; no new features.
 """
 from __future__ import annotations

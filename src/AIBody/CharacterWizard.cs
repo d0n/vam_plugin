@@ -1,4 +1,4 @@
-// Character configuration wizard (after version 37, Leon).
+// Character configuration wizard (after version 37, Don).
 //
 // Lives in the plugin UI, tab AI Character, first section "Characters". It is not part of the
 // companion console setup (setup.py): that asks only the two independent first-start points
@@ -63,7 +63,7 @@ namespace AIBody
             _wantedJson = new JSONStorableBool(WantedName, false, (bool v) => RequestTabRebuild());
             SettingsDefaults.Bool(_plugin, _wantedJson);
             List<string> genders = new List<string>();
-            genders.Add(NotSet);   // version 58 (Leon 16:09): "Not set" instead of an empty entry: no dropdown is empty
+            genders.Add(NotSet);   // version 58 (Don 16:09): "Not set" instead of an empty entry: no dropdown is empty
             genders.Add(Female);
             genders.Add(Male);
             _aiGenderJson = new JSONStorableStringChooser(AiGenderLabel, genders, NotSet, AiGenderLabel,
@@ -195,7 +195,7 @@ namespace AIBody
             if (root == null) return;
             JSONClass characters = root["characters"] as JSONClass;
             if (characters == null) return;
-            // Version 40 (root cause of "the wizard shows no question at all", Leon 21.11.2026): the gate answer was also
+            // Version 40 (root cause of "the wizard shows no question at all", Don 21.11.2026): the gate answer was also
             // read from the ONE global config.json. A scene without saved AIBody values (e.g. AI-Buddy) is seeded from
             // that file, so one Yes / No in any scene marked every later scene as answered and the question never came.
             // The answer now belongs to the scene only (storables "Character setup answered" / "... wanted");

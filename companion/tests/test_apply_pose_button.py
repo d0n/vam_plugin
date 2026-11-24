@@ -1,4 +1,4 @@
-"""Button "Apply Pose" (Leon, 22.11.2026 call): the command chosen in "Pose command" is applied at once, also again
+"""Button "Apply Pose" (Don, 22.11.2026 call): the command chosen in "Pose command" is applied at once, also again
 (choosing the same entry in the menu fires no callback). Choosing still applies; the help is in the left field."""
 from __future__ import annotations
 

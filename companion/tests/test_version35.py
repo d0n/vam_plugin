@@ -1,4 +1,4 @@
-"""Version 35 (Leon, 20.11.2026): idle poses, own idle motion / breathing, voice pose commands with speech-to-text
+"""Version 35 (Don, 20.11.2026): idle poses, own idle motion / breathing, voice pose commands with speech-to-text
 punctuation, Persona menu, no start note in the menu, 'Test tone via companion', Body control, first-start questions."""
 from __future__ import annotations
 
@@ -113,7 +113,7 @@ class IdlePoseSchedulerTests(unittest.TestCase):
         self.assertNotIn("Nope", names)
 
 
-    # version 57 (Leon 15:57): a failing pose is dropped at once and the next one comes on the next frame
+    # version 57 (Don 15:57): a failing pose is dropped at once and the next one comes on the next frame
     def test_failed_pose_dropped_and_next_right_away(self):
         chosen = self.run_case([[1.0, False, True, "", 1200]], fail=("Sit Down",))
         names = [n for _, n in chosen]

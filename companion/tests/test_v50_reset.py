@@ -1,4 +1,4 @@
-"""Version 50 (Leon, call 22.11.2026 20:35, tested v49 after a full config reset): the reset path and a fresh config.
+"""Version 50 (Don, call 22.11.2026 20:35, tested v49 after a full config reset): the reset path and a fresh config.
 
 1. 'Reset to Default' clears the XAI API Token (plugin field, config.json ai.xai.api_key, the companion's copy); the
    token is never logged.

@@ -1,4 +1,4 @@
-"""Version 54 (Leon, voice 23:27-23:31, explicit go): shipped scene without Freeze state, the thumbnail pair with fixed
+"""Version 54 (Don, voice 23:27-23:31, explicit go): shipped scene without Freeze state, the thumbnail pair with fixed
 names in every build, Body position that really moves the whole character and stays put, idle poses only from the AIBody
 pose folder (+ linked poses, toggle 'Idle poses from all pose files'), and the speech backlog fixes (stuck clip 3 s,
 stale clips dropped, no answer queued behind an unplayed backlog, only the newest answer after a VaM freeze, queued

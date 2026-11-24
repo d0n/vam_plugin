@@ -1,6 +1,6 @@
 // Compile-only stubs: the VaM / Unity API the ported Dollmaster uses (src/AIBody/Dm*.cs). NOT shipped.
-// Evidence E39 (docs/API_AUDIT.md): Leon's copy of Dollmaster (VAMDeluxe, 2019; upstream github.com/vamdeluxe/DeluxePlugin,
-// MIT), which runs in Leon's VaM 1.22 as it is. Each member names the Dollmaster file and line it is used at (original
+// Evidence E39 (docs/API_AUDIT.md): Don's copy of Dollmaster (VAMDeluxe, 2019; upstream github.com/vamdeluxe/DeluxePlugin,
+// MIT), which runs in Don's VaM 1.22 as it is. Each member names the Dollmaster file and line it is used at (original
 // file names). FileManagerSecure.GetFiles(dir, pattern) / GetDirectories: E39b (everlasterVR/LiveReload src/FileSearch.cs
 // L34, L44): the port reads files only through FileManagerSecure instead of SuperController.GetFilesAtPath /
 // GetDirectoriesAtPath / ReadFileIntoString.

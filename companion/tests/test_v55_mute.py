@@ -1,4 +1,4 @@
-"""Version 55 (Leon, 23.11.2026, explicit go): mute / unmute the AI by voice (name-independent) and by the menu toggle
+"""Version 55 (Don, 23.11.2026, explicit go): mute / unmute the AI by voice (name-independent) and by the menu toggle
 "Mute AI (stop talking and listening)" in the tab Config; the companion holds the state, the toggle follows it."""
 from __future__ import annotations
 

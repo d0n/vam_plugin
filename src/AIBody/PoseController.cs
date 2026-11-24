@@ -310,7 +310,7 @@ namespace AIBody
 
         /// <summary>
         /// Loads a pose preset. Returns an error message, or null on success.
-        /// Version 52 (Leon 20:47, "pose commands do not work, the character twitches"): the pose is loaded ONCE.
+        /// Version 52 (Don 20:47, "pose commands do not work, the character twitches"): the pose is loaded ONCE.
         /// Up to v51 the path was set while VaM's "Load On Select" (PosePresets.loadPresetOnSelect, on by default) was on:
         /// setting presetBrowsePath already loaded the pose, and CallAction("LoadPreset") loaded it a second time. And the
         /// idle head / chest motion went on writing the head and chest controllers while VaM applied the pose. Now:
@@ -494,7 +494,7 @@ namespace AIBody
             return null;
         }
     }
-    /// <summary>Reset poses (version 42, Leon 18:27): where a Person's controllers were when the scene had loaded, and
+    /// <summary>Reset poses (version 42, Don 18:27): where a Person's controllers were when the scene had loaded, and
     /// putting them back. Atom.freeControllers (E12, E28); FreeControllerV3.transform position / rotation read and set
     /// like IdleController does (E6).</summary>
     public class PlacementSnapshot
@@ -544,18 +544,18 @@ namespace AIBody
         }
     }
 
-    /// <summary>Body position (22.11.2026, Leon: body position control in the menu): moves the whole Person by moving every
+    /// <summary>Body position (22.11.2026, Don: body position control in the menu): moves the whole Person by moving every
     /// controller, the same calls as PlacementSnapshot (Atom.freeControllers, E12/E28; FreeControllerV3.transform position /
     /// rotation, E6). Forward / right follow the way the character faces (its main controller, flat); the turn is about the
     /// vertical axis through the main controller.
-    /// Version 54 (Leon 23:28 "relocating the body does not work"): up to v53 every controller got "+ shift" on top of where
+    /// Version 54 (Don 23:28 "relocating the body does not work"): up to v53 every controller got "+ shift" on top of where
     /// it was, one after the other. In VaM the other controllers of a Person ride on its main controller (the root node
     /// carries the whole person), so moving the main controller first already moved them and the "+ shift" moved them a
     /// second time: the body was pulled apart and physics pulled it back. Now every move is RIGID and ABSOLUTE: all
     /// positions / rotations are read first, the main controller is set first, then every other controller is set to its
     /// own absolute target - right whether VaM moves the others with the main controller or not.</summary>
     /// <summary>
-    /// Version 56 (Leon, call 24.11.2026 15:27): the ONE position-preserving wrapper of every pose change: pose files and
+    /// Version 56 (Don, call 24.11.2026 15:27): the ONE position-preserving wrapper of every pose change: pose files and
     /// pose commands, the AI's pose tool (pose command from the companion), idle poses, Apply Pose / Apply idle default pose,
     /// Dollmaster montages. Around(): 1) capture the character's world placement (main controller position X, Y, Z AND
     /// rotation) right before the load, 2) run the load, 3) put her back rigidly (BodyMover.Relocate, the new pose kept).

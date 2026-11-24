@@ -1,4 +1,4 @@
-"""Version 55 (Leon, 23.11.2026): mute / unmute the AI by voice, without any character name.
+"""Version 55 (Don, 23.11.2026): mute / unmute the AI by voice, without any character name.
 
 MUTE   ("shut up", "halt's Maul", ...): the body stops talking at once, the queued speech is dropped, and from then on
        everything heard is ignored (no AI request, no answer, no pose or gesture from speech).

@@ -1,4 +1,4 @@
-"""Version 42 (Leon, 21.11.2026 18:27 and 18:33, his v41 test): the Pose command menu applies on choosing (no Pose
+"""Version 42 (Don, 21.11.2026 18:27 and 18:33, his v41 test): the Pose command menu applies on choosing (no Pose
 dropdown, no Apply buttons), Add Pose with VaM's file browser + the spoken command, Delete Pose, Reset poses (AI first,
 then Client), his scene with AIBody on 'Client' driving 'AI', the realtime answer after a tool-only response, the
 scrollable Voice menu, and the companion's warning when the scene loads an older plugin package (every log line of his
@@ -58,7 +58,7 @@ class PoseMenuTests(TestCase):
             self.assertNotIn(gone, self.body)
 
     def test_choosing_a_command_selects_it_with_a_guard(self):
-        # version 52 (Leon 20:48): choosing only selects (it applied once and then never again); Apply Pose applies
+        # version 52 (Don 20:48): choosing only selects (it applied once and then never again); Apply Pose applies
         self.assertIn("OnPoseCommandChosen", self.body)
         chosen = method_body(self.body, "private void OnPoseCommandChosen(string command)")
         self.assertIn("if (_syncingPoseMenu", chosen)

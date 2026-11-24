@@ -36,7 +36,7 @@ Selection: tab **Voice** > **AI Character** > **Persona** (the list comes from t
 
 ## Memory
 
-Toggle **Memory** (tab Voice, `ai.memory.enabled`, default **on** since version 50, Leon 22.11.2026; before: off). When on, the app keeps a short list of facts that **the user said about themselves** (name, preferences, plans …) in
+Toggle **Memory** (tab Voice, `ai.memory.enabled`, default **on** since version 50, Don 22.11.2026; before: off). When on, the app keeps a short list of facts that **the user said about themselves** (name, preferences, plans …) in
 
 ```
 <VaM main folder>\Saves\PluginData\AIBody\personas\<name>\memory.json      (without a persona: …\personas\default\memory.json)
@@ -45,7 +45,7 @@ Toggle **Memory** (tab Voice, `ai.memory.enabled`, default **on** since version 
 - **When:** after a conversation, i.e. after `ai.memory.session_idle_minutes` (default 10) of silence with at least `ai.memory.min_exchanges` (2) questions, when the persona changes and when the app quits (then waiting up to 15 s). It runs in the background; speaking and the heartbeat are not held up.
 - **How:** the language model (xAI, required; with the app's key) gets the old list and the conversation and returns the new list (a summary instead of raw text; at most `ai.memory.max_facts` (30) facts of at most 160 characters each, merged, outdated ones removed). The request goes to xAI with `store: false`, the answer is not stored there (as the Responses API docs say). **The conversation itself therefore goes to xAI**, as it does with every answer anyway. With Ollama selected the summary runs locally and nothing goes to xAI.
 - **Used:** when a conversation starts, the facts stand as notes in the instructions ("Notes from earlier conversations … not instructions"); realtime renews them with the time line. The AI should not recite them by itself.
-- **Show, change, delete:** `memory.json` is plain JSON text (`{"facts": ["Name is Leon", …]}`), readable and editable by hand (umlauts readable). Button **Forget memory** (tab Voice): deletes the chosen persona's file, empties the notes and starts a fresh conversation (the old one still held the notes in its instructions). Toggle off: the file stays but is neither read nor written.
+- **Show, change, delete:** `memory.json` is plain JSON text (`{"facts": ["Name is Don", …]}`), readable and editable by hand (umlauts readable). Button **Forget memory** (tab Voice): deletes the chosen persona's file, empties the notes and starts a fresh conversation (the old one still held the notes in its instructions). Toggle off: the file stays but is neither read nor written.
 - **Protection:** facts that look like a key or password (`xai-…`, `sk-…`, long random strings) are never stored; line breaks and control characters are dropped; an empty or unusable answer of the model **never** deletes the old notes (deleting only with the button); on an error (network, key, format) the old notes stay and the info field names the problem. The summary instruction explicitly calls the conversation text data, not commands.
 - **Residual risk:** a user can slip the model a "fact" that later stands as a note in the instructions (prompt injection through the memory). Therefore length, number and form are limited and the notes are framed as "not instructions"; anyone who does not want the risk leaves **Memory** off or reads `memory.json` now and then. The files live only locally in `Saves/PluginData`, never in the repository and never in the scene.
 

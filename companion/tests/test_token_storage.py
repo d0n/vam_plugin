@@ -1,4 +1,4 @@
-"""Version 24: the xAI token is stored in config.json (ai.xai.api_key, plain text, Leon's explicit decision) and
+"""Version 24: the xAI token is stored in config.json (ai.xai.api_key, plain text, Don's explicit decision) and
 filled into the plugin field on start; shown masked; a security notice sits in the plugin's big info field and in
 config.json (ai.xai.api_key_warning). Only dummy values, none of them looks like a real key."""
 from __future__ import annotations
@@ -39,7 +39,7 @@ class ConfigJsonTests(unittest.TestCase):
         link = source("AppLink.cs")
         m = re.search(r'public const string XaiTokenWarning = (.*?");\s*\n', link, re.S)
         literal = "".join(re.findall(r'"((?:[^"\\]|\\.)*)"', m.group(1)))
-        # the left info field shows the label in bold (Leon's style rule, 20.11.2026); config.json holds plain text
+        # the left info field shows the label in bold (Don's style rule, 20.11.2026); config.json holds plain text
         self.assertEqual(re.sub(r"</?b>", "", literal), settings_file.KEY_WARNING_TEXT)
         m = re.search(r'public const string XaiTokenWarningPlain = (.*?");\s*\n', link, re.S)
         plain = "".join(re.findall(r'"((?:[^"\\]|\\.)*)"', m.group(1)))

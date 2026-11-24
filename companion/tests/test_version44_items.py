@@ -1,7 +1,7 @@
-"""Version 44 (Leon, 21.11.2026 20:39-21:09): the setup carries and copies d0n.AIBody.<v>.var, removes the other
+"""Version 44 (Don, 21.11.2026 20:39-21:09): the setup carries and copies d0n.AIBody.<v>.var, removes the other
 d0n.AIBody.<n>.var on every install, says when the same / an older version is installed, ends a running companion
 before replacing its files (pystray refused Restart Manager), writes a log; Speech volume up to 3 for speech and test tones:
-a plain linear gain on the companion's WAVs (no limiter, Leon 21:16) and louder copies of the bundled test tone."""
+a plain linear gain on the companion's WAVs (no limiter, Don 21:16) and louder copies of the bundled test tone."""
 from __future__ import annotations
 
 import array
@@ -51,7 +51,7 @@ class VolumeTests(TestCase):
         tts.set_output_gain(1.0)
 
     def test_gain_mapping_and_ranges(self):
-        # 22.11.2026 (Leon 04:16): the factor goes up to 10 (plugin 1000 %), plain linear gain
+        # 22.11.2026 (Don 04:16): the factor goes up to 10 (plugin 1000 %), plain linear gain
         self.assertEqual([tts.output_gain_for(v) for v in (0, 0.5, 1, 1.7, 3, 9, 10, 12, "x", float("nan"))],
                          [1.0, 1.0, 1.0, 1.7, 3.0, 9.0, 10.0, 10.0, 1.0, 1.0])
         self.assertEqual(settings_file.RANGES[("body", "speech_volume")], (0.0, 10.0))
@@ -104,7 +104,7 @@ class VolumeTests(TestCase):
 
     def test_plugin_slider_head_volume_and_config_event(self):
         body = (SRC / "Body.cs").read_text(encoding="utf-8")
-        # 22.11.2026 (Leon 04:15/04:16): percent slider 0..1000; the factor storable stays (no slider) for saved scenes
+        # 22.11.2026 (Don 04:15/04:16): percent slider 0..1000; the factor storable stays (no slider) for saved scenes
         self.assertIn('new JSONStorableFloat("Speech volume (%)", 100f, (float v) => SetSpeechVolume(v), 0f, VolumePercentMax);', body)
         self.assertIn('new JSONStorableFloat("Speech volume", 1f, (float v) => SetLegacySpeechVolume(v), 0f, 10f);', body)
         self.assertIn("folder + \"/\" + TestToneFileFor(SpeechVolume)", body)
@@ -173,12 +173,12 @@ class InstallerTests(TestCase):
         self.assertIn("dist/d0n.AIBody.${{ steps.ver.outputs.version }}.var", wf)   # artifact = the release VAR
 
     def test_old_packages_removed_on_every_install(self):
-        # since Leon 22:25 without an option, and only after the new package is in place (test_package_after_install.py)
+        # since Don 22:25 without an option, and only after the new package is in place (test_package_after_install.py)
         self.assertNotIn("removeoldvars", self.iss)
         step = self.iss[self.iss.index("procedure PlacePackage"):self.iss.index("procedure RegisterPreviousData")]
         self.assertIn("DeleteOwnVars(Dir, ThisVar);", step)
         self.assertNotIn("InstalledVersion", step)                           # not tied to an existing install
-        self.assertNotIn("[InstallDelete]", self.iss)                        # VARs are the only cleanup (Leon 21:08)
+        self.assertNotIn("[InstallDelete]", self.iss)                        # VARs are the only cleanup (Don 21:08)
         wf = WF.read_text(encoding="utf-8")
         self.assertIn('Assert-Packages "fresh install"', wf)
         self.assertIn("Existing install: none \\(new install\\)", wf)
@@ -188,7 +188,7 @@ class InstallerTests(TestCase):
         self.assertIn("SetupLogging=yes", self.iss)
         prep = self.iss[self.iss.index("function PrepareToInstall"):]
         self.assertIn("StopCompanion();", prep[:200])
-        self.assertIn("'/F /IM \"AIBody Companion.exe\"'", self.iss)        # no /T since Leon 21:25
+        self.assertIn("'/F /IM \"AIBody Companion.exe\"'", self.iss)        # no /T since Don 21:25
         self.assertIn("if Code = 128 then", self.iss)
         wf = WF.read_text(encoding="utf-8")
         self.assertIn("$running = Start-Process -FilePath $exe -PassThru", wf)
@@ -203,7 +203,7 @@ class InstallerTests(TestCase):
                      "if WizardSilent() then",
                      "MsgBox(Text, mbConfirmation, MB_OKCANCEL) <> IDOK", "ThisVarState(Dir)"):
             self.assertIn(text, check)
-        # 22.11.2026 (Leon): no English button names in the text (Windows shows OK / Abbrechen in its own language)
+        # 22.11.2026 (Don): no English button names in the text (Windows shows OK / Abbrechen in its own language)
         for text in ("OK:", "Cancel:", "'Okay", "Cancel the"):
             self.assertNotIn(text, check)
         self.assertIn("Sha := GetSHA256OfFile(Path);", self.iss)

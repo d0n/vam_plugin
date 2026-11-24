@@ -1,4 +1,4 @@
-"""Version 45 (Leon, 21.11.2026 21:25 and 22:25): the setup removes older d0n.AIBody.<n>.var only after the install
+"""Version 45 (Don, 21.11.2026 21:25 and 22:25): the setup removes older d0n.AIBody.<n>.var only after the install
 succeeded and the new package is in place (v44 lost the package on a failed / cancelled install), without an option;
 a companion that cannot be ended stops the setup before changes. The item tests are in test_package_after_install.py."""
 from __future__ import annotations
@@ -26,6 +26,6 @@ class VersionTests(TestCase):
 
     def test_docs(self):
         spec = (ROOT / "docs" / "SPEC.md").read_text(encoding="utf-8")
-        self.assertIn("(version 45, release; Leon, calls 21:25 and 22:25, release approved at 22:26): package `d0n.AIBody.45.var`, tag `v45`", spec)
+        self.assertIn("(version 45, release; Don, calls 21:25 and 22:25, release approved at 22:26): package `d0n.AIBody.45.var`, tag `v45`", spec)
         tp = (ROOT / "docs" / "TEST_PROTOCOL.md").read_text(encoding="utf-8")
         self.assertIn("## T74", tp)

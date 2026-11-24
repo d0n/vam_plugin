@@ -20,7 +20,7 @@ namespace AIBody
         private readonly Action<JSONClass> _send;
         private readonly Diag _diag;
 
-        private JSONStorableFloat _volumeJson;         // "Speech volume (%)" 0..1000 (Leon 22.11.2026 04:15/04:16); the factor is _volumeJson.val / 100
+        private JSONStorableFloat _volumeJson;         // "Speech volume (%)" 0..1000 (Don 22.11.2026 04:15/04:16); the factor is _volumeJson.val / 100
         private JSONStorableFloat _legacyVolumeJson;   // "Speech volume" factor (0..3 up to v45, now 0..10): no slider, kept for saved scenes
         private bool _syncingVolume;
         private JSONStorableFloat _distanceJson;   // version 48: "Full volume distance (m)", applied by SpeechPlayer.UpdateDistance from Update
@@ -59,7 +59,7 @@ namespace AIBody
         /// <summary>Version 44: louder copies of the bundled tone for Speech volume above 1 (tools/build_var.py writes them
         /// with the same plain linear gain as the companion's speech, no limiter): 2x and 3x. Takes the factor (percent / 100):
         /// below 150 % the normal tone (head audio at the volume), 150 to 250 % the 2x copy, from 250 % the 3x copy (both at full
-        /// head volume), i.e. 200 % = 2x and 300 % = 3x; above 300 % the 3x copy too (no new files, Leon 04:16).</summary>
+        /// head volume), i.e. 200 % = 2x and 300 % = 3x; above 300 % the 3x copy too (no new files, Don 04:16).</summary>
         public static string TestToneFileFor(float volume)
         {
             if (volume >= 2.5f) return "AIBodyTest3.wav";
@@ -68,7 +68,7 @@ namespace AIBody
         }
 
         /// <summary>Speech volume in percent (0..1000, default 100) = the factor 0..10 the companion, config.json and the config
-        /// event keep using (Leon 22.11.2026 04:15; maximum 1000 at 04:16; plain linear gain, no limiter).</summary>
+        /// event keep using (Don 22.11.2026 04:15; maximum 1000 at 04:16; plain linear gain, no limiter).</summary>
         public const float VolumePercentMax = 1000f;
         public const string SpeechVolumeLabel = "Speech volume (%)";
 
@@ -229,20 +229,20 @@ namespace AIBody
                 if (!v && _expressions != null) _expressions.Reset(0.4f);
             });
             SettingsDefaults.Bool(_plugin, _bodyControlJson);
-            // Body position (22.11.2026, Leon). Not registered on purpose: VaM saves the moved controllers with the scene, so a
+            // Body position (22.11.2026, Don). Not registered on purpose: VaM saves the moved controllers with the scene, so a
             // saved slider value would move the character a second time on load. The sliders show the offset since the
             // plugin loaded; Reset body position takes it back.
             _moveForwardJson = new JSONStorableFloat("Move forward / back (m)", 0f, (float v) => OnBodyMove(), -5f, 5f);
             _moveRightJson = new JSONStorableFloat("Move right / left (m)", 0f, (float v) => OnBodyMove(), -5f, 5f);
             _turnJson = new JSONStorableFloat("Turn (degrees)", 0f, (float v) => OnBodyMove(), -180f, 180f);
             // Version 44: up to 3 (above 1 the companion makes its speech louder; it learns the value from the config event "body").
-            // 22.11.2026 (Leon 04:15/04:16): percent 0..1000, default 100; the old factor storable stays registered (no slider) so a
+            // 22.11.2026 (Don 04:15/04:16): percent 0..1000, default 100; the old factor storable stays registered (no slider) so a
             // scene saved with "Speech volume": 1.0 loads as 100 %.
             _volumeJson = new JSONStorableFloat("Speech volume (%)", 100f, (float v) => SetSpeechVolume(v), 0f, VolumePercentMax);
             SettingsDefaults.Float(_plugin, _volumeJson);
             _legacyVolumeJson = new JSONStorableFloat("Speech volume", 1f, (float v) => SetLegacySpeechVolume(v), 0f, 10f);   // = VolumePercentMax / 100
             SettingsDefaults.Float(_plugin, _legacyVolumeJson);
-            // Version 48 (Leon 12:58): back, EasyMoan pattern. The callback only stores the value; Update applies it when idle.
+            // Version 48 (Don 12:58): back, EasyMoan pattern. The callback only stores the value; Update applies it when idle.
             _distanceJson = new JSONStorableFloat("Full volume distance (m)", SpeechPlayer.DefaultFullVolumeDistance,
                 (float v) => { if (OnSettingsChanged != null) OnSettingsChanged(); }, SpeechPlayer.MinFullVolumeDistance, SpeechPlayer.MaxFullVolumeDistance);
             SettingsDefaults.Float(_plugin, _distanceJson);
@@ -261,11 +261,11 @@ namespace AIBody
             SettingsDefaults.Text(_plugin, _breathMorphJson);
             _idlePosesJson = new JSONStorableBool("Idle poses", true, (bool v) => { if (_idlePoses != null) _idlePoses.Enabled = v; });
             SettingsDefaults.Bool(_plugin, _idlePosesJson);
-            // Version 54 (Leon 23:31): idle poses use the AIBody pose folder (+ the poses linked by pose commands and the Idle
+            // Version 54 (Don 23:31): idle poses use the AIBody pose folder (+ the poses linked by pose commands and the Idle
             // default pose); this toggle adds every pose file of the library again (as in v51-v53). Off by default.
             _idleAllFilesJson = new JSONStorableBool("Idle poses from all pose files", false, (bool v) => { _poolDirty = true; });
             SettingsDefaults.Bool(_plugin, _idleAllFilesJson);
-            // Version 51 (Leon 20:38-20:51): these two sliders set how often the random idle pose changes (30 / 300 s,
+            // Version 51 (Don 20:38-20:51): these two sliders set how often the random idle pose changes (30 / 300 s,
             // 30 - 18000 s); the storable names stay, so old scenes keep their values. Min never above max.
             _idlePoseMinJson = new JSONStorableFloat("Idle pose min wait (s)", IdlePoseScheduler.DefaultMinSeconds,
                 OnIdleMinChanged, IdlePoseScheduler.LowestSeconds, IdlePoseScheduler.HighestSeconds);
@@ -284,7 +284,7 @@ namespace AIBody
 
             // Manual pose / expression / gesture menu (tab AI Character). Not registered: only the
             // choice in the menu, nothing new is saved with the scene. Lists refill on opening (E25).
-            // Version 52 (Leon 20:48): choosing an entry in "Pose command" only selects it; Apply Pose applies it (choosing the
+            // Version 52 (Don 20:48): choosing an entry in "Pose command" only selects it; Apply Pose applies it (choosing the
             // same entry again fired nothing, so "applies on choosing" worked once and then seemed broken).
             _poseCommandChoiceJson = new JSONStorableStringChooser("Pose command", new List<string>(), "", "Pose command",
                 OnPoseCommandChosen);
@@ -396,7 +396,7 @@ namespace AIBody
         public void BuildCharacterTab(UiPage page)
         {
             RefreshCharacterChoices();
-            // Leon (20.11.2026): ordered by topic, only category headers and controls (help and status: left field).
+            // Don (20.11.2026): ordered by topic, only category headers and controls (help and status: left field).
             // Characters first: the optional setup wizard (gate, then gender steps and a clothing hint).
             if (Characters != null) Characters.Build(page);
             page.Header("<b>Body control</b>");
@@ -410,7 +410,7 @@ namespace AIBody
             page.Toggle(_idlePosesJson);
             page.Toggle(_idleAllFilesJson);
             page.ScrollablePopup(_idlePoseDefaultJson);
-            page.Button("Apply idle default pose", ApplyIdleDefaultPose);   // 22.11.2026 (Leon): go there now
+            page.Button("Apply idle default pose", ApplyIdleDefaultPose);   // 22.11.2026 (Don): go there now
             page.Slider(_idlePoseMinJson);
             page.Slider(_idlePoseMaxJson);
             page.Header("<b>Idle motion and breathing</b>");
@@ -419,13 +419,13 @@ namespace AIBody
             page.Toggle(_breathingJson);
             page.Slider(_breathRateJson);
             page.Slider(_breathDepthJson);
-            // Version 47 (Leon 22.11.2026, screenshot): the "Breath morph" header and its "Breath1" input box are gone from the
+            // Version 47 (Don 22.11.2026, screenshot): the "Breath morph" header and its "Breath1" input box are gone from the
             // menu. The storable "Breath morph" (default Breath1, saved with scenes) and config.json body.breath_morph still set it.
             page.Header("<b>Expression and gesture</b>");
             page.Popup(_expressionChoiceJson);
             page.Button("Show expression", ShowChosenExpression);
             page.Button("Reset expression", () => { if (_expressions != null) _expressions.Reset(0.4f); });
-            // Version 53 (Leon 20:57): no separate "Reload expressions (expressions.json)" button; Reload Config JSON (tab
+            // Version 53 (Don 20:57): no separate "Reload expressions (expressions.json)" button; Reload Config JSON (tab
             // Config) and the trigger action "Reload config files" reload expressions.json.
             page.Popup(_gestureChoiceJson);
             page.Button("Play gesture", PlayChosenGesture);
@@ -480,7 +480,7 @@ namespace AIBody
             + "the character only speaks. Your own controls <b>Pose command</b>, <b>Reset poses</b>, <b>Show expression</b> and <b>Play gesture</b> still work, and so do "
             + "the plugin's own life signs, each with its own toggle: <b>Idle head motion</b> (with the chest weight shift) and <b>Breathing</b>.";
 
-        /// <summary>The breathing controls in running prose (20.11.2026, Leon's style rule for the left fields).</summary>
+        /// <summary>The breathing controls in running prose (20.11.2026, Don's style rule for the left fields).</summary>
         public const string BreathingHelp = "<b>Idle intensity</b> sets how much the head moves while idle. <b>Breaths per minute</b> controls how fast "
             + "the chest breathes and <b>Breath depth</b> how deep. The breathing morph is Breath1 (another name: body.breath_morph in config.json); "
             + "without it the chest still rises with each breath.";
@@ -609,7 +609,7 @@ namespace AIBody
             try
             {
                 _poseCommandChoiceJson.choices = commands;   // E9, E24, E25
-                // version 58 (Leon 16:09: no empty dropdown): the first command when none is chosen; choosing only selects
+                // version 58 (Don 16:09: no empty dropdown): the first command when none is chosen; choosing only selects
                 // since version 52 (Apply Pose applies), so this applies nothing
                 if (!commands.Contains(_poseCommandChoiceJson.val)) _poseCommandChoiceJson.val = commands.Count > 0 ? commands[0] : "";
             }
@@ -663,7 +663,7 @@ namespace AIBody
                 + "<b>Restore starter poses</b> brings back missing starter commands. Every change is saved in config.json at once.\n" + lines;
         }
 
-        /// <summary>Add Pose step 1 (version 42, Leon 18:27): VaM's file browser for the pose file (E37).</summary>
+        /// <summary>Add Pose step 1 (version 42, Don 18:27): VaM's file browser for the pose file (E37).</summary>
         private void StartAddPose()
         {
             if (_poses == null) { Note("<color=red>Add Pose: PoseController missing</color>", true); return; }
@@ -781,7 +781,7 @@ namespace AIBody
         }
 
         /// <summary>Reads config.json poses.commands. A missing key, an empty list or a list without one usable entry =
-        /// the ten starter commands (version 35, Leon: they are in the configuration from the start); the next write of
+        /// the ten starter commands (version 35, Don: they are in the configuration from the start); the next write of
         /// config.json (once a second, when changed) then stores them.</summary>
         public void LoadPoseCommands(JSONClass root)
         {
@@ -808,7 +808,7 @@ namespace AIBody
             RebuildTab = true;
         }
 
-        /// <summary>Version 52 (Leon 20:48, decision): choosing an entry in "Pose command" only selects it; <b>Apply Pose</b>
+        /// <summary>Version 52 (Don 20:48, decision): choosing an entry in "Pose command" only selects it; <b>Apply Pose</b>
         /// applies it (also again and again). Same rule as "Idle default pose" + "Apply idle default pose".</summary>
         private void OnPoseCommandChosen(string command)
         {
@@ -821,7 +821,7 @@ namespace AIBody
         private JSONStorableFloat _moveForwardJson;
         private JSONStorableFloat _moveRightJson;
         private JSONStorableFloat _turnJson;
-        // Version 54 (Leon 23:28): the sliders are offsets from her HOME placement (the main controller when the first slider
+        // Version 54 (Don 23:28): the sliders are offsets from her HOME placement (the main controller when the first slider
         // moved away from 0); every change puts her there ABSOLUTELY and rigidly (BodyMover.Relocate), Reset puts her home.
         private bool _homeSet;
         private Vector3 _homePos;
@@ -888,7 +888,7 @@ namespace AIBody
             if (_idlePoses != null) _idlePoses.MaxSeconds = v;
         }
 
-        /// <summary>Button "Apply idle default pose" (22.11.2026, Leon: idle pose control in the menu): the pose chosen in
+        /// <summary>Button "Apply idle default pose" (22.11.2026, Don: idle pose control in the menu): the pose chosen in
         /// "Idle default pose", applied now; the idle poses then wait their full time again.</summary>
         private void ApplyIdleDefaultPose()
         {
@@ -902,7 +902,7 @@ namespace AIBody
         }
 
         /// <summary>
-        /// Version 56 (Leon 15:28): a pose command from the companion (spoken or typed pose command, the AI's pose tool) takes
+        /// Version 56 (Don 15:28): a pose command from the companion (spoken or typed pose command, the AI's pose tool) takes
         /// the same path as the menu's Apply Pose: refused while Dollmaster poses the body, applied through PoseController
         /// (PoseGuard.Around: her place is kept), the idle poses wait CooldownSeconds and do not repeat it, a status note.
         /// </summary>
@@ -926,7 +926,7 @@ namespace AIBody
         private readonly System.Random _substituteRandom = new System.Random();
 
         /// <summary>
-        /// Version 58 (Leon 23.11.2026 / 24.11.2026 16:07): the substitute for a built-in command (Sit Down, ...) whose own
+        /// Version 58 (Don 23.11.2026 / 24.11.2026 16:07): the substitute for a built-in command (Sit Down, ...) whose own
         /// pose file the character does not have: a random pose of the idle pool (AIBody pose folder + linked poses, without
         /// failed ones and without the pose shown last), else the Idle default pose; null = no pose at all. Logged.
         /// </summary>
@@ -1005,7 +1005,7 @@ namespace AIBody
         private bool _autoWasOn;
 
         /// <summary>
-        /// Version 53 (Leon 20:49, "expressions do not work / are not visible"): VaM's own Auto Expressions (storable
+        /// Version 53 (Don 20:49, "expressions do not work / are not visible"): VaM's own Auto Expressions (storable
         /// "AutoExpressions", param "enabled", on by default) animates the same face morphs every frame and covered ours -
         /// two writers on the face, the same pattern as the pose twitching. While an AIBody expression is shown it is paused,
         /// afterwards it is put back as it was. Dollmaster switches it off the same way (DmConfig, E39).
@@ -1284,7 +1284,7 @@ namespace AIBody
             }
         }
 
-        // Version 57 (Leon 15:57): a pose that fails is dropped from the idle pool at once (first failure, for the session)
+        // Version 57 (Don 15:57): a pose that fails is dropped from the idle pool at once (first failure, for the session)
         // and the next pose is picked and loaded right away (next frame, no cooldown). The idle poses are never switched off
         // for the session (up to v55 one exception did that; v56 paused 30 s). Every failure shrinks the pool, so this ends:
         // when no pose is left it logs once and waits (a pose that is added or linked later is used again).

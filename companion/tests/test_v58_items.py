@@ -1,4 +1,4 @@
-"""Version 58 (Leon, voice 24.11.2026 16:07-16:09, explicit go): pose commands inside a sentence (pose_commands.find,
+"""Version 58 (Don, voice 24.11.2026 16:07-16:09, explicit go): pose commands inside a sentence (pose_commands.find,
 German phrases for the built-in commands, negations ignored), a substitute pose for built-in commands without their
 pose file, and no empty dropdown after Reset to Default (Pose command, gender, Dollmaster Thrust Control)."""
 from __future__ import annotations

@@ -32,7 +32,7 @@ SETTINGS = {"base_url": "http://127.0.0.1:11434", "model": "llama3.2", "max_outp
 class OllamaLlmTests(unittest.TestCase):
     def setUp(self):
         self.http = FakeHttp()
-        self.answers = [ndjson("<<happy nod>> Hallo", " Leon. Schön, dich zu sehen.")]
+        self.answers = [ndjson("<<happy nod>> Hallo", " Don. Schön, dich zu sehen.")]
         self.http.route("/api/chat", lambda r: FakeResponse(self.answers.pop(0), "application/x-ndjson"))
         self.llm = OllamaLlm(SETTINGS, HttpClient(self.http), persona="Du bist Anna.")
 
@@ -42,7 +42,7 @@ class OllamaLlmTests(unittest.TestCase):
     def test_request_and_answer(self):
         items = list(self.llm.stream("Hi", [], ["happy", "sad"], ["nod"]))
         self.assertEqual(items[0], Directive("happy", "nod"))
-        self.assertEqual([i for i in items if isinstance(i, str)], ["Hallo Leon.", "Schön, dich zu sehen."])
+        self.assertEqual([i for i in items if isinstance(i, str)], ["Hallo Don.", "Schön, dich zu sehen."])
         payload = self.sent()
         self.assertEqual(self.http.requests[0].full_url, "http://127.0.0.1:11434/api/chat")
         self.assertEqual((payload["model"], payload["stream"], payload["keep_alive"]), ("llama3.2", True, "10m"))
@@ -96,7 +96,7 @@ class OllamaLlmTests(unittest.TestCase):
 
     def test_reply_protocol(self):
         reply = self.llm.reply("Hi", [])
-        self.assertIn("Hallo Leon.", reply.say)
+        self.assertIn("Hallo Don.", reply.say)
 
 
 class EngineTests(unittest.TestCase):

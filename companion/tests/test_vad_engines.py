@@ -332,7 +332,7 @@ class HeardStt:
 
 
 class NoPluginTests(unittest.TestCase):
-    """Leon, 19.11.2026: with no AIBody plugin in the scene, the companion still listens with voice activation
+    """Don, 19.11.2026: with no AIBody plugin in the scene, the companion still listens with voice activation
     from config.json alone. It never waits for a plugin handshake."""
 
     def test_voice_activation_works_from_config_json_alone(self):

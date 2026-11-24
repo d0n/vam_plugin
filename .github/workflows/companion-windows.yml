@@ -8,7 +8,7 @@ name: Companion Windows installer
 # checks that every install copies it to <VaM>\AddonPackages and removes the other d0n.AIBody.<n>.var (fresh install with
 # hand-placed old packages), that a same-version reinstall over a RUNNING companion ends it and replaces everything,
 # that an older installed version is reported as an update, and that the VAR is uploaded with the installer.
-# After v44 (Leon 21:25): a failed install (companion file locked, /NOCLOSEAPPLICATIONS) keeps the older package; the
+# After v44 (Don 21:25): a failed install (companion file locked, /NOCLOSEAPPLICATIONS) keeps the older package; the
 # next run copies the new one first and removes the older ones after that.
 # Version 49 (Dollmaster tab): the VAR also packs assets/dollmaster, so changes there trigger the build too.
 on:
@@ -210,7 +210,7 @@ jobs:
           Assert-Packages "update from 43"
           Write-Host "update detection ok"
           # 4d. a failed install (a companion file locked, Restart Manager off) must keep the older package: v44 deleted it
-          #     before copying and the rollback then removed the new one too (Leon 21:25). Then a normal run places the
+          #     before copying and the rollback then removed the new one too (Don 21:25). Then a normal run places the
           #     new package (bundled SHA-256) and only after that removes the old one.
           Remove-Item $newvar -Force
           New-Item -ItemType File -Force (Join-Path $pk "d0n.AIBody.42.var") | Out-Null

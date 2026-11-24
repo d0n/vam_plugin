@@ -34,7 +34,7 @@ def wav_duration(path: Path) -> float:
         return w.getnframes() / float(w.getframerate())
 
 
-# Peak of the test tone (fraction of full scale). Leon, 21.11.2026 20:04: 0.35 was very quiet in v42; 0.70 is
+# Peak of the test tone (fraction of full scale). Don, 21.11.2026 20:04: 0.35 was very quiet in v42; 0.70 is
 # +6 dB, still clear of clipping (<= 0.8). Only the test tone; speech volume is unchanged.
 TEST_TONE_PEAK = 0.70
 
@@ -52,12 +52,12 @@ def test_tone_pcm(seconds: float = 1.5, rate: int = 22050) -> bytes:
     return bytes(frames)
 
 
-# -- output gain (version 44, Leon 21.11.2026 21:01) -------------------------------------------------------------
+# -- output gain (version 44, Don 21.11.2026 21:01) -------------------------------------------------------------
 # The plugin's Speech volume goes up to MAX_SPEECH_VOLUME. VaM's head audio stops at 1, so the part above 1 is applied
 # here to every WAV this app writes for the character (TTS, realtime voice, test tone): a plain linear gain, no limiter
-# or normalizing (Leon 21:16: the user decides how loud). Only samples beyond the 16-bit range are cut to it (a WAV
+# or normalizing (Don 21:16: the user decides how loud). Only samples beyond the 16-bit range are cut to it (a WAV
 # cannot hold more), so very loud settings may distort. Default 1 = unchanged bytes.
-MAX_SPEECH_VOLUME = 10.0   # 22.11.2026 (Leon 04:16): 1000 % in the plugin; was 3.0 (version 44)
+MAX_SPEECH_VOLUME = 10.0   # 22.11.2026 (Don 04:16): 1000 % in the plugin; was 3.0 (version 44)
 _OUTPUT = {"gain": 1.0, "table": None}
 
 
@@ -116,7 +116,7 @@ def apply_gain(pcm16: bytes, gain: float | None = None) -> bytes:
 
 LAST_WRITE_S = {"s": 0.0}  # how long the last WAV write took (latency breakdown "file write")
 
-# After v45 (Leon 22.11.2026 04:02, "Speech volume 3 made no noticeable difference"): the first speech WAV, and the first
+# After v45 (Don 22.11.2026 04:02, "Speech volume 3 made no noticeable difference"): the first speech WAV, and the first
 # after every gain change, is measured and logged (INFO): its peak before the gain and how many samples the gain cuts at
 # full scale. A voice that already peaks near 0 dBFS cannot get much louder in the file; the log shows that plainly.
 _LEVEL = {"logged_gain": None}

@@ -196,7 +196,7 @@ class Chain(unittest.TestCase):
         self.assertEqual(self.poses_sent()[0]["command"], "Sit Down")
 
     def test_near_misses_go_to_the_conversation_and_never_apply_a_pose(self):
-        # version 58 (Leon 16:07): "please sit down" IS a pose command now (the command inside a sentence); a negated
+        # version 58 (Don 16:07): "please sit down" IS a pose command now (the command inside a sentence); a negated
         # command or a word that only contains it ("sitting down") is ordinary conversation
         self.start(poses=STARTERS)
         for text in ("don't sit down", "I like sitting down"):

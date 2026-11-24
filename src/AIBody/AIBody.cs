@@ -51,7 +51,7 @@ namespace AIBody
         private JSONStorableString _statusJson;
         private Diag _diag;
 
-        // 'Reset to Default' (tab Config > Reset, Leon 21.11.2026 17:01): the defaults of every saved setting, filled while
+        // 'Reset to Default' (tab Config > Reset, Don 21.11.2026 17:01): the defaults of every saved setting, filled while
         // the components register their storables (UiHelper.cs, SettingsDefaults), and the two-step confirmation.
         public const string ResetButtonLabel = "Reset to Default";
         public const string ResetConfirmLabel = "Confirm Reset to Default";
@@ -82,10 +82,10 @@ namespace AIBody
         private string _linkLive = "";   // connection / companion live lines (tab Voice)
         private string _bodyLive = "";   // speech / body live lines (tab AI Character)
 
-        // Tab names: self-explanatory, never just "AI" / "Client" (Leon, 17.11.2026). The former tabs
+        // Tab names: self-explanatory, never just "AI" / "Client" (Don, 17.11.2026). The former tabs
         // AI, Post and Advanced are gone (docs/BACKLOG.md, removed menu entries).
         private static readonly string[] Tabs = { "Voice", "AI Character", "Client Character", "Dollmaster", "Config" };
-        /// <summary>Tab "Dollmaster" (22.11.2026, Leon): the ported Dollmaster, see DmPlugin.cs.</summary>
+        /// <summary>Tab "Dollmaster" (22.11.2026, Don): the ported Dollmaster, see DmPlugin.cs.</summary>
         private const int DollmasterTab = 3;
         private string _configStatus = "";   // result of "Reload Config JSON", shown in the info field
         private UiPage _page;
@@ -145,7 +145,7 @@ namespace AIBody
 
             // 3. Components and storables, each phase on its own.
             _diag.Run("Create AppLink", () => _link = new AppLink(this, PluginVersion, _diag));
-            // Version 42 (Leon 18:27): the plugin may sit on the client ('Client') and drive the AI person ('AI').
+            // Version 42 (Don 18:27): the plugin may sit on the client ('Client') and drive the AI person ('AI').
             Atom aiAtom = null;
             _diag.Run("Find the AI person", () => aiAtom = FindAiCharacter());
             _diag.Run("Create Body", () => _body = new Body(this, aiAtom ?? containingAtom, SendToApp, _diag));
@@ -362,7 +362,7 @@ namespace AIBody
             _background = new BackgroundController();
             _backgroundJson = new JSONStorableBool(BackgroundToggleName, false, (bool v) => ApplyBackground());
             SettingsDefaults.Bool(this, _backgroundJson);
-            // Default green #00FF00 (Leon): high contrast against a room with many dark / blue things.
+            // Default green #00FF00 (Don): high contrast against a room with many dark / blue things.
             _backgroundColorJson = new JSONStorableColor(BackgroundColorName, HSVColorPicker.RGBToHSV(0f, 1f, 0f),
                 (JSONStorableColor c) => ApplyBackground());
             RegisterColor(_backgroundColorJson);
@@ -478,9 +478,9 @@ namespace AIBody
                 // Version 56 (T96): Dollmaster's settings and its Activate switch go back to their defaults too
                 if (_dm != null) changed += _dm.ResetToDefaults();
                 if (_dmActivateJson != null && _dmActivateJson.val) { _dmActivateJson.val = false; changed++; }
-                if (_link != null) _link.ClearToken();   // version 50 (Leon 20:35): the reset clears the XAI API Token too
+                if (_link != null) _link.ClearToken();   // version 50 (Don 20:35): the reset clears the XAI API Token too
                 if (_link != null) _link.ResetMute();    // version 55: Reset to Default unmutes the AI
-                // Version 51 (Leon 20:58): every menu gets its full list again, so no dropdown is empty after the reset.
+                // Version 51 (Don 20:58): every menu gets its full list again, so no dropdown is empty after the reset.
                 if (_link != null) _link.RefreshAllChoices();
                 if (_body != null) _body.RefreshCharacterChoices();
                 ApplyBackground();
@@ -533,7 +533,7 @@ namespace AIBody
                 if (_link != null) _link.BuildFirstRunHint(_page);   // version 30: one short note while no xAI token exists
                 switch (index)
                 {
-                    case 0: // Voice (Leon, 20.11.2026: ordered by topic; only category headers and controls on the right)
+                    case 0: // Voice (Don, 20.11.2026: ordered by topic; only category headers and controls on the right)
                         _page.Header("<b>Companion connection</b>");
                         if (_link != null) _link.BuildConnectionSection(_page);
                         _page.Header("<b>AI</b>");
@@ -570,7 +570,7 @@ namespace AIBody
 
         // ---------------------------------------------------------------- config.json
 
-        // Version 39 (Leon, call 21.11.2026 15:59): the button "Question and Answer" is gone. Answering
+        // Version 39 (Don, call 21.11.2026 15:59): the button "Question and Answer" is gone. Answering
         // questions is simply what the character does while Proactive talking is off; Body control is no longer touched.
 
         /// <summary>
@@ -852,7 +852,7 @@ namespace AIBody
             bool opened = visible && !_uiVisible;
             _uiVisible = visible;
             if (!visible) return;
-            // Version 54 (Leon's sound diagnosis 22:23): the long info texts are rebuilt every 2 s (was 0.5 s) and at once when
+            // Version 54 (Don's sound diagnosis 22:23): the long info texts are rebuilt every 2 s (was 0.5 s) and at once when
             // the menu opens or the tab changes; Unity lays out a long rich text again on every change of it.
             if (_uiTimer < UiRefreshSeconds && !opened) return;
             _uiTimer = 0f;
@@ -910,7 +910,7 @@ namespace AIBody
             catch (Exception e) { Log.Error("OnDestroy: Dollmaster teardown failed", e); }
         }
 
-        // ---------------------------------------------------------------- Dollmaster (22.11.2026, Leon)
+        // ---------------------------------------------------------------- Dollmaster (22.11.2026, Don)
         // The old Dollmaster plugin (VAMDeluxe, MIT) ported into this plugin: tab "Dollmaster", checkbox "Activate"
         // (off by default; off = nothing of it runs). It drives the AI character like the old plugin drove its Person.
         // Ownership while it is active: Dollmaster owns the body (face expressions, breathing, head / eyes, poses,

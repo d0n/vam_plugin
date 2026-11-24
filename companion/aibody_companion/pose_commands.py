@@ -7,7 +7,7 @@ command text -> pose id). The match is deterministic, in code, not in a prompt:
   2. compare the whole text with the command text normalized the same way.
 
 No substring, word or fuzzy match in `match`: "please sit down" and "sit down and smile" do not match there (it is the
-twin of the plugin's PoseVocabulary.Match, used for exact names). Version 58 (Leon 16:07) relaxes the gate for what the
+twin of the plugin's PoseVocabulary.Match, used for exact names). Version 58 (Don 16:07) relaxes the gate for what the
 user SAYS or TYPES: `find` (below) also finds a command inside a longer sentence ("please sit down now"). The AI never sees the
 vocabulary and has no pose tool. The answer to a match is the JSON {"pose": "<id>"} in the command `pose`; the plugin
 parses and checks it against ITS vocabulary again (PoseVocabulary.cs, same rules; tests/test_pose_commands.py runs
@@ -34,12 +34,12 @@ from __future__ import annotations
 import json
 from typing import Any
 
-# Leon's wording (20.11.2026), exactly. Each starter command links to a pose of the same name until the user changes it.
+# Don's wording (20.11.2026), exactly. Each starter command links to a pose of the same name until the user changes it.
 STARTER_COMMANDS = (
     "Sit Down", "Lay Down", "Prone", "Stand Up", "Spread Your Legs", "Ankle Your Knees", "Ankle Your Elbows",
     "Turn Around", "Crawl on all fours", "Bend Over",
 )
-# Version 58 (Leon 16:07, "kannst du dich hinsetzen"): German phrases for the built-in commands (voice input; matched
+# Version 58 (Don 16:07, "kannst du dich hinsetzen"): German phrases for the built-in commands (voice input; matched
 # like the command itself, whole words). Not for "Ankle Your Knees" / "Ankle Your Elbows" (no clear German phrase).
 STARTER_ALIASES = {
     "Sit Down": ("hinsetzen", "setz dich", "setzt dich", "setzen sie sich"),

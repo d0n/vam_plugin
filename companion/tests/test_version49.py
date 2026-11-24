@@ -1,4 +1,4 @@
-"""Version 49 (Leon, call 22.11.2026 19:17, release go): everything on main since v48 - voice barge-in on by default
+"""Version 49 (Don, call 22.11.2026 19:17, release go): everything on main since v48 - voice barge-in on by default
 with echo protection, Language chooser (default German), setup notice, Apply Pose, Apply idle default pose, Body
 position, tab Dollmaster (full port) and the CI path for assets/dollmaster. English release notes. Released as v49 (22.11.2026)."""
 from __future__ import annotations

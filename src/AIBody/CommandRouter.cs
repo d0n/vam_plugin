@@ -188,7 +188,7 @@ namespace AIBody
                     return _poses.Trigger(msg);
 
                 case Protocol.CmdLookAt:
-                    // Removed after version 36 (Leon): the eyes belong to VaM. An older companion may still send it.
+                    // Removed after version 36 (Don): the eyes belong to VaM. An older companion may still send it.
                     Log.Debug("look_at ignored: AIBody does not move the eyes");
                     return null;
 

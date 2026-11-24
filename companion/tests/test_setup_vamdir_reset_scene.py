@@ -1,9 +1,9 @@
-"""Version 41 (Leon, 21.11.2026 17:01/17:02):
+"""Version 41 (Don, 21.11.2026 17:01/17:02):
 1. the installer asks for the VaM folder (wizard page, auto-detected, VaM.exe required, /VAMDIR= when silent) and writes
    it to the launcher's launcher.json, which the launcher reads first;
 2. tab Config > Reset: 'Reset to Default' with a confirm step resets every saved plugin setting, including the
    per-scene character wizard answers, and never the XAI API Token or the key file paths;
-3. the AI-Buddy scene carries AIBody on the male BryanGosling, not on the female Person (version 42, Leon 18:27: his scene,
+3. the AI-Buddy scene carries AIBody on the male BryanGosling, not on the female Person (version 42, Don 18:27: his scene,
    AIBody on the male "Client", which drives the female "AI").
 """
 from __future__ import annotations
@@ -138,7 +138,7 @@ class ResetToDefaultTests(TestCase):
             self.assertIn('<b>" + ' + label + ' + "</b>', info)
         for label in ("XAI API Token", "xAI key file", "ElevenLabs key file"):
             self.assertIn(f"<b>{label}</b>", info)
-        self.assertIn("also clears your <b>XAI API Token</b>", info)   # version 50 (Leon 20:35)
+        self.assertIn("also clears your <b>XAI API Token</b>", info)   # version 50 (Don 20:35)
         self.assertIn("+ ResetInfo()", self.plugin)
 
     def test_every_saved_setting_is_tracked_except_keys_and_hooks(self):

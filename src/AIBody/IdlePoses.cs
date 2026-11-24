@@ -1,9 +1,9 @@
-// Idle poses (version 35, Leon 20.11.2026; version 51, Leon 22.11.2026 20:38-20:57): when the character has nothing to do
+// Idle poses (version 35, Don 20.11.2026; version 51, Don 22.11.2026 20:38-20:57): when the character has nothing to do
 // for a while (no speech, nobody talking, no pose command), it changes on its own to a RANDOM pose of ALL poses it has,
 // so it never freezes. The idle head motion and the breathing (IdleController, BreathingController) keep running on top.
 //
 // Rules:
-//   - version 54 (Leon 23:31): the pool is the gestures.json poses and the pose files in Custom/Atom/Person/Pose/AIBody
+//   - version 54 (Don 23:31): the pool is the gestures.json poses and the pose files in Custom/Atom/Person/Pose/AIBody
 //     plus the poses linked by pose commands and the Idle default pose; "Idle poses from all pose files" (off by default)
 //     adds every pose file of the library again; a pose that fails to load is dropped for the session;
 //   - up to v53 the pool: every pose of the character (gestures.json poses + the pose files the plugin lists), the poses linked by
@@ -25,9 +25,9 @@ namespace AIBody
 {
     public class IdlePoseScheduler
     {
-        public const float DefaultMinSeconds = 30f;      // version 51 (Leon 20:38): 30 s / 300 s
+        public const float DefaultMinSeconds = 30f;      // version 51 (Don 20:38): 30 s / 300 s
         public const float DefaultMaxSeconds = 300f;
-        public const float LowestSeconds = 30f;          // version 51 (Leon 20:39): 30 s to 18000 s (300 min)
+        public const float LowestSeconds = 30f;          // version 51 (Don 20:39): 30 s to 18000 s (300 min)
         public const float HighestSeconds = 18000f;
         public const string DefaultIdlePose = "Stand Up";
 
@@ -126,7 +126,7 @@ namespace AIBody
             return PickNow(vocabulary, poolNames, allNames);
         }
 
-        /// <summary>Version 57 (Leon 15:57): a random pose of the pool right now, without any wait (also used right after a
+        /// <summary>Version 57 (Don 15:57): a random pose of the pool right now, without any wait (also used right after a
         /// pose failed and was excluded: the next one comes at once). null = the pool is empty.</summary>
         public string PickNow(PoseVocabulary vocabulary, List<string> poolNames, List<string> allNames)
         {
@@ -162,7 +162,7 @@ namespace AIBody
             return Pool(vocabulary, poseNames, poseNames);
         }
 
-        /// <summary>Version 54 (Leon 23:31): the pool is poolNames (gestures.json poses + the AIBody pose folder, or every pose
+        /// <summary>Version 54 (Don 23:31): the pool is poolNames (gestures.json poses + the AIBody pose folder, or every pose
         /// file with "Idle poses from all pose files") plus the poses linked by pose commands and the Idle default pose
         /// (resolved in allNames), without the poses that failed to load (Exclude).</summary>
         public List<string> Pool(PoseVocabulary vocabulary, List<string> poolNames, List<string> allNames)

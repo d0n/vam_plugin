@@ -44,7 +44,7 @@ The plugin writes with VaM's SimpleJSON, which stores numbers and booleans as st
 ("0.5", "true"); validate() accepts both (vamjson.py).
 
 API keys: the xAI token typed into the plugin field "XAI API Token" is stored here IN PLAIN TEXT as
-ai.xai.api_key (version 24; Leon's explicit decision, see ai.xai.api_key_warning, which holds the same warning).
+ai.xai.api_key (version 24; Don's explicit decision, see ai.xai.api_key_warning, which holds the same warning).
 Anything else is a PATH of a key file (ai.xai.key_file, ai.elevenlabs.key_file) or the environment
 variables XAI_API_KEY / ELEVENLABS_API_KEY. The key is never written to the log (logsetup.add_secret).
 """
@@ -99,13 +99,13 @@ DEFAULTS: dict[str, dict[str, Any]] = {
             "audio": "",
         },
     },
-    # Version 50 (Leon, call 20:35): xai by default, the real engines (before: the offline test engines null / echo /
+    # Version 50 (Don, call 20:35): xai by default, the real engines (before: the offline test engines null / echo /
     # tone, so a fresh or reset config understood no speech). Without an xAI key the app uses ai.fallback below.
     "engines": {"stt": "xai", "llm": "xai", "tts": "xai"},
     "mic": MicSettings().to_dict(),
     "body": {
         "speech_volume": 1.0,
-        # version 48 (Leon 12:58): the plugin sets its head audio minDistance to this when idle (EasyMoan pattern)
+        # version 48 (Don 12:58): the plugin sets its head audio minDistance to this when idle (EasyMoan pattern)
         "full_volume_distance": 3.0,
         "body_control": True,  # false = speech only, expressions / gestures / poses are ignored
         "idle_motion": True,
@@ -117,10 +117,10 @@ DEFAULTS: dict[str, dict[str, Any]] = {
         # Idle poses (version 35): after idle_pose_min_s..idle_pose_max_s seconds without speech or a pose command the
         # character takes a random pose of all its poses (version 51; idle_pose_default is one of them, never twice in a row).
         "idle_poses": True,
-        # version 54 (Leon 23:31): idle poses use Custom/Atom/Person/Pose/AIBody (+ pose-command poses and idle_pose_default);
+        # version 54 (Don 23:31): idle poses use Custom/Atom/Person/Pose/AIBody (+ pose-command poses and idle_pose_default);
         # true = every pose file of the library again (as in v51-v53)
         "idle_poses_all_files": False,
-        # version 51 (Leon 20:38-20:51): random pose of ALL poses, every idle_pose_min_s..idle_pose_max_s seconds
+        # version 51 (Don 20:38-20:51): random pose of ALL poses, every idle_pose_min_s..idle_pose_max_s seconds
         "idle_pose_min_s": 30.0,
         "idle_pose_max_s": 300.0,
         "idle_pose_default": "Stand Up",  # a pose name of the character; not found = no return pose
@@ -173,19 +173,19 @@ DEFAULTS: dict[str, dict[str, Any]] = {
         "mode": "qa",
         "persona": "You are a friendly, curious character living in a 3D scene. You talk with the user "
                    "face to face. Answer briefly and naturally, in the language the user speaks.",
-        # the menu "Language" (tab Voice, 22.11.2026 Leon): "auto" or a code of the xAI TTS list (languages.py);
+        # the menu "Language" (tab Voice, 22.11.2026 Don): "auto" or a code of the xAI TTS list (languages.py);
         # default "de". Sent to text to speech with every sentence, to speech to text, and as "Always answer in ..." to
         # the language model / realtime session. Not "auto": it wins over a persona's language.
         "language": "de",
         # Persona folder below Saves/PluginData/AIBody/personas ("" = none: the persona text above). The plugin's
         # menu "Persona" sets it; a persona.json can replace persona text, language and voice (personas.py).
-        # Version 50 (Leon 20:35): no "none" in the menu any more; default the female starter persona Anna (Marc = male).
+        # Version 50 (Don 20:35): no "none" in the menu any more; default the female starter persona Anna (Marc = male).
         "persona_name": "Anna",
         # Memory (opt-in, menu switch "Memory"): facts the user told the AI, kept in personas/<name>/memory.json and
         # given to the AI as notes. Updated after session_idle_minutes of silence (at least min_exchanges questions),
         # on a persona change and when the app stops.
         "memory": {
-            "enabled": True,  # on by default since version 50 (Leon 20:35)
+            "enabled": True,  # on by default since version 50 (Don 20:35)
             "max_facts": 30,
             "session_idle_minutes": 10,
             "min_exchanges": 2,
@@ -225,7 +225,7 @@ DEFAULTS: dict[str, dict[str, Any]] = {
             "listening": True,
         },
         # Voice barge-in (version 29 rule; since 22.11.2026 the menu toggle "Voice barge-in (headphones)", ON by default,
-        # chain and realtime mode, Leon): while the body speaks the mic stays closed for the AI (echo protection, always on);
+        # chain and realtime mode, Don): while the body speaks the mic stays closed for the AI (echo protection, always on);
         # a stretch of min_ms that is `ratio` times louder than the learned echo of her own voice (and above `floor`,
         # RMS 0..1) counts as the user talking: the body stops, the running answer is cancelled and what the user said is
         # processed. With headphones there is no echo and a normal voice is enough; with speakers talk clearly louder.
@@ -275,7 +275,7 @@ RANGES: dict[tuple[str, str], tuple[float, float]] = {
     ("connection", "network_port"): (0, 65535),
     ("remote", "http_port"): (1024, 65535),
     ("remote", "osc_port"): (0, 65535),
-    ("body", "speech_volume"): (0.0, 10.0),  # version 44 (0..3), 22.11.2026 0..10 (plugin 1000 %, Leon 04:16): above 1 the companion boosts its WAVs (pipeline/tts.py)
+    ("body", "speech_volume"): (0.0, 10.0),  # version 44 (0..3), 22.11.2026 0..10 (plugin 1000 %, Don 04:16): above 1 the companion boosts its WAVs (pipeline/tts.py)
     ("body", "full_volume_distance"): (0.3, 10.0),  # version 48: the plugin's head audio minDistance (m)
     ("body", "idle_intensity"): (0.0, 1.0),
     ("body", "breaths_per_minute"): (4.0, 40.0),
@@ -392,10 +392,10 @@ def _check_value(path: tuple[str, ...], default: Any, value: Any, errors: list[s
 # Keys of versions that no longer exist; an old config.json that still has them keeps working.
 LEGACY_KEYS = {("connection", "channel"), ("ai", "channels"),
                ("setup", "green_background"), ("setup", "example_scene"),  # version 35 answers (replaced in 36)
-               # removed after version 36 (Leon, 20.11.2026): the eyes (gaze, blinking) belong to VaM
+               # removed after version 36 (Don, 20.11.2026): the eyes (gaze, blinking) belong to VaM
                ("body", "gaze_follows_speaker"), ("body", "gaze_control"), ("body", "gaze_default"),
                ("body", "blink_control"),
-               # replaced on 22.11.2026 by ai.barge_in.enabled (the menu toggle; echo protection always on, Leon)
+               # replaced on 22.11.2026 by ai.barge_in.enabled (the menu toggle; echo protection always on, Don)
                ("ai", "realtime", "send_while_speaking")}
 
 

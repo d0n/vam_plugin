@@ -79,7 +79,7 @@ LEVEL_INTERVAL_S = 0.2  # mic_level rate (5 Hz)
 SCENE_EVENT_MAX_PENDING = 5  # scene events waiting for the AI to be free (older ones drop out)
 SCENE_EVENT_MAX_AGE_S = 30.0  # a scene event older than this is not worth reacting to any more
 HEARTBEAT_INTERVAL_S = 2.0  # companion_heartbeat rate
-# Version 54 (Leon 22:23-23:31, his v46 log 03:04-03:07): answers piled up behind clips the plugin did not play and came
+# Version 54 (Don 22:23-23:31, his v46 log 03:04-03:07): answers piled up behind clips the plugin did not play and came
 # out all at once later. A spoken answer the plugin has not STARTED this long after it was sent counts as a stalled
 # backlog: the next answer replaces it (stop_speaking + interrupt) instead of queueing behind it; the backlog is logged.
 BACKLOG_STALL_S = 4.0
@@ -163,7 +163,7 @@ class PoseDecision:
 
 
 def version_mismatch(plugin_version: Any, companion_version: str) -> str:
-    """Version 42 (Leon's v41 test: every log line said plugin=40): a scene saved with an older package keeps loading
+    """Version 42 (Don's v41 test: every log line said plugin=40): a scene saved with an older package keeps loading
     THAT package (its plugin entry names d0n.AIBody.<n>), so a new companion ran with an old plugin. "" when they match."""
     pv = str(plugin_version or "").strip()
     if not pv.isdigit() or pv == companion_version:
@@ -1266,7 +1266,7 @@ class Companion:
         when the pose exists on the character, or just a status line (unavailable). Never a spoken reply: a body command
         is an action, not a conversation; it needs no network or language model and nothing talks over the pose."""
         vocabulary = self.pose_vocabulary()
-        # version 58 (Leon 16:07): the command may be part of a longer sentence ("please sit down now"); exact = only the
+        # version 58 (Don 16:07): the command may be part of a longer sentence ("please sit down now"); exact = only the
         # whole input (remote control names a command)
         entry, rest = (vocabulary.match(text), 0) if exact else vocabulary.find(text)
         if entry is None:
@@ -1274,7 +1274,7 @@ class Companion:
         names = self.pose_names()
         actual = vocabulary.resolve(entry, names)
         if actual is None and pose_commands.is_builtin(entry):
-            # version 58 (Leon 23.11.): a built-in command without its pose file: the plugin applies a substitute pose
+            # version 58 (Don 23.11.): a built-in command without its pose file: the plugin applies a substitute pose
             command = self.body_command("pose", json=vocabulary.reply_json(entry), command=entry["command"])
             log.info("Pose command '%s' -> %s (no pose '%s' on the character: the plugin uses a substitute)",
                      entry["command"], command["json"], entry["pose"])
@@ -1464,7 +1464,7 @@ class Companion:
             for item in self._answer(text, prompt, nudge, problems):
                 self._check(generation)
                 if isinstance(item, InlineToolCall):
-                    # written into the answer text instead of a function call (Leon's log, 21.11.2026): run, never speak
+                    # written into the answer text instead of a function call (Don's log, 21.11.2026): run, never speak
                     log.info("The model wrote a tool call into its text (%s); it is run, not spoken", item.name)
                     item = ToolCall(call_id="inline", name=item.name, arguments=item.arguments)
                 if isinstance(item, ToolCall):

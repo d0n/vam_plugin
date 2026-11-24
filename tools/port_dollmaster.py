@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The mechanical part of the Dollmaster port (22.11.2026, Leon: full port, nothing dropped).
+"""The mechanical part of the Dollmaster port (22.11.2026, Don: full port, nothing dropped).
 
 third_party/dollmaster/src/<Name>.cs  ->  src/AIBody/Dm<Name>.cs (Dollmaster.cs -> DmPlugin.cs):
   * namespace DeluxePlugin.Dollmaster -> AIBody (one namespace per plugin, tools/check_plugin.py)
@@ -26,8 +26,8 @@ TYPES = ["DollmasterPlugin", "UI", "Config", "BaseModule", "WorldUI", "Arousal",
          "TopButtons", "DressController", "ClimaxController", "KissController", "SFXController", "PathExt"]
 MAP = {t: ("DmPlugin" if t == "DollmasterPlugin" else "Dm" + t) for t in TYPES}
 TOKEN = re.compile(r'//[^\n]*|/\*.*?\*/|@"(?:[^"]|"")*"|"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\'|[A-Za-z_]\w*|.', re.S)
-HEADER = ("// Dollmaster (VAMDeluxe, 2019; Leon's copy of Dollmaster, upstream github.com/vamdeluxe/DeluxePlugin, MIT) ported into\n"
-          "// AIBody (22.11.2026, Leon): same code, types prefixed Dm, namespace AIBody; changes only where the project rules need them\n"
+HEADER = ("// Dollmaster (VAMDeluxe, 2019; Don's copy of Dollmaster, upstream github.com/vamdeluxe/DeluxePlugin, MIT) ported into\n"
+          "// AIBody (22.11.2026, Don): same code, types prefixed Dm, namespace AIBody; changes only where the project rules need them\n"
           "// (marked \"AIBody port:\").\n")
 
 

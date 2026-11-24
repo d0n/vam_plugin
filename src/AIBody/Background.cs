@@ -1,4 +1,4 @@
-// Scene background colour (version 36, Leon): tab Config > "Set background color" + a colour picker (default #00FF00).
+// Scene background colour (version 36, Don): tab Config > "Set background color" + a colour picker (default #00FF00).
 // AIBody's own implementation; no code from other plugins.
 //
 // What it does while "Set background color" is on (checked once per second, no allocation when nothing changed):

@@ -1,5 +1,5 @@
-// Dollmaster (VAMDeluxe, 2019; Leon's copy of Dollmaster, upstream github.com/vamdeluxe/DeluxePlugin, MIT) ported into
-// AIBody (22.11.2026, Leon): same code, types prefixed Dm, namespace AIBody; changes only where the project rules need them
+// Dollmaster (VAMDeluxe, 2019; Don's copy of Dollmaster, upstream github.com/vamdeluxe/DeluxePlugin, MIT) ported into
+// AIBody (22.11.2026, Don): same code, types prefixed Dm, namespace AIBody; changes only where the project rules need them
 // (marked "AIBody port:").
 using System;
 using UnityEngine;
@@ -193,7 +193,7 @@ namespace AIBody
             Atom atom = dm.containingAtom;
             Atom otherPerson = DmPlugin.GetSomeoneElse(atom);
 
-            // AIBody port, version 56 (Leon 24.11.2026 15:27): a montage stores both people's world placement; the shared
+            // AIBody port, version 56 (Don 24.11.2026 15:27): a montage stores both people's world placement; the shared
             // pose wrapper keeps the AI at her place and moves the other person by the same correction (the couple's
             // arrangement stays). Without the wrapper (not set) it behaves as the old plugin.
             PoseGuard guard = dm.PlaceGuard != null ? dm.PlaceGuard() : null;

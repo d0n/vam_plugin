@@ -178,7 +178,7 @@ class EngineSet:
 
     def language(self) -> str:
         """The menu "Language" (ai.language) when it is not "auto"; else the persona's language; else "auto"
-        (22.11.2026, Leon: the menu choice must reach every engine)."""
+        (22.11.2026, Don: the menu choice must reach every engine)."""
         menu = str(self.ai.get("language") or "auto")
         if menu != "auto":
             return menu

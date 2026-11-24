@@ -1,4 +1,4 @@
-"""Version 53 (Leon, 22.11.2026 20:49 / 20:57): expressions not working / not visible, the 'Show expression' button, and
+"""Version 53 (Don, 22.11.2026 20:49 / 20:57): expressions not working / not visible, the 'Show expression' button, and
 the button regrouping. Not the same root cause as the poses (v52), but the same pattern on the face: VaM's own Auto
 Expressions animate the face morphs every frame and covered AIBody's expression; and the Expression menu started on
 'neutral' (an empty preset), so 'Show expression' showed nothing."""

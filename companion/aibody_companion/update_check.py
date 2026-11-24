@@ -1,4 +1,4 @@
-"""Update notice of the installed AIBody Companion (Leon, 21.11.2026 20:05, version 43).
+"""Update notice of the installed AIBody Companion (Don, 21.11.2026 20:05, version 43).
 
 On start the launcher asks GitHub once for the latest release of d0n/vam_plugin (one anonymous HTTPS GET of the
 public releases API, no key, nothing sent about the user) and, when its number is higher than this app's, offers to

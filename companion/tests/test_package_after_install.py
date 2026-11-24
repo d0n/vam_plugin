@@ -1,4 +1,4 @@
-"""Setup package handling after v44 (Leon 21:25 and 22:25): the v44 setup deleted the older d0n.AIBody.<n>.var at
+"""Setup package handling after v44 (Don 21:25 and 22:25): the v44 setup deleted the older d0n.AIBody.<n>.var at
 ssInstall, before any file was copied. When the install then failed or was cancelled, Inno's rollback removed the new
 package as well and AddonPackages had no AIBody package at all. Now the older ones go only at ssPostInstall, after the
 new package is in place with the bundled SHA-256; there is no option for it any more; a companion that cannot be ended

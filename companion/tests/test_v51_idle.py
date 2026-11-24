@@ -1,4 +1,4 @@
-"""Version 51 (Leon, 22.11.2026 20:38-20:58): idle poses are random of ALL poses (never twice in a row, no forced return
+"""Version 51 (Don, 22.11.2026 20:38-20:58): idle poses are random of ALL poses (never twice in a row, no forced return
 to the default pose), the existing sliders 'Idle pose min wait (s)' / 'Idle pose max wait (s)' with 30 / 300 s and
 30-18000 s, min <= max, paused by Dollmaster, pool size in the info field and the verbose log."""
 from __future__ import annotations

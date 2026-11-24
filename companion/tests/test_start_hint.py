@@ -65,9 +65,9 @@ class WindowsPathExampleTests(unittest.TestCase):
         self.assertIn('e.g. "D:\\VaM"', cli.build_parser().format_help())
 
     def test_plugin_hints_show_the_windows_style_path(self):
-        # Leon, 21.11.2026: the plugin points to the Start menu entry of the installed companion, no console command
+        # Don, 21.11.2026: the plugin points to the Start menu entry of the installed companion, no console command
         self.assertNotIn("--vam-root", source("MicConfig.cs"))
-        # version 35 (Leon): the start command is no longer in the menu; it is logged once (MicConfig.StartHint)
+        # version 35 (Don): the start command is no longer in the menu; it is logged once (MicConfig.StartHint)
         self.assertNotIn('--vam-root', source("AppLink.cs"))
         self.assertNotIn("--channel", source("AppLink.cs"))
         self.assertNotIn('--vam-root \\"<VaM>\\"', source("MicConfig.cs") + source("AppLink.cs"))

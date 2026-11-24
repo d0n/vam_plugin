@@ -1,16 +1,16 @@
-"""Windows launcher of the installed AIBody Companion (Leon, 21.11.2026).
+"""Windows launcher of the installed AIBody Companion (Don, 21.11.2026).
 
 The installer ("AIBody Companion Setup.exe", Inno Setup around a PyInstaller build) puts "AIBody Companion.exe" into
 %LOCALAPPDATA%\\Programs\\AIBody Companion with a Start menu entry. Starting it:
 
 1. Single instance: a second start only shows the short note "already running" and ends.
 2. Finds the VaM folder: first the remembered folder in launcher.json, which the installer writes from its wizard page
-   "Your VaM folder" (Leon, 21.11.2026 17:01: chosen during setup, prefilled by auto-detection, VaM.exe required), so
+   "Your VaM folder" (Don, 21.11.2026 17:01: chosen during setup, prefilled by auto-detection, VaM.exe required), so
    the companion never has to sit inside the VaM folder; then a parent folder of the exe and common folders on every
    drive (X:\\VaM, X:\\Virt-A-Mate, X:\\Games\\VaM, ...); VaM has no installer, registry key or Steam entry to read.
    Only as the last fallback (no folder from setup, or VaM moved) it asks once with a folder picker and remembers it.
 3. Runs the companion app (cli.main with --no-stdin --no-setup) in the background, shows a message box
-   ("AIBody Companion is now running in the background") that stays until the user clicks OK (Leon, 21.11.2026 17:19),
+   ("AIBody Companion is now running in the background") that stays until the user clicks OK (Don, 21.11.2026 17:19),
    and then puts an icon with Quit in the tray. Every note of the launcher is such an OK message box.
 
 No console window (PyInstaller --windowed). Launcher settings and its own log live in %LOCALAPPDATA%\\AIBody Companion;
@@ -119,7 +119,7 @@ def detect_vam_root(exe_dir: Path, saved: str | None, candidates: Iterable[Path]
 # -- small windows ---------------------------------------------------------------------------------------------------
 
 def show_note(text: str, seconds: int = NOTE_SECONDS) -> None:
-    """A message box with an OK button that stays until the user confirms it (Leon, 21.11.2026 17:19: no
+    """A message box with an OK button that stays until the user confirms it (Don, 21.11.2026 17:19: no
     auto-closing note). `seconds` is ignored (kept for old callers). tkinter is part of the build."""
     try:
         import tkinter as tk
@@ -158,7 +158,7 @@ def ask_yes_no(text: str) -> bool:
 
 
 def start_update_check(settings: dict[str, Any]) -> Callable[[float], tuple[int, str] | None]:
-    """Version 43 (Leon 20:05): asks GitHub in the background at once; the returned function waits at most `wait`
+    """Version 43 (Don 20:05): asks GitHub in the background at once; the returned function waits at most `wait`
     seconds for the answer (None = nothing newer, offline, switched off or still waiting)."""
     from . import __version__, update_check
     if not update_check.enabled(settings):
@@ -287,7 +287,7 @@ def run_tray(on_quit: Callable[[], None], log_folder: Path | None) -> bool:
     return True
 
 
-# Window messages (winuser.h). Version 44 (Leon 21:01): pystray's hidden tray windows answer every message they do not
+# Window messages (winuser.h). Version 44 (Don 21:01): pystray's hidden tray windows answer every message they do not
 # know with 0 - for WM_QUERYENDSESSION that means "refuse", so the setup's Restart Manager (and Windows logoff) could
 # not close the app and the v43 setup looped on its file-in-use dialog. Now: allow, and quit on WM_ENDSESSION/WM_CLOSE.
 WM_CLOSE = 0x0010

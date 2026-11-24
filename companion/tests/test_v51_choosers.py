@@ -1,4 +1,4 @@
-"""Version 51 (Leon, 22.11.2026 20:58): after 'Reset to Default' no dropdown may be empty. Enumerates every chooser of
+"""Version 51 (Don, 22.11.2026 20:58): after 'Reset to Default' no dropdown may be empty. Enumerates every chooser of
 the plugin source and checks that it has a non-empty built-in list or is refilled after the reset; runs the plugin's
 real list code (EnsureChoices, the reset loop of SettingsDefaults.ResetAll, Body.SetMenu) with a fake chooser in dotnet."""
 from __future__ import annotations

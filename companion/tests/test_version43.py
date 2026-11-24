@@ -1,4 +1,4 @@
-"""Version 43 (Leon, 21.11.2026 20:04-20:05): louder test tone, update notice, uninstall removes our VARs, speech_ended
+"""Version 43 (Don, 21.11.2026 20:04-20:05): louder test tone, update notice, uninstall removes our VARs, speech_ended
 "completed". The item tests are in test_version43_items.py and test_test_tone_level.py."""
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ class VersionTests(TestCase):
         """Historical: version 43 sources are gone after the v44 bump; consistency is test_version48."""
         self.assertTrue((ROOT / "companion" / "tests" / "test_version47.py").is_file())
         spec = (ROOT / "docs" / "SPEC.md").read_text(encoding="utf-8")
-        self.assertIn("(version 43, release; Leon, calls 20:04 and 20:05, release announced at 20:05): package `d0n.AIBody.43.var`, tag `v43`", spec)
+        self.assertIn("(version 43, release; Don, calls 20:04 and 20:05, release announced at 20:05): package `d0n.AIBody.43.var`, tag `v43`", spec)
         tp = (ROOT / "docs" / "TEST_PROTOCOL.md").read_text(encoding="utf-8")
         for step in ("## T65", "## T66", "## T67", "## T68", "## T69"):
             self.assertIn(step, tp)

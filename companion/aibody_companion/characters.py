@@ -1,4 +1,4 @@
-"""Character setup answers from the plugin wizard (after version 37, Leon).
+"""Character setup answers from the plugin wizard (after version 37, Don).
 
 Recorded settings only: the AI character's gender/body and the user's character gender,
 used as persona / prompt context. The wizard does not change a Person in VaM (no evidenced

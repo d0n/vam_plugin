@@ -1,4 +1,4 @@
-"""Version 43 (Leon, 21.11.2026 20:04-20:05): louder test tone (test_test_tone_level.py), update notice of the
+"""Version 43 (Don, 21.11.2026 20:04-20:05): louder test tone (test_test_tone_level.py), update notice of the
 installed companion (GitHub releases), the uninstaller deletes our own d0n.AIBody.<n>.var only, and speech_ended
 says "completed" when a clip played to its end (his v42 log: every clip ended "interrupted" exactly after its length)."""
 from __future__ import annotations

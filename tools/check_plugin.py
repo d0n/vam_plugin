@@ -164,7 +164,7 @@ def without_voice_commands(text: str) -> str:
 
 
 def language_scan() -> list[str]:
-    """Everything the plugin shows or logs is English (Leon, 19.11.2026): string literals with umlauts or
+    """Everything the plugin shows or logs is English (Don, 19.11.2026): string literals with umlauts or
     common German words are reported."""
     problems = []
     for path in sorted(SRC.rglob("*.cs")):
@@ -187,7 +187,7 @@ DOC_EXEMPT = {"docs/TRANSLATION_V18.md"}  # the translation table quotes the Ger
 
 
 def docs_language_scan() -> list[str]:
-    """All markdown files are English (Leon, 19.11.2026): lines with umlauts or two common German words are reported."""
+    """All markdown files are English (Don, 19.11.2026): lines with umlauts or two common German words are reported."""
     problems = []
     for path in sorted(ROOT.rglob("*.md")):
         rel = path.relative_to(ROOT).as_posix()

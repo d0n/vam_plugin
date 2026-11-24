@@ -1,4 +1,4 @@
-"""Version 40 (Leon, 21.11.2026): wizard question, persona starters, quiet log, AIBody Companion installer."""
+"""Version 40 (Don, 21.11.2026): wizard question, persona starters, quiet log, AIBody Companion installer."""
 from __future__ import annotations
 
 import json
@@ -22,7 +22,7 @@ class VersionTests(TestCase):
         """Historical: version 40 sources are gone after the v41 bump; consistency is test_version48."""
         self.assertTrue((ROOT / "companion" / "tests" / "test_version41.py").is_file())
         spec = (ROOT / "docs" / "SPEC.md").read_text(encoding="utf-8")
-        self.assertIn("(version 40, release; Leon, calls 16:06-16:16): package `d0n.AIBody.40.var`, tag `v40`", spec)
+        self.assertIn("(version 40, release; Don, calls 16:06-16:16): package `d0n.AIBody.40.var`, tag `v40`", spec)
         tp = (ROOT / "docs" / "TEST_PROTOCOL.md").read_text(encoding="utf-8")
         for step in ("## T48", "## T49", "## T50", "## T51"):
             self.assertIn(step, tp)

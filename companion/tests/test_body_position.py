@@ -1,4 +1,4 @@
-"""Body position control in the menu (Leon, 22.11.2026 call): tab AI Character > Body position moves / turns the whole
+"""Body position control in the menu (Don, 22.11.2026 call): tab AI Character > Body position moves / turns the whole
 AI character (every controller, like Reset poses' PlacementSnapshot), Reset body position takes it back. The sliders
 are not registered, so a saved scene never moves her twice."""
 from __future__ import annotations
@@ -33,7 +33,7 @@ class MenuTests(unittest.TestCase):
 
 
 class MoveTests(unittest.TestCase):
-    """Version 54 (Leon 23:28): absolute offsets from a home placement, one rigid Relocate per change (test_v54_items)."""
+    """Version 54 (Don 23:28): absolute offsets from a home placement, one rigid Relocate per change (test_v54_items)."""
 
     def test_sliders_go_to_home_plus_offsets(self):
         move = method_body(BODY, "private void OnBodyMove()")

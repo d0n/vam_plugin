@@ -1,4 +1,4 @@
-"""Version 56 (Leon, voice 24.11.2026 15:27-15:30, explicit go): one position-preserving wrapper for every pose change
+"""Version 56 (Don, voice 24.11.2026 15:27-15:30, explicit go): one position-preserving wrapper for every pose change
 (PoseGuard), pose commands from the companion (voice / typed / tool) through the same path as Apply Pose, the Idle Poser
 no longer stops for good after an error, Reset to Default resets Dollmaster too, Dollmaster off restores Auto
 Expressions, and no xAI realtime session while VaM is not connected."""
@@ -100,7 +100,7 @@ class CompanionPoseCommandTests(unittest.TestCase):
 
 
 class IdlePoserTests(unittest.TestCase):
-    """Version 57 (Leon 15:57) replaces v56's 30 s pause: a failing pose is dropped from the idle pool at once (first
+    """Version 57 (Don 15:57) replaces v56's 30 s pause: a failing pose is dropped from the idle pool at once (first
     failure, for the session) and the next one is picked and loaded right away; the idle poses are never switched off.
     The scheduler behaviour runs for real in test_version35.IdlePoseSchedulerTests (dotnet harness)."""
 

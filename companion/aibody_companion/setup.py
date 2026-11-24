@@ -1,4 +1,4 @@
-"""First-start questions in the companion console (version 35, reworked in version 36 with Leon).
+"""First-start questions in the companion console (version 35, reworked in version 36 with Don).
 
 Asked once when the app starts for the first time (config.json "setup.asked" is false; again with --setup, never with
 --no-setup or without an interactive console). Two INDEPENDENT points; each one only changes its own part:

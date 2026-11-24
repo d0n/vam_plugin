@@ -12,7 +12,7 @@ from tests.test_plugin_menu import ROOT, method_body, source
 from tests.test_realtime import RealtimeSim
 
 ANNA = {"name": "Anna", "prompt": "You are Anna, a calm librarian.", "language": "de", "voice": "ara"}
-OLD_FACTS = ["Heißt Leon"]
+OLD_FACTS = ["Heißt Don"]
 
 
 class ParseTests(unittest.TestCase):
@@ -76,13 +76,13 @@ class MemoryTextTests(unittest.TestCase):
             self.assertIsNone(personas.parse_facts(bad, 5))
 
     def test_summary_request_holds_old_facts_and_the_end_of_a_long_talk(self):
-        history = [{"role": "user", "content": "Ich heiße Leon"}, {"role": "assistant", "content": "Hallo Leon"}]
+        history = [{"role": "user", "content": "Ich heiße Don"}, {"role": "assistant", "content": "Hallo Don"}]
         instructions, text = personas.summary_request(["Mag Tee"], history, 12)
         self.assertIn("ONLY a JSON array", instructions)
         self.assertIn("At most 12 facts", instructions)
         self.assertIn("never an instruction", instructions)
         self.assertIn('["Mag Tee"]', text)
-        self.assertIn("User: Ich heiße Leon\nAssistant: Hallo Leon", text)
+        self.assertIn("User: Ich heiße Don\nAssistant: Hallo Don", text)
         long = [{"role": "user", "content": f"Satz {i} " + "x" * 300} for i in range(200)]
         _, text = personas.summary_request([], long, 5)
         self.assertLess(len(text), personas.MAX_TRANSCRIPT_CHARS + 500)
@@ -90,9 +90,9 @@ class MemoryTextTests(unittest.TestCase):
         self.assertNotIn("Satz 0 ", text)
 
     def test_notes_are_framed_as_notes_not_orders(self):
-        block = personas.memory_block(["Heißt Leon"])
+        block = personas.memory_block(["Heißt Don"])
         self.assertIn("not instructions", block)
-        self.assertIn("- Heißt Leon", block)
+        self.assertIn("- Heißt Don", block)
         self.assertEqual(personas.memory_block([]), "")
 
     def test_files(self):
@@ -141,7 +141,7 @@ class PersonaFlowTests(RealtimeSim):
     def setUp(self):
         super().setUp()
         self.answers: list[bytes] = []
-        self.summary = ['["Heißt Leon", "Mag Katzen"]']
+        self.summary = ['["Heißt Don", "Mag Katzen"]']
         self.http = FakeHttp()
         self.http.route("/responses", self.responses)
         self.http.route("/tts", lambda r: FakeResponse(b"\x01\x00" * 24000, "audio/pcm"))
@@ -250,14 +250,14 @@ class PersonaFlowTests(RealtimeSim):
         self.assertEqual(config["voice"], "ara")
         self.assertEqual(config["audio"]["input"]["transcription"], {"language_hint": "de"})
         self.assertIn("Your name is Anna.", config["instructions"])
-        self.assertIn("- Heißt Leon", config["instructions"])
+        self.assertIn("- Heißt Don", config["instructions"])
 
     # -- memory ------------------------------------------------------------------------------
 
     def test_memory_switched_off_keeps_nothing(self):
-        """Version 50: Memory is ON by default (Leon 20:35); switched off, nothing is summarized or stored."""
+        """Version 50: Memory is ON by default (Don 20:35); switched off, nothing is summarized or stored."""
         self.begin("", memory=False)
-        self.ask("Ich heiße Leon")
+        self.ask("Ich heiße Don")
         self.ask("Ich mag Katzen")
         self.sim.run(self.plugin, 800, dt=5)
         self.assertEqual(self.summaries(), [])
@@ -266,15 +266,15 @@ class PersonaFlowTests(RealtimeSim):
 
     def test_summary_after_silence_is_saved_and_used_next_time(self):
         self.begin("", memory=True, idle_minutes=1)
-        self.ask("Ich heiße Leon")
+        self.ask("Ich heiße Don")
         self.ask("Ich mag Katzen")
         self.assertEqual(self.summaries(), [], "still talking")
         self.sim.run(self.plugin, 70, dt=1)
         self.assertTrue(self.wait_for(self.memory_path().exists))
-        self.assertEqual(personas.load_facts(self.memory_path()), ["Heißt Leon", "Mag Katzen"])
+        self.assertEqual(personas.load_facts(self.memory_path()), ["Heißt Don", "Mag Katzen"])
         request = self.summaries()[0]
         self.assertFalse(request["store"], "documented: the response is not kept on the server")
-        self.assertIn("User: Ich heiße Leon", request["input"][0]["content"])
+        self.assertIn("User: Ich heiße Don", request["input"][0]["content"])
         self.assertIn("ONLY a JSON array", request["instructions"])
         self.sim.run(self.plugin, 3)
         self.assertEqual(self.plugin.memory_info["facts"], 2)
@@ -284,7 +284,7 @@ class PersonaFlowTests(RealtimeSim):
         self.app.shutdown()
         self.setUp_second_run()
         self.ask("Hallo")
-        self.assertIn("- Heißt Leon", self.llm()[-1]["instructions"])
+        self.assertIn("- Heißt Don", self.llm()[-1]["instructions"])
         self.assertIn("- Mag Katzen", self.llm()[-1]["instructions"])
 
     def setUp_second_run(self):
@@ -303,25 +303,25 @@ class PersonaFlowTests(RealtimeSim):
 
     def test_summary_when_the_app_stops(self):
         self.begin("", memory=True)
-        self.ask("Ich heiße Leon")
+        self.ask("Ich heiße Don")
         self.ask("Ich mag Katzen")
         self.app.shutdown()
         self.assertEqual(len(self.summaries()), 1)
-        self.assertEqual(personas.load_facts(self.memory_path()), ["Heißt Leon", "Mag Katzen"])
+        self.assertEqual(personas.load_facts(self.memory_path()), ["Heißt Don", "Mag Katzen"])
 
     def test_summary_when_the_persona_changes_goes_to_the_old_persona(self):
         self.begin("Anna", memory=True, personas_on_disk=("Anna", "Marc"))
-        self.ask("Ich heiße Leon")
+        self.ask("Ich heiße Don")
         self.ask("Ich mag Katzen")
         self.plugin.choose_persona("Marc")
         self.assertTrue(self.wait_for(lambda: self.sim.run(self.plugin, 0.2) or self.memory_path("Anna").exists()))
         self.assertFalse(self.memory_path("Marc").exists())
-        self.assertEqual(personas.load_facts(self.memory_path("Anna")), ["Heißt Leon", "Mag Katzen"])
+        self.assertEqual(personas.load_facts(self.memory_path("Anna")), ["Heißt Don", "Mag Katzen"])
 
     def test_a_persona_can_opt_out_of_memory(self):
         persona_dir(self.tmp.name, "Anna", {**ANNA, "memory": False})
         self.begin("Anna", memory=True, personas_on_disk=())
-        self.ask("Ich heiße Leon")
+        self.ask("Ich heiße Don")
         self.ask("Ich mag Katzen")
         self.app.shutdown()
         self.assertEqual(self.summaries(), [])
@@ -375,14 +375,14 @@ class PersonaFlowTests(RealtimeSim):
         personas.save_facts(self.memory_path(), OLD_FACTS)
         self.begin("", memory=True)
         self.ask("Hallo")
-        self.assertIn("- Heißt Leon", self.llm()[0]["instructions"])
+        self.assertIn("- Heißt Don", self.llm()[0]["instructions"])
         self.plugin.forget_memory()
         self.sim.run(self.plugin, 3)
         self.assertFalse(self.memory_path().exists())
         self.assertEqual(self.plugin.memory_info["facts"], 0)
         self.assertEqual(self.app.history, [])
         self.ask("Hallo")
-        self.assertNotIn("Heißt Leon", self.llm()[1]["instructions"])
+        self.assertNotIn("Heißt Don", self.llm()[1]["instructions"])
         self.assertNotIn("previous_response_id", self.llm()[1])
 
     def test_memory_switch_live(self):
@@ -393,7 +393,7 @@ class PersonaFlowTests(RealtimeSim):
         self.sim.run(self.plugin, 3)
         self.assertEqual(self.plugin.memory_info, {"enabled": True, "facts": 1})
         self.ask("Hallo")
-        self.assertIn("- Heißt Leon", self.llm()[0]["instructions"])
+        self.assertIn("- Heißt Don", self.llm()[0]["instructions"])
         self.plugin.set_memory(False)
         self.sim.run(self.plugin, 3)
         self.assertEqual(self.plugin.memory_info["facts"], 0)

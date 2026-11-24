@@ -1,4 +1,4 @@
-"""After version 40, Leon 21.11.2026 17:19-17:27 (items 4-10 and his companion.log):
+"""After version 40, Don 21.11.2026 17:19-17:27 (items 4-10 and his companion.log):
 audio readiness (loadState Loaded + LoadAudioData, the evidenced play sequence, [audio] debug lines), the
 installer's message box, all xAI voices (GET /v1/tts/voices + the docs list), every persona, Apply pose command +
 Add Pose, the right column, and tool calls the model writes into its text (they were spoken).
@@ -174,7 +174,7 @@ class VoiceListTests(TestCase):
 
 
 class InlineToolCallTests(TestCase):
-    """Leon's companion.log (21.11.2026 17:13, 17:25): Say: '<tool_call>{"name": "express", ...' - it was spoken."""
+    """Don's companion.log (21.11.2026 17:13, 17:25): Say: '<tool_call>{"name": "express", ...' - it was spoken."""
 
     def run_parser(self, deltas):
         p = StreamParser(["smile", "neutral"], ["nod", "tilt"])
@@ -233,7 +233,7 @@ class PersonaListTests(TestCase):
 
 
 class PoseCommandTests(TestCase):
-    """v41 pose command menu; version 42 (Leon 18:27) replaced the Apply buttons: choosing applies (test_version42_items)."""
+    """v41 pose command menu; version 42 (Don 18:27) replaced the Apply buttons: choosing applies (test_version42_items)."""
 
     def setUp(self):
         self.body = source("Body.cs")
@@ -251,13 +251,13 @@ class PoseCommandTests(TestCase):
 
 
 class RightColumnTests(TestCase):
-    """Leon 17:19: right column = headers and controls only; no new info fields without his approval."""
+    """Don 17:19: right column = headers and controls only; no new info fields without his approval."""
 
     def test_only_the_approved_caption_is_a_note(self):
         notes = []
         for f in SRC.glob("*.cs"):
             notes += re.findall(r"\b_?page\.Note\((\w+)\)", f.read_text(encoding="utf-8"))
-        self.assertEqual(notes, ["BackgroundHint"])   # Leon's own request in version 36 (SPEC, Background color)
+        self.assertEqual(notes, ["BackgroundHint"])   # Don's own request in version 36 (SPEC, Background color)
 
     def test_plain_headers_are_labels_of_the_control_below(self):
         allowed = {"HintText", "XaiTokenLabel", "BreathMorphLabel", "NewPoseCommandLabel", "GateQuestion"}

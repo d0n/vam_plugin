@@ -1,4 +1,4 @@
-"""Version 39 (Leon, call 21.11.2026 15:59): the Question and Answer button is removed (see test_qa_button_removed);
+"""Version 39 (Don, call 21.11.2026 15:59): the Question and Answer button is removed (see test_qa_button_removed);
 otherwise the same contents as version 38.
 """
 from __future__ import annotations

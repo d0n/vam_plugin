@@ -278,7 +278,7 @@ class PluginSourceTests(unittest.TestCase):
         body = method_body(source("AppLink.cs"), "public void BuildConnectionSection(UiPage page)")
         order = [body.index(s) for s in ('page.Button("API Reconnect"', "page.Header(XaiTokenLabel)", "page.TextInputField(_xaiTokenJson)")]
         self.assertEqual(order, sorted(order))
-        # 20.11.2026 (Leon): the hint left the right column; it is running prose in the left field of the tab Voice
+        # 20.11.2026 (Don): the hint left the right column; it is running prose in the left field of the tab Voice
         self.assertNotIn("XaiTokenHint", body)
         self.assertIn("XaiTokenHint", method_body(source("AppLink.cs"), "public string VoiceInfoText()"))
         self.assertNotIn("XaiTokenWarning", body, "the security notice is in the big info field, not under the token field")
@@ -331,7 +331,7 @@ class PluginSourceTests(unittest.TestCase):
             self.assertNotIn("Eleven", method_body(source(file), sig))
 
     def test_question_and_answer_button_is_gone(self):
-        """Version 39 (Leon): the button was removed; the two-line button helper stays for other buttons."""
+        """Version 39 (Don): the button was removed; the two-line button helper stays for other buttons."""
         plugin = source("AIBody.cs")
         self.assertNotIn("QaButtonLabel", plugin)
         self.assertNotIn("EnableSimpleQa", plugin)

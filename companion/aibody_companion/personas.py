@@ -124,7 +124,7 @@ class PersonaStore:
         self.root = Path(root)
 
     def names(self) -> list[str]:
-        """Every persona in the folder, sorted: folders with a persona.json and (after version 40, Leon 17:19: "all files
+        """Every persona in the folder, sorted: folders with a persona.json and (after version 40, Don 17:19: "all files
         in the personas folder") loose <name>.json files directly in it; a name the menu can carry."""
         try:
             entries = list(self.root.iterdir())
@@ -271,7 +271,7 @@ def parse_facts(answer: str, max_facts: int) -> list[str] | None:
     return sanitize_facts(data, max_facts) if isinstance(data, list) else None
 
 
-# Version 40 (Leon, 21.11.2026: "the Persona dropdown still does not work"): the two example personas lived only in the
+# Version 40 (Don, 21.11.2026: "the Persona dropdown still does not work"): the two example personas lived only in the
 # repository (examples/personas), never in Saves/PluginData/AIBody/personas, so the app reported no persona and the
 # menu had only "(none)". The app now writes them there ONCE when that folder has no persona yet. Existing files are
 # never overwritten, and a marker file keeps deleted starters from coming back.

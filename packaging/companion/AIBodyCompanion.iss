@@ -2,24 +2,24 @@
 ;   ISCC /DAppVersion=<n> /DSourceDir=<PyInstaller onedir folder> /DOutputDir=<folder> AIBodyCompanion.iss
 ; Per-user install, no admin rights: %LOCALAPPDATA%\Programs\AIBody Companion. Settings of the launcher live in
 ; %LOCALAPPDATA%\AIBody Companion; the companion's config.json and log stay under <VaM>\Saves\PluginData\AIBody.
-; VaM folder (Leon, 21.11.2026 17:01): a wizard page "Your VaM folder" asks for it, prefilled by auto-detection
+; VaM folder (Don, 21.11.2026 17:01): a wizard page "Your VaM folder" asks for it, prefilled by auto-detection
 ; (the folder chosen at the last setup, the launcher's remembered folder, common places on every drive) and accepts
 ; only a folder with VaM.exe. The choice is written to %LOCALAPPDATA%\AIBody Companion\launcher.json ("vam_root"),
 ; which the launcher reads first, so the companion never has to sit inside the VaM folder. Silent setup:
 ; /VAMDIR="D:\VaM" (must contain VaM.exe, else setup stops with an error); without it the detected folder is used,
 ; or none is written and the app asks once with its folder picker.
-; Uninstall (version 43, Leon 21.11.2026 20:05): also deletes our own packages <VaM>\AddonPackages\d0n.AIBody.<n>.var
+; Uninstall (version 43, Don 21.11.2026 20:05): also deletes our own packages <VaM>\AddonPackages\d0n.AIBody.<n>.var
 ; (exactly that name pattern, top level of AddonPackages only; nothing else in the VaM folder is touched). The VaM
 ; folder is the launcher's remembered one (launcher.json) or the one this setup recorded.
-; Version 44 (Leon 21.11.2026 20:39-21:02):
+; Version 44 (Don 21.11.2026 20:39-21:02):
 ;  - the setup carries the package d0n.AIBody.<v>.var (/DVarFile=, built by tools/build_var.py in CI) and copies it to
 ;    <VaM>\AddonPackages (only when a folder with VaM.exe is known); the build fails without /DVarFile.
 ;  - at start it looks for an existing install (installed companion version, d0n.AIBody.<n>.var in AddonPackages) and
 ;    says so: same version = "already installed", OK reinstalls / repairs, Cancel stops; older = "Update from <old> to
 ;    <v>". Silent setups never ask (reinstall / update). Everything found is written to the setup log.
-;  - every install deletes the other d0n.AIBody.<digits>.var at the top of AddonPackages (no option since Leon 22:25),
+;  - every install deletes the other d0n.AIBody.<digits>.var at the top of AddonPackages (no option since Don 22:25),
 ;    only after the install succeeded and the new package is in place with the bundled SHA-256 (ssPostInstall,
-;    Leon 21:25). v44 deleted them at ssInstall, before copying: a failed / cancelled install left no package at all.
+;    Don 21:25). v44 deleted them at ssInstall, before copying: a failed / cancelled install left no package at all.
 ;  - a running AIBody Companion is ended with taskkill before the files are replaced (PrepareToInstall): its tray
 ;    windows refused Restart Manager's close request, so the v43 setup looped on "files in use".
 ;    CloseApplications=force stays as a fallback. SetupLogging=yes: %TEMP%\Setup Log <date> #<n>.txt for every run.
@@ -294,9 +294,9 @@ begin
   if CompareText(Sha, ThisVarSha256) = 0 then Result := 'identical';
 end;
 
-{ Version 44 (Leon 21:02): say what is already there. Same version: OK = reinstall / repair, Cancel = stop.
+{ Version 44 (Don 21:02): say what is already there. Same version: OK = reinstall / repair, Cancel = stop.
   Older (or newer) companion: "Update from <old> to <new>", OK continues. Silent setups never ask (they reinstall).
-  22.11.2026 (Leon): the text names no buttons any more - Windows shows them in its own language (OK / Abbrechen), so
+  22.11.2026 (Don): the text names no buttons any more - Windows shows them in its own language (OK / Abbrechen), so
   the English "OK: ... Cancel: ..." lines did not match them. }
 function CheckExistingInstall(): Boolean;
 var
@@ -484,7 +484,7 @@ end;
 
 { Version 45: runs at ssPostInstall, i.e. only after every file (the companion and the package) was copied and the
   setup can no longer roll back. v44 deleted the older packages at ssInstall, before copying: when the copy then failed
-  or was cancelled, the rollback removed the new package and the user had none (Leon 21:25). }
+  or was cancelled, the rollback removed the new package and the user had none (Don 21:25). }
 procedure PlacePackage(const Dir: String);
 var
   NewVar: String;

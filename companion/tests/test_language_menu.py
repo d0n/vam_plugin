@@ -1,4 +1,4 @@
-"""Menu "Language" (tab Voice, AI section; Leon, 22.11.2026 call): Auto plus the 20 xAI text to speech languages,
+"""Menu "Language" (tab Voice, AI section; Don, 22.11.2026 call): Auto plus the 20 xAI text to speech languages,
 default German; ai.language reaches TTS (every sentence), STT, the language model and the realtime session
 ("Always answer in <language>"), and wins over a persona's language unless it is Auto."""
 from __future__ import annotations

@@ -1,4 +1,4 @@
-"""Idle pose control in the menu (Leon, 22.11.2026 call). Tab AI Character > Idle poses already had Idle poses (on/off),
+"""Idle pose control in the menu (Don, 22.11.2026 call). Tab AI Character > Idle poses already had Idle poses (on/off),
 Idle default pose, Idle pose min / max wait; new is "Apply idle default pose", which goes to the default pose now."""
 from __future__ import annotations
 

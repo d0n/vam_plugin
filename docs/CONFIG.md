@@ -134,7 +134,7 @@ API key is required and the three ways to give it. The app ignores it; any text 
 
 **Plugging in the xAI key (version 21, stored in config.json since version 24):** paste it into
 the field **XAI API Token** (tab *Voice*, section *Companion connection*, below **API Reconnect**). Plain text, no
-format check. The plugin saves it in `config.json` as `ai.xai.api_key` (PLAIN TEXT, at Leon's explicit
+format check. The plugin saves it in `config.json` as `ai.xai.api_key` (PLAIN TEXT, at Don's explicit
 request; `ai.xai.api_key_warning` next to it carries the security notice), fills the field from it on
 every start, and then shows it masked once the field is not focused (first and last 4 characters visible, stars between: `xai-****abcd`; the mask never replaces the stored token). The
 companion app reads `ai.xai.api_key` too, also before the plugin connects. Masked in every log.
@@ -198,7 +198,7 @@ for `Engine ... ready`, the spoken sentences and any `failed (...)` warnings.
 
 ## Gaze and blinking (removed after version 36)
 
-Leon, 20.11.2026: the eyes belong entirely to VaM. The plugin has no gaze or blink control any more, and the keys
+Don, 20.11.2026: the eyes belong entirely to VaM. The plugin has no gaze or blink control any more, and the keys
 `body.gaze_control`, `body.gaze_default`, `body.gaze_follows_speaker` and `body.blink_control` are gone (versions 25 to 36
 had them). An old file that still holds them loads without a warning and the plugin drops them on its next write.
 

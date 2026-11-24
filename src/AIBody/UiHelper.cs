@@ -175,7 +175,7 @@ namespace AIBody
     }
 
     /// <summary>
-    /// 'Reset to Default' (Config > Reset, Leon 21.11.2026 17:01): every saved plugin setting is registered through these
+    /// 'Reset to Default' (Config > Reset, Don 21.11.2026 17:01): every saved plugin setting is registered through these
     /// helpers, which remember the value the storable was created with (its default) before VaM restores the scene's saved
     /// values. ResetAll sets each one back with .val (as everywhere in the plugin), so its own callback runs (restart of the
     /// link, config.json write-back, the wizard's tab rebuild). Not registered here on purpose, so never reset:

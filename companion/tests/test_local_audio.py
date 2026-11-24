@@ -231,7 +231,7 @@ class BargeBase(unittest.TestCase):
 
 class BargeInCompanionTests(BargeBase):
     def test_on_by_default_and_can_be_switched_off(self):
-        # 22.11.2026 (Leon): voice barge-in is on by default (menu toggle "Voice barge-in (headphones)")
+        # 22.11.2026 (Don): voice barge-in is on by default (menu toggle "Voice barge-in (headphones)")
         self.assertTrue(settings_file.defaults()["ai"]["barge_in"]["enabled"])
         app = self.make(enabled=False)
         self.assertIsNone(app.input.barge)

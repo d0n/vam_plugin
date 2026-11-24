@@ -1,4 +1,4 @@
-"""Tab Dollmaster (Leon, 22.11.2026): the old Dollmaster plugin (VAMDeluxe, MIT; Leon's copy in third_party/dollmaster)
+"""Tab Dollmaster (Don, 22.11.2026): the old Dollmaster plugin (VAMDeluxe, MIT; Don's copy in third_party/dollmaster)
 ported into AIBody - full port, nothing dropped, behaviour identical; rewritten only where the project rules need it
 (one .cslist / one MVRScript / one namespace, no .Keys/.Values, file access only through FileManagerSecure). Checkbox
 "Activate" at the top of the tab, off by default: off = nothing of Dollmaster runs. While active Dollmaster owns the body

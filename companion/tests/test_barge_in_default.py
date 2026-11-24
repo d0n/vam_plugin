@@ -1,4 +1,4 @@
-"""Voice barge-in on by default, chain and realtime mode, echo protection always on (Leon, 22.11.2026 call).
+"""Voice barge-in on by default, chain and realtime mode, echo protection always on (Don, 22.11.2026 call).
 
 The menu toggle "Voice barge-in (headphones)" now writes ai.barge_in.enabled (default true) instead of the old
 ai.realtime.send_while_speaking (which streamed the raw mic to the server while the body spoke, so with speakers she

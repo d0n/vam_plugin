@@ -1,8 +1,8 @@
-"""Version 37 (Leon, 20.11.2026): new example scene with a Load Scene preview thumbnail,
+"""Version 37 (Don, 20.11.2026): new example scene with a Load Scene preview thumbnail,
 the menu rebuild after version 36 (menus by topic, Body control on, gaze/blinking removed),
 and the package number 37.
 
-After version 37 (21.11.2026, no version bump): the example is Leon's original two-character
+After version 37 (21.11.2026, no version bump): the example is Don's original two-character
 scene, named AI-Buddy, with clothing and looks kept, Dollmaster / Improved PoV and explicit
 genital morphs removed, AIBody on the female with Set background color on, and third-party
 packages declared in meta.json dependencies.
@@ -31,7 +31,7 @@ SCENE_PACKAGES = {
     "mopedlampe.Morwyn.1",
     "paledriver.Nico.2",
     "particle pinnacle.missing_morphs.1",
-    "KdollMASTA.KDoll_Mk10.1",   # Leon's scene of 21.11.2026 18:27: the Breath1 morph (AIBody's default breath morph)
+    "KdollMASTA.KDoll_Mk10.1",   # Don's scene of 21.11.2026 18:27: the Breath1 morph (AIBody's default breath morph)
 }
 HUB_LICENSES = {
     "EuLinRabei.ProCourt_Outfit.3": "CC BY-SA",
@@ -42,7 +42,7 @@ HUB_LICENSES = {
     "paledriver.Nico.2": "CC BY-NC-ND",
 }
 # Looked up on the Hub 21.11.2026 (getResourceDetail, no download); these packages were not on the Hub
-# (KDoll_Mk10: version 42, Leon's scene of 18:27).
+# (KDoll_Mk10: version 42, Don's scene of 18:27).
 HUB_LICENSE_UNKNOWN = {
     "Ark1F1.Olivia_McAllister.1",
     "particle pinnacle.missing_morphs.1",
@@ -124,14 +124,14 @@ class ExampleSceneTests(TestCase):
         self.assertTrue(REMOVED_ATOMS.isdisjoint(ids))
         self.assertEqual(
             {a["id"] for a in self.template["atoms"]},
-            {"WindowCamera", "PlayerNavigationPanel", "CoreControl", "[CameraRig]", "AI", "Client"},   # version 42: Leon's names,
+            {"WindowCamera", "PlayerNavigationPanel", "CoreControl", "[CameraRig]", "AI", "Client"},   # version 42: Don's names,
         )
         core = next(a for a in self.template["atoms"] if a["id"] == "CoreControl")
         clips = next((st for st in core["storables"] if st["id"] == "URLAudioClipManager"), {}).get("clips") or []
         self.assertEqual(clips, [])
 
     def test_aibody_only_on_one_person_with_background_on(self):
-        """Version 42 (Leon 18:27): AIBody is on the male Client and drives the female AI; before on BryanGosling / Person."""
+        """Version 42 (Don 18:27): AIBody is on the male Client and drives the female AI; before on BryanGosling / Person."""
         plugins = []
         for atom in self.template["atoms"]:
             for st in atom.get("storables") or []:

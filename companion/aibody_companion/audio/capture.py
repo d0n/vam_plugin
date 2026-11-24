@@ -26,7 +26,7 @@ def _sounddevice():
 
 
 def default_output_device() -> str:
-    """Version 48 (Leon 22.11.2026 12:58), diagnostics only: the name of the Windows default OUTPUT device as PortAudio
+    """Version 48 (Don 22.11.2026 12:58), diagnostics only: the name of the Windows default OUTPUT device as PortAudio
     reports it. The companion plays no sound itself (its WAVs are played by VaM's head audio), and VaM plays on the
     Windows default output device that was active when VaM started; this line shows which one that is right now."""
     sd = _sounddevice()

@@ -51,12 +51,12 @@ SCENE_TEMPLATE = ROOT / "examples" / "scenes" / "AI-Buddy.json"
 SCENE_THUMB = SCENE_TEMPLATE.with_suffix(".jpg")
 
 LOOSE_SCENE = "AI-Buddy.json"
-# The one atom of the example scene that carries AIBody: the user's own male "Client" (Leon, 21.11.2026 18:27; it drives
+# The one atom of the example scene that carries AIBody: the user's own male "Client" (Don, 21.11.2026 18:27; it drives
 # the female "AI", AIBodyPlugin.FindAiCharacter). Before: "BryanGosling" (17:02), the female "Person".
 AIBODY_ATOM = "Client"
 AIBODY_STORABLE = "plugin#0_AIBody.AIBodyPlugin"
 LOOSE_THUMB = "AI-Buddy.jpg"
-# Tab Dollmaster (22.11.2026, Leon): the assets of the ported Dollmaster (VAMDeluxe, MIT) next to the plugin, as in the old
+# Tab Dollmaster (22.11.2026, Don): the assets of the ported Dollmaster (VAMDeluxe, MIT) next to the plugin, as in the old
 # Dollmaster package: <script_dir>/Dollmaster/dollmaster_config.json and <script_dir>/Dollmaster/Assets/... (personas, sound
 # effects, expressions, VAMasutra poses). AIBodyPlugin.DollmasterFolder, DmPlugin.ASSETS_PATH.
 DOLLMASTER_ASSETS = ROOT / "assets" / "dollmaster"
@@ -66,7 +66,7 @@ TEXT_SUFFIXES = {".cs", ".cslist", ".json", ".vap", ".txt", ".md"}
 STORED_SUFFIXES = {".mp3", ".jpg", ".png", ".ogg"}   # already compressed
 
 
-# Version 54 (Leon 23:27): the scene must not carry VaM's global Freeze Motion/Sound (or any other "freeze" state) - the
+# Version 54 (Don 23:27): the scene must not carry VaM's global Freeze Motion/Sound (or any other "freeze" state) - the
 # template has none today; any such key is removed when the package is built and the build check refuses it.
 FREEZE_RE = re.compile(r"(?i)freeze")
 # Version 54: scene and thumbnail get the SAME fixed entry date and attributes in every build (the thumbnail used to keep
@@ -122,7 +122,7 @@ def check_aibody_atom(data: dict) -> None:
 
 
 def example_scene(creator: str, package: str, version: int, script_dir: str, inside_package: bool = True) -> str:
-    """The AI-Buddy scene template (Leon's scene of 21.11.2026 18:27) with AIBody on the male "Client", which drives the female "AI". Third-party clothing, hair and morph packages
+    """The AI-Buddy scene template (Don's scene of 21.11.2026 18:27) with AIBody on the male "Client", which drives the female "AI". Third-party clothing, hair and morph packages
     stay in the scene and are declared in packaging/meta.json "dependencies" (VaM format: package id -> licenseType
     when known from a Hub lookup, plus nested dependencies). Loose Custom/ and Saves/ paths stay in the scene too
     (they resolve on the author's PC; VaM skips them elsewhere) and are not packaged. Inside the package the plugin
@@ -156,12 +156,12 @@ def plugin_preset(creator: str, package: str, version: int, script_dir: str) -> 
     return json.dumps({"storables": [{"id": "PluginManager", "plugins": {"plugin#0": cslist}}]}, indent=3) + "\n"
 
 
-# Peak of the test tone (fraction of full scale). Leon, 21.11.2026 20:04: 0.35 was very quiet in v42; 0.70 is
+# Peak of the test tone (fraction of full scale). Don, 21.11.2026 20:04: 0.35 was very quiet in v42; 0.70 is
 # +6 dB, still clear of clipping (<= 0.8). Only the test tone; speech volume is unchanged.
 TEST_TONE_PEAK = 0.70
 
 
-# Version 44 (Leon 21:01/21:16): louder copies for Speech volume above 1 (VaM's head audio stops at 1). Same plain linear
+# Version 44 (Don 21:01/21:16): louder copies for Speech volume above 1 (VaM's head audio stops at 1). Same plain linear
 # gain as the companion (pipeline/tts.py gained_sample): no limiter, only cut to the 16-bit range.
 LOUD_TEST_TONES = {2: "AIBodyTest2.wav", 3: "AIBodyTest3.wav"}  # gain -> file (Body.TestToneFileFor)
 
@@ -276,14 +276,14 @@ def build(version_override: int | None = None) -> Path:
 
 
 def check_scene_thumbnail(var: Path) -> str | None:
-    """Version 47 (Leon 22.11.2026 12:17): VaM shows a scene's thumbnail only when a JPG with the SAME base name sits in
+    """Version 47 (Don 22.11.2026 12:17): VaM shows a scene's thumbnail only when a JPG with the SAME base name sits in
     the SAME folder as the scene JSON. Every .var must carry it, byte for byte the one in examples/scenes/."""
     with zipfile.ZipFile(var) as z:
         names = z.namelist()
         scenes = [n for n in names if n.startswith("Saves/scene/") and n.lower().endswith(".json")]
         if not scenes:
             return "no scene JSON below Saves/scene/"
-        # Version 54 (Leon 23:27): exactly the one scene with the fixed name, its JPG with the identical base name and a
+        # Version 54 (Don 23:27): exactly the one scene with the fixed name, its JPG with the identical base name and a
         # lower-case .jpg in the same folder, both in meta.json's contentList, same entry date, no Freeze state.
         if scenes != [SCENE_PATH]:
             return f"the package must carry exactly {SCENE_PATH}, found {scenes}"

@@ -1,6 +1,6 @@
 # Dollmaster (original source, not shipped)
 
-Leon's copy of **Dollmaster** by VAMDeluxe (2019), received 22.11.2026 (`dollmaster_old.zip`,
+Don's copy of **Dollmaster** by VAMDeluxe (2019), received 22.11.2026 (`dollmaster_old.zip`,
 `Custom/Scripts/VAMDeluxe/Dollmaster/`). Upstream: [vamdeluxe/DeluxePlugin](https://github.com/vamdeluxe/DeluxePlugin)
 (folder `Dollmaster`, commit e606e780e79af214b2b4be0a53b1e7b45ecf59b7), MIT license (`LICENSE`, copied from upstream).
 

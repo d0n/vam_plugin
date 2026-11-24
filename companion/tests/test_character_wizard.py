@@ -1,4 +1,4 @@
-"""Character configuration wizard (after version 37, Leon): gate, skip path, each step.
+"""Character configuration wizard (after version 37, Don): gate, skip path, each step.
 
 The wizard lives in the plugin UI (tab AI Character, section Characters), not in the companion
 console setup. The steps only record settings; they do not change a Person in VaM.

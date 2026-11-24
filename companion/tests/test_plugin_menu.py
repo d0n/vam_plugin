@@ -1,4 +1,4 @@
-"""Menu rules of the plugin (Leon, 17.11.2026, version 15), checked on the C# sources:
+"""Menu rules of the plugin (Don, 17.11.2026, version 15), checked on the C# sources:
 four self-explanatory tabs, no text fields inside the tabs (help and status go to the ONE big
 info field on the left), no removed placeholders (Post tab, Channel field, key file fields,
 Delay, the tab title headers)."""
@@ -84,7 +84,7 @@ class PluginMenuTests(unittest.TestCase):
 
 
 class Version16MenuTests(unittest.TestCase):
-    """Leon, 18.11.2026: mic menu empty in VaM; larger per-tab info field; no empty menus."""
+    """Don, 18.11.2026: mic menu empty in VaM; larger per-tab info field; no empty menus."""
 
     def test_info_field_is_larger_and_per_tab(self):
         plugin = source("AIBody.cs")
@@ -105,7 +105,7 @@ class Version16MenuTests(unittest.TestCase):
 
 
 class Version17MenuTests(unittest.TestCase):
-    """Leon, 18.11.2026: larger info field, no hint line around it, clear section labels."""
+    """Don, 18.11.2026: larger info field, no hint line around it, clear section labels."""
 
     def test_no_hint_header_on_the_left(self):
         plugin = source("AIBody.cs")
@@ -124,14 +124,14 @@ class Version17MenuTests(unittest.TestCase):
         self.assertIn("KeyConfigured(", body)
 
     def test_reload_expressions_is_part_of_reload_config_json(self):
-        # version 53 (Leon 20:57): the separate button is gone; Reload Config JSON reloads expressions.json
+        # version 53 (Don 20:57): the separate button is gone; Reload Config JSON reloads expressions.json
         body = method_body(source("Body.cs"), "public void BuildCharacterTab(UiPage page)")
         self.assertNotIn('page.Button("Reload expressions (expressions.json)"', body)
         self.assertIn("_body.ReloadConfigFiles();", method_body(source("AIBody.cs"), "private void ReloadConfigJson()"))
 
 
 class OneCharacterTests(unittest.TestCase):
-    """Leon, 19.11.2026: one companion app, one character, one fixed message folder."""
+    """Don, 19.11.2026: one companion app, one character, one fixed message folder."""
 
     def test_the_plugin_has_no_channel_setting_and_one_fixed_folder(self):
         link = source("AppLink.cs")
@@ -150,7 +150,7 @@ class OneCharacterTests(unittest.TestCase):
 
 
 class Version18MenuTests(unittest.TestCase):
-    """Leon, 18.11.2026: plugin UI in English; old scenes and old companion texts keep working."""
+    """Don, 18.11.2026: plugin UI in English; old scenes and old companion texts keep working."""
 
     def test_problem_turns_red_for_old_and_new_companion_texts(self):
         body = method_body(source("AppLink.cs"), "public static bool IsProblemTurn(string turn)")
@@ -168,7 +168,7 @@ class Version18MenuTests(unittest.TestCase):
 
 
 class Version19MenuTests(unittest.TestCase):
-    """Leon, 18.11.2026: the poll slider is about the companion inbox, not config.json."""
+    """Don, 18.11.2026: the poll slider is about the companion inbox, not config.json."""
 
     def test_poll_slider_shows_companion_inbox_label_but_keeps_stored_name(self):
         link = source("AppLink.cs")
@@ -187,7 +187,7 @@ class Version19MenuTests(unittest.TestCase):
 
 
 class ProactiveIdleZeroTests(unittest.TestCase):
-    """Leon, 19.11.2026: "Speech delay timer (s)" (was "Proactive idle (s)") can go down to 0 = proactive speech off."""
+    """Don, 19.11.2026: "Speech delay timer (s)" (was "Proactive idle (s)") can go down to 0 = proactive speech off."""
 
     def test_slider_minimum_is_zero_and_the_info_line_says_off(self):
         link = source("AppLink.cs")
@@ -205,7 +205,7 @@ class ProactiveIdleZeroTests(unittest.TestCase):
 
 
 class SpeechDelayTimerTextTests(unittest.TestCase):
-    """Leon, 19.11.2026: the timer is the silence before the AI may speak on its own, not the answer latency."""
+    """Don, 19.11.2026: the timer is the silence before the AI may speak on its own, not the answer latency."""
 
     def test_voice_tab_help_explains_the_timer(self):
         link = source("AppLink.cs")
@@ -238,7 +238,7 @@ class SpeechDelayTimerTextTests(unittest.TestCase):
 
 
 class PlainEnglishTextTests(unittest.TestCase):
-    """Leon, 19.11.2026: help and error texts in plain English: what went wrong, where to look, what to do."""
+    """Don, 19.11.2026: help and error texts in plain English: what went wrong, where to look, what to do."""
 
     def test_plugin_audio_errors_say_what_to_check(self):
         player = source("SpeechPlayer.cs")
@@ -289,7 +289,7 @@ class PlainEnglishTextTests(unittest.TestCase):
 
 
 class NoMicSelectionTests(unittest.TestCase):
-    """Leon, 19.11.2026: the microphone device selection is gone, the companion always uses the system default."""
+    """Don, 19.11.2026: the microphone device selection is gone, the companion always uses the system default."""
 
     def test_no_device_menu_button_storable_or_list_protocol_in_the_plugin(self):
         self.assertNotIn("MicDeviceList.cs", source("AIBody.cslist"))
@@ -308,7 +308,7 @@ class NoMicSelectionTests(unittest.TestCase):
         self.assertNotIn("Device", build)
 
     def test_companion_not_running_is_a_neutral_status_line_only(self):
-        """Version 35 (Leon): the note 'Companion App not running, so nothing is heard or spoken. Start it in a console ...'
+        """Version 35 (Don): the note 'Companion App not running, so nothing is heard or spoken. Start it in a console ...'
         is gone from the menu; a neutral one-line status stays, the start command goes to the VaM log once."""
         mic = source("MicConfig.cs")
         update = method_body(mic, "public void Update(float deltaTime, bool connected, bool appRunning, bool linkActive)")
@@ -327,7 +327,7 @@ if __name__ == "__main__":
 
 
 class Version31LayoutTests(unittest.TestCase):
-    """REQUIREMENTS 'Next version' menu-layout points (Leon, 18.11.2026), closed in version 31 with a source check:
+    """REQUIREMENTS 'Next version' menu-layout points (Don, 18.11.2026), closed in version 31 with a source check:
     character-bound controls (poses, expression, gesture, body, gaze) are in the tab AI Character, Config holds only
     what is not character-bound, and no info text fields are left in the tabs."""
 

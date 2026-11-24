@@ -1,6 +1,6 @@
-"""Version 48 (Leon, 22.11.2026 12:58-12:59): "Full volume distance (m)" back, EasyMoan's way - only minDistance (and
+"""Version 48 (Don, 22.11.2026 12:58-12:59): "Full volume distance (m)" back, EasyMoan's way - only minDistance (and
 maxDistance 500), only from Body.Update, only when changed and idle, default 3 m; README/T77 output device note; the
-companion logs the Windows default output device once; release notes in English (Leon 13:03). Released as v48 (22.11.2026)."""
+companion logs the Windows default output device once; release notes in English (Don 13:03). Released as v48 (22.11.2026)."""
 from __future__ import annotations
 
 import json

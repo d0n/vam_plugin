@@ -27,7 +27,7 @@ _CLAUSE = re.compile(r"[,;:]\s|\s[-–—]\s")
 @dataclass
 class InlineToolCall:
     """A function call the model wrote INTO its text ("<tool_call>{"name": ..., "parameters": {...}}</tool_call>",
-    seen in Leon's companion.log of 21.11.2026: it was spoken aloud). The caller runs it like a real tool call;
+    seen in Don's companion.log of 21.11.2026: it was spoken aloud). The caller runs it like a real tool call;
     it is never spoken."""
     name: str
     arguments: str

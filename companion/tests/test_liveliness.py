@@ -132,7 +132,7 @@ class SceneEventFlowTests(RealtimeSim):
 
 
 class PluginLivelinessSourceTests(unittest.TestCase):
-    """Gaze and blink control were removed after version 36 (Leon, 20.11.2026): the eyes belong to VaM.
+    """Gaze and blink control were removed after version 36 (Don, 20.11.2026): the eyes belong to VaM.
     The scene hooks stay (without the Look / Gaze / Blink actions)."""
 
     def setUp(self):

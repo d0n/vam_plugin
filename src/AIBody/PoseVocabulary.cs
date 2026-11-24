@@ -26,7 +26,7 @@ namespace AIBody
 
     public class PoseVocabulary
     {
-        /// <summary>Leon's wording (20.11.2026), exactly. Each starter command links to a pose of the same name.</summary>
+        /// <summary>Don's wording (20.11.2026), exactly. Each starter command links to a pose of the same name.</summary>
         public static readonly string[] StarterCommands =
         {
             "Sit Down", "Lay Down", "Prone", "Stand Up", "Spread Your Legs", "Ankle Your Knees", "Ankle Your Elbows",
@@ -154,7 +154,7 @@ namespace AIBody
             return null;
         }
 
-        /// <summary>Version 58 (Leon 23.11.2026): a built-in command = a starter command still linked to the pose of its own
+        /// <summary>Version 58 (Don 23.11.2026): a built-in command = a starter command still linked to the pose of its own
         /// name. Without that pose on the character it gets a substitute pose instead of being unavailable. Same rule as
         /// pose_commands.is_builtin.</summary>
         public static bool IsBuiltIn(PoseCommand entry)

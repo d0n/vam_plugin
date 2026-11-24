@@ -18,7 +18,7 @@ FORBIDDEN: list[tuple[str, str]] = [
     ("System.IO", r"\bSystem\s*\.\s*IO\b"),
     ("File/Directory/Path (System.IO types)",
      r"\b(?:File|Directory|Path|StreamReader|StreamWriter|FileStream)\s*\.\s*[A-Z]"),
-    # Network (version 30, spec changed by Leon 19.11.2026): sockets exist in exactly ONE file, SocketLink.cs, and
+    # Network (version 30, spec changed by Don 19.11.2026): sockets exist in exactly ONE file, SocketLink.cs, and
     # only as a loopback UDP link (see NETWORK_FILE and NETWORK_ONLY below). Everything else stays banned.
     ("TCP / HTTP / web clients",
      r"\b(?:TcpClient|TcpListener|HttpListener|WebClient|HttpClient|WebRequest|HttpWebRequest|WebSocket\w*)\b"),
