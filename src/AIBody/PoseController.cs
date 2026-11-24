@@ -24,6 +24,7 @@ namespace AIBody
 
         public PoseController(Atom atom, IdleController idle)
         {
+            Guard = new PoseGuard(atom);
             _atom = atom;
             _idle = idle;
         }
@@ -60,42 +61,13 @@ namespace AIBody
         /// <summary>Version 52: the result of the last pose load once it settled ("" while none), for the info field and the log.</summary>
         public string LastLoadCheck { get; private set; }
 
-        /// <summary>Version 54 (Leon 23:31): a pose file may store the root node (its XYZ / turn). VaM then puts the whole person
-        /// there and she leaves her place (moved by Body position, or vanished off-screen after an idle pose). With KeepPlace on
-        /// (always, no menu) the main controller's placement is taken right BEFORE every pose load (idle pose, pose command,
-        /// Apply Pose, Apply idle default pose) and the person is put back there rigidly (the new pose kept) right after the
-        /// load and on every frame of the next GuardSeconds while VaM settles. The pose files are never changed.</summary>
-        public bool KeepPlace = true;
-        public const float GuardSeconds = SettleSeconds + 0.5f;
-        private float _guardFor = -1f;
-        private Vector3 _placePos;
-        private Quaternion _placeRot;
-        private bool _placeRestored;
+        /// <summary>Version 54/56: a pose file may store the root node (its world XYZ and turn); VaM then puts the whole person
+        /// there and she leaves her place. Every pose change of the plugin goes through ONE wrapper, PoseGuard.Around (this
+        /// Guard): her place is taken right before the load and put back right after it and on the following frames while VaM
+        /// settles. The pose files are never changed.</summary>
+        public readonly PoseGuard Guard;
         /// <summary>Version 54: "" or the last time a pose moved the root and the plugin put the person back (info field).</summary>
-        public string LastPlaceNote { get; private set; }
-
-        private void TakePlace()
-        {
-            _guardFor = -1f;
-            _placeRestored = false;
-            if (!KeepPlace || _atom == null || _atom.mainController == null) return;
-            _placePos = _atom.mainController.transform.position;
-            _placeRot = _atom.mainController.transform.rotation;
-            _guardFor = GuardSeconds;
-        }
-
-        /// <summary>Version 54: puts the person back to the placement taken before the pose load if the load moved the root.</summary>
-        private void GuardPlace()
-        {
-            if (_guardFor < 0f || _atom == null || !BodyMover.Moved(_atom, _placePos, _placeRot)) return;
-            float cm = (_atom.mainController.transform.position - _placePos).magnitude * 100f;
-            BodyMover.Relocate(_atom, _placePos, _placeRot);
-            if (_placeRestored) return;   // one note per load (VaM may push it again for a frame or two)
-            _placeRestored = true;
-            LastPlaceNote = "pose " + Short(_checkPose) + " stores a root position (" + cm.ToString("0") + " cm away): the character was put back to her place";
-            Log.Info("Pose " + Short(_checkPose) + " moved the whole character " + cm.ToString("0") + " cm (its file stores the root node): "
-                + "put back to her place, the pose kept (the pose file is not changed)");
-        }
+        public string LastPlaceNote { get { return Guard.LastNote; } }
 
         /// <summary>
         /// Pose presets by name: gestures.json entries of kind "pose" first, then the preset files in
@@ -227,6 +199,10 @@ namespace AIBody
         /// of this vocabulary and the character must have that pose; otherwise nothing is applied. Returns an error
         /// message (the caller logs a short warning), or null on success.
         /// </summary>
+        /// <summary>Version 56: the pose and the command the last ApplyPoseJson resolved (Body: idle poses, status note).</summary>
+        public string LastJsonPose { get; private set; }
+        public string LastJsonCommand { get; private set; }
+
         public string ApplyPoseJson(string json)
         {
             string pose;
@@ -236,6 +212,8 @@ namespace AIBody
             if (entry == null) return "'" + pose + "' is not a pose of the pose vocabulary";
             string actual = PoseVocabulary.Resolve(entry, PoseNames);
             if (actual == null) return "pose command '" + entry.Command + "' is unavailable: the character has no pose '" + entry.Pose + "'";
+            LastJsonPose = actual;
+            LastJsonCommand = entry.Command;
             return ApplyPose(actual);
         }
 
@@ -338,18 +316,22 @@ namespace AIBody
             bool onSelectWas = onSelect != null && onSelect.val;
             if (BeforePoseLoad != null) BeforePoseLoad();
             StartCheck(path);
-            TakePlace();   // version 54: her place (incl. Body position) before the pose; GuardPlace puts her back
-            try
+            // Version 56: the one position-preserving wrapper of every pose change (capture -> load -> put back, then on the
+            // next frames until VaM has settled the pose)
+            Guard.Around("pose " + Short(path), () =>
             {
-                if (onSelect != null && onSelectWas) onSelect.val = false;
-                url.val = SuperController.singleton.NormalizePath(path);
-                presets.CallAction("LoadPreset");
-            }
-            finally
-            {
-                if (onSelect != null && onSelectWas) onSelect.val = true;
-            }
-            GuardPlace();   // version 54: right after the load (no visible jump when VaM applied it at once)
+                try
+                {
+                    if (onSelect != null && onSelectWas) onSelect.val = false;
+                    url.val = SuperController.singleton.NormalizePath(path);
+                    presets.CallAction("LoadPreset");
+                }
+                finally
+                {
+                    if (onSelect != null && onSelectWas) onSelect.val = true;
+                }
+                return null;
+            }, null);
             Log.Debug("Pose preset loaded once: " + path + " on '" + _atom.uid + "' (Load On Select was " + (onSelectWas ? "on" : "off") + ")");
             if (OnPoseLoaded != null) OnPoseLoaded();
             return null;
@@ -367,12 +349,7 @@ namespace AIBody
         /// <summary>Version 52: SettleSeconds after a pose load, how far the controllers moved (the log says if none did).</summary>
         public void Update(float dt)
         {
-            if (_guardFor >= 0f)
-            {
-                GuardPlace();   // version 54: every frame while VaM settles the pose
-                _guardFor -= dt;
-                if (_guardFor < 0f) _guardFor = -1f;
-            }
+            Guard.Update(dt);   // version 56: every frame while VaM settles the pose
             if (_checkIn < 0f) return;
             _checkIn -= dt;
             if (_checkIn > 0f) return;
@@ -556,6 +533,117 @@ namespace AIBody
     /// second time: the body was pulled apart and physics pulled it back. Now every move is RIGID and ABSOLUTE: all
     /// positions / rotations are read first, the main controller is set first, then every other controller is set to its
     /// own absolute target - right whether VaM moves the others with the main controller or not.</summary>
+    /// <summary>
+    /// Version 56 (Leon, call 24.11.2026 15:27): the ONE position-preserving wrapper of every pose change: pose files and
+    /// pose commands, the AI's pose tool (pose command from the companion), idle poses, Apply Pose / Apply idle default pose,
+    /// Dollmaster montages. Around(): 1) capture the character's world placement (main controller position X, Y, Z AND
+    /// rotation) right before the load, 2) run the load, 3) put her back rigidly (BodyMover.Relocate, the new pose kept).
+    /// VaM may apply a pose over several frames (physics settling, a paused simulation), so Update() keeps putting her back
+    /// every frame for at least MinSeconds and until nothing moved her for QuietSeconds (at most MaxSeconds). A pose change
+    /// that starts while the guard runs keeps the first capture (never a half-moved place). A deliberate move (Body position,
+    /// Reset poses, Reset body position) calls Rebase so the guard keeps the new place.
+    /// </summary>
+    public class PoseGuard
+    {
+        public const float MinSeconds = PoseController.SettleSeconds + 0.5f;
+        public const float QuietSeconds = 0.5f;
+        public const float MaxSeconds = 5f;
+        /// <summary>Always on (no menu); false only for tests.</summary>
+        public bool Enabled = true;
+        private readonly Atom _atom;
+        private Vector3 _pos;
+        private Quaternion _rot;
+        private float _age = -1f;
+        private float _quiet;
+        private bool _noted;
+        private string _what = "";
+        /// <summary>"" or the last time a pose change moved her and she was put back (info field).</summary>
+        public string LastNote { get; private set; }
+        /// <summary>How often she was put back since the start (Verbose log, tests).</summary>
+        public int Restores { get; private set; }
+        public bool Active { get { return _age >= 0f; } }
+
+        public PoseGuard(Atom atom) { _atom = atom; LastNote = ""; }
+
+        /// <summary>Capture -> load -> put back. partner (Dollmaster montage: the other person) gets the same correction, so
+        /// the two keep their arrangement while the AI stays at her place. Returns load's result (null = ok).</summary>
+        public string Around(string what, Func<string> load, Atom partner)
+        {
+            Begin(what);
+            Vector3 fromPos = _pos;
+            Quaternion fromRot = _rot;
+            string result;
+            try { result = load(); }
+            finally
+            {
+                if (partner != null && Active && _atom != null && _atom.mainController != null && partner != _atom
+                    && partner.mainController != null)
+                {
+                    // the correction that takes the AI back, applied to the partner as well (rigid, arrangement kept)
+                    Transform t = _atom.mainController.transform;
+                    Quaternion back = fromRot * Quaternion.Inverse(t.rotation);
+                    Transform p = partner.mainController.transform;
+                    BodyMover.Relocate(partner, fromPos + back * (p.position - t.position), back * p.rotation);
+                }
+                Hold();
+            }
+            return result;
+        }
+
+        /// <summary>Takes her place before a pose change (kept if a guard still runs: that place is the right one).</summary>
+        public void Begin(string what)
+        {
+            if (!Enabled || _atom == null || _atom.mainController == null) return;
+            if (!Active)
+            {
+                _pos = _atom.mainController.transform.position;
+                _rot = _atom.mainController.transform.rotation;
+            }
+            _age = 0f;
+            _quiet = 0f;
+            _noted = false;
+            _what = what ?? "";
+        }
+
+        /// <summary>Puts her back if the pose change moved her (position or rotation).</summary>
+        public void Hold()
+        {
+            if (!Active || _atom == null || !BodyMover.Moved(_atom, _pos, _rot)) return;
+            float cm = (_atom.mainController.transform.position - _pos).magnitude * 100f;
+            BodyMover.Relocate(_atom, _pos, _rot);
+            _quiet = 0f;
+            Restores++;
+            if (_noted) return;   // one note per pose change (VaM may push her again for a frame or two)
+            _noted = true;
+            LastNote = _what + " stores a root position or turn (" + cm.ToString("0") + " cm away): the character was put back to her place";
+            Log.Info(Capital(_what) + " moved the whole character " + cm.ToString("0") + " cm (its file stores the root node): "
+                + "put back to her place, the pose kept (the pose file is not changed)");
+        }
+
+        /// <summary>Every frame (PoseController.Update): keeps her place until VaM has settled the pose.</summary>
+        public void Update(float dt)
+        {
+            if (!Active) return;
+            Hold();
+            _age += dt;
+            _quiet += dt;
+            if ((_age >= MinSeconds && _quiet >= QuietSeconds) || _age >= MaxSeconds) _age = -1f;
+        }
+
+        /// <summary>A deliberate move (Body position, Reset poses): the guard keeps the new place, not the old one.</summary>
+        public void Rebase()
+        {
+            if (!Active || _atom == null || _atom.mainController == null) return;
+            _pos = _atom.mainController.transform.position;
+            _rot = _atom.mainController.transform.rotation;
+        }
+
+        private static string Capital(string s)
+        {
+            return string.IsNullOrEmpty(s) ? "A pose" : char.ToUpperInvariant(s[0]) + s.Substring(1);
+        }
+    }
+
     public static class BodyMover
     {
         /// <summary>The flat facing direction of a rotation (forward without its up/down part).</summary>

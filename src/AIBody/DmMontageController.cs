@@ -191,26 +191,35 @@ namespace AIBody
             }
 
             Atom atom = dm.containingAtom;
-
-            if (person1Pose != null)
-            {
-                atom.PreRestore();
-                atom.RestoreTransform(person1Pose);
-                atom.Restore(person1Pose, restorePhysical: true, restoreAppearance: false, restoreCore: false);
-                atom.LateRestore(person1Pose, restorePhysical: true, restoreAppearance: false, restoreCore: false);
-                atom.PostRestore();
-            }
-
             Atom otherPerson = DmPlugin.GetSomeoneElse(atom);
 
-            if (person2Pose != null && otherPerson != null)
+            // AIBody port, version 56 (Leon 24.11.2026 15:27): a montage stores both people's world placement; the shared
+            // pose wrapper keeps the AI at her place and moves the other person by the same correction (the couple's
+            // arrangement stays). Without the wrapper (not set) it behaves as the old plugin.
+            PoseGuard guard = dm.PlaceGuard != null ? dm.PlaceGuard() : null;
+            Func<string> load = () => // AIBody port, version 56: the old restores, unchanged, run inside the wrapper
             {
-                otherPerson.PreRestore();
-                otherPerson.RestoreTransform(person2Pose);
-                otherPerson.Restore(person2Pose, restorePhysical: true, restoreAppearance: false, restoreCore: false);
-                otherPerson.LateRestore(person2Pose, restorePhysical: true, restoreAppearance: false, restoreCore: false);
-                otherPerson.PostRestore();
-            }
+                if (person1Pose != null)
+                {
+                    atom.PreRestore();
+                    atom.RestoreTransform(person1Pose);
+                    atom.Restore(person1Pose, restorePhysical: true, restoreAppearance: false, restoreCore: false);
+                    atom.LateRestore(person1Pose, restorePhysical: true, restoreAppearance: false, restoreCore: false);
+                    atom.PostRestore();
+                }
+                if (person2Pose != null && otherPerson != null)
+                {
+                    otherPerson.PreRestore();
+                    otherPerson.RestoreTransform(person2Pose);
+                    otherPerson.Restore(person2Pose, restorePhysical: true, restoreAppearance: false, restoreCore: false);
+                    otherPerson.LateRestore(person2Pose, restorePhysical: true, restoreAppearance: false, restoreCore: false);
+                    otherPerson.PostRestore();
+                }
+                return null;
+            };
+            // AIBody port, version 56: through the shared pose wrapper when it is set
+            if (guard != null) guard.Around("Dollmaster montage", load, person2Pose != null ? otherPerson : null);
+            else load();
 
             SuperController.singleton.PauseSimulation(5, "Loading Sutra");
 

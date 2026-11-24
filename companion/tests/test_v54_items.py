@@ -94,17 +94,16 @@ class BodyPositionTests(unittest.TestCase):
         self.assertNotIn("c.transform.position + shift", pose, "no relative '+ shift' on top of a moved parent")
 
     def test_pose_loads_keep_her_place(self):
+        # version 56: the v54 TakePlace/GuardPlace became the shared wrapper PoseGuard (test_v56_pose_guard)
         pose = src("PoseController.cs")
-        load = pose[pose.index("public string LoadPose(") if "public string LoadPose(" in pose else pose.index("string LoadPose("):]
+        load = pose[pose.index("public string LoadPose("):]
         load = load[:load.index("private void StartCheck")]
-        self.assertLess(load.index("if (BeforePoseLoad != null) BeforePoseLoad();"), load.index("TakePlace();"))
-        self.assertLess(load.index("TakePlace();"), load.index('presets.CallAction("LoadPreset")'))
-        self.assertLess(load.index('presets.CallAction("LoadPreset")'), load.index("GuardPlace();"))
-        update = method_body(pose, "public void Update(float dt)")
-        self.assertIn("GuardPlace();", update)
-        self.assertIn("BodyMover.Relocate(_atom, _placePos, _placeRot)", method_body(pose, "private void GuardPlace()"))
-        self.assertNotIn("WriteAllText", pose[pose.index("private void TakePlace()"):pose.index("private void TakePlace()") + 2500],
-                         "the pose files are never changed")
+        self.assertLess(load.index("if (BeforePoseLoad != null) BeforePoseLoad();"), load.index("Guard.Around("))
+        self.assertLess(load.index("Guard.Around("), load.index('presets.CallAction("LoadPreset")'))
+        self.assertIn("Guard.Update(dt);", method_body(pose, "public void Update(float dt)"))
+        guard = pose[pose.index("public class PoseGuard"):pose.index("public class PoseGuard") + 6000]
+        self.assertIn("BodyMover.Relocate(_atom, _pos, _rot);", guard)
+        self.assertNotIn("WriteAllText", guard, "the pose files are never changed")
 
     def test_reset_poses_zeroes_the_sliders(self):
         self.assertIn("_body.ForgetBodyPosition();", method_body(src("AIBody.cs"), "private string ResetPoses()"))

@@ -359,8 +359,11 @@ namespace AIBody
             });
             _diag.Run("Scene actions", RegisterSceneActions);
             _diag.Run("Commands (CommandRouter)", () =>
+            {
                 _router = new CommandRouter(_send, _speech, _expressions, _poses, _idle, _breathing,
-                    () => BodyControl));
+                    () => BodyControl);
+                _router.ApplyPoseFromCompanion = ApplyCompanionPose;   // version 56
+            });
             _diag.Run("Load config files", ReloadConfigFiles);
         }
 
@@ -743,6 +746,7 @@ namespace AIBody
         {
             string result = ResetPosesRequested != null ? ResetPosesRequested() : "<color=red>Reset poses: not available</color>";
             if (_idlePoses != null) _idlePoses.NoteUserPose();
+            if (_poses != null) _poses.Guard.Rebase();   // version 56: back to the scene placement is a deliberate move
             if (_idle != null) _idle.Rebase();
             Note(result, result.StartsWith("<color=red>"));
         }
@@ -836,6 +840,7 @@ namespace AIBody
             Vector3 pos = BodyMover.TargetPosition(_homePos, _homeRot, _moveForwardJson.val, _moveRightJson.val, _turnJson.val);
             Quaternion rot = Quaternion.Euler(0f, _turnJson.val, 0f) * _homeRot;
             int n = BodyMover.Relocate(_atom, pos, rot);
+            if (_poses != null) _poses.Guard.Rebase();   // version 56: a pose guard still running keeps the NEW place
             if (_idle != null) _idle.Rebase();   // the idle head motion starts from the new place
             Log.Debug("Body position: forward " + _moveForwardJson.val.ToString("0.00") + " m, right " + _moveRightJson.val.ToString("0.00")
                 + " m, turn " + _turnJson.val.ToString("0") + " degrees (" + n + " controllers)");
@@ -846,6 +851,7 @@ namespace AIBody
         {
             if (_atom == null) return;
             if (_homeSet) BodyMover.Relocate(_atom, _homePos, _homeRot);
+            if (_poses != null) _poses.Guard.Rebase();   // version 56
             _homeSet = false;
             _syncingMove = true;
             try { _moveForwardJson.val = 0f; _moveRightJson.val = 0f; _turnJson.val = 0f; }
@@ -888,6 +894,28 @@ namespace AIBody
             if (error == null) { _idlePoses.NoteUserPose(); _idlePoses.NoteShown(pose); Note("Idle default pose applied: " + pose, false); }
             else Note("<color=red>Apply idle default pose '" + pose + "': " + error + "</color>", true);
         }
+
+        /// <summary>
+        /// Version 56 (Leon 15:28): a pose command from the companion (spoken or typed pose command, the AI's pose tool) takes
+        /// the same path as the menu's Apply Pose: refused while Dollmaster poses the body, applied through PoseController
+        /// (PoseGuard.Around: her place is kept), the idle poses wait CooldownSeconds and do not repeat it, a status note.
+        /// </summary>
+        public string ApplyCompanionPose(string json)
+        {
+            if (_poses == null) return "PoseController missing";
+            if (DollmasterOwns) { Note("<color=red>Pose command (voice): " + DollmasterPoseNote + "</color>", true); return DollmasterPoseNote; }
+            string error = _poses.ApplyPoseJson(json);
+            if (error == null)
+            {
+                if (_idlePoses != null) { _idlePoses.NoteUserPose(); _idlePoses.NoteShown(_poses.LastJsonPose); }
+                Note("Pose command (voice) applied: '" + _poses.LastJsonCommand + "' -> " + _poses.LastJsonPose, false);
+            }
+            else Note("<color=red>Pose command (voice): " + error + "</color>", true);
+            return error;
+        }
+
+        /// <summary>Version 56: Dollmaster montages keep her place with the same wrapper (PoseGuard.Around).</summary>
+        public PoseGuard PoseGuard { get { return _poses != null ? _poses.Guard : null; } }
 
         /// <summary>Version 52: while Dollmaster is active it poses the body itself; a second pose system would fight it.</summary>
         public const string DollmasterPoseNote = "Dollmaster is active and poses the body itself (tab Dollmaster: turn Activate off to use pose commands)";
@@ -1120,9 +1148,7 @@ namespace AIBody
         {
             if (_router == null) return;
             _lastCommandAge = 0f;
-            _router.Handle(msg);
-            // A pose command of the user (the companion sends one only for an exact command): idle poses wait first.
-            if (_idlePoses != null && Protocol.GetString(msg, "type", "") == Protocol.CmdPose) _idlePoses.NoteUserPose();
+            _router.Handle(msg);   // version 56: a pose command notes the idle poses in ApplyCompanionPose (only when applied)
         }
 
         /// <summary>Adds the body's state to the link's ready / heartbeat / pong.</summary>
@@ -1219,21 +1245,28 @@ namespace AIBody
             }
         }
 
-        private bool _idlePosesBroken;
+        /// <summary>Version 56: after an error the idle poses pause this long and go on (they never stop for good).</summary>
+        public const float IdleRetrySeconds = 30f;
+        private float _idleRetryIn;
+        private int _idleErrors;
 
         /// <summary>Version 54: setting "Idle poses from all pose files" (config.json body.idle_poses_all_files).</summary>
         private bool IdleAllFiles { get { return _idleAllFilesJson != null && _idleAllFilesJson.val; } }
 
         private void UpdateIdlePoses(float dt, bool speaking)
         {
-            if (_idlePoses == null || _poses == null || _idlePosesBroken) return;
+            if (_idlePoses == null || _poses == null) return;
+            if (_idleRetryIn > 0f) { _idleRetryIn -= dt; return; }   // version 56: a short pause after an error, then on again
             try
             {
                 bool busy = speaking || (UserSpeaking != null && UserSpeaking()) || (_speech != null && _speech.QueueLength > 0);
                 string pose = _idlePoses.Update(dt, busy, BodyControl, _poses.Vocabulary, _poses.IdlePoolNames(IdleAllFiles), _poses.PoseNames);
-                if (pose == null) return;
+                if (pose == null) { _idleErrors = 0; return; }
                 // Version 54: a pose file that is gone or cannot be loaded is dropped from the pool for this session.
-                string error = _poses.PoseFileProblem(pose) ?? _poses.ApplyPose(pose);
+                // Version 56: an exception of this one load is this pose's error too (it no longer stops the idle poses).
+                string error;
+                try { error = _poses.PoseFileProblem(pose) ?? _poses.ApplyPose(pose); }
+                catch (Exception e) { error = Diag.Describe(e); }
                 if (error == null) Log.Debug("Idle pose: " + pose + " (random of a pool of " + _idlePoses.PoolSize + " poses)");
                 else
                 {
@@ -1244,8 +1277,11 @@ namespace AIBody
             }
             catch (Exception e)
             {
-                _idlePosesBroken = true;   // only the idle poses stop
-                _diag.Fail("Idle poses (stopped)", e);
+                // Version 56 (root cause of "the idle poses stop after a while"): up to v55 ANY exception here set a flag
+                // that stopped the idle poses for the rest of the session, silently. Now they pause IdleRetrySeconds and go on.
+                _idleErrors++;
+                _idleRetryIn = IdleRetrySeconds;
+                Log.Warn("Idle poses: error (" + _idleErrors + " in a row), paused " + IdleRetrySeconds.ToString("0") + " s, then on again: " + Diag.Describe(e));
             }
         }
 

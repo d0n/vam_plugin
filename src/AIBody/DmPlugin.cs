@@ -125,9 +125,37 @@ namespace AIBody
         private readonly List<JSONStorableStringChooser> _choosers = new List<JSONStorableStringChooser>();
         private readonly List<JSONStorableUrl> _urls = new List<JSONStorableUrl>();
 
-        public void RegisterBool(JSONStorableBool p) { host.RegisterBool(p); _bools.Add(p); }
-        public void RegisterFloat(JSONStorableFloat p) { host.RegisterFloat(p); _floats.Add(p); }
-        public void RegisterStringChooser(JSONStorableStringChooser p) { host.RegisterStringChooser(p); _choosers.Add(p); }
+        // AIBody port, version 56: the defaults of Dollmaster's settings, for AIBody's Reset to Default (ResetToDefaults)
+        private readonly List<bool> _boolDefaults = new List<bool>();
+        private readonly List<float> _floatDefaults = new List<float>();
+        private readonly List<string> _chooserDefaults = new List<string>();
+
+        public void RegisterBool(JSONStorableBool p) { host.RegisterBool(p); _bools.Add(p); _boolDefaults.Add(p.val); }
+        public void RegisterFloat(JSONStorableFloat p) { host.RegisterFloat(p); _floats.Add(p); _floatDefaults.Add(p.val); }
+        public void RegisterStringChooser(JSONStorableStringChooser p) { host.RegisterStringChooser(p); _choosers.Add(p); _chooserDefaults.Add(p.val); }
+
+        /// <summary>Version 56 (T96): Reset to Default sets Dollmaster's toggles, sliders and dropdowns back too (its folder
+        /// paths stay). A dropdown whose default is not in its list keeps its value, so no dropdown ends up empty.
+        /// Returns how many settings changed.</summary>
+        public int ResetToDefaults()
+        {
+            int changed = 0;
+            for (int i = 0; i < _bools.Count; i++) if (_bools[i].val != _boolDefaults[i]) { _bools[i].val = _boolDefaults[i]; changed++; }
+            for (int i = 0; i < _floats.Count; i++) if (_floats[i].val != _floatDefaults[i]) { _floats[i].val = _floatDefaults[i]; changed++; }
+            for (int i = 0; i < _choosers.Count; i++)
+            {
+                string d = _chooserDefaults[i];
+                if (_choosers[i].val == d || string.IsNullOrEmpty(d)) continue;
+                List<string> choices = _choosers[i].choices;
+                if (choices != null && choices.Count > 0 && !choices.Contains(d)) continue;
+                _choosers[i].val = d;
+                changed++;
+            }
+            return changed;
+        }
+
+        /// <summary>Version 56: set by AIBody; montages keep the AI's place with the shared pose wrapper (PoseGuard.Around).</summary>
+        public Func<PoseGuard> PlaceGuard;
         public void RegisterAction(JSONStorableAction a) { host.RegisterAction(a); }
         public void RegisterUrl(JSONStorableUrl p) { host.RegisterUrl(p); _urls.Add(p); }
 
@@ -189,6 +217,8 @@ namespace AIBody
         }
 
         private bool _eyesSaved;
+        private bool _autoExpressionsSaved;
+        private bool _savedAutoExpressions;
         private EyesControl.LookMode _savedLookMode;
 
         private void OnActivated()
@@ -205,6 +235,10 @@ namespace AIBody
             for (int i = 0; i < _atomMakers.Count; i++) host.StartCoroutine(_atomMakers[i]());
             sfxController.LoadClips();
             if (personality != null) personality.Load();
+            // Version 56 (T96): Dollmaster's config switches VaM's Auto Expressions; Dollmaster off puts them back as they were
+            JSONStorable auto = containingAtom.GetStorableByID("AutoExpressions");
+            JSONStorableBool autoOn = auto != null ? auto.GetBoolJSONParam("enabled") : null;
+            if (autoOn != null) { _savedAutoExpressions = autoOn.val; _autoExpressionsSaved = true; }
             config.Apply();
             montageController.LoadMontagesFromPath(montageController.montagePath.val);   // old Start()
         }
@@ -220,6 +254,12 @@ namespace AIBody
             });
             EyesControl eyes = containingAtom.GetStorableByID("Eyes") as EyesControl;
             if (eyes != null && _eyesSaved) eyes.currentLookMode = _savedLookMode;
+            if (_autoExpressionsSaved)
+            {
+                JSONStorable auto = containingAtom.GetStorableByID("AutoExpressions");
+                if (auto != null) auto.SetBoolParamValue("enabled", _savedAutoExpressions);
+                _autoExpressionsSaved = false;
+            }
             if (personality != null) personality.Unload();
             JSONStorable eyelids = containingAtom.GetStorableByID("EyelidControl");
             if (eyelids != null) eyelids.SetBoolParamValue("blinkEnabled", true);   // ExpressionController.Update switched it

@@ -85,6 +85,10 @@ HEARTBEAT_INTERVAL_S = 2.0  # companion_heartbeat rate
 BACKLOG_STALL_S = 4.0
 BACKLOG_LOG_EVERY_S = 10.0
 MERGE_SILENCE_S = 0.3  # between utterances merged into one turn
+# Version 56: the xAI realtime session is closed this long after VaM went away, and not opened at all when VaM has not
+# connected this long after the start; it reopens by itself when the plugin is back.
+REALTIME_CLOSE_AFTER_S = 10.0
+REALTIME_WAIT_FOR_VAM_S = 60.0
 KEY_REFRESH_S = 10.0  # how often key files are re-read (a key added later is picked up)
 DEFAULT_EXPRESSIONS = ["neutral", "happy", "sad", "angry", "surprised", "thinking"]
 DEFAULT_GESTURES = ["nod", "shake", "tilt"]
@@ -249,6 +253,9 @@ class Companion:
         # unmuted on every start. mute_by says who switched it last ("menu", "voice: mute", "voice: unmute").
         self.muted = False
         self.mute_by = ""
+        # version 56: no xAI realtime session without VaM (it was found open, using credits, with VaM closed)
+        self._started_at = self._clock()
+        self._ever_connected = False
         self._null_stt_warned = False
         self._stt_error = ""
         self._last_exchange: float | None = None
@@ -346,6 +353,9 @@ class Companion:
                            "'XAI API Token', or set XAI_API_KEY / a key file in config.json ai.xai.key_file")
         if mode == "chain":
             return False, "Chain selected (speech recognition -> language model -> text-to-speech)"
+        away = self._realtime_without_vam()
+        if away:
+            return False, away
         if self.realtime_off:
             return False, (f"Realtime off: {self.realtime_off} - falling back to the chain"
                            f"{' with xAI' if has_key else ''}; 'API Reconnect' tries again")
@@ -356,6 +366,19 @@ class Companion:
         if not has_key:
             return False, "Auto: chain (no xAI API key for realtime)"
         return True, ""
+
+    def _realtime_without_vam(self) -> str:
+        """Version 56: "" or why the realtime session stays closed: VaM (the AIBody plugin) has been away for
+        REALTIME_CLOSE_AFTER_S after a connection, or never connected within REALTIME_WAIT_FOR_VAM_S of the start. It opens
+        again by itself as soon as the plugin is connected."""
+        now = self._clock()
+        if self._disconnected_at is not None and now - self._disconnected_at >= REALTIME_CLOSE_AFTER_S:
+            return (f"Realtime closed: VaM (the AIBody plugin) is not connected for {now - self._disconnected_at:.0f} s - "
+                    "no xAI realtime session (no credits used) until it is back")
+        if not self._ever_connected and not self.transport.connected and now - self._started_at >= REALTIME_WAIT_FOR_VAM_S:
+            return ("Realtime waiting for VaM: the AIBody plugin is not connected yet - the xAI realtime session opens "
+                    "when it is (no credits used meanwhile)")
+        return ""
 
     def _chain_override(self) -> dict[str, str] | None:
         """With an xAI key, every mode but chain runs xai instead of the offline test engines
@@ -704,6 +727,8 @@ class Companion:
 
     def _watch_connection(self) -> None:
         connected = self.transport.connected
+        if connected:
+            self._ever_connected = True
         if connected != self._was_connected:
             log.info("Plugin %s (link: %s)", "connected" if connected else "disconnected", self.transport.link)
             self._was_connected = connected

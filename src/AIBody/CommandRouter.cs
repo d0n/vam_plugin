@@ -27,6 +27,9 @@ namespace AIBody
         /// <summary>Send an "ack" for every successful command (useful while debugging).</summary>
         public bool AckAll = false;
 
+        /// <summary>Version 56: set by Body; a pose command from the companion (spoken, typed, the AI's tool).</summary>
+        public Func<string, string> ApplyPoseFromCompanion;
+
         public CommandRouter(Action<JSONClass> send, SpeechPlayer speech, ExpressionController expressions,
             PoseController poses, IdleController idle, BreathingController breathing, Func<bool> bodyControl)
         {
@@ -173,7 +176,10 @@ namespace AIBody
                 {
                     // Version 32: only {"json": "{\"pose\":\"<id>\"}"}, checked against the pose vocabulary. The old
                     // fields path / name are not accepted any more.
-                    string poseError = _poses.ApplyPoseJson(Protocol.GetString(msg, "json", ""));
+                    // Version 56: the same path as the menu's Apply Pose (Body.ApplyCompanionPose: Dollmaster check, idle
+                    // poses respect it, status note); the pose load itself always goes through PoseGuard.Around.
+                    string json = Protocol.GetString(msg, "json", "");
+                    string poseError = ApplyPoseFromCompanion != null ? ApplyPoseFromCompanion(json) : _poses.ApplyPoseJson(json);
                     if (poseError != null) Log.Warn("Pose ignored: " + poseError);
                     return poseError;
                 }

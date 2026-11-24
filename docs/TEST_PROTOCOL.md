@@ -907,6 +907,38 @@ Report: a dropdown without entries after the reset, the same pose twice in a row
 7. Idle head motion on: watch the head and chest for 2 s after each pose load: no jerk; the idle sway starts again after about 1 s.
 Report: a pose that does not apply, any twitching, a pose applied by just choosing an entry, Body control off after using Dollmaster.
 
+## T97 – Every pose change keeps her place (version 56, Leon 24.11.2026 15:27)
+1. Install v56, start AIBody Companion, then VaM; load AI-Buddy. Drag her by hand to a new place and turn her about 90 degrees.
+2. Tab AI Character: choose a pose in the pose dropdown and press **Apply Pose**: the pose changes, she stays at the new place and keeps facing the same way (a short flicker is ok). The log may say "... moved the whole character N cm (its file stores the root node): put back to her place".
+3. Press **Apply idle default pose**, and wait for an idle pose switch (Idle pose min/max wait 30 s): same result.
+4. Use a pose file from another pack that stores the root (one that moved her before v56): she stays.
+5. Body position sliders, then a pose: she stays at the slider place (not the old place).
+Report: any jump or turn back after a pose, a pose not applied.
+
+## T98 – Pose commands by voice (version 56)
+1. Tab Commands: a pose command whose pose exists (status not "unavailable"), e.g. "Sit Down" linked to a pose file.
+2. Say exactly the command ("sit down"): she takes the pose at her current place; the status line says "Pose command (voice) applied: 'Sit Down' -> ...". The idle poses wait their full time after it.
+3. Type it in the companion text input, and in realtime mode say it: same result.
+4. Dollmaster active and posing: the command is refused with a note, she does not move.
+Report: a command that does nothing (with the status line), her moving away.
+
+## T99 – Idle poses keep running (version 56)
+1. Idle poses on (default). Leave her alone for 10 minutes (min/max wait 30 s), with one broken pose file in the AIBody pose folder.
+2. Idle switches go on all the time; after an error the log says "Idle poses: error ... paused 30 s, then on again" and they continue.
+Report: idle poses that stop for good (with output_log.txt).
+
+## T100 – Reset to Default with Dollmaster, Auto Expressions (version 56)
+1. Tab Dollmaster: change a few settings and dropdowns, switch Activate on. Tab Config > **Reset to Default** > **Confirm**: Dollmaster settings are back to default, no dropdown is empty, Activate is off.
+2. Note VaM's Auto Expressions (Person > Auto Expressions) on, activate Dollmaster, deactivate it: Auto Expressions is on again.
+3. Play a Dollmaster montage: the AI stays at her place, the partner keeps the arrangement with her.
+Report: an empty dropdown, Auto Expressions left off, a jump during a montage.
+
+## T101 – No realtime session without VaM (version 56)
+1. AI mode realtime (or auto with an xAI key). Start the companion, then VaM: realtime starts.
+2. Close VaM: within about 10 s the companion's mode note says "Realtime closed: VaM (the AIBody plugin) is not connected"; xAI usage stops.
+3. Start VaM again: realtime opens again by itself. Start the companion alone and wait 1 minute: "Realtime waiting for VaM", no session.
+Report: realtime staying open without VaM, not coming back with VaM.
+
 ## T93 – Mute by voice and unmute by voice (version 55, Leon 23.11.2026)
 1. Install v55, start AIBody Companion, then VaM; load AI-Buddy. Ask something long so she talks.
 2. While she talks say **"shut up"** (or "halt's Maul", "halts Maul", "halt die Klappe", "sei still"): she stops at once; nothing queued plays afterwards. The companion log says "Muted (voice: mute) ...". Tab Config: the toggle **Mute AI (stop talking and listening)** is now on.

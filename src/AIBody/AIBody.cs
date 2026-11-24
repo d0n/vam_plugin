@@ -43,7 +43,7 @@ namespace AIBody
 {
     public class AIBodyPlugin : MVRScript
     {
-        public const string PluginVersion = "55";   // = package number d0n.AIBody.55.var (scheme since version 12)
+        public const string PluginVersion = "56";   // = package number d0n.AIBody.56.var (scheme since version 12)
 
         private AppLink _link;
         private Body _body;
@@ -475,6 +475,9 @@ namespace AIBody
             try
             {
                 int changed = Defaults.ResetAll(this);
+                // Version 56 (T96): Dollmaster's settings and its Activate switch go back to their defaults too
+                if (_dm != null) changed += _dm.ResetToDefaults();
+                if (_dmActivateJson != null && _dmActivateJson.val) { _dmActivateJson.val = false; changed++; }
                 if (_link != null) _link.ClearToken();   // version 50 (Leon 20:35): the reset clears the XAI API Token too
                 if (_link != null) _link.ResetMute();    // version 55: Reset to Default unmutes the AI
                 // Version 51 (Leon 20:58): every menu gets its full list again, so no dropdown is empty after the reset.
@@ -955,6 +958,7 @@ namespace AIBody
             if (_sceneRestored && _restoredJson != null) _dm.RestoreLate(_restoredJson);   // made after VaM restored the scene
             _dm.SetActive(_dmActivateJson.val);
             _body.DollmasterOwnsBody = () => _dm != null && _dm.Active;
+            _dm.PlaceGuard = () => _body != null ? _body.PoseGuard : null;   // version 56: montages keep her place
             ShowDollmasterMenu(_tab == DollmasterTab);
             _diag.Step("Dollmaster ready on '" + person.uid + "' (" + (_dmActivateJson.val ? "active" : "off") + ")"
                 + (_dm.Problem.Length > 0 ? ": " + _dm.Problem : ""));
