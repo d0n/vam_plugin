@@ -14,7 +14,7 @@ class IdlePoseControlTests(unittest.TestCase):
     def test_section_order(self):
         tab = method_body(BODY, "public void BuildCharacterTab(UiPage page)")
         order = ['"<b>Idle poses</b>"', "Toggle(_idlePosesJson)", "ScrollablePopup(_idlePoseDefaultJson)",
-                 '"Apply idle default pose"', "Slider(_idlePoseMinJson)", "Slider(_idlePoseMaxJson)"]
+                 '"Apply idle default pose"', "Slider(_idlePoseIntervalJson)"]   # version 59: one slider
         positions = [tab.index(x) for x in order]
         self.assertEqual(positions, sorted(positions))
 

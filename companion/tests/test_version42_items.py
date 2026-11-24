@@ -63,7 +63,7 @@ class PoseMenuTests(TestCase):
         chosen = method_body(self.body, "private void OnPoseCommandChosen(string command)")
         self.assertIn("if (_syncingPoseMenu", chosen)
         self.assertNotIn("ApplyPoseCommand(command)", chosen)
-        self.assertIn("_poses.ApplyPose(pose)", method_body(self.body, "private void ApplyPoseCommand(string command)"))
+        self.assertIn("_poses.ApplyCommand(entry)", method_body(self.body, "private void ApplyPoseCommand(string command)"))
         quiet = method_body(self.body, "private void SelectPoseCommandQuietly(string command)")
         self.assertIn("_syncingPoseMenu = true", quiet)
         self.assertIn("finally", quiet)

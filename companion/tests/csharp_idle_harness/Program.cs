@@ -25,8 +25,9 @@ public static class Program
             foreach (JsonElement p in a.GetProperty("poses").EnumerateArray()) poses.Add(p.GetString());
             IdlePoseScheduler s = new IdlePoseScheduler(7);
             s.DefaultPose = a.GetProperty("default").GetString();
-            s.MinSeconds = (float)a.GetProperty("min").GetDouble();
-            s.MaxSeconds = (float)a.GetProperty("max").GetDouble();
+            // version 59: one interval (+/- 25 % jitter); old min/max cases are migrated to their mean
+            if (a.TryGetProperty("interval", out JsonElement iv) && iv.ValueKind != JsonValueKind.Null) s.IntervalSeconds = (float)iv.GetDouble();
+            else s.IntervalSeconds = IdlePoseScheduler.MigrateInterval((float)a.GetProperty("min").GetDouble(), (float)a.GetProperty("max").GetDouble());
             if (a.TryGetProperty("enabled", out JsonElement en)) s.Enabled = en.GetBoolean();
             List<string> fail = new List<string>();
             if (a.TryGetProperty("fail", out JsonElement fl)) foreach (JsonElement f in fl.EnumerateArray()) fail.Add(f.GetString());

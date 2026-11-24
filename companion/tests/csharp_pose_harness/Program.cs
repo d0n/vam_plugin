@@ -44,6 +44,7 @@ public static class Program
                     else if (what == "remove") messages.Add(v.Remove(S(step, 1)) ? "removed" : "missing");
                     else if (what == "restore") messages.Add("restored " + v.RestoreStarters());
                     else if (what == "clear") { v.Clear(); messages.Add("cleared"); }
+                    else if (what == "migrate") messages.Add(v.MigrateBuiltIns() ? "migrated" : "unchanged");   // version 59
                     else if (what == "match") { PoseCommand m = v.Match(S(step, 1)); messages.Add(m == null ? "-" : m.Command + ">" + m.Pose); }
                     else if (what == "byid") { PoseCommand m = v.FindByPoseId(S(step, 1)); messages.Add(m == null ? "-" : m.Command); }
                 }

@@ -149,7 +149,9 @@ class ResetToDefaultTests(TestCase):
                                                      # version 55: mute toggle, a trigger hook (not saved, reset by ResetMute)
                                                      "_mutedJson",
                                                      # tab Dollmaster: saved with the scene like the old plugin's settings
-                                                     "_dmActivateJson"]))
+                                                     "_dmActivateJson",
+                                                     # version 59: old idle min / max, only to migrate old scenes
+                                                     "_idlePoseMinJson", "_idlePoseMaxJson"]))
         self.assertIn("Defaults.TrackColor(BackgroundColorName, _backgroundColorJson.val);", self.plugin)
         wizard = source("CharacterWizard.cs")
         for name in ("_askedJson", "_wantedJson"):

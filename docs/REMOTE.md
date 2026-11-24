@@ -40,12 +40,12 @@ POST bodies are JSON objects (`Content-Type: application/json`, at most 16 KB). 
 
 | Call | Parameters | What happens |
 |---|---|---|
-| `GET /api/status` | | plugin connected, link, mode, last turn status, microphone, persona, the lists of expressions / gestures / pose commands (`poses` = available, `poses_unavailable`) / gaze atoms, the last remote action |
+| `GET /api/status` | | plugin connected, link, mode, last turn status, microphone, persona, the lists of expressions / gestures / pose commands (`poses` = every command; version 59: no `poses_unavailable`, a missing pose gets a substitute) / gaze atoms, the last remote action |
 | `POST /api/say` | `text`, `interrupt` (false) | speaks exactly this text (text to speech, no language model); `interrupt: true` cuts in with the first sentence |
 | `POST /api/ask` | `text` | asked like typed text: language model, speech, body tools |
 | `POST /api/expression` | `name`, `intensity` (1.0), `blend` (0.4 s), `hold` (seconds, optional) | shows the expression |
 | `POST /api/gesture` | `name` | plays the gesture |
-| `POST /api/pose` | `name` | runs a **pose command** (version 32): `name` is the command text (e.g. `Sit Down`) and goes through the same exact-match gate as typed input; anything else (`please sit down`, a pose name that is not a command) is refused and logged; an unavailable command is refused too |
+| `POST /api/pose` | `name` | runs a **pose command** (version 32): `name` is the command text (e.g. `Sit Down`) and goes through the same exact-match gate as typed input; anything else (`please sit down`, a pose name that is not a command) is refused and logged; version 59: every command runs (a missing or broken pose gets a substitute pose in the plugin) |
 | `POST /api/look` | `target` (`client`, `camera`, `forward`, `away`, `off`, `atom`), `atom` (atom name), `seconds` (0 = until changed) | directs the eyes |
 | `POST /api/stop` | | stops speaking and drops the answer being prepared |
 | `POST /api/event` | `text` | tells the AI about a scene event (like the plugin's *Scene event*) |

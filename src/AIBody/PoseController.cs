@@ -206,16 +206,16 @@ namespace AIBody
         public string LastJsonPose { get; private set; }
         public string LastJsonCommand { get; private set; }
 
-        /// <summary>Version 58: picks the pose for a built-in command whose own pose is missing (Body: a random pose of the
-        /// idle pool, else the idle default pose); null = none.</summary>
+        /// <summary>Version 58/59: picks the substitute for a command whose own pose is missing or broken (Body: a random pose
+        /// of the idle pool, else the idle default pose); null = none.</summary>
         public Func<PoseCommand, string> SubstituteFor;
         /// <summary>Version 58: the last ApplyPoseJson used a substitute pose.</summary>
         public bool LastJsonSubstitute { get; private set; }
 
         /// <summary>
         /// The companion app's answer to a pose command: {"pose":"<id>"}. Parsed strictly, the id must belong to a command
-        /// of this vocabulary and the character must have that pose (version 58: or a built-in command gets a substitute pose);
-        /// otherwise nothing is applied. Returns an error
+        /// of this vocabulary (version 59: a missing or broken pose gets a substitute pose, ApplyCommand); otherwise nothing is
+        /// applied. Returns an error
         /// message (the caller logs a short warning), or null on success.
         /// </summary>
         public string ApplyPoseJson(string json)
@@ -225,17 +225,55 @@ namespace AIBody
             if (error != null) return error;
             PoseCommand entry = Vocabulary.FindByPoseId(pose);
             if (entry == null) return "'" + pose + "' is not a pose of the pose vocabulary";
-            string actual = PoseVocabulary.Resolve(entry, PoseNames);
-            LastJsonSubstitute = false;
-            if (actual == null && SubstituteFor != null && PoseVocabulary.IsBuiltIn(entry))
-            {
-                actual = SubstituteFor(entry);   // version 58: a built-in command without its pose file
-                LastJsonSubstitute = actual != null;
-            }
-            if (actual == null) return "pose command '" + entry.Command + "' is unavailable: the character has no pose '" + entry.Pose + "'";
-            LastJsonPose = actual;
+            return ApplyCommand(entry);
+        }
+
+        /// <summary>Version 59: how many substitute poses a command tries when they fail too (each failure is dropped).</summary>
+        public const int MaxSubstituteTries = 5;
+        /// <summary>Version 59: why the command's own pose was not used, when LastJsonSubstitute ("" otherwise).</summary>
+        public string LastJsonProblem { get; private set; }
+        /// <summary>Version 59: a pose file that failed to load (Body drops it from the idle pool for the session).</summary>
+        public Action<string> OnPoseBroken;
+
+        /// <summary>
+        /// Version 59: ONE failover for every pose command (built-in or the user's own; spoken, typed, realtime or Apply
+        /// Pose): its pose is loaded; when that pose is missing or its file is broken, a substitute (SubstituteFor: a random
+        /// idle-pool pose without failed files and without the current pose, else the Idle default pose) is loaded instead.
+        /// There is no "unavailable" command. Returns null when a pose was applied (LastJsonPose, LastJsonSubstitute).
+        /// </summary>
+        public string ApplyCommand(PoseCommand entry)
+        {
+            if (entry == null) return "no pose command";
             LastJsonCommand = entry.Command;
-            return ApplyPose(actual);
+            LastJsonSubstitute = false;
+            LastJsonProblem = "";
+            string actual = PoseVocabulary.Resolve(entry, PoseNames);
+            string problem = actual == null ? "this character has no pose '" + entry.Pose + "'" : TryApply(actual);
+            if (problem == null) { LastJsonPose = actual; return null; }
+            if (actual != null && OnPoseBroken != null) OnPoseBroken(actual);
+            for (int i = 0; i < MaxSubstituteTries && SubstituteFor != null; i++)
+            {
+                string sub = SubstituteFor(entry);
+                if (sub == null) break;
+                string subProblem = TryApply(sub);
+                if (subProblem == null)
+                {
+                    LastJsonPose = sub;
+                    LastJsonSubstitute = true;
+                    LastJsonProblem = problem;
+                    return null;
+                }
+                if (OnPoseBroken != null) OnPoseBroken(sub);
+                else break;
+            }
+            return "pose command '" + entry.Command + "': " + problem + ", and no other pose could be loaded instead";
+        }
+
+        /// <summary>Version 59: loads one pose; null = ok, else why not (missing file, load error, exception).</summary>
+        private string TryApply(string name)
+        {
+            try { return PoseFileProblem(name) ?? ApplyPose(name); }
+            catch (Exception e) { return "loading '" + name + "' failed: " + e.Message; }
         }
 
         /// <summary>Applies a pose by name (gestures.json pose, else a listed preset file). Only for the menu button and ApplyPoseJson.</summary>

@@ -1262,32 +1262,26 @@ class Companion:
         return as_bool(self.body_info.get("body_control", True)) is not False
 
     def pose_decision(self, text: str, exact: bool = False) -> PoseDecision | None:
-        """None = the input is no pose command (it goes on to the AI as usual). Otherwise what to do: the pose command
-        when the pose exists on the character, or just a status line (unavailable). Never a spoken reply: a body command
-        is an action, not a conversation; it needs no network or language model and nothing talks over the pose."""
+        """None = the input is no pose command (it goes on to the AI as usual). Otherwise the pose command for the plugin
+        (version 59: always - there is no "unavailable" command; a missing or broken pose file gets a substitute pose
+        in the plugin). Never a spoken reply for the command itself: a body command is an action, not a conversation."""
         vocabulary = self.pose_vocabulary()
-        # version 58 (Don 16:07): the command may be part of a longer sentence ("please sit down now"); exact = only the
-        # whole input (remote control names a command)
+        # version 58: the command may be part of a longer sentence ("please sit down now"); exact = only the whole input
+        # (remote control names a command)
         entry, rest = (vocabulary.match(text), 0) if exact else vocabulary.find(text)
         if entry is None:
             return None
-        names = self.pose_names()
-        actual = vocabulary.resolve(entry, names)
-        if actual is None and pose_commands.is_builtin(entry):
-            # version 58 (Don 23.11.): a built-in command without its pose file: the plugin applies a substitute pose
-            command = self.body_command("pose", json=vocabulary.reply_json(entry), command=entry["command"])
-            log.info("Pose command '%s' -> %s (no pose '%s' on the character: the plugin uses a substitute)",
-                     entry["command"], command["json"], entry["pose"])
-            return PoseDecision(entry, True, [("command", command), ("status", f"Pose command: {entry['command']} "
-                                                                      f"(no pose '{entry['pose']}': substitute pose)")], rest)
-        if actual is None:
-            message = (f"Pose command '{entry['command']}' is unavailable: the character has no pose '{entry['pose']}' "
-                       "(add a pose file or link the command to another pose with 'Add Pose')")
-            log.warning(message)
-            return PoseDecision(entry, False, [("status", message)], rest)
+        actual = vocabulary.resolve(entry, self.pose_names())
         command = self.body_command("pose", json=vocabulary.reply_json(entry), command=entry["command"])
-        log.info("Pose command '%s' -> %s", entry["command"], command["json"])
-        return PoseDecision(entry, True, [("command", command), ("status", f"Pose command: {entry['command']} ({actual})")], rest)
+        if actual is None:
+            # version 59: one failover for every command: the plugin loads a random idle-pool pose (or the Idle default pose)
+            log.info("Pose command '%s' -> %s (no pose '%s' on the character: the plugin uses a substitute pose)",
+                     entry["command"], command["json"], entry["pose"])
+            status = f"Pose command: {entry['command']} (no pose '{entry['pose']}': substitute pose)"
+        else:
+            log.info("Pose command '%s' -> %s", entry["command"], command["json"])
+            status = f"Pose command: {entry['command']} ({actual})"
+        return PoseDecision(entry, True, [("command", command), ("status", status)], rest)
 
     def pose_command(self, text: str) -> tuple[bool, str]:
         """Runs a pose command given as text (remote control, realtime transcript): the same gate as typed or spoken input."""
@@ -1298,7 +1292,7 @@ class Companion:
             return False, f"{text!r} is not a pose command"
         for step in decision.steps:
             self._apply(step)
-        return decision.ok, "" if decision.ok else str(decision.steps[0][1])
+        return True, ""   # version 59: a pose command always runs (substitute pose for a missing / broken file)
 
     def say_text(self, text: str, interrupt: bool = False) -> None:
         """Speaks exactly this text (remote control): text to speech -> VaM, no language model. Runs like a turn

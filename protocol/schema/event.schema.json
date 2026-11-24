@@ -323,9 +323,6 @@
           },
           "pose": {
             "type": "string"
-          },
-          "available": {
-            "type": "boolean"
           }
         },
         "required": [

@@ -35,11 +35,12 @@ DESCRIPTIONS = {
     ("poses",): "Tab 'AI Character', section 'Pose commands' (version 32): the ONLY way a pose is applied. A pose is applied "
                 "when the user's input contains a command text as whole words (version 58: also inside a sentence, case and "
                 "punctuation ignored, not after a negation such as don't / never; the longest command wins). Written by the plugin ('Add Pose' / 'Delete Pose')",
-    ("poses", "commands"): "List of {command, pose}: command = the text the user says or types (ten starter commands by default); "
+    ("poses", "commands"): "List of {command, pose}: command = the text the user says or types (the eleven built-in commands by default); "
                            "pose = id of a pose of the character (gestures.json pose or pose file; names compare ignoring case, "
-                           "spaces, '_' and '-'). A command whose pose does not exist stays in the list, is shown as unavailable "
-                           "and is never applied; version 58: a built-in (starter) command still linked to the pose of its own "
-                           "name uses a substitute pose of the idle pool instead. Missing key, empty list or a list without one usable entry = the ten starters "
+                           "spaces, '_' and '-'). Version 59: every command runs; when its pose is missing or its file is broken, "
+                           "a random pose of the idle pool is loaded instead (failed files and the current pose skipped), else "
+                           "idle_pose_default. v32-v58 starter commands still linked to their own pose are replaced by the "
+                           "version 59 built-in commands. Missing key, empty list or a list without one usable entry = the built-in commands "
                            "(version 35)",
     ("setup",): "First-start questions of the companion app (version 36, file only, no tab; the plugin only reads it). "
                 "Asked once in the app's console; 'python -m aibody_companion --setup' asks again. Two independent points: "
@@ -67,8 +68,9 @@ DESCRIPTIONS = {
     ("body", "idle_poses_all_files"): "Toggle 'Idle poses from all pose files' (version 54, default off): off = idle poses "
                                       "use Custom/Atom/Person/Pose/AIBody plus the pose-command poses and idle_pose_default; "
                                       "on = every pose file of the library",
-    ("body", "idle_pose_min_s"): "Slider 'Idle pose min wait (s)': shortest quiet time before an idle pose change (10-1800)",
-    ("body", "idle_pose_max_s"): "Slider 'Idle pose max wait (s)': longest quiet time before an idle pose change (10-1800)",
+    ("body", "idle_pose_interval_s"): "Slider 'Idle pose interval (s)' (version 59): quiet time before an idle pose change; "
+                                      "each wait is this value +/- 25 % at random (30-18000, default 165). Old "
+                                      "idle_pose_min_s / idle_pose_max_s are migrated to their mean",
     ("body", "idle_pose_default"): "Menu 'Idle default pose': the pose the character returns to between idle poses "
                                    "(a pose name of the character; not found = no return pose)",
     ("remote",): "Remote control (version 31, file only, no tab; the plugin keeps this section unchanged): a local web page / "

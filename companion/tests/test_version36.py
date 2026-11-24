@@ -575,7 +575,7 @@ class MenuLayoutTests(unittest.TestCase):
                           "BuildAiSection", '"<b>Voice and sound</b>"', "BuildVoiceSection", "BuildSoundSection",
                           "BuildConfigTab", '"<b>Logging</b>"', "_verboseJson", '"<b>Background</b>"', "BuildBackgroundSection"])
         char = method_body(source("Body.cs"), "public void BuildCharacterTab(UiPage page)")
-        self.order(char, ["Characters.Build(page)", '"<b>Body control</b>"', "_bodyControlJson", '"<b>Idle poses</b>"', "_idlePosesJson", "_idlePoseMaxJson",
+        self.order(char, ["Characters.Build(page)", '"<b>Body control</b>"', "_bodyControlJson", '"<b>Idle poses</b>"', "_idlePosesJson", "_idlePoseIntervalJson",
                           '"<b>Idle motion and breathing</b>"', "_idleJson", "_breathingJson", "_breathRateJson", "_breathDepthJson",
                           '"<b>Expression and gesture</b>"', '"<b>Poses</b>"'])
         # version 47 (Don 22.11.2026): no "Breath morph" header / "Breath1" input box in the menu any more

@@ -452,7 +452,7 @@
           "default": false,
           "description": "Toggle 'Idle poses from all pose files' (version 54, default off): off = idle poses use Custom/Atom/Person/Pose/AIBody plus the pose-command poses and idle_pose_default; on = every pose file of the library"
         },
-        "idle_pose_min_s": {
+        "idle_pose_interval_s": {
           "anyOf": [
             {
               "type": "number",
@@ -464,23 +464,8 @@
               "pattern": "^\\s*-?[0-9]+(\\.[0-9]+)?([eE][-+]?[0-9]+)?\\s*$"
             }
           ],
-          "default": 30.0,
-          "description": "Slider 'Idle pose min wait (s)': shortest quiet time before an idle pose change (10-1800)"
-        },
-        "idle_pose_max_s": {
-          "anyOf": [
-            {
-              "type": "number",
-              "minimum": 30.0,
-              "maximum": 18000.0
-            },
-            {
-              "type": "string",
-              "pattern": "^\\s*-?[0-9]+(\\.[0-9]+)?([eE][-+]?[0-9]+)?\\s*$"
-            }
-          ],
-          "default": 300.0,
-          "description": "Slider 'Idle pose max wait (s)': longest quiet time before an idle pose change (10-1800)"
+          "default": 165.0,
+          "description": "Slider 'Idle pose interval (s)' (version 59): quiet time before an idle pose change; each wait is this value +/- 25 % at random (30-18000, default 165). Old idle_pose_min_s / idle_pose_max_s are migrated to their mean"
         },
         "idle_pose_default": {
           "type": "string",
@@ -603,39 +588,43 @@
               "pose": "Lay Down"
             },
             {
-              "command": "Prone",
-              "pose": "Prone"
+              "command": "Turn Around",
+              "pose": "Turn Around"
             },
             {
               "command": "Stand Up",
               "pose": "Stand Up"
             },
             {
-              "command": "Spread Your Legs",
-              "pose": "Spread Your Legs"
+              "command": "Prone",
+              "pose": "Prone"
             },
             {
-              "command": "Ankle Your Knees",
-              "pose": "Ankle Your Knees"
+              "command": "Crawl",
+              "pose": "Crawl"
             },
             {
-              "command": "Ankle Your Elbows",
-              "pose": "Ankle Your Elbows"
+              "command": "Get On Your Knees",
+              "pose": "Get On Your Knees"
             },
             {
-              "command": "Turn Around",
-              "pose": "Turn Around"
+              "command": "Handstand",
+              "pose": "Handstand"
             },
             {
-              "command": "Crawl on all fours",
-              "pose": "Crawl on all fours"
+              "command": "Headstand",
+              "pose": "Headstand"
             },
             {
-              "command": "Bend Over",
-              "pose": "Bend Over"
+              "command": "Stand On Your Right Leg",
+              "pose": "Stand On Your Right Leg"
+            },
+            {
+              "command": "Stand On Your Left Leg",
+              "pose": "Stand On Your Left Leg"
             }
           ],
-          "description": "List of {command, pose}: command = the text the user says or types (ten starter commands by default); pose = id of a pose of the character (gestures.json pose or pose file; names compare ignoring case, spaces, '_' and '-'). A command whose pose does not exist stays in the list, is shown as unavailable and is never applied; version 58: a built-in (starter) command still linked to the pose of its own name uses a substitute pose of the idle pool instead. Missing key, empty list or a list without one usable entry = the ten starters (version 35)"
+          "description": "List of {command, pose}: command = the text the user says or types (the eleven built-in commands by default); pose = id of a pose of the character (gestures.json pose or pose file; names compare ignoring case, spaces, '_' and '-'). Version 59: every command runs; when its pose is missing or its file is broken, a random pose of the idle pool is loaded instead (failed files and the current pose skipped), else idle_pose_default. v32-v58 starter commands still linked to their own pose are replaced by the version 59 built-in commands. Missing key, empty list or a list without one usable entry = the built-in commands (version 35)"
         }
       },
       "description": "Tab 'AI Character', section 'Pose commands' (version 32): the ONLY way a pose is applied. A pose is applied when the user's input contains a command text as whole words (version 58: also inside a sentence, case and punctuation ignored, not after a negation such as don't / never; the longest command wins). Written by the plugin ('Add Pose' / 'Delete Pose')"

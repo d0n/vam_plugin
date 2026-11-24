@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "written_by": "AIBody companion app 58 (example)",
+  "written_by": "AIBody companion app 59 (example)",
   "connection": {
     "active": true,
     "network_active": true,
@@ -42,8 +42,7 @@
     "breath_morph": "Breath1",
     "idle_poses": true,
     "idle_poses_all_files": false,
-    "idle_pose_min_s": 30.0,
-    "idle_pose_max_s": 300.0,
+    "idle_pose_interval_s": 165.0,
     "idle_pose_default": "Stand Up"
   },
   "advanced": {
@@ -65,36 +64,40 @@
         "pose": "Lay Down"
       },
       {
-        "command": "Prone",
-        "pose": "Prone"
+        "command": "Turn Around",
+        "pose": "Turn Around"
       },
       {
         "command": "Stand Up",
         "pose": "Stand Up"
       },
       {
-        "command": "Spread Your Legs",
-        "pose": "Spread Your Legs"
+        "command": "Prone",
+        "pose": "Prone"
       },
       {
-        "command": "Ankle Your Knees",
-        "pose": "Ankle Your Knees"
+        "command": "Crawl",
+        "pose": "Crawl"
       },
       {
-        "command": "Ankle Your Elbows",
-        "pose": "Ankle Your Elbows"
+        "command": "Get On Your Knees",
+        "pose": "Get On Your Knees"
       },
       {
-        "command": "Turn Around",
-        "pose": "Turn Around"
+        "command": "Handstand",
+        "pose": "Handstand"
       },
       {
-        "command": "Crawl on all fours",
-        "pose": "Crawl on all fours"
+        "command": "Headstand",
+        "pose": "Headstand"
       },
       {
-        "command": "Bend Over",
-        "pose": "Bend Over"
+        "command": "Stand On Your Right Leg",
+        "pose": "Stand On Your Right Leg"
+      },
+      {
+        "command": "Stand On Your Left Leg",
+        "pose": "Stand On Your Left Leg"
       }
     ]
   },

@@ -219,8 +219,8 @@ class RemoteControl:
                 "persona": app.persona_in_use,
                 "expressions": list(lists.expressions),
                 "gestures": list(lists.gestures),
-                "poses": [e["command"] for e in vocabulary.available(pose_names)],  # pose commands that can run
-                "poses_unavailable": [e["command"] for e in vocabulary.unavailable(pose_names)],
+                # version 59: every pose command runs (a missing or broken pose file gets a substitute pose)
+                "poses": [e["command"] for e in vocabulary.entries],
                 "last_action": dict(self._last_action),
                 "actions": dict(ACTIONS),
             }

@@ -85,9 +85,10 @@ class MenuTests(unittest.TestCase):
         self.assertIn("_poses.ApplyPose(pose)", method_body(self.body, "private void ApplyIdleDefaultPose()"))
 
     def test_dollmaster_poses_the_body_alone(self):
-        for sig in ("private void ApplyPoseCommand(string command)", "private void ApplyIdleDefaultPose()"):
+        for sig, call in (("private void ApplyPoseCommand(string command)", "_poses.ApplyCommand(entry)"),   # version 59
+                          ("private void ApplyIdleDefaultPose()", "_poses.ApplyPose(pose)")):
             m = method_body(self.body, sig)
-            self.assertLess(m.index("if (DollmasterOwns)"), m.index("_poses.ApplyPose(pose)"), sig)
+            self.assertLess(m.index("if (DollmasterOwns)"), m.index(call), sig)
         self.assertIn("turn Activate off to use pose commands", self.body)
 
     def test_help_text(self):

@@ -232,8 +232,7 @@ class FakePlugin:
         return {"atom": "Person", "speaking": bool(self.playing), "speech_queue": len(self.playing),
                 "expression": "neutral", "expressions": list(self.expressions),
                 "gestures": ["nod", "shake", "tilt", *self.poses], "poses": list(self.poses),
-                "pose_commands": [{**e, "available": pose_commands.PoseVocabulary.resolve(e, self.poses) is not None}
-                                  for e in self.pose_commands],
+                "pose_commands": [dict(e) for e in self.pose_commands],   # version 59: no "available" field
                 "body_control": self.body_control, "selftest": dict(self.selftest),
                 "channel": self.channel, "plugin_version": PLUGIN_VERSION}
 

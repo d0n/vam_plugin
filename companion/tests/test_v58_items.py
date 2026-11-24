@@ -1,6 +1,8 @@
 """Version 58 (Don, voice 24.11.2026 16:07-16:09, explicit go): pose commands inside a sentence (pose_commands.find,
 German phrases for the built-in commands, negations ignored), a substitute pose for built-in commands without their
-pose file, and no empty dropdown after Reset to Default (Pose command, gender, Dollmaster Thrust Control)."""
+pose file, and no empty dropdown after Reset to Default (Pose command, gender, Dollmaster Thrust Control).
+Version 59 replaced the built-in set, dropped the German phrases and made the substitute pose the failover of every
+command; these tests follow that (test_v59_items has the new cases)."""
 from __future__ import annotations
 
 import unittest
@@ -32,14 +34,12 @@ class SentenceMatchTests(unittest.TestCase):
     def test_command_inside_a_sentence(self):
         for text, want in (("please sit down now", "Sit Down"), ("Sit Down", "Sit Down"), ("sit down, please!", "Sit Down"),
                            ("Hey, could you stand up?", "Stand Up"), ("SIT-DOWN", "Sit Down"),
-                           ("okay crawl on all fours now", "Crawl on all fours"), ("now just turn around", "Turn Around")):
+                           ("okay get on your knees now", "Get On Your Knees"), ("now just turn around", "Turn Around")):
             self.assertEqual(self.found(text), want, text)
 
-    def test_german_phrases_of_the_builtin_commands(self):
-        for text, want in (("kannst du dich hinsetzen", "Sit Down"), ("setz dich bitte", "Sit Down"), ("leg dich hin", "Lay Down"),
-                           ("steh auf", "Stand Up"), ("dreh dich um", "Turn Around"), ("bück dich", "Bend Over"),
-                           ("leg dich auf den bauch", "Prone")):
-            self.assertEqual(self.found(text), want, text)
+    def test_german_phrases_are_gone_since_version_59(self):
+        for text in ("kannst du dich hinsetzen", "setz dich bitte", "leg dich hin", "steh auf", "dreh dich um"):
+            self.assertIsNone(self.found(text), text)
 
     def test_whole_words_only_and_negations(self):
         for text in ("I like sitting down", "stand upstairs", "sitdown", "don't sit down", "do not sit down", "never stand up",
@@ -48,7 +48,7 @@ class SentenceMatchTests(unittest.TestCase):
             self.assertIsNone(self.found(text), repr(text))
 
     def test_longest_command_wins_then_the_later_one(self):
-        self.assertEqual(self.found("leg dich auf den bauch"), "Prone", "3 words beat 2")
+        self.assertEqual(self.found("stand on your left leg and prone"), "Stand On Your Left Leg", "5 words beat 1")
         self.assertEqual(self.found("sit down and then stand up"), "Stand Up", "same length: the later one")
 
     def test_rest_decides_whether_the_ai_hears_the_sentence(self):
@@ -80,7 +80,7 @@ class SentenceChainTests(tpc.Chain):
 
     def test_command_with_fillers_only_is_just_the_command(self):
         self.start(poses=pose_commands.STARTER_COMMANDS)
-        self.ask("Kannst du dich bitte hinsetzen?")
+        self.ask("Could you please sit down?")
         self.assertEqual([p["json"] for p in self.poses_sent()], ['{"pose":"Sit Down"}'])
         self.assertEqual(self.requests(), [])
 
@@ -103,7 +103,8 @@ class RealtimeAndPluginTests(unittest.TestCase):
 
     def test_substitute_pose_in_the_plugin(self):
         pose = method_body(src("PoseController.cs"), "public string ApplyPoseJson(string json)")
-        self.assertIn("SubstituteFor != null && PoseVocabulary.IsBuiltIn(entry)", pose)
+        self.assertIn("return ApplyCommand(entry);", pose)   # version 59: one failover for every command
+        self.assertIn("SubstituteFor(entry)", method_body(src("PoseController.cs"), "public string ApplyCommand(PoseCommand entry)"))
         body = src("Body.cs")
         self.assertIn("_poses.SubstituteFor = SubstitutePose;", body)
         sub = method_body(body, "public string SubstitutePose(PoseCommand entry)")
@@ -113,7 +114,7 @@ class RealtimeAndPluginTests(unittest.TestCase):
         self.assertIn("Log.Info(", sub)
         self.assertIn("used '\" + _poses.LastJsonPose + \"' instead (substitute)", body, "status line names the pose")
         menu = method_body(body, "private void ApplyPoseCommand(string command)")
-        self.assertIn("PoseVocabulary.IsBuiltIn(entry)", menu, "Apply Pose uses the substitute too")
+        self.assertIn("_poses.ApplyCommand(entry)", menu, "Apply Pose uses the substitute too")
         self.assertIn("uses another pose (substitute)", body)
 
 

@@ -9,7 +9,7 @@ README.md section 4. Categories (kept from the first schema; they no longer matc
   engines     stt, llm, tts (tab Voice > AI Character)
   mic         microphone + push-to-talk settings (tab Client Character; audio/mic_settings.py)
   body        speech_volume, full_volume_distance, body_control, idle_motion, idle_intensity, breathing,
-              breaths_per_minute, breath_depth, breath_morph, idle_poses, idle_poses_all_files, idle_pose_min_s, idle_pose_max_s, idle_pose_default
+              breaths_per_minute, breath_depth, breath_morph, idle_poses, idle_poses_all_files, idle_pose_interval_s, idle_pose_default
               (tab AI Character)
   advanced    file_poll_interval_s (slider "Companion inbox poll interval (s)": how often the
               plugin reads the companion inbox, not config.json), verbose_log (tab Config)
@@ -114,15 +114,15 @@ DEFAULTS: dict[str, dict[str, Any]] = {
         "breaths_per_minute": 14.0,
         "breath_depth": 0.35,
         "breath_morph": "Breath1",
-        # Idle poses (version 35): after idle_pose_min_s..idle_pose_max_s seconds without speech or a pose command the
+        # Idle poses (version 35): after about idle_pose_interval_s seconds (version 59) without speech or a pose command the
         # character takes a random pose of all its poses (version 51; idle_pose_default is one of them, never twice in a row).
         "idle_poses": True,
         # version 54 (Don 23:31): idle poses use Custom/Atom/Person/Pose/AIBody (+ pose-command poses and idle_pose_default);
         # true = every pose file of the library again (as in v51-v53)
         "idle_poses_all_files": False,
-        # version 51 (Don 20:38-20:51): random pose of ALL poses, every idle_pose_min_s..idle_pose_max_s seconds
-        "idle_pose_min_s": 30.0,
-        "idle_pose_max_s": 300.0,
+        # version 59: one interval, each wait = interval +/- 25 % at random (default 165 s = the mean of v51's 30 / 300 s);
+        # a config.json with the old idle_pose_min_s / idle_pose_max_s gets their mean (migrate_idle_interval)
+        "idle_pose_interval_s": 165.0,
         "idle_pose_default": "Stand Up",  # a pose name of the character; not found = no return pose
     },
     "advanced": {"file_poll_interval_s": 0.1, "verbose_log": False},
@@ -280,8 +280,7 @@ RANGES: dict[tuple[str, str], tuple[float, float]] = {
     ("body", "idle_intensity"): (0.0, 1.0),
     ("body", "breaths_per_minute"): (4.0, 40.0),
     ("body", "breath_depth"): (0.0, 1.0),
-    ("body", "idle_pose_min_s"): (30.0, 18000.0),   # version 51: 30 s to 300 min
-    ("body", "idle_pose_max_s"): (30.0, 18000.0),
+    ("body", "idle_pose_interval_s"): (30.0, 18000.0),   # version 59 (version 51 min / max: 30 s to 300 min)
     ("advanced", "file_poll_interval_s"): (0.02, 2.0),
     ("ai", "xai", "max_output_tokens"): (16, 8000),
     ("ai", "xai", "speed"): (0.7, 1.5),
@@ -430,6 +429,25 @@ def _merge(path: tuple[str, ...], default: dict[str, Any], data: dict[str, Any],
     return result
 
 
+OLD_IDLE_MIN_S, OLD_IDLE_MAX_S = 30.0, 300.0
+
+
+def migrate_idle_interval(body: dict[str, Any]) -> dict[str, Any]:
+    """Version 59: body.idle_pose_min_s / idle_pose_max_s (v51-v58) become idle_pose_interval_s = their mean (the plugin
+    does the same, IdlePoseScheduler.MigrateInterval); an existing idle_pose_interval_s wins. Returns a new dict."""
+    if "idle_pose_min_s" not in body and "idle_pose_max_s" not in body:
+        return body
+    out = {k: v for k, v in body.items() if k not in ("idle_pose_min_s", "idle_pose_max_s")}
+    if "idle_pose_interval_s" not in out:
+        lo, hi = as_number(body.get("idle_pose_min_s", OLD_IDLE_MIN_S)), as_number(body.get("idle_pose_max_s", OLD_IDLE_MAX_S))
+        if lo is None:
+            lo = OLD_IDLE_MIN_S
+        if hi is None:
+            hi = OLD_IDLE_MAX_S
+        out["idle_pose_interval_s"] = min(18000.0, max(30.0, (float(lo) + float(hi)) / 2.0))
+    return out
+
+
 def validate(data: Any) -> tuple[dict[str, Any], list[str]]:
     """Returns (settings with defaults filled in and bad values replaced, problems)."""
     result = defaults()
@@ -455,12 +473,15 @@ def validate(data: Any) -> tuple[dict[str, Any], list[str]]:
             if "commands" in section:
                 commands, pose_errors = pose_commands.validate_entries(section["commands"])
                 # version 35: an empty (or unusable) list = the starter commands, never an empty vocabulary
-                result["poses"] = {"commands": commands or pose_commands.starter_entries()}
+                # version 59: v32-v58 starter commands become the new built-in set (pose_commands.migrate_builtins)
+                result["poses"] = {"commands": pose_commands.migrate_builtins(commands) or pose_commands.starter_entries()}
                 errors += pose_errors
             for key in section:
                 if key != "commands":
                     errors.append(f"poses: unknown key {key!r}")
             continue
+        if cat == "body":
+            section = migrate_idle_interval(section)
         result[cat] = _merge((cat,), DEFAULTS[cat], section, errors)
     if "version" in data and as_number(data["version"]) != VERSION:
         errors.append(f"version {data['version']!r} is not {VERSION}; reading what is compatible")

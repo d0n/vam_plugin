@@ -24,8 +24,8 @@ class ApplyPoseButtonTests(unittest.TestCase):
         chosen = method_body(BODY, "private void OnPoseCommandChosen(string command)")
         self.assertNotIn("ApplyPoseCommand(command);", chosen, "version 52: choosing only selects, Apply Pose applies")
         apply = method_body(BODY, "private void ApplyPoseCommand(string command)")
-        for part in ("_poses.Vocabulary.Match(command)", "PoseVocabulary.Resolve(entry, _poses.PoseNames)",
-                     "_poses.ApplyPose(pose)", "_idlePoses.NoteUserPose()"):
+        for part in ("_poses.Vocabulary.Match(command)", "_poses.ApplyCommand(entry)",   # version 59: shared failover
+                     "_idlePoses.NoteUserPose()"):
             self.assertIn(part, apply)
 
     def test_help_in_the_left_field(self):

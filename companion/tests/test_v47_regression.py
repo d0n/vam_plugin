@@ -108,7 +108,7 @@ class BreathMorphBoxesTests(TestCase):
 
 
 class SceneThumbnailTests(TestCase):
-    def test_leons_thumbnail_is_the_one(self):
+    def test_the_shipped_thumbnail_is_the_one(self):
         thumb = (ROOT / "examples" / "scenes" / "AI-Buddy.jpg").read_bytes()
         self.assertEqual(len(thumb), 9280)
         self.assertTrue(thumb.startswith(b"\xff\xd8"))
@@ -144,7 +144,7 @@ class SceneThumbnailTests(TestCase):
             with zipfile.ZipFile(other, "w") as z:
                 z.writestr("meta.json", meta)
                 z.writestr(build_var.SCENE_PATH, "{}")
-                z.writestr(build_var.SCENE_THUMB_PATH, b"\xff\xd8not leons\xff\xd9")
+                z.writestr(build_var.SCENE_THUMB_PATH, b"\xff\xd8not a jpeg\xff\xd9")
             self.assertIn("differs", build_var.check_scene_thumbnail(other))
 
     def test_built_var_has_it(self):

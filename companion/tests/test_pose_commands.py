@@ -22,8 +22,9 @@ from .test_realtime import RealtimeSim, tone
 
 ROOT = Path(__file__).resolve().parents[2]
 KEY = "xai-FAKE-NOT-A-KEY-pose"
-STARTERS = ["Sit Down", "Lay Down", "Prone", "Stand Up", "Spread Your Legs", "Ankle Your Knees", "Ankle Your Elbows",
-            "Turn Around", "Crawl on all fours", "Bend Over"]
+# version 59: the fixed English built-in commands
+STARTERS = ["Sit Down", "Lay Down", "Turn Around", "Stand Up", "Prone", "Crawl", "Get On Your Knees", "Handstand", "Headstand",
+            "Stand On Your Right Leg", "Stand On Your Left Leg"]
 
 # Every one of these must NOT trigger: the whole input has to equal a command.
 NEAR_MISSES = ["please sit down", "sit down and smile", "Sit Down please", "sit", "down", "sit  down now", "Sit-Down",
@@ -36,7 +37,7 @@ class GateTests(unittest.TestCase):
     def setUp(self):
         self.vocab = PoseVocabulary(pose_commands.starter_entries())
 
-    def test_the_starter_set_is_exactly_leons_ten_commands_in_his_wording(self):
+    def test_the_starter_set_is_exactly_the_eleven_builtin_commands(self):
         self.assertEqual(list(STARTER_COMMANDS), STARTERS)
         self.assertEqual([e["command"] for e in pose_commands.starter_entries()], STARTERS)
         self.assertEqual([e["pose"] for e in pose_commands.starter_entries()], STARTERS)
@@ -49,7 +50,7 @@ class GateTests(unittest.TestCase):
         for text in ("sit down", "SIT DOWN", "sIt dOwN", "Sit Down.", "Sit Down!", "Sit Down?", "Sit Down?!", "Sit Down...",
                      "  Sit Down  ", "\tSit\u00a0Down\n", "Sit    Down", "sit down!!!", "Sit Down \u2026", "  sit   down . ! ?  "):
             self.assertEqual((self.vocab.match(text) or {}).get("command"), "Sit Down", repr(text))
-        self.assertEqual(self.vocab.match("CRAWL ON ALL FOURS!")["command"], "Crawl on all fours")
+        self.assertEqual(self.vocab.match("STAND ON YOUR LEFT LEG!")["command"], "Stand On Your Left Leg")
 
     def test_near_misses_never_trigger(self):
         for text in NEAR_MISSES:
@@ -62,16 +63,15 @@ class GateTests(unittest.TestCase):
         self.assertIsNone(self.vocab.match("Sit! Down"))
         self.assertIsNone(self.vocab.match("\"Sit Down\""))
 
-    def test_a_pose_is_only_available_when_a_pose_file_matches(self):
+    def test_a_pose_only_resolves_when_a_pose_file_matches(self):
         entry = {"command": "Sit Down", "pose": "Sit Down"}
         self.assertIsNone(PoseVocabulary.resolve(entry, []))
         self.assertIsNone(PoseVocabulary.resolve(entry, ["Stand Up", "sitting"]))
         for names in (["Sit Down"], ["sit_down"], ["Sit-Down"], ["SIT  DOWN"]):
             self.assertEqual(PoseVocabulary.resolve(entry, names), names[0])
-        v = PoseVocabulary(pose_commands.starter_entries())
-        self.assertEqual([e["command"] for e in v.available(["Sit Down", "Prone"])], ["Sit Down", "Prone"])
-        self.assertEqual(len(v.unavailable(["Sit Down", "Prone"])), 8)
-        self.assertEqual(len(v.unavailable([])), 10)
+        # version 59: there is no available / unavailable split any more (a missing pose gets a substitute)
+        self.assertFalse(hasattr(PoseVocabulary, "available"))
+        self.assertFalse(hasattr(PoseVocabulary, "unavailable"))
 
     def test_reply_json_and_strict_parsing(self):
         entry = {"command": "Sit Down", "pose": "Sit Down"}
@@ -212,14 +212,14 @@ class Chain(unittest.TestCase):
             self.ask(command.upper() + ".")
         self.assertEqual([json.loads(p["json"])["pose"] for p in self.poses_sent()], STARTERS)
 
-    def test_an_unavailable_command_is_never_applied(self):
-        # version 58: an own command without its pose stays unavailable (a built-in one gets a substitute in the plugin)
+    def test_an_own_command_without_its_pose_is_sent_for_a_substitute(self):
+        # version 59: one failover for all commands: the plugin loads a substitute pose (no "unavailable" any more)
         self.start(poses=("Prone",), commands=[{"command": "Have a seat", "pose": "sitting"}, {"command": "Prone", "pose": "Prone"}])
         self.ask("Have a seat")
-        self.assertEqual(self.poses_sent(), [])
-        self.assertEqual(self.requests(), [], "still a pose command: no model answer that could invent a pose")
+        self.assertEqual([p["json"] for p in self.poses_sent()], ['{"pose":"sitting"}'])
+        self.assertEqual(self.requests(), [], "a pose command: no model answer that could invent a pose")
         self.ask("Prone")
-        self.assertEqual(len(self.poses_sent()), 1)
+        self.assertEqual(len(self.poses_sent()), 2)
 
     def test_a_builtin_command_without_its_pose_is_sent_for_a_substitute(self):
         self.start(poses=("Prone",))
@@ -309,14 +309,13 @@ class RealtimeGate(RealtimeSim):
         self.server.respond(["Of course. "], tone(1.0))
         self.assertTrue(self.pump(lambda: bool(self.speaks())))
 
-    def test_an_unavailable_command_sends_no_pose(self):
+    def test_an_own_command_without_its_pose_still_sends_the_pose(self):
         self.start_connected(poses=("Prone",))
         self.plugin.pose_commands = [{"command": "Have a seat", "pose": "sitting"}]
         self.pump(lambda: (self.app.body_info.get("pose_commands") or [{}])[0].get("command") == "Have a seat")
         self.server.conn.send({"type": "input_audio_buffer.speech_stopped", "item_id": "u1"})
         self.transcript("Have a seat")
-        self.pump(timeout=0.4)
-        self.assertEqual(self.sim.sent(self.plugin, "pose"), [])
+        self.assertTrue(self.pump(lambda: bool(self.sim.sent(self.plugin, "pose"))), "version 59: the plugin substitutes")
 
     def test_the_session_has_no_pose_tool(self):
         self.start_connected()
@@ -422,7 +421,7 @@ class RealPoseVocabularyTests(unittest.TestCase):
             self.assertNotEqual(refusal, "ok")
         self.assertEqual(messages[11], "missing")
         self.assertEqual(messages[12:14], ["restored 1", "restored 0"], "restoring adds only the starters that are missing")
-        self.assertEqual(messages[14:17], ["cleared", "-", "restored 10"])
+        self.assertEqual(messages[14:17], ["cleared", "-", "restored 11"])
         self.assertEqual(entries, [f"{c}>{c}" for c in STARTERS])
 
 

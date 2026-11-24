@@ -26,12 +26,43 @@ namespace AIBody
 
     public class PoseVocabulary
     {
-        /// <summary>Don's wording (20.11.2026), exactly. Each starter command links to a pose of the same name.</summary>
+        /// <summary>Version 59: the fixed English built-in commands (same list as pose_commands.STARTER_COMMANDS). Each starter
+        /// command links to a pose of the same name. "Lie Down" and "Kneel Down" are second wordings (companion only).</summary>
         public static readonly string[] StarterCommands =
         {
-            "Sit Down", "Lay Down", "Prone", "Stand Up", "Spread Your Legs", "Ankle Your Knees", "Ankle Your Elbows",
-            "Turn Around", "Crawl on all fours", "Bend Over"
+            "Sit Down", "Lay Down", "Turn Around", "Stand Up", "Prone", "Crawl", "Get On Your Knees", "Handstand", "Headstand",
+            "Stand On Your Right Leg", "Stand On Your Left Leg"
         };
+
+        /// <summary>Version 59: v32-v58 starter commands that are no longer built in (same as OLD_STARTER_COMMANDS).</summary>
+        public static readonly string[] OldStarterCommands =
+        {
+            "Spread Your Legs", "Ankle Your Knees", "Ankle Your Elbows", "Crawl on all fours", "Bend Over"
+        };
+
+        /// <summary>Version 59: a saved list with old starter commands still linked to their own pose gets the new built-in
+        /// set: those entries are dropped and the missing built-ins added at the end. Same rule as
+        /// pose_commands.migrate_builtins. Returns true when the list changed.</summary>
+        public bool MigrateBuiltIns()
+        {
+            bool stale = false;
+            for (int i = _entries.Count - 1; i >= 0; i--)
+            {
+                if (!IsOldStarter(_entries[i])) continue;
+                _entries.RemoveAt(i);
+                stale = true;
+            }
+            if (stale) RestoreStarters();
+            return stale;
+        }
+
+        private static bool IsOldStarter(PoseCommand entry)
+        {
+            string key = PoseKey(entry.Command);
+            if (PoseKey(entry.Pose) != key) return false;
+            for (int i = 0; i < OldStarterCommands.Length; i++) if (PoseKey(OldStarterCommands[i]) == key) return true;
+            return false;
+        }
 
         public const int MaxCommands = 100;
         public const int MaxCommandChars = 60;
@@ -154,8 +185,8 @@ namespace AIBody
             return null;
         }
 
-        /// <summary>Version 58 (Don 23.11.2026): a built-in command = a starter command still linked to the pose of its own
-        /// name. Without that pose on the character it gets a substitute pose instead of being unavailable. Same rule as
+        /// <summary>Version 58: a built-in command = a starter command still linked to the pose of its own name. (Version 59:
+        /// every command, built-in or not, gets a substitute pose when its pose is missing or broken.) Same rule as
         /// pose_commands.is_builtin.</summary>
         public static bool IsBuiltIn(PoseCommand entry)
         {

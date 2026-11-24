@@ -907,6 +907,31 @@ Report: a dropdown without entries after the reset, the same pose twice in a row
 7. Idle head motion on: watch the head and chest for 2 s after each pose load: no jerk; the idle sway starts again after about 1 s.
 Report: a pose that does not apply, any twitching, a pose applied by just choosing an entry, Body control off after using Dollmaster.
 
+## T107 – One idle pose interval (version 59)
+1. Install v59, start AIBody Companion, then VaM; load AI-Buddy. Tab AI Character > Idle poses: there is ONE slider **Idle pose interval (s)** (default 165), no min / max wait sliders.
+2. Set it to 60 s and stay quiet: each idle pose change comes after about 45-75 s (60 s +/- 25 %), not always the same wait. The left field says "now between 45 s and 75 s".
+3. Load a scene saved with v51-v58 whose min / max wait were changed (e.g. 60 / 120 s): the interval shows their mean (90 s). Save the scene, reload it: still 90 s. Load a v59 scene with its own interval: it keeps it.
+4. A config.json with only `body.idle_pose_min_s` / `idle_pose_max_s`: after the start the companion's file has `idle_pose_interval_s` = their mean.
+Report: a second slider, waits outside +/- 25 %, a wrong migrated value.
+
+## T108 – Built-in pose commands in English (version 59)
+1. Tab AI Character > **Pose command**: the built-in list is Sit Down, Lay Down, Turn Around, Stand Up, Prone, Crawl, Get On Your Knees, Handstand, Headstand, Stand On Your Right Leg, Stand On Your Left Leg (after an update from v58: Spread Your Legs, Ankle Your Knees, Ankle Your Elbows, Crawl on all fours and Bend Over are gone unless you re-linked them; your own commands stay). The dropdown is never empty, also after Reset to Default.
+2. Say each command, also inside a sentence ("please stand on your left leg now"); say "lie down" (= Lay Down) and "kneel down" (= Get On Your Knees).
+3. Say "don't lie down", "never kneel down", "crawling": no pose.
+4. Say the v58 German phrases ("kannst du dich hinsetzen", "steh auf"): no pose, the AI answers normally.
+Report: a missed command or alias, a pose from a negated sentence or a German phrase.
+
+## T109 – Failover for every command: missing or broken pose file (version 59)
+1. A built-in command without its pose file (e.g. no "Handstand" pose): say it or press **Apply Pose**: she takes a random pose of the idle pool (never the current one); the status line names the pose ("..., used 'X' instead (substitute)").
+2. A command of your own linked with **Add Pose**, then delete or rename that pose file: the same substitute happens (nothing is "unavailable" any more; the Poses info says "uses another pose (substitute)").
+3. Replace a linked pose file with a broken one (empty or truncated `.vap`): the command loads a substitute; the log says the file failed and is dropped from the idle pool for this session; idle poses never pick it.
+4. Idle pool empty (no pose files, only the Idle default pose): a missing command loads the Idle default pose.
+Report: no pose, an "unavailable" message, the broken file picked again.
+
+## T110 – Remote control and status (version 59)
+1. Remote control (if enabled): `GET /api/status` lists every command in `poses` and has no `poses_unavailable`; `POST /api/pose` with a command whose pose is missing runs it (substitute pose).
+Report: a refused command, the old field.
+
 ## T103 – Pose commands inside a sentence (version 58, Don 24.11.2026 16:07)
 1. Install v58, start AIBody Companion, then VaM; load AI-Buddy. Use a command whose pose exists (or any built-in, see T104).
 2. Say "please sit down now": she sits; no spoken answer. Say "kannst du dich hinsetzen": she sits. Say "steh auf" / "dreh dich um": Stand Up / Turn Around.

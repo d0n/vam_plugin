@@ -13,8 +13,9 @@
 //   - never while the AI speaks or the user talks: that resets the quiet time;
 //   - a pose command of the user (spoken, typed or from the menu) is respected for CooldownSeconds first;
 //   - Body control off = no idle poses (the AI / companion side may not move the body); Dollmaster active = paused;
-//   - the wait between two changes is random between MinSeconds and MaxSeconds (sliders "Idle pose min wait (s)" /
-//     "Idle pose max wait (s)", default 30 / 300 s, 30 - 18000 s; both 300 = a fixed 5-minute switch).
+//   - version 59: the wait between two changes is IntervalSeconds +/- Jitter (25 %) at random (one slider "Idle pose
+//     interval (s)", default 165 s = the mean of the old 30 / 300 s, 30 - 18000 s); up to v58 a random wait between the
+//     sliders "Idle pose min wait (s)" and "Idle pose max wait (s)" (old values migrate to their mean, MigrateInterval).
 //
 // Pure C# (no VaM types), so tests run it outside VaM (tests/test_idle_poses.py). It only DECIDES; Body applies the
 // pose through PoseController.ApplyPose. No Dictionary.Keys/.Values enumeration, no LINQ, no indexer.
@@ -25,8 +26,12 @@ namespace AIBody
 {
     public class IdlePoseScheduler
     {
-        public const float DefaultMinSeconds = 30f;      // version 51 (Don 20:38): 30 s / 300 s
-        public const float DefaultMaxSeconds = 300f;
+        /// <summary>Version 59: one interval, each wait = interval +/- Jitter at random. Default = the mean of v51's 30 / 300 s.</summary>
+        public const float DefaultIntervalSeconds = 165f;
+        public const float Jitter = 0.25f;
+        /// <summary>The old v51-v58 defaults (migration of saved min / max values only).</summary>
+        public const float OldDefaultMinSeconds = 30f;
+        public const float OldDefaultMaxSeconds = 300f;
         public const float LowestSeconds = 30f;          // version 51 (Don 20:39): 30 s to 18000 s (300 min)
         public const float HighestSeconds = 18000f;
         public const string DefaultIdlePose = "Stand Up";
@@ -35,8 +40,8 @@ namespace AIBody
         public const float CooldownSeconds = 120f;
 
         public bool Enabled = true;
-        public float MinSeconds = DefaultMinSeconds;
-        public float MaxSeconds = DefaultMaxSeconds;
+        /// <summary>Version 59: slider "Idle pose interval (s)" (LowestSeconds - HighestSeconds).</summary>
+        public float IntervalSeconds = DefaultIntervalSeconds;
         /// <summary>Idle default pose (compared with PoseVocabulary.PoseKey): one of the pool (version 51: no forced return to it).</summary>
         public string DefaultPose = DefaultIdlePose;
 
@@ -62,10 +67,17 @@ namespace AIBody
             PlanNext();
         }
 
-        private float Lo { get { return Clamp(Math.Min(MinSeconds, MaxSeconds)); } }
-        private float Hi { get { return Clamp(Math.Max(MinSeconds, MaxSeconds)); } }
+        /// <summary>Version 59: the shortest / longest wait (interval -/+ 25 %; the interval itself is clamped to 30 - 18000 s).</summary>
+        public float Lo { get { return Clamp(IntervalSeconds) * (1f - Jitter); } }
+        public float Hi { get { return Clamp(IntervalSeconds) * (1f + Jitter); } }
 
-        private static float Clamp(float v)
+        /// <summary>Version 59: saved v51-v58 "Idle pose min wait (s)" / "max wait (s)" values become one interval, their mean.</summary>
+        public static float MigrateInterval(float minSeconds, float maxSeconds)
+        {
+            return Clamp((minSeconds + maxSeconds) / 2f);
+        }
+
+        public static float Clamp(float v)
         {
             return v < LowestSeconds ? LowestSeconds : v > HighestSeconds ? HighestSeconds : v;
         }

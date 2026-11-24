@@ -64,8 +64,9 @@ class IdlePoseSchedulerTests(unittest.TestCase):
         cls.tmp.cleanup()
 
     def run_case(self, steps, poses=("Stand Up", "Sit Down", "Lay Down", "Turn Around"), commands=None,
-                 default="Stand Up", lo=20, hi=40, enabled=True, fail=()):
-        case = {"poses": list(poses), "commands": commands, "default": default, "min": lo, "max": hi,
+                 default="Stand Up", lo=20, hi=40, enabled=True, fail=(), interval=None):
+        # version 59: lo/hi = an old saved min/max (migrated to their mean); interval = the new single slider
+        case = {"poses": list(poses), "commands": commands, "default": default, "min": lo, "max": hi, "interval": interval,
                 "enabled": enabled, "steps": steps, "fail": list(fail)}
         proc = subprocess.run([DOTNET, str(self.exe)], input=json.dumps(case) + "\n", capture_output=True, text=True,
                               encoding="utf-8", timeout=60)
@@ -74,7 +75,7 @@ class IdlePoseSchedulerTests(unittest.TestCase):
 
     def test_quiet_time_changes_to_random_poses_never_twice_in_a_row(self):
         # version 51: random of ALL poses (the default pose is one of them), no forced return to the default pose;
-        # the wait is clamped to the 30 s minimum (20 -> 30)
+        # version 59: old 20 / 40 s become the interval 30 s (the minimum), each wait 30 s +/- 25 %
         chosen = self.run_case([[1.0, False, True, "", 600]])
         names = [n for _, n in chosen]
         self.assertGreaterEqual(len(names), 10)
@@ -82,7 +83,7 @@ class IdlePoseSchedulerTests(unittest.TestCase):
         self.assertEqual(set(names), {"Stand Up", "Sit Down", "Lay Down", "Turn Around"})
         steps = [int(i) for i, _ in chosen]
         gaps = [b - a for a, b in zip([-1] + steps, steps)]
-        self.assertTrue(all(30 <= g <= 41 for g in gaps), gaps)
+        self.assertTrue(all(22 <= g <= 38 for g in gaps), gaps)
 
     def test_only_poses_the_character_has(self):
         # version 51: every pose the character has is in the pool (Dance too, though no pose command links it);
@@ -138,14 +139,14 @@ class IdlePoseSchedulerTests(unittest.TestCase):
 class IdlePosePluginTests(unittest.TestCase):
     def test_body_wires_the_scheduler_ui_settings_and_cooldown(self):
         body = source("Body.cs")
-        for part in ('new JSONStorableBool("Idle poses", true', '"Idle pose min wait (s)"', '"Idle pose max wait (s)"',
+        for part in ('new JSONStorableBool("Idle poses", true', '"Idle pose interval (s)"',
                      '"Idle default pose"', "page.Toggle(_idlePosesJson);", "page.ScrollablePopup(_idlePoseDefaultJson);",
-                     'body["idle_poses"]', 'body["idle_pose_min_s"]', 'body["idle_pose_max_s"]', 'body["idle_pose_default"]',
+                     'body["idle_poses"]', 'body["idle_pose_interval_s"]', 'body["idle_pose_default"]',
                      "_idlePoses.Update(dt, busy, BodyControl, _poses.Vocabulary, _poses.IdlePoolNames(IdleAllFiles), _poses.PoseNames)", "_idlePoses.NoteUserPose();",
                      "_poses.OnPoseLoaded = () => { if (_idle != null) _idle.Rebase(); };"):
             self.assertIn(part, body, part)
         self.assertIn("IdlePoses.cs", source("AIBody.cslist"))
-        self.assertEqual(settings_file.RANGES[("body", "idle_pose_min_s")], (30.0, 18000.0))   # version 51
+        self.assertEqual(settings_file.RANGES[("body", "idle_pose_interval_s")], (30.0, 18000.0))   # version 51
         self.assertEqual(settings_file.DEFAULTS["body"]["idle_pose_default"], "Stand Up")
         self.assertIs(settings_file.DEFAULTS["body"]["idle_poses"], True)
 
@@ -185,7 +186,7 @@ class VoicePoseCommandTests(unittest.TestCase):
     def test_speech_to_text_endings_match_exactly_and_the_gate_stays_strict(self):
         v = pose_commands.PoseVocabulary(pose_commands.starter_entries())
         for text in ("Sit down.", "sit down,", "Sit down;", "Sit down:", "Turn around!", "turn around, ", "Lay down\uff0c",
-                     "BEND OVER...", "Stand up?"):
+                     "HANDSTAND...", "Stand up?"):
             self.assertIsNotNone(v.match(text), repr(text))
         for text in ("Sit down, please", "Okay, sit down", "Setz dich hin", "Dreh dich um", ",Sit down", "Sit, down"):
             self.assertIsNone(v.match(text), repr(text))

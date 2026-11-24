@@ -15,42 +15,39 @@ both with the same test vectors).
 
 Version 58, `find`: the input and the commands are cut into words (letters and digits; apostrophes are dropped, so
 "don't" is "dont"; everything else separates words, case ignored). A command matches when its words appear in the
-input as a whole run of words ("sit down" in "please sit down now", never "sitting down" or "sit downstairs"). Built-in
-commands also have a few German phrases (STARTER_ALIASES: "kannst du dich hinsetzen" -> Sit Down). An occurrence right
-after a negation ("don't sit down", "never stand up", "nicht hinsetzen") or followed by "nicht" ("setz dich nicht hin")
-does not count. Several commands: the one with the most words wins (then the most characters, then the later one in
+input as a whole run of words ("sit down" in "please sit down now", never "sitting down" or "sit downstairs"). Version
+59: two built-in commands have an English second wording (STARTER_ALIASES: "lie down" = Lay Down, "kneel down" = Get
+On Your Knees); there are no German phrases any more. An occurrence right after a negation ("don't sit down", "never
+stand up") does not count. Several commands: the one with the most words wins (then the most characters, then the later one in
 the sentence). `rest_words` says how many other words the sentence has besides the command and filler words: from
 REST_FOR_AI on, the sentence also goes to the AI as usual (the pose is applied first).
 
-Version 58: a built-in command (a starter command still linked to the pose of its own name, `is_builtin`) without that
-pose on the character is not "unavailable" any more: the plugin applies a substitute pose (PoseController.SubstituteFor).
-
-A command is "available" when a pose with its id exists on the character (the plugin's `poses` list: gestures.json
-poses and pose preset files; names compare ignoring case, spaces, '_' and '-': pose_key). Commands without a pose are
-kept, shown as unavailable, never applied.
+Version 59: there is no "unavailable" command any more. EVERY command (built-in or the user's own) is sent to the
+plugin; when its pose file is missing or broken, the plugin loads a random pose of the idle pool instead (failed files
+and the current pose skipped), else the Idle default pose (PoseController.SubstituteFor, Body.SubstitutePose). A pose
+"resolves" when a pose with its id exists on the character (the plugin's `poses` list: gestures.json poses and pose
+preset files; names compare ignoring case, spaces, '_' and '-': pose_key); `resolve` only tells which one.
 """
 from __future__ import annotations
 
 import json
 from typing import Any
 
-# Don's wording (20.11.2026), exactly. Each starter command links to a pose of the same name until the user changes it.
+# Version 59: the fixed English built-in commands (the v32-v58 set was "Sit Down", "Lay Down", "Prone", "Stand Up",
+# "Spread Your Legs", "Ankle Your Knees", "Ankle Your Elbows", "Turn Around", "Crawl on all fours", "Bend Over").
+# Each links to the pose of the same name until the user changes it.
 STARTER_COMMANDS = (
-    "Sit Down", "Lay Down", "Prone", "Stand Up", "Spread Your Legs", "Ankle Your Knees", "Ankle Your Elbows",
-    "Turn Around", "Crawl on all fours", "Bend Over",
+    "Sit Down", "Lay Down", "Turn Around", "Stand Up", "Prone", "Crawl", "Get On Your Knees", "Handstand", "Headstand",
+    "Stand On Your Right Leg", "Stand On Your Left Leg",
 )
-# Version 58 (Don 16:07, "kannst du dich hinsetzen"): German phrases for the built-in commands (voice input; matched
-# like the command itself, whole words). Not for "Ankle Your Knees" / "Ankle Your Elbows" (no clear German phrase).
+# Version 59: the second English wording of two built-in commands (matched like the command itself). No German phrases.
 STARTER_ALIASES = {
-    "Sit Down": ("hinsetzen", "setz dich", "setzt dich", "setzen sie sich"),
-    "Lay Down": ("hinlegen", "leg dich", "legst dich"),
-    "Prone": ("auf den bauch", "bauchlage"),
-    "Stand Up": ("aufstehen", "steh auf", "stehst auf"),
-    "Spread Your Legs": ("beine spreizen", "spreiz die beine", "spreiz deine beine", "beine breit"),
-    "Turn Around": ("umdrehen", "dreh dich um", "drehst dich um"),
-    "Crawl on all fours": ("auf alle viere", "auf allen vieren", "krabbeln", "krabbel"),
-    "Bend Over": ("bück dich", "bueck dich", "bücken", "vorbeugen", "beug dich vor", "beug dich nach vorne"),
+    "Lay Down": ("Lie Down",),
+    "Get On Your Knees": ("Kneel Down",),
 }
+# Version 59: v32-v58 starter commands that are no longer built in. An entry still linked to the pose of its own name (as
+# the plugin created it) is dropped from a saved list, and the new built-ins are added (migrate_builtins).
+OLD_STARTER_COMMANDS = ("Spread Your Legs", "Ankle Your Knees", "Ankle Your Elbows", "Crawl on all fours", "Bend Over")
 # Words that negate a command right before it (up to NEGATION_WINDOW words), and "nicht" right after it.
 NEGATIONS = frozenset(("not", "dont", "doesnt", "didnt", "never", "no", "cant", "cannot", "wont", "shouldnt", "mustnt",
                        "stop", "nicht", "nie", "niemals", "kein", "keine", "nö", "nein"))
@@ -131,6 +128,19 @@ def is_builtin(entry: dict[str, str]) -> bool:
             and not is_pose_path(entry.get("pose", "")))
 
 
+def migrate_builtins(entries: list[dict[str, str]]) -> list[dict[str, str]]:
+    """Version 59: a list with v32-v58 starter commands (still linked to their own pose) gets the new built-in set: those
+    old entries are dropped and the missing built-ins added at the end; every other entry stays. Same rule as
+    PoseVocabulary.MigrateBuiltIns in the plugin. A list without old starters is returned unchanged."""
+    old = {pose_key(c) for c in OLD_STARTER_COMMANDS}
+    stale = [e for e in entries if pose_key(e["command"]) in old and pose_key(e["pose"]) == pose_key(e["command"])]
+    if not stale:
+        return entries
+    kept = [e for e in entries if e not in stale]
+    have = {normalize_input(e["command"]) for e in kept}
+    return kept + [e for e in starter_entries() if normalize_input(e["command"]) not in have]
+
+
 def starter_entries() -> list[dict[str, str]]:
     return [{"command": c, "pose": c} for c in STARTER_COMMANDS]
 
@@ -185,7 +195,7 @@ class PoseVocabulary:
         return None
 
     def phrases(self, entry: dict[str, str]) -> list[list[str]]:
-        """The word runs that call this command: its own text, plus the German phrases of a built-in command."""
+        """The word runs that call this command: its own text, plus the second wording of a built-in command."""
         result = [words(entry["command"])]
         for starter, aliases in STARTER_ALIASES.items():
             if pose_key(starter) == pose_key(entry["command"]):
@@ -232,12 +242,6 @@ class PoseVocabulary:
             if pose_key(name) == key:
                 return name
         return None
-
-    def available(self, pose_names: list[str]) -> list[dict[str, str]]:
-        return [e for e in self.entries if self.resolve(e, pose_names) is not None]
-
-    def unavailable(self, pose_names: list[str]) -> list[dict[str, str]]:
-        return [e for e in self.entries if self.resolve(e, pose_names) is None]
 
     @staticmethod
     def reply_json(entry: dict[str, str]) -> str:
