@@ -120,6 +120,14 @@ namespace AIBody
             return exists ? null : "pose file not found: " + path;
         }
 
+        /// <summary>Version 57: the file of a listed pose (for log lines), or null (a gestures.json pose, unknown name).</summary>
+        public string PathOf(string name)
+        {
+            string path;
+            if (string.IsNullOrEmpty(name) || !_poseFiles.TryGetValue(name, out path)) return null;
+            return path;
+        }
+
         /// <summary>The menu name of a listed pose file (Add Pose, version 42), or null if the file is not in PoseFolders.</summary>
         public string PoseNameOfFile(string path)
         {

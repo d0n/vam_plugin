@@ -907,6 +907,13 @@ Report: a dropdown without entries after the reset, the same pose twice in a row
 7. Idle head motion on: watch the head and chest for 2 s after each pose load: no jerk; the idle sway starts again after about 1 s.
 Report: a pose that does not apply, any twitching, a pose applied by just choosing an entry, Body control off after using Dollmaster.
 
+## T102 – Idle poses: a failing pose is dropped, the next comes at once (version 57, Leon 24.11.2026 15:57)
+1. Install v57. Put one broken pose file into `Custom/Atom/Person/Pose/AIBody` (e.g. an empty or truncated `.vap`), or rename a pose file after VaM listed it. Idle poses on, min/max wait 30 s, load AI-Buddy.
+2. Wait until the broken pose is picked: the log says "Idle pose 'x' (path) failed and is dropped from the idle pool for this session; next pose now", and another pose is loaded right away (within a frame or two, no 30 s pause).
+3. Keep watching for several minutes: the broken pose never comes again, idle poses keep switching.
+4. Optional: make every pose of the pool fail (AIBody folder with only broken files, no linked poses): each fails once, then the log says once "no pose left in the idle pool" and VaM stays responsive (no loop, no log flood).
+Report: a pause after a failure, the broken pose coming again, idle poses stopping, a log flood.
+
 ## T97 – Every pose change keeps her place (version 56, Leon 24.11.2026 15:27)
 1. Install v56, start AIBody Companion, then VaM; load AI-Buddy. Drag her by hand to a new place and turn her about 90 degrees.
 2. Tab AI Character: choose a pose in the pose dropdown and press **Apply Pose**: the pose changes, she stays at the new place and keeps facing the same way (a short flicker is ok). The log may say "... moved the whole character N cm (its file stores the root node): put back to her place".
@@ -924,7 +931,7 @@ Report: a command that does nothing (with the status line), her moving away.
 
 ## T99 – Idle poses keep running (version 56)
 1. Idle poses on (default). Leave her alone for 10 minutes (min/max wait 30 s), with one broken pose file in the AIBody pose folder.
-2. Idle switches go on all the time; after an error the log says "Idle poses: error ... paused 30 s, then on again" and they continue.
+2. Idle switches go on all the time; after an error the log says "Idle poses: error ... paused 30 s, then on again" and they continue. Since version 57 there is no pause: see T102.
 Report: idle poses that stop for good (with output_log.txt).
 
 ## T100 – Reset to Default with Dollmaster, Auto Expressions (version 56)

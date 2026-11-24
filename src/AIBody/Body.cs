@@ -1245,10 +1245,13 @@ namespace AIBody
             }
         }
 
-        /// <summary>Version 56: after an error the idle poses pause this long and go on (they never stop for good).</summary>
-        public const float IdleRetrySeconds = 30f;
-        private float _idleRetryIn;
-        private int _idleErrors;
+        // Version 57 (Leon 15:57): a pose that fails is dropped from the idle pool at once (first failure, for the session)
+        // and the next pose is picked and loaded right away (next frame, no cooldown). The idle poses are never switched off
+        // for the session (up to v55 one exception did that; v56 paused 30 s). Every failure shrinks the pool, so this ends:
+        // when no pose is left it logs once and waits (a pose that is added or linked later is used again).
+        private bool _idleNextNow;
+        private bool _idleEmptyLogged;
+        private string _idleLastError;
 
         /// <summary>Version 54: setting "Idle poses from all pose files" (config.json body.idle_poses_all_files).</summary>
         private bool IdleAllFiles { get { return _idleAllFilesJson != null && _idleAllFilesJson.val; } }
@@ -1256,14 +1259,32 @@ namespace AIBody
         private void UpdateIdlePoses(float dt, bool speaking)
         {
             if (_idlePoses == null || _poses == null) return;
-            if (_idleRetryIn > 0f) { _idleRetryIn -= dt; return; }   // version 56: a short pause after an error, then on again
             try
             {
                 bool busy = speaking || (UserSpeaking != null && UserSpeaking()) || (_speech != null && _speech.QueueLength > 0);
-                string pose = _idlePoses.Update(dt, busy, BodyControl, _poses.Vocabulary, _poses.IdlePoolNames(IdleAllFiles), _poses.PoseNames);
-                if (pose == null) { _idleErrors = 0; return; }
+                string pose;
+                if (_idleNextNow)
+                {
+                    // the pose before failed: the next one now (still not while someone speaks, Body control off or idle off)
+                    if (!_idlePoses.Enabled || !BodyControl) { _idleNextNow = false; return; }
+                    if (busy) return;
+                    _idleNextNow = false;
+                    pose = _idlePoses.PickNow(_poses.Vocabulary, _poses.IdlePoolNames(IdleAllFiles), _poses.PoseNames);
+                }
+                else pose = _idlePoses.Update(dt, busy, BodyControl, _poses.Vocabulary, _poses.IdlePoolNames(IdleAllFiles), _poses.PoseNames);
+                if (pose == null)
+                {
+                    if (_idlePoses.PoolSize == 0 && _idlePoses.ExcludedCount > 0 && !_idleEmptyLogged)
+                    {
+                        _idleEmptyLogged = true;
+                        Log.Warn("Idle poses: no pose left in the idle pool (all " + _idlePoses.ExcludedCount
+                                 + " failed and were left out) - waiting for a working pose (fix the pose files; they stay left out until VaM reloads the plugin)");
+                    }
+                    return;
+                }
+                _idleEmptyLogged = false;
                 // Version 54: a pose file that is gone or cannot be loaded is dropped from the pool for this session.
-                // Version 56: an exception of this one load is this pose's error too (it no longer stops the idle poses).
+                // Version 56/57: an exception of this one load is this pose's error too.
                 string error;
                 try { error = _poses.PoseFileProblem(pose) ?? _poses.ApplyPose(pose); }
                 catch (Exception e) { error = Diag.Describe(e); }
@@ -1272,17 +1293,24 @@ namespace AIBody
                 {
                     _idlePoses.Exclude(pose);
                     _poolDirty = true;
-                    Log.Warn("Idle pose '" + pose + "' failed and is left out from now on: " + error);
+                    _idleNextNow = true;   // version 57: the next pose right away
+                    Log.Warn("Idle pose '" + pose + "' (" + IdlePoseFile(pose) + ") failed and is dropped from the idle pool for this session; next pose now: " + error);
                 }
             }
             catch (Exception e)
             {
-                // Version 56 (root cause of "the idle poses stop after a while"): up to v55 ANY exception here set a flag
-                // that stopped the idle poses for the rest of the session, silently. Now they pause IdleRetrySeconds and go on.
-                _idleErrors++;
-                _idleRetryIn = IdleRetrySeconds;
-                Log.Warn("Idle poses: error (" + _idleErrors + " in a row), paused " + IdleRetrySeconds.ToString("0") + " s, then on again: " + Diag.Describe(e));
+                // Version 56 root cause of "the idle poses stop": up to v55 ANY exception here stopped them for the session.
+                // Version 57: no pause and no switch-off; the next frame simply goes on. Logged once per different error.
+                string text = Diag.Describe(e);
+                if (text != _idleLastError) { _idleLastError = text; Log.Warn("Idle poses: error (they go on): " + text); }
             }
+        }
+
+        /// <summary>The pose's file for the log (the name if it is not a file, e.g. a gestures.json pose).</summary>
+        private string IdlePoseFile(string pose)
+        {
+            try { string path = _poses.PathOf(pose); return string.IsNullOrEmpty(path) ? pose : path; }
+            catch (Exception) { return pose; }
         }
 
         private void UpdateSceneState(bool speaking)

@@ -123,12 +123,22 @@ namespace AIBody
             }
             _quiet = 0f;
             PlanNext();
+            return PickNow(vocabulary, poolNames, allNames);
+        }
+
+        /// <summary>Version 57 (Leon 15:57): a random pose of the pool right now, without any wait (also used right after a
+        /// pose failed and was excluded: the next one comes at once). null = the pool is empty.</summary>
+        public string PickNow(PoseVocabulary vocabulary, List<string> poolNames, List<string> allNames)
+        {
             List<string> pool = Pool(vocabulary, poolNames, allNames);
             PoolSize = pool.Count;
             List<string> candidates = WithoutLast(pool);
             if (candidates.Count == 0)
             {
-                _shownSeconds = -1; Status = "no idle pose available (this character has no pose; Reload poses)";
+                _shownSeconds = -1;
+                Status = ExcludedCount > 0
+                    ? "no idle pose left (every pose of the pool failed and was left out for this session)"
+                    : "no idle pose available (this character has no pose; Reload poses)";
                 return null;
             }
             string pick = candidates[_random.Next(candidates.Count)];

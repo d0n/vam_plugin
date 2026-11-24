@@ -64,9 +64,9 @@ class IdlePoseSchedulerTests(unittest.TestCase):
         cls.tmp.cleanup()
 
     def run_case(self, steps, poses=("Stand Up", "Sit Down", "Lay Down", "Turn Around"), commands=None,
-                 default="Stand Up", lo=20, hi=40, enabled=True):
+                 default="Stand Up", lo=20, hi=40, enabled=True, fail=()):
         case = {"poses": list(poses), "commands": commands, "default": default, "min": lo, "max": hi,
-                "enabled": enabled, "steps": steps}
+                "enabled": enabled, "steps": steps, "fail": list(fail)}
         proc = subprocess.run([DOTNET, str(self.exe)], input=json.dumps(case) + "\n", capture_output=True, text=True,
                               encoding="utf-8", timeout=60)
         self.assertEqual(proc.returncode, 0, proc.stderr)
@@ -111,6 +111,28 @@ class IdlePoseSchedulerTests(unittest.TestCase):
         names = [n for _, n in self.run_case([[1.0, False, True, "", 600]], default="Nope")]
         self.assertTrue(names)
         self.assertNotIn("Nope", names)
+
+
+    # version 57 (Leon 15:57): a failing pose is dropped at once and the next one comes on the next frame
+    def test_failed_pose_dropped_and_next_right_away(self):
+        chosen = self.run_case([[1.0, False, True, "", 1200]], fail=("Sit Down",))
+        names = [n for _, n in chosen]
+        self.assertIn("Sit Down!", names)
+        k = names.index("Sit Down!")
+        self.assertEqual(int(chosen[k + 1][0]), int(chosen[k][0]) + 1, "the next pose on the very next step, no wait")
+        self.assertNotIn("Sit Down", names[k + 1:], "never again this session")
+        self.assertEqual(names.count("Sit Down!"), 1)
+        self.assertGreater(len([n for n in names[k + 1:] if not n.endswith("!")]), 2, "idle poses go on")
+
+    def test_all_failing_ends_once_without_a_loop(self):
+        chosen = self.run_case([[1.0, False, True, "", 600]], fail=("Stand Up", "Sit Down", "Lay Down", "Turn Around"))
+        names = [n for _, n in chosen]
+        self.assertEqual(sorted(n for n in names if n.endswith("!")),
+                         ["Lay Down!", "Sit Down!", "Stand Up!", "Turn Around!"], "each fails once")
+        self.assertEqual(names[-1], "EMPTY")
+        self.assertEqual(names.count("EMPTY"), 1, "logged once")
+        steps = [int(i) for i, _ in chosen]
+        self.assertEqual(steps[1:], [steps[0] + n for n in range(1, len(steps))], "one after the other, no cooldown")
 
 
 class IdlePosePluginTests(unittest.TestCase):

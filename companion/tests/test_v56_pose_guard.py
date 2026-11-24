@@ -100,12 +100,32 @@ class CompanionPoseCommandTests(unittest.TestCase):
 
 
 class IdlePoserTests(unittest.TestCase):
-    def test_error_pauses_instead_of_stopping(self):
-        body = src("Body.cs")
-        self.assertNotIn("_idlePosesBroken", body, "root cause: one exception stopped idle poses for the session")
-        self.assertIn("public const float IdleRetrySeconds = 30f;", body)
-        self.assertIn("if (_idleRetryIn > 0f) { _idleRetryIn -= dt; return; }", body)
-        self.assertIn("_idleRetryIn = IdleRetrySeconds;", body)
+    """Version 57 (Leon 15:57) replaces v56's 30 s pause: a failing pose is dropped from the idle pool at once (first
+    failure, for the session) and the next one is picked and loaded right away; the idle poses are never switched off.
+    The scheduler behaviour runs for real in test_version35.IdlePoseSchedulerTests (dotnet harness)."""
+
+    def test_failure_drops_the_file_and_goes_on_at_once(self):
+        body = method_body(src("Body.cs"), "private void UpdateIdlePoses(float dt, bool speaking)")
+        self.assertNotIn("_idlePosesBroken", src("Body.cs"), "root cause: one exception stopped idle poses for the session")
+        self.assertNotIn("IdleRetrySeconds", src("Body.cs"), "no 30 s pause any more")
+        self.assertNotIn("_idleRetryIn", src("Body.cs"))
+        fail = body[body.index("_idlePoses.Exclude(pose);"):]
+        self.assertIn("_idleNextNow = true;", fail[:300])
+        self.assertIn("failed and is dropped from the idle pool for this session", fail)
+        self.assertIn("IdlePoseFile(pose)", fail, "the warning names the file")
+        self.assertIn("_idlePoses.PickNow(", body, "the next pose without the wait / cooldown")
+        self.assertIn("if (busy) return;", body, "not while someone speaks")
+
+    def test_no_loop_when_everything_fails(self):
+        body = method_body(src("Body.cs"), "private void UpdateIdlePoses(float dt, bool speaking)")
+        self.assertIn("if (_idlePoses.PoolSize == 0 && _idlePoses.ExcludedCount > 0 && !_idleEmptyLogged)", body)
+        self.assertIn("no pose left in the idle pool", body)
+        catch = body[body.rindex("catch (Exception e)"):]
+        self.assertIn("if (text != _idleLastError)", catch, "an unexpected error is logged once and they go on")
+        self.assertNotIn("return", catch)
+        pick = method_body(src("IdlePoses.cs"), "public string PickNow(PoseVocabulary vocabulary, List<string> poolNames, List<string> allNames)")
+        self.assertIn("if (candidates.Count == 0)", pick)
+        self.assertIn("return PickNow(vocabulary, poolNames, allNames);", src("IdlePoses.cs"))
 
 
 class DollmasterResetTests(unittest.TestCase):
