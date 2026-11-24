@@ -130,7 +130,7 @@ DEFAULTS: dict[str, dict[str, Any]] = {
     # Version 36: background_setup_applied = the setup.revision whose background answer the plugin has applied.
     "ui": {"first_run_hint_dismissed": False, "background_setup_applied": 0},
     # Pose commands (version 32; AI Character): the only way a pose is applied. A pose is applied only when the user's
-    # WHOLE input equals a command text (case, spaces and trailing . ! ? ignored); the command links to a pose id
+    # input contains a command text as whole words (version 58; before: the WHOLE input had to equal it) - was: WHOLE input equals a command text (case, spaces and trailing . ! ? ignored); the command links to a pose id
     # (a pose of the character: gestures.json pose or pose file, names compare ignoring case, spaces, _ and -).
     # Written by the plugin ('Add Pose' / 'Delete Pose'); a list. A missing "commands" key = the ten starter commands,
     # and (version 35) an empty or unusable list = the starters too. See docs/SPEC.md "Pose commands".

@@ -123,7 +123,7 @@ the companion app reads it on start. See `docs/CONFIG.md` and
 | `set_morphs`    | `morphs` {name: value} (required), `blend` s, `release_others` bool    | sets raw morph values |
 | `reset_morphs`  | `blend` s                                                               | returns all touched morphs to their original values |
 | `gesture`       | `name` (required), `duration` s, `amplitude`                           | gesture from `gestures.json`, or built-in head gestures `nod`, `shake`, `tilt` |
-| `pose`          | `json` (required): exactly `{"pose":"<id>"}`; `command` (the matched command text, informational) | version 32: applies the pose with that id **only if** the id is in the plugin's pose vocabulary (config.json `poses.commands`) and the character has that pose; anything else is ignored with a warning. The old fields `path` / `name` are no longer accepted. The companion sends it only when the user's whole input equals a command (see `docs/SPEC.md`, "Pose commands") |
+| `pose`          | `json` (required): exactly `{"pose":"<id>"}`; `command` (the matched command text, informational) | version 32: applies the pose with that id **only if** the id is in the plugin's pose vocabulary (config.json `poses.commands`) and the character has that pose; anything else is ignored with a warning. The old fields `path` / `name` are no longer accepted. The companion sends it when the user's input contains a command as whole words (version 58; up to v57 the whole input had to equal it; see `docs/SPEC.md`). Version 58: for a built-in command without its pose the plugin applies a substitute pose (status field `pose_commands[].builtin`) |
 | `trigger`       | `storable` (required) + `action`, or `param` + `value` (+ `value_type`) | calls an action / sets a parameter on any storable of the target atom, e.g. another plugin |
 | `idle`          | `enabled`, `intensity` 0..1                                            | procedural idle head motion |
 | `breathing`     | `enabled`, `rate` breaths/min, `depth`                                 | procedural breathing |
@@ -313,7 +313,7 @@ fields in events and report unknown command types as errors.
 
 The plugin's status fields (`ready` / `heartbeat`) list `expressions`, `gestures`, `poses` and `body_control`. From these
 the companion offers the language model the tools `express` (`expression`, `gesture`, enums of the
-loaded names). Since version 32 there is no `pose` tool: a pose is applied only when the user's whole input equals a pose command (the status field `pose_commands` lists the vocabulary). A call becomes `expression` / `gesture`
+loaded names). Since version 32 there is no `pose` tool: a pose is applied only when the user's input contains a pose command (version 58: as whole words, also inside a sentence) (the status field `pose_commands` lists the vocabulary). A call becomes `expression` / `gesture`
 commands on this channel; every call is answered (`{"ok": true}` / `{"ok": false, "error"}`).
 `look_at` (`target` enum: client, camera, forward, away, off + the `gaze_atoms`; `seconds`) is offered only while
 `gaze_control` is true. No tools in `ai.mode` `qa` or with `body_control` false.

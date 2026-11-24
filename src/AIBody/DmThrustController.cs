@@ -57,7 +57,8 @@ namespace AIBody
             moduleEnableToggle.label = "Enable Thrusting";
             moduleEnableToggle.backgroundColor = Color.green;
 
-            thrustAtomChooser = new JSONStorableStringChooser("thrustTarget", GetAnimationPatternNames(), "", "Thrust Control", (string name)=>
+            // AIBody port, version 58 (Leon 16:09): "None" instead of an empty entry, so the dropdown is never empty
+            thrustAtomChooser = new JSONStorableStringChooser("thrustTarget", GetAnimationPatternNames(), NoThrustTarget, "Thrust Control", (string name)=>
             {
                 RestoreOriginalSlider();
 
@@ -137,6 +138,9 @@ namespace AIBody
             GenerateThrustAtoms();
         }
 
+        // AIBody port, version 58: the "no target" entry of Thrust Control (GetAtomByUid finds no atom: nothing is driven)
+        public const string NoThrustTarget = "None";
+
         List<string> GetAnimationPatternNames()
         {
             List<string> list = SuperController.singleton.GetAllAnimationPatterns().Select((ap) =>
@@ -144,7 +148,7 @@ namespace AIBody
                 return ap.containingAtom.uid;
             }).ToList();
 
-            list.Insert(0, "");
+            list.Insert(0, NoThrustTarget);   // AIBody port, version 58: was "" (an empty dropdown)
 
             return list;
         }

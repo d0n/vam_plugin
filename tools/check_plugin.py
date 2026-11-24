@@ -150,7 +150,10 @@ GERMAN_WORDS = {"und", "oder", "nicht", "für", "wird", "ist", "eine", "einen", 
 STRING_RE = re.compile(r'"((?:[^"\\]|\\.)*)"')
 # Version 55: the German voice commands (companion voice_mute.py) are quoted on purpose in help texts and docs.
 VOICE_COMMANDS = ("halt's maul", "halts maul", "halt das maul", "halt dein maul", "halt die klappe", "halt deine klappe",
-                  "sei still", "seid still", "sprich wieder mit mir", "sprich mit mir")
+                  "sei still", "seid still", "sprich wieder mit mir", "sprich mit mir",
+                  # version 58: German phrases of the built-in pose commands (companion pose_commands.STARTER_ALIASES)
+                  "kannst du dich bitte hinsetzen", "kannst du dich hinsetzen", "setz dich nicht hin", "setz dich bitte",
+                  "leg dich auf den bauch", "leg dich hin", "auf den bauch", "auf alle viere", "auf allen vieren")
 
 
 def without_voice_commands(text: str) -> str:

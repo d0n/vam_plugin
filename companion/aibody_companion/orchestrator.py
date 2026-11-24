@@ -152,8 +152,14 @@ def describe_selftest(t: dict[str, Any]) -> tuple[str, bool]:
 class PoseDecision:
     """Result of the pose gate for one input: the matched command, whether it can run, and the steps to apply."""
 
-    def __init__(self, entry: dict[str, str], ok: bool, steps: list[tuple[Any, ...]]):
-        self.entry, self.ok, self.steps = entry, ok, steps
+    def __init__(self, entry: dict[str, str], ok: bool, steps: list[tuple[Any, ...]], rest: int = 0):
+        # rest (version 58): other words of the sentence besides the command and fillers; from
+        # pose_commands.REST_FOR_AI on the sentence also goes to the AI (the pose first)
+        self.entry, self.ok, self.steps, self.rest = entry, ok, steps, rest
+
+    @property
+    def also_for_ai(self) -> bool:
+        return self.rest >= pose_commands.REST_FOR_AI
 
 
 def version_mismatch(plugin_version: Any, companion_version: str) -> str:
@@ -1255,30 +1261,39 @@ class Companion:
         """Pose commands work in every mode (they are no AI tool), but not while Body control is off in the plugin."""
         return as_bool(self.body_info.get("body_control", True)) is not False
 
-    def pose_decision(self, text: str) -> PoseDecision | None:
+    def pose_decision(self, text: str, exact: bool = False) -> PoseDecision | None:
         """None = the input is no pose command (it goes on to the AI as usual). Otherwise what to do: the pose command
         when the pose exists on the character, or just a status line (unavailable). Never a spoken reply: a body command
         is an action, not a conversation; it needs no network or language model and nothing talks over the pose."""
         vocabulary = self.pose_vocabulary()
-        entry = vocabulary.match(text)
+        # version 58 (Leon 16:07): the command may be part of a longer sentence ("please sit down now"); exact = only the
+        # whole input (remote control names a command)
+        entry, rest = (vocabulary.match(text), 0) if exact else vocabulary.find(text)
         if entry is None:
             return None
         names = self.pose_names()
         actual = vocabulary.resolve(entry, names)
+        if actual is None and pose_commands.is_builtin(entry):
+            # version 58 (Leon 23.11.): a built-in command without its pose file: the plugin applies a substitute pose
+            command = self.body_command("pose", json=vocabulary.reply_json(entry), command=entry["command"])
+            log.info("Pose command '%s' -> %s (no pose '%s' on the character: the plugin uses a substitute)",
+                     entry["command"], command["json"], entry["pose"])
+            return PoseDecision(entry, True, [("command", command), ("status", f"Pose command: {entry['command']} "
+                                                                      f"(no pose '{entry['pose']}': substitute pose)")], rest)
         if actual is None:
             message = (f"Pose command '{entry['command']}' is unavailable: the character has no pose '{entry['pose']}' "
                        "(add a pose file or link the command to another pose with 'Add Pose')")
             log.warning(message)
-            return PoseDecision(entry, False, [("status", message)])
+            return PoseDecision(entry, False, [("status", message)], rest)
         command = self.body_command("pose", json=vocabulary.reply_json(entry), command=entry["command"])
         log.info("Pose command '%s' -> %s", entry["command"], command["json"])
-        return PoseDecision(entry, True, [("command", command), ("status", f"Pose command: {entry['command']} ({actual})")])
+        return PoseDecision(entry, True, [("command", command), ("status", f"Pose command: {entry['command']} ({actual})")], rest)
 
     def pose_command(self, text: str) -> tuple[bool, str]:
         """Runs a pose command given as text (remote control, realtime transcript): the same gate as typed or spoken input."""
         if not self.pose_gate_active():
             return False, "body control is off in the plugin"
-        decision = self.pose_decision(text)
+        decision = self.pose_decision(text, exact=True)
         if decision is None:
             return False, f"{text!r} is not a pose command"
         for step in decision.steps:
@@ -1423,8 +1438,12 @@ class Companion:
                     turn.step("end", result="muted (ignored)")
                     return
             if kind in ("audio", "text") and self.pose_gate_active():
-                decision = self.pose_decision(text)  # the HARD GATE: the whole input must equal a pose command
-                if decision is not None:
+                decision = self.pose_decision(text)  # version 58: the command, also inside a sentence (pose_commands.find)
+                if decision is not None and decision.also_for_ai:
+                    # "can you sit down and tell me about your day": the pose now, the rest of the sentence to the AI
+                    turn.step("pose command", command=decision.entry["command"], applied=decision.ok, rest=decision.rest)
+                    yield from decision.steps
+                elif decision is not None:
                     turn.step("end", result="pose command", command=decision.entry["command"], applied=decision.ok)
                     yield from decision.steps
                     return

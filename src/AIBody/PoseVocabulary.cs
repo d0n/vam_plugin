@@ -154,6 +154,18 @@ namespace AIBody
             return null;
         }
 
+        /// <summary>Version 58 (Leon 23.11.2026): a built-in command = a starter command still linked to the pose of its own
+        /// name. Without that pose on the character it gets a substitute pose instead of being unavailable. Same rule as
+        /// pose_commands.is_builtin.</summary>
+        public static bool IsBuiltIn(PoseCommand entry)
+        {
+            if (entry == null || IsPosePath(entry.Pose)) return false;
+            string key = PoseKey(entry.Command);
+            if (key.Length == 0 || PoseKey(entry.Pose) != key) return false;
+            for (int i = 0; i < StarterCommands.Length; i++) if (PoseKey(StarterCommands[i]) == key) return true;
+            return false;
+        }
+
         /// <summary>True for a pose file path (Add Pose since version 42): contains '/' and ends with .vap or .json.
         /// Same rule as pose_commands.is_pose_path.</summary>
         public static bool IsPosePath(string pose)

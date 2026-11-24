@@ -86,7 +86,7 @@ class ChainToolTests(unittest.TestCase):
                                          call_item("c2", "express", {"expression": "happy", "gesture": "nod"})),
                         text_stream(["Okay, ich setze mich."], "resp-2")]
         self.start()
-        self.ask("Setz dich bitte hin.")
+        self.ask("Mach es dir bitte bequem.")
         first, second = self.requests()
         self.assertEqual([t["name"] for t in first["tools"]], ["express"], "no pose tool is offered")
         self.assertNotIn('"pose"', first["instructions"])
@@ -109,7 +109,7 @@ class ChainToolTests(unittest.TestCase):
                              {"type": "response.completed", "response": {"id": "resp-1", "output": []}})
         self.answers = [words_and_call, text_stream(["Gut."], "resp-2")]
         self.start()
-        self.ask("Setz dich.")
+        self.ask("Mach es dir bequem.")
         self.assertEqual(len(self.requests()), 1, "words came: no extra round trip")
         self.ask("Und jetzt?")
         nxt = self.requests()[1]
@@ -128,7 +128,7 @@ class ChainToolTests(unittest.TestCase):
         self.answers = [tool_only_stream("resp-1", call_item("c1", "pose", {"name": "sitting"})),
                         text_stream(["Mach ich nicht."], "resp-2")]
         self.start(body_control=False)
-        self.ask("Setz dich.")
+        self.ask("Mach es dir bequem.")
         first, second = self.requests()
         self.assertNotIn("tools", first)
         self.assertEqual(self.sim.sent(self.plugin, "pose"), [])

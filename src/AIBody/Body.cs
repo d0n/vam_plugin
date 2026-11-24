@@ -343,6 +343,7 @@ namespace AIBody
             _diag.Run("Poses/gestures (PoseController)", () =>
             {
                 _poses = new PoseController(_atom, _idle);
+                _poses.SubstituteFor = SubstitutePose;   // version 58: built-in commands without their pose file
                 _poses.Vocabulary.SetStarters();   // until config.json poses.commands is read (LoadPoseCommands)
                 _poses.OnPoseLoaded = () => { if (_idle != null) _idle.Rebase(); };
                 // Version 52: one writer at a time - the idle motion holds still while VaM applies the pose.
@@ -607,8 +608,10 @@ namespace AIBody
             _syncingPoseMenu = true;
             try
             {
-                _poseCommandChoiceJson.choices = commands;   // E9, E24, E25; no automatic first entry: choosing it must apply
-                if (!commands.Contains(_poseCommandChoiceJson.val)) _poseCommandChoiceJson.val = "";
+                _poseCommandChoiceJson.choices = commands;   // E9, E24, E25
+                // version 58 (Leon 16:09: no empty dropdown): the first command when none is chosen; choosing only selects
+                // since version 52 (Apply Pose applies), so this applies nothing
+                if (!commands.Contains(_poseCommandChoiceJson.val)) _poseCommandChoiceJson.val = commands.Count > 0 ? commands[0] : "";
             }
             finally { _syncingPoseMenu = false; }
             if (_idlePoseDefaultJson != null)
@@ -644,11 +647,14 @@ namespace AIBody
             for (int i = 0; i < v.Count; i++)
             {
                 bool ok = PoseVocabulary.Resolve(v.Get(i), names) != null;
-                if (ok) ready++;
-                lines += "  " + v.Get(i).Command + (ok ? "" : "  - UNAVAILABLE: no pose '" + v.Get(i).Pose + "'") + "\n";
+                bool builtIn = !ok && PoseVocabulary.IsBuiltIn(v.Get(i));
+                if (ok || builtIn) ready++;
+                lines += "  " + v.Get(i).Command + (ok ? "" : builtIn ? "  - no pose '" + v.Get(i).Pose + "': uses another pose (substitute)"
+                    : "  - UNAVAILABLE: no pose '" + v.Get(i).Pose + "'") + "\n";
             }
-            return "There are " + v.Count + " pose commands (" + ready + " available); say or type EXACTLY one of them, and a command without a pose "
-                + "is never applied. Choosing an entry in <b>Pose command</b> only selects it; <b>Apply Pose</b> applies it (as often as "
+            return "There are " + v.Count + " pose commands (" + ready + " available); say or type one of them, also inside a sentence "
+                + "(\"please sit down now\"; not after \"don't\" or \"never\"). A built-in command whose pose file the character does "
+                + "not have uses another pose of the idle pool instead (substitute); any other command without a pose is never applied. Choosing an entry in <b>Pose command</b> only selects it; <b>Apply Pose</b> applies it (as often as "
                 + "you press it). A pose is loaded once and the idle head motion holds still for a second meanwhile; while Dollmaster "
                 + "is active it poses the body and pose commands wait. Only pose presets (.vap) work. <b>Add Pose</b> opens VaM's file browser in " + PoseBrowseFolder + ": choose the pose file, then type "
                 + "the spoken command into <b>New pose command</b> (it starts with the file name) and press <b>Save pose command</b>"
@@ -908,10 +914,38 @@ namespace AIBody
             if (error == null)
             {
                 if (_idlePoses != null) { _idlePoses.NoteUserPose(); _idlePoses.NoteShown(_poses.LastJsonPose); }
-                Note("Pose command (voice) applied: '" + _poses.LastJsonCommand + "' -> " + _poses.LastJsonPose, false);
+                if (_poses.LastJsonSubstitute)
+                    Note("Pose command (voice) '" + _poses.LastJsonCommand + "': this character has no pose '" + _poses.LastJsonCommand
+                         + "', used '" + _poses.LastJsonPose + "' instead (substitute)", false);
+                else Note("Pose command (voice) applied: '" + _poses.LastJsonCommand + "' -> " + _poses.LastJsonPose, false);
             }
             else Note("<color=red>Pose command (voice): " + error + "</color>", true);
             return error;
+        }
+
+        private readonly System.Random _substituteRandom = new System.Random();
+
+        /// <summary>
+        /// Version 58 (Leon 23.11.2026 / 24.11.2026 16:07): the substitute for a built-in command (Sit Down, ...) whose own
+        /// pose file the character does not have: a random pose of the idle pool (AIBody pose folder + linked poses, without
+        /// failed ones and without the pose shown last), else the Idle default pose; null = no pose at all. Logged.
+        /// </summary>
+        public string SubstitutePose(PoseCommand entry)
+        {
+            if (_poses == null) return null;
+            List<string> pool = new List<string>();
+            if (_idlePoses != null)
+            {
+                List<string> all = _idlePoses.WithoutLast(_idlePoses.Pool(_poses.Vocabulary, _poses.IdlePoolNames(IdleAllFiles), _poses.PoseNames));
+                for (int i = 0; i < all.Count; i++) if (_poses.PoseFileProblem(all[i]) == null) pool.Add(all[i]);
+            }
+            string pick = pool.Count > 0 ? pool[_substituteRandom.Next(pool.Count)]
+                : IdlePoseScheduler.ResolveName(_idlePoseDefaultJson != null ? _idlePoseDefaultJson.val : "", _poses.PoseNames);
+            string command = entry != null ? entry.Command : "?";
+            if (pick == null) Log.Warn("Pose command '" + command + "': no pose '" + command + "' and no other pose to use instead");
+            else Log.Info("Pose command '" + command + "': no pose '" + command + "' on this character, substitute '" + pick + "'"
+                          + (pool.Count > 0 ? " (random of " + pool.Count + " poses of the idle pool)" : " (the Idle default pose)"));
+            return pick;
         }
 
         /// <summary>Version 56: Dollmaster montages keep her place with the same wrapper (PoseGuard.Around).</summary>
@@ -935,15 +969,19 @@ namespace AIBody
             PoseCommand entry = _poses.Vocabulary.Match(command);
             string error = null;
             string pose = null;
+            bool substitute = false;
             if (entry == null) error = "'" + command + "' is not in the list";
             else
             {
                 pose = PoseVocabulary.Resolve(entry, _poses.PoseNames);
+                if (pose == null && PoseVocabulary.IsBuiltIn(entry)) { pose = SubstitutePose(entry); substitute = pose != null; }   // version 58
                 if (pose == null) error = "this character has no pose '" + entry.Pose + "' (Reload poses, or delete it and use Add Pose)";
                 else error = _poses.ApplyPose(pose);
             }
             if (error == null && _idlePoses != null) { _idlePoses.NoteUserPose(); _idlePoses.NoteShown(pose); }
-            if (error == null) Note("Pose command applied: '" + command + "' -> " + pose, false);
+            if (error == null && substitute)
+                Note("Pose command '" + command + "': this character has no pose '" + entry.Pose + "', used '" + pose + "' instead (substitute)", false);
+            else if (error == null) Note("Pose command applied: '" + command + "' -> " + pose, false);
             else Note("<color=red>Pose command '" + command + "': " + error + "</color>", true);
         }
 
@@ -1180,6 +1218,7 @@ namespace AIBody
                     entry["command"] = _poses.Vocabulary.Get(i).Command;
                     entry["pose"] = _poses.Vocabulary.Get(i).Pose;
                     entry["available"].AsBool = PoseVocabulary.Resolve(_poses.Vocabulary.Get(i), poseNames) != null;
+                    entry["builtin"].AsBool = PoseVocabulary.IsBuiltIn(_poses.Vocabulary.Get(i));   // version 58: substitute when missing
                     poseCommands.Add(entry);
                 }
             }

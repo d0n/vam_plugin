@@ -33,12 +33,13 @@ DESCRIPTIONS = {
     ("ui",): "Plugin UI state: first_run_hint_dismissed = the short note about the xAI token at the top of the plugin UI was closed or answered, "
              "so it is not shown again",
     ("poses",): "Tab 'AI Character', section 'Pose commands' (version 32): the ONLY way a pose is applied. A pose is applied "
-                "only when the user's WHOLE input equals a command text (case, extra spaces and trailing . ! ? ignored; no "
-                "substring or fuzzy match). Written by the plugin ('Add Pose' / 'Delete Pose')",
+                "when the user's input contains a command text as whole words (version 58: also inside a sentence, case and "
+                "punctuation ignored, not after a negation such as don't / never; the longest command wins). Written by the plugin ('Add Pose' / 'Delete Pose')",
     ("poses", "commands"): "List of {command, pose}: command = the text the user says or types (ten starter commands by default); "
                            "pose = id of a pose of the character (gestures.json pose or pose file; names compare ignoring case, "
                            "spaces, '_' and '-'). A command whose pose does not exist stays in the list, is shown as unavailable "
-                           "and is never applied. Missing key, empty list or a list without one usable entry = the ten starters "
+                           "and is never applied; version 58: a built-in (starter) command still linked to the pose of its own "
+                           "name uses a substitute pose of the idle pool instead. Missing key, empty list or a list without one usable entry = the ten starters "
                            "(version 35)",
     ("setup",): "First-start questions of the companion app (version 36, file only, no tab; the plugin only reads it). "
                 "Asked once in the app's console; 'python -m aibody_companion --setup' asks again. Two independent points: "

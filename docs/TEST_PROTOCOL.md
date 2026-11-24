@@ -907,6 +907,32 @@ Report: a dropdown without entries after the reset, the same pose twice in a row
 7. Idle head motion on: watch the head and chest for 2 s after each pose load: no jerk; the idle sway starts again after about 1 s.
 Report: a pose that does not apply, any twitching, a pose applied by just choosing an entry, Body control off after using Dollmaster.
 
+## T103 – Pose commands inside a sentence (version 58, Leon 24.11.2026 16:07)
+1. Install v58, start AIBody Companion, then VaM; load AI-Buddy. Use a command whose pose exists (or any built-in, see T104).
+2. Say "please sit down now": she sits; no spoken answer. Say "kannst du dich hinsetzen": she sits. Say "steh auf" / "dreh dich um": Stand Up / Turn Around.
+3. Say "don't sit down" and "I like sitting down": no pose; the AI answers normally.
+4. Say "can you sit down and tell me about your day": she sits first, then the AI answers the sentence.
+5. Type the same sentences into the companion's text input, and repeat 2-4 in realtime mode: same results.
+Report: a pose from an ordinary sentence (with the sentence), a missed command, no answer in step 4.
+
+## T104 – Built-in command without its pose file: substitute pose (version 58, Leon 23.11.2026)
+1. A character without a pose file named like a built-in command (e.g. no "Sit Down" pose). Tab AI Character > Poses: the info lists it as "no pose 'Sit Down': uses another pose (substitute)", not UNAVAILABLE.
+2. Say "sit down" (or choose it in **Pose command** and press **Apply Pose**): she takes another pose of the idle pool; the status line says "this character has no pose 'Sit Down', used 'X' instead (substitute)", the log names it too.
+3. A command of your own linked to a missing pose: still unavailable, nothing happens.
+Report: "unavailable" for a built-in command, no pose, a pose from outside the idle pool.
+
+## T105 – No empty dropdown after Reset to Default (version 58, Leon 24.11.2026 16:09)
+1. Change several dropdowns in every tab (AI Character: Pose command, Idle default pose, Expression, Gesture, AI gender/body, Your character gender; Voice: AI mode, Voice, Persona, Language, engines, Mic mode, VAD engine; Dollmaster: Personality, Thrust Control and the others).
+2. Tab Config > **Reset to Default** > **Confirm Reset to Default**.
+3. Open every tab again, including Dollmaster: NO dropdown is empty; each shows a valid value (Pose command the first command, the gender dropdowns "Not set", Thrust Control "None", the rest their defaults).
+4. Reload the scene and check again; load an older scene saved with an empty gender: it shows "Not set".
+Report: every empty dropdown with its tab and name (screenshot).
+
+## T106 – Gender and Thrust Control values (version 58)
+1. Set **AI gender/body** to Female, then back to **Not set**: the info says "not set yet"; the companion log shows no gender.
+2. Tab Dollmaster: **Thrust Control** "None" drives nothing; choosing an animation pattern works as before; back to "None" stops it.
+Report: a gender sent for Not set, thrusting with None.
+
 ## T102 – Idle poses: a failing pose is dropped, the next comes at once (version 57, Leon 24.11.2026 15:57)
 1. Install v57. Put one broken pose file into `Custom/Atom/Person/Pose/AIBody` (e.g. an empty or truncated `.vap`), or rename a pose file after VaM listed it. Idle poses on, min/max wait 30 s, load AI-Buddy.
 2. Wait until the broken pose is picked: the log says "Idle pose 'x' (path) failed and is dropped from the idle pool for this session; next pose now", and another pose is loaded right away (within a frame or two, no 30 s pause).

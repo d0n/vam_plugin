@@ -32,6 +32,8 @@ namespace AIBody
         public const string ClothingHeader = "Clothing";
         public const string Female = "Female";
         public const string Male = "Male";
+        /// <summary>Version 58: the "no choice yet" entry (config.json and the companion still get "").</summary>
+        public const string NotSet = "Not set";
         public const string AskedName = "Character setup answered";
         public const string WantedName = "Character setup wanted";
 
@@ -61,13 +63,13 @@ namespace AIBody
             _wantedJson = new JSONStorableBool(WantedName, false, (bool v) => RequestTabRebuild());
             SettingsDefaults.Bool(_plugin, _wantedJson);
             List<string> genders = new List<string>();
-            genders.Add("");
+            genders.Add(NotSet);   // version 58 (Leon 16:09): "Not set" instead of an empty entry: no dropdown is empty
             genders.Add(Female);
             genders.Add(Male);
-            _aiGenderJson = new JSONStorableStringChooser(AiGenderLabel, genders, "", AiGenderLabel,
+            _aiGenderJson = new JSONStorableStringChooser(AiGenderLabel, genders, NotSet, AiGenderLabel,
                 (string v) => NotifyChanged());
             SettingsDefaults.Chooser(_plugin, _aiGenderJson);
-            _userGenderJson = new JSONStorableStringChooser(UserGenderLabel, genders, "", UserGenderLabel,
+            _userGenderJson = new JSONStorableStringChooser(UserGenderLabel, genders, NotSet, UserGenderLabel,
                 (string v) => NotifyChanged());
             SettingsDefaults.Chooser(_plugin, _userGenderJson);
         }
@@ -114,6 +116,8 @@ namespace AIBody
                 page.Button("Configure characters", OnReopen);
                 return;
             }
+            ShowNotSet(_aiGenderJson);
+            ShowNotSet(_userGenderJson);
             page.Popup(_aiGenderJson);
             page.Popup(_userGenderJson);
             page.Header("<b>Clothing</b>");
@@ -163,9 +167,15 @@ namespace AIBody
                 + "on each Person; AIBody has no clothing list and does not change what anyone wears.\n";
         }
 
+        /// <summary>Version 58: a saved "" (scenes before v58) shows as "Not set", never as an empty dropdown.</summary>
+        private static void ShowNotSet(JSONStorableStringChooser chooser)
+        {
+            if (chooser != null && chooser.val != Female && chooser.val != Male && chooser.val != NotSet) chooser.val = NotSet;
+        }
+
         private static string Describe(JSONStorableStringChooser chooser)
         {
-            if (chooser == null || string.IsNullOrEmpty(chooser.val)) return "not set yet";
+            if (chooser == null || (chooser.val != Female && chooser.val != Male)) return "not set yet";
             return "currently " + chooser.val;
         }
 
@@ -205,7 +215,7 @@ namespace AIBody
         private static void ApplyRecordedGender(JSONStorableStringChooser chooser, string value)
         {
             if (chooser == null) return;
-            if (value != Female && value != Male) value = "";
+            if (value != Female && value != Male) value = NotSet;   // version 58: an old scene's "" shows as "Not set"
             chooser.val = value;
         }
     }

@@ -6,10 +6,24 @@ command text -> pose id). The match is deterministic, in code, not in a prompt:
   1. trim and collapse white space, lower case, drop trailing '.', '!', '?', '...' and (version 35) ',', ';', ':',
   2. compare the whole text with the command text normalized the same way.
 
-No substring, word or fuzzy match: "please sit down" and "sit down and smile" do not match. The AI never sees the
+No substring, word or fuzzy match in `match`: "please sit down" and "sit down and smile" do not match there (it is the
+twin of the plugin's PoseVocabulary.Match, used for exact names). Version 58 (Leon 16:07) relaxes the gate for what the
+user SAYS or TYPES: `find` (below) also finds a command inside a longer sentence ("please sit down now"). The AI never sees the
 vocabulary and has no pose tool. The answer to a match is the JSON {"pose": "<id>"} in the command `pose`; the plugin
 parses and checks it against ITS vocabulary again (PoseVocabulary.cs, same rules; tests/test_pose_commands.py runs
 both with the same test vectors).
+
+Version 58, `find`: the input and the commands are cut into words (letters and digits; apostrophes are dropped, so
+"don't" is "dont"; everything else separates words, case ignored). A command matches when its words appear in the
+input as a whole run of words ("sit down" in "please sit down now", never "sitting down" or "sit downstairs"). Built-in
+commands also have a few German phrases (STARTER_ALIASES: "kannst du dich hinsetzen" -> Sit Down). An occurrence right
+after a negation ("don't sit down", "never stand up", "nicht hinsetzen") or followed by "nicht" ("setz dich nicht hin")
+does not count. Several commands: the one with the most words wins (then the most characters, then the later one in
+the sentence). `rest_words` says how many other words the sentence has besides the command and filler words: from
+REST_FOR_AI on, the sentence also goes to the AI as usual (the pose is applied first).
+
+Version 58: a built-in command (a starter command still linked to the pose of its own name, `is_builtin`) without that
+pose on the character is not "unavailable" any more: the plugin applies a substitute pose (PoseController.SubstituteFor).
 
 A command is "available" when a pose with its id exists on the character (the plugin's `poses` list: gestures.json
 poses and pose preset files; names compare ignoring case, spaces, '_' and '-': pose_key). Commands without a pose are
@@ -25,6 +39,33 @@ STARTER_COMMANDS = (
     "Sit Down", "Lay Down", "Prone", "Stand Up", "Spread Your Legs", "Ankle Your Knees", "Ankle Your Elbows",
     "Turn Around", "Crawl on all fours", "Bend Over",
 )
+# Version 58 (Leon 16:07, "kannst du dich hinsetzen"): German phrases for the built-in commands (voice input; matched
+# like the command itself, whole words). Not for "Ankle Your Knees" / "Ankle Your Elbows" (no clear German phrase).
+STARTER_ALIASES = {
+    "Sit Down": ("hinsetzen", "setz dich", "setzt dich", "setzen sie sich"),
+    "Lay Down": ("hinlegen", "leg dich", "legst dich"),
+    "Prone": ("auf den bauch", "bauchlage"),
+    "Stand Up": ("aufstehen", "steh auf", "stehst auf"),
+    "Spread Your Legs": ("beine spreizen", "spreiz die beine", "spreiz deine beine", "beine breit"),
+    "Turn Around": ("umdrehen", "dreh dich um", "drehst dich um"),
+    "Crawl on all fours": ("auf alle viere", "auf allen vieren", "krabbeln", "krabbel"),
+    "Bend Over": ("bück dich", "bueck dich", "bücken", "vorbeugen", "beug dich vor", "beug dich nach vorne"),
+}
+# Words that negate a command right before it (up to NEGATION_WINDOW words), and "nicht" right after it.
+NEGATIONS = frozenset(("not", "dont", "doesnt", "didnt", "never", "no", "cant", "cannot", "wont", "shouldnt", "mustnt",
+                       "stop", "nicht", "nie", "niemals", "kein", "keine", "nö", "nein"))
+NEGATION_WINDOW = 3
+# Words that do not count as "more to say" next to a command ("please sit down now" is just the command).
+FILLERS = frozenset((
+    "please", "pls", "now", "right", "away", "just", "and", "then", "ok", "okay", "hey", "hi", "so", "well", "can", "could",
+    "would", "will", "you", "u", "for", "me", "go", "ahead", "quickly", "slowly", "again", "a", "the", "honey", "babe",
+    "baby", "darling", "dear", "sweetie", "yes", "yeah", "come", "on", "lets", "let", "us",
+    "bitte", "jetzt", "mal", "doch", "schnell", "langsam", "nochmal", "wieder", "und", "dann", "kannst", "könntest",
+    "koenntest", "würdest", "wuerdest", "du", "dich", "mir", "mich", "sofort", "gleich", "schatz", "liebling", "ja", "na",
+    "komm", "los", "einfach", "bitteschön",
+))
+REST_FOR_AI = 3   # other words from which the sentence also goes to the AI
+
 MAX_COMMANDS = 100
 MAX_COMMAND_CHARS = 60
 MAX_POSE_CHARS = 200
@@ -71,6 +112,23 @@ def is_pose_path(pose: Any) -> bool:
     """A pose file path (contains '/' and ends with .vap or .json); same rule as PoseVocabulary.IsPosePath."""
     text = str(pose or "")
     return "/" in text and text.lower().endswith((".vap", ".json"))
+
+
+def words(text: Any) -> list[str]:
+    """Version 58: the words of a text for `find` (letters and digits, lower case; apostrophes dropped)."""
+    if not isinstance(text, str):
+        return []
+    t = text.lower()
+    for ch in "'\u2019\u2018`\u00b4":
+        t = t.replace(ch, "")
+    return "".join(c if c.isalnum() else " " for c in t).split()
+
+
+def is_builtin(entry: dict[str, str]) -> bool:
+    """Version 58: a starter command still linked to the pose of its own name (same rule as PoseVocabulary.IsBuiltIn)."""
+    key = pose_key(entry.get("command", ""))
+    return (any(pose_key(c) == key for c in STARTER_COMMANDS) and pose_key(entry.get("pose", "")) == key
+            and not is_pose_path(entry.get("pose", "")))
 
 
 def starter_entries() -> list[dict[str, str]]:
@@ -125,6 +183,43 @@ class PoseVocabulary:
             if normalize_input(entry["command"]) == key:
                 return entry
         return None
+
+    def phrases(self, entry: dict[str, str]) -> list[list[str]]:
+        """The word runs that call this command: its own text, plus the German phrases of a built-in command."""
+        result = [words(entry["command"])]
+        for starter, aliases in STARTER_ALIASES.items():
+            if pose_key(starter) == pose_key(entry["command"]):
+                result.extend(words(a) for a in aliases)
+        return [r for r in result if r]
+
+    def find(self, text: Any) -> tuple[dict[str, str] | None, int]:
+        """Version 58: the command said or typed, also inside a longer sentence (see the module docstring), and how many
+        other non-filler words the sentence has. (None, 0) = no command. An exact `match` always wins."""
+        exact = self.match(text)
+        if exact is not None:
+            return exact, 0
+        tokens = words(text)
+        if not tokens:
+            return None, 0
+        best: tuple[tuple[int, int, int], dict[str, str], int, int] | None = None
+        for entry in self.entries:
+            for phrase in self.phrases(entry):
+                n = len(phrase)
+                for i in range(len(tokens) - n + 1):
+                    if tokens[i:i + n] != phrase:
+                        continue
+                    before = tokens[max(0, i - NEGATION_WINDOW):i]
+                    after = tokens[i + n:i + n + 2]
+                    if any(w in NEGATIONS for w in before) or "nicht" in after:
+                        continue
+                    rank = (n, len(" ".join(phrase)), i)
+                    if best is None or rank > best[0]:
+                        best = (rank, entry, i, n)
+        if best is None:
+            return None, 0
+        _, entry, i, n = best
+        rest = [w for w in tokens[:i] + tokens[i + n:] if w not in FILLERS]
+        return entry, len(rest)
 
     @staticmethod
     def resolve(entry: dict[str, str], pose_names: list[str]) -> str | None:

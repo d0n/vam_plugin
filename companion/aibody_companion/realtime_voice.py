@@ -327,15 +327,18 @@ class RealtimeVoice:
     SUPPRESS_S = 8.0
 
     def _pose_command(self, text: str) -> bool:
-        """The whole transcript equals a pose command: run it and drop the server's answer (started or still to come).
+        """The transcript is a pose command (version 58: also inside a sentence): run it and drop the server's answer
+        (started or still to come), unless the sentence has more to say (PoseDecision.also_for_ai).
         TODO(verify) with the real xAI realtime server: that response.cancel stops an answer that is already running."""
         if not self.c.pose_gate_active():
             return False
-        decision = self.c.pose_decision(text)
+        decision = self.c.pose_decision(text)   # version 58: also inside a sentence (pose_commands.find)
         if decision is None:
             return False
         for step in decision.steps:
             self.c._apply(step)
+        if decision.also_for_ai:
+            return False   # version 58: more to say than the command: the server's answer plays as usual
         if self.responding and self.response_id:
             self.cancelled.add(self.response_id)
             self.client.send({"type": "response.cancel"})

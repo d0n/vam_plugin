@@ -202,15 +202,22 @@ namespace AIBody
             }
         }
 
-        /// <summary>
-        /// The companion app's answer to a pose command: {"pose":"<id>"}. Parsed strictly, the id must belong to a command
-        /// of this vocabulary and the character must have that pose; otherwise nothing is applied. Returns an error
-        /// message (the caller logs a short warning), or null on success.
-        /// </summary>
         /// <summary>Version 56: the pose and the command the last ApplyPoseJson resolved (Body: idle poses, status note).</summary>
         public string LastJsonPose { get; private set; }
         public string LastJsonCommand { get; private set; }
 
+        /// <summary>Version 58: picks the pose for a built-in command whose own pose is missing (Body: a random pose of the
+        /// idle pool, else the idle default pose); null = none.</summary>
+        public Func<PoseCommand, string> SubstituteFor;
+        /// <summary>Version 58: the last ApplyPoseJson used a substitute pose.</summary>
+        public bool LastJsonSubstitute { get; private set; }
+
+        /// <summary>
+        /// The companion app's answer to a pose command: {"pose":"<id>"}. Parsed strictly, the id must belong to a command
+        /// of this vocabulary and the character must have that pose (version 58: or a built-in command gets a substitute pose);
+        /// otherwise nothing is applied. Returns an error
+        /// message (the caller logs a short warning), or null on success.
+        /// </summary>
         public string ApplyPoseJson(string json)
         {
             string pose;
@@ -219,6 +226,12 @@ namespace AIBody
             PoseCommand entry = Vocabulary.FindByPoseId(pose);
             if (entry == null) return "'" + pose + "' is not a pose of the pose vocabulary";
             string actual = PoseVocabulary.Resolve(entry, PoseNames);
+            LastJsonSubstitute = false;
+            if (actual == null && SubstituteFor != null && PoseVocabulary.IsBuiltIn(entry))
+            {
+                actual = SubstituteFor(entry);   // version 58: a built-in command without its pose file
+                LastJsonSubstitute = actual != null;
+            }
             if (actual == null) return "pose command '" + entry.Command + "' is unavailable: the character has no pose '" + entry.Pose + "'";
             LastJsonPose = actual;
             LastJsonCommand = entry.Command;

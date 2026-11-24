@@ -196,8 +196,10 @@ class Chain(unittest.TestCase):
         self.assertEqual(self.poses_sent()[0]["command"], "Sit Down")
 
     def test_near_misses_go_to_the_conversation_and_never_apply_a_pose(self):
+        # version 58 (Leon 16:07): "please sit down" IS a pose command now (the command inside a sentence); a negated
+        # command or a word that only contains it ("sitting down") is ordinary conversation
         self.start(poses=STARTERS)
-        for text in ("please sit down", "sit down and smile"):
+        for text in ("don't sit down", "I like sitting down"):
             self.ask(text)
         self.assertEqual(self.poses_sent(), [])
         self.assertEqual(len(self.requests()), 2, "they are ordinary conversation")
@@ -211,12 +213,19 @@ class Chain(unittest.TestCase):
         self.assertEqual([json.loads(p["json"])["pose"] for p in self.poses_sent()], STARTERS)
 
     def test_an_unavailable_command_is_never_applied(self):
-        self.start(poses=("Prone",))
-        self.ask("Sit Down")
+        # version 58: an own command without its pose stays unavailable (a built-in one gets a substitute in the plugin)
+        self.start(poses=("Prone",), commands=[{"command": "Have a seat", "pose": "sitting"}, {"command": "Prone", "pose": "Prone"}])
+        self.ask("Have a seat")
         self.assertEqual(self.poses_sent(), [])
         self.assertEqual(self.requests(), [], "still a pose command: no model answer that could invent a pose")
         self.ask("Prone")
         self.assertEqual(len(self.poses_sent()), 1)
+
+    def test_a_builtin_command_without_its_pose_is_sent_for_a_substitute(self):
+        self.start(poses=("Prone",))
+        self.ask("Sit Down")
+        self.assertEqual([p["json"] for p in self.poses_sent()], ['{"pose":"Sit Down"}'], "the plugin picks the substitute")
+        self.assertEqual(self.requests(), [])
 
     def test_body_control_off_leaves_the_words_to_the_conversation(self):
         self.start(body_control=False)
@@ -237,11 +246,17 @@ class Chain(unittest.TestCase):
         self.sim.run(self.plugin, 4)
         self.assertEqual([p["json"] for p in self.poses_sent()], ['{"pose":"Sit Down"}'])
         self.assertEqual(self.requests(), [])
-        self.said[0] = "Please sit down."
+        self.said[0] = "Please sit down now."   # version 58: inside a sentence
         for loud in [True] * 40 + [False] * 30:
             self.app.handle_audio_frame(frame(loud))
         self.sim.run(self.plugin, 4)
-        self.assertEqual(len(self.poses_sent()), 1)
+        self.assertEqual(len(self.poses_sent()), 2)
+        self.assertEqual(self.requests(), [])
+        self.said[0] = "Please don't sit down."
+        for loud in [True] * 40 + [False] * 30:
+            self.app.handle_audio_frame(frame(loud))
+        self.sim.run(self.plugin, 4)
+        self.assertEqual(len(self.poses_sent()), 2)
         self.assertEqual(len(self.requests()), 1)
 
     def test_a_pose_call_from_the_model_is_refused(self):
@@ -288,7 +303,7 @@ class RealtimeGate(RealtimeSim):
     def test_a_near_miss_is_a_normal_conversation(self):
         self.start_connected()
         self.server.conn.send({"type": "input_audio_buffer.speech_stopped", "item_id": "u1"})
-        self.transcript("Please sit down.")
+        self.transcript("Please don't sit down.")   # version 58: "please sit down" is a command now; negated is not
         self.pump(timeout=0.3)
         self.assertEqual(self.sim.sent(self.plugin, "pose"), [])
         self.server.respond(["Of course. "], tone(1.0))
@@ -296,8 +311,10 @@ class RealtimeGate(RealtimeSim):
 
     def test_an_unavailable_command_sends_no_pose(self):
         self.start_connected(poses=("Prone",))
+        self.plugin.pose_commands = [{"command": "Have a seat", "pose": "sitting"}]
+        self.pump(lambda: (self.app.body_info.get("pose_commands") or [{}])[0].get("command") == "Have a seat")
         self.server.conn.send({"type": "input_audio_buffer.speech_stopped", "item_id": "u1"})
-        self.transcript("Sit Down")
+        self.transcript("Have a seat")
         self.pump(timeout=0.4)
         self.assertEqual(self.sim.sent(self.plugin, "pose"), [])
 
