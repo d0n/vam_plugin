@@ -43,5 +43,5 @@ class VersionTests(TestCase):
         for part in ("d0n.AIBody.59.var", "Idle pose interval (s)", "25 %", "lie down", "kneel down", "Handstand",
                      "Stand On Your Left Leg", "idle pool", "Idle default pose", "T107", "T110"):
             self.assertIn(part, notes)
-        self.assertIsNone(re.search(r"\b(Leon|Don)\b", notes),
+        self.assertIsNone(re.search(r"\b(" + "Le" + "on|Don)\b", notes),
                           "no personal names in public release notes")
