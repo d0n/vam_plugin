@@ -907,6 +907,30 @@ Report: a dropdown without entries after the reset, the same pose twice in a row
 7. Idle head motion on: watch the head and chest for 2 s after each pose load: no jerk; the idle sway starts again after about 1 s.
 Report: a pose that does not apply, any twitching, a pose applied by just choosing an entry, Body control off after using Dollmaster.
 
+## T111 – Idle movement: starts after idle, AI character only (version 60)
+1. Install v60 and MacGruber's **IdlePoser** (`MacGruber.IdlePoser.9`, free on the VaM Hub; Package Manager > Scan Hub For Missing Packages finds it through AIBody's dependency). Start AIBody Companion, then VaM; load AI-Buddy with the AI character standing.
+2. Do not touch her and say nothing for about 10 s: she shifts her weight from leg to leg (hips turn a little, the free heel lifts), with pauses, like someone who waits. No jump when it starts. The head keeps its own idle motion and gaze.
+3. Tab AI Character > *Idle movement*: the info field says "Idle movement is running". Person `AI` > Plugins lists one **AIBody Idle Movement** (MacGruber.IdlePoser); Person `Client` has NO IdlePoser.
+4. Save the scene and load it again: still ONE AIBody Idle Movement on `AI` (it is reused, not added twice).
+5. Sitting or lying pose (say "Sit Down"): no weight shift; the info field says she is not standing.
+6. Without IdlePoser installed (or disabled in the Package Manager): no error popup; the info field says MacGruber.IdlePoser.9 is not installed; everything else works.
+Report: no movement after 20 s, a jump at the start, an IdlePoser on Client, two instances after reloading, an error without IdlePoser.
+
+## T112 – Idle movement stops when you take over (version 60)
+1. While she shifts her weight (T111), grab a hand or the hip controller (VR hand or mouse): the movement stops at once and she stays where you put her; it does not come back while you hold her, and only about 2 min after you let go (the idle poses' cooldown; the idle pose change waits as well).
+2. While she moves, load a pose from outside (Person > Pose > a preset): the pose stays; the idle movement stops and waits the same cooldown.
+3. While she moves, say a pose command ("Turn Around" or "Stand Up"): the pose is applied cleanly (no fight, no twitch); the movement waits the cooldown and then starts again from the NEW pose if it is a standing one.
+4. Tab Dollmaster > Activate on: the movement stops; Activate off: it starts again after the cooldown. **Body control** off: stops; on: starts again.
+5. An idle pose change (Idle poses on, short interval): the movement stops before the pose loads and starts again from the new pose.
+Report: movement while you hold her, your pose overwritten, a twitch during a pose command, movement while Dollmaster is active.
+
+## T113 – Idle movement toggle, liveliness, Reset to Default (version 60)
+1. Tab AI Character > *Idle movement*: **Idle movement** (toggle, on) and **Idle movement liveliness** (slider, 0.5). Nothing else.
+2. Toggle off: she stops at once and stays as she is. Toggle on: it starts again after a few seconds of quiet.
+3. Liveliness 0: small, slow, rare shifts. Liveliness 1: larger, quicker, frequent shifts (after the slider stands still for about 1 s she may go back to her base pose once).
+4. Config tab > **Reset to Default**: the toggle is on, the slider 0.5, and no dropdown on any tab is empty. config.json has `body.idle_movement` and `body.idle_movement_liveliness`; editing them + **Reload Config JSON** applies them.
+Report: no change between 0 and 1, an empty dropdown, values not saved.
+
 ## T107 – One idle pose interval (version 59)
 1. Install v59, start AIBody Companion, then VaM; load AI-Buddy. Tab AI Character > Idle poses: there is ONE slider **Idle pose interval (s)** (default 165), no min / max wait sliders.
 2. Set it to 60 s and stay quiet: each idle pose change comes after about 45-75 s (60 s +/- 25 %), not always the same wait. The left field says "now between 45 s and 75 s".

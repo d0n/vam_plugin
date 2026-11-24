@@ -22,6 +22,7 @@ public partial class SuperController : MonoBehaviour
     public string NormalizePath(string path) { return path; }         // E7 (preset browse path)
     public CameraTarget centerCameraTarget;                           // E12 L647 (the player's view; .transform)
     public List<Atom> GetAtoms() { return null; }                     // E12 L180, L759, L797
+    public bool isLoading { get { return false; } }                   // E43 (IdlePoser Core L536: SuperController.singleton.isLoading)
     // E37 (vam-timeline ImportExportScreen.cs L200/L202): VaM's file browser; picks a file and calls back with its path.
     public void GetMediaPathDialog(FileBrowserCallback callback, string filter = "", string suggestedFolder = null,
         bool fullComputerBrowse = true, bool showDirs = true) { }
@@ -83,9 +84,16 @@ public partial class JSONStorable : MonoBehaviour
     public void CallAction(string n) { }                                                  // E7, E8
     public void CallAction(string n, NamedAudioClip clip) { }                             // E29 (MacGruber Breathe.cs L209: "PlayNow" with a clip)
     public SimpleJSON.JSONClass GetJSON(bool includePhysical = true, bool includeAppearance = true, bool forceStore = false) { return null; } // E1 (L288, PluginManager)
+    // E43 (IdlePoser Core L689: "public override void LateRestoreFromJSON(JSONClass jc, bool restorePhysical = true,
+    // bool restoreAppearance = true, bool setMissingToDefault = true)"; VaM calls it on scene load)
+    public virtual void LateRestoreFromJSON(SimpleJSON.JSONClass jc, bool restorePhysical = true, bool restoreAppearance = true, bool setMissingToDefault = true) { }
 }
 
-public partial class MVRPluginManager : JSONStorable { }                       // E1 (L287, GetStorableByID("PluginManager"))
+public partial class MVRPluginManager : JSONStorable                           // E1 (L287, GetStorableByID("PluginManager"))
+{
+    public MVRPlugin CreatePlugin() { return null; }                  // E41 (Keybindings PluginReference.cs L99)
+}
+public partial class MVRPlugin { public JSONStorableUrl pluginURLJSON; }   // E41 (PluginReference.cs L100: pluginURLJSON.val = url)
 
 public partial class JSONStorableParam { public string name; public bool isStorable = true; public bool isRestorable = true; }   // E12 L66 (isStorable / isRestorable)
 public partial class JSONStorableBool : JSONStorableParam
@@ -184,6 +192,7 @@ public partial class FreeControllerV3 : JSONStorable                          //
     public enum RotationState { On, Off, Following, Hold, Lock, ParentLink, PhysicsLink }
     public RotationState currentRotationState;                        // E2
     public Transform control;                                         // E12 L678, L704; E28 L109, L209 (control.position)
+    public bool isGrabbing { get { return false; } }                  // E42 (vam-timeline AtomAnimation.Playback.cs L678, L732)
 }
 
 public partial class EyesControl : JSONStorable                               // E12 L159; E28 L79 (GetStorableByID("Eyes"))

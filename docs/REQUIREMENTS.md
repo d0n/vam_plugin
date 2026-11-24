@@ -4,7 +4,7 @@ Status: 21.11.2026, version 44. Overview of what is done and what is open; updat
 - Agreed specification (what applies): [`docs/SPEC.md`](SPEC.md)
 - Deferred ideas / nice to have: [`docs/BACKLOG.md`](BACKLOG.md)
 - Test instructions in VaM: [`docs/TEST_PROTOCOL.md`](TEST_PROTOCOL.md) · API evidence: [`docs/API_AUDIT.md`](API_AUDIT.md)
-- Repo: https://github.com/d0n/vam_plugin · current package: `d0n.AIBody.59.var` (version = package number since 12)
+- Repo: https://github.com/d0n/vam_plugin · current package: `d0n.AIBody.60.var` (version = package number since 12)
 
 "Done" means: tested in code and against rebuilt counterparts. What has not yet been checked in VaM or against the real xAI APIs is listed again under 2.
 
@@ -84,6 +84,9 @@ Status: 21.11.2026, version 44. Overview of what is done and what is open; updat
 - Scene with two people: `AI Character` (female, `Female 3`, AIBody) and `Client Character` (male, `Male 1`, Camera Background Color directly on the Person), 1.2 m apart, facing each other – version 12 (Don, 17.11.2026 22:30).
 - README rewritten: purpose, bundled scene, two characters, complete settings reference, notes for the Hub; technical details in `docs/TECHNICAL.md` – after v0.7.4 (Don, 17.11.2026 22:11).
 - `docs/BACKLOG.md` (deferred ideas, Don 17.11.2026 21:45) and `docs/SPEC.md` (spec log, Don 17.11.2026 21:50) – v0.7.4.
+
+### Version 60 (25.11.2026)
+- **Idle movement:** while nobody moves or poses the AI character she shifts her weight from leg to leg (MacGruber's IdlePoser `MacGruber.IdlePoser.9`, CC BY-SA, a dependency; added by the plugin to the AI character only, never to `Client`). One toggle **Idle movement** (on) and one slider **Idle movement liveliness** (0-1, 0.5). Stops at once and waits like the idle poses when she is grabbed, posed from outside, gets a pose command, while a pose is applied, while the scene loads, with Body control off or Dollmaster active; standing poses only. T111-T113.
 
 ### Version 23 (19.11.2026)
 - **Version 23 (19.11.2026):** microphone selection removed (Don, voice message: under Windows the companion app records from the default device anyway, the selection was superfluous). Gone: menu "Mic device", button "Refresh microphones", action "Refresh mic devices", `MicDeviceList.cs`, microphone list / device count in the info field, setting `mic.device`, messages `list_devices` / `devices`, device parameters of the recording. Recording always uses the default input device (sounddevice). Old scenes, config.json and older plugins with `device` / `list_devices` are tolerated silently. The red line "Companion app not running. Start it: …" stays in the info field. `--list-devices` and `tools/mic_test.py` stay as diagnosis.

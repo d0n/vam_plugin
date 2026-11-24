@@ -471,6 +471,39 @@
           "type": "string",
           "default": "Stand Up",
           "description": "Menu 'Idle default pose': the pose the character returns to between idle poses (a pose name of the character; not found = no return pose)"
+        },
+        "idle_movement": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "true",
+                "false",
+                "True",
+                "False"
+              ]
+            }
+          ],
+          "default": true,
+          "description": "Toggle 'Idle movement' (version 60, default on): while nobody moves or poses the AI character she shifts her weight from leg to leg like someone who waits (MacGruber's IdlePoser, package MacGruber.IdlePoser.9, on the AI character only; standing poses only)"
+        },
+        "idle_movement_liveliness": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0
+            },
+            {
+              "type": "string",
+              "pattern": "^\\s*-?[0-9]+(\\.[0-9]+)?([eE][-+]?[0-9]+)?\\s*$"
+            }
+          ],
+          "default": 0.5,
+          "description": "Slider 'Idle movement liveliness' (version 60, 0-1, default 0.5): 0 = calm (small, rare weight shifts), 1 = restless (larger, frequent)"
         }
       },
       "description": "Tab 'AI Character', section 'Body (this Person only)'"

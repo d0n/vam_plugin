@@ -637,7 +637,7 @@ class MenuLayoutTests(unittest.TestCase):
                    "Idle motion and breathing", "Expression and gesture", "Poses", "Microphone", "Push-to-talk",
                    "Voice detection", "Echo and barge-in", "Config file", "Connection", "First start: XAI API Token",
                    "Self-test", "Recent events", "Startup log", "Engine status", "Info: ", "Characters", "Clothing", "Reset",
-                   "Dollmaster", "Status"}
+                   "Dollmaster", "Status", "Idle movement"}
         unknown = sorted(x for x in labels if x not in known and x not in headers and not x.startswith(("AIBody", "Info")))
         self.assertEqual(unknown, [], "bold text that is neither a control label nor a section title")
 

@@ -174,9 +174,10 @@ class OwnIdleMotionTests(unittest.TestCase):
                 self.assertNotIn(word, text, f"{name}: {word}")
         meta = json.loads((ROOT / "packaging/meta.json").read_text(encoding="utf-8"))
         self.assertEqual(meta.get("licenseType"), "FC")
-        # Idle motion / breathing still adds no plugin package of its own (no MacGruber / Idle Mover).
-        # meta.json "dependencies" now lists third-party content used by the AI-Buddy example scene, not the plugin.
-        self.assertNotIn("MacGruber", json.dumps(meta.get("dependencies", {})))
+        # Idle motion / breathing still adds no plugin package of its own (no Idle Mover). Version 60: the idle movement
+        # references MacGruber's IdlePoser (CC BY-SA) as the ONE third-party plugin dependency (test_v60_idle_movement.py).
+        macgruber = [name for name in meta.get("dependencies", {}) if "MacGruber" in name]
+        self.assertEqual(macgruber, ["MacGruber.IdlePoser.9"])
         self.assertNotIn("IdleMover", json.dumps(meta.get("dependencies", {})))
 
 

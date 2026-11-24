@@ -71,6 +71,11 @@ DESCRIPTIONS = {
     ("body", "idle_pose_interval_s"): "Slider 'Idle pose interval (s)' (version 59): quiet time before an idle pose change; "
                                       "each wait is this value +/- 25 % at random (30-18000, default 165). Old "
                                       "idle_pose_min_s / idle_pose_max_s are migrated to their mean",
+    ("body", "idle_movement"): "Toggle 'Idle movement' (version 60, default on): while nobody moves or poses the AI "
+                               "character she shifts her weight from leg to leg like someone who waits (MacGruber's "
+                               "IdlePoser, package MacGruber.IdlePoser.9, on the AI character only; standing poses only)",
+    ("body", "idle_movement_liveliness"): "Slider 'Idle movement liveliness' (version 60, 0-1, default 0.5): 0 = calm (small, "
+                                          "rare weight shifts), 1 = restless (larger, frequent)",
     ("body", "idle_pose_default"): "Menu 'Idle default pose': the pose the character returns to between idle poses "
                                    "(a pose name of the character; not found = no return pose)",
     ("remote",): "Remote control (version 31, file only, no tab; the plugin keeps this section unchanged): a local web page / "

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "written_by": "AIBody companion app 59 (example)",
+  "written_by": "AIBody companion app 60 (example)",
   "connection": {
     "active": true,
     "network_active": true,
@@ -43,7 +43,9 @@
     "idle_poses": true,
     "idle_poses_all_files": false,
     "idle_pose_interval_s": 165.0,
-    "idle_pose_default": "Stand Up"
+    "idle_pose_default": "Stand Up",
+    "idle_movement": true,
+    "idle_movement_liveliness": 0.5
   },
   "advanced": {
     "file_poll_interval_s": 0.1,

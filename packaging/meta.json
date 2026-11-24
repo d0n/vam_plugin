@@ -43,6 +43,10 @@
     },
     "particle pinnacle.missing_morphs.1": {
       "dependencies": {}
+    },
+    "MacGruber.IdlePoser.9": {
+      "licenseType": "CC BY-SA",
+      "dependencies": {}
     }
   },
   "customOptions": {

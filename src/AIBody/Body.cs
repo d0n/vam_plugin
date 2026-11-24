@@ -41,6 +41,15 @@ namespace AIBody
         private JSONStorableFloat _idlePoseMaxJson;
         private JSONStorableStringChooser _idlePoseDefaultJson;
         private IdlePoseScheduler _idlePoses;
+        // Idle movement (version 60, Don): MacGruber's IdlePoser on the AI character, states built from her current pose.
+        private JSONStorableBool _idleMoveJson;
+        private JSONStorableFloat _idleMoveLivelyJson;
+        private IdleMovementGate _idleMove;
+        private IdlePoserLink _poser;
+        private bool _idleMoveFresh;          // the states just changed: no jump check this frame
+        private float _idleMoveStandIn;       // the standing check runs at most twice a second
+        private bool _idleMoveStanding;       // its last result
+        private float _idleMoveRebuildIn = -1f;   // a new liveliness is applied 1 s after the slider stopped moving
         // Character configuration wizard (after version 37): gate + recorded gender settings.
         public CharacterWizard Characters;
         /// <summary>Called when a recorded character setting changes (the plugin marks config dirty).</summary>
@@ -286,6 +295,12 @@ namespace AIBody
                 IdlePoseScheduler.DefaultIdlePose, "Idle default pose", (string v) => { if (_idlePoses != null) _idlePoses.DefaultPose = v; _poolDirty = true; });
             _idlePoseDefaultJson.popupOpenCallback = RefreshCharacterChoices;
             SettingsDefaults.Chooser(_plugin, _idlePoseDefaultJson);
+            // Version 60 (Don, call 24.11.2026): idle movement - almost no settings: on / off and how lively.
+            _idleMoveJson = new JSONStorableBool("Idle movement", true, (bool v) => { if (_idleMove != null) _idleMove.Enabled = v; });
+            SettingsDefaults.Bool(_plugin, _idleMoveJson);
+            _idleMoveLivelyJson = new JSONStorableFloat("Idle movement liveliness", IdleMovementPlan.DefaultLiveliness,
+                (float v) => { if (_idleMove != null) _idleMove.Liveliness = v; }, 0f, 1f);
+            SettingsDefaults.Float(_plugin, _idleMoveLivelyJson);
 
             Characters = new CharacterWizard(_plugin, () => { if (OnSettingsChanged != null) OnSettingsChanged(); });
             Characters.RequestRebuild = () => { RebuildTab = true; };
@@ -363,7 +378,11 @@ namespace AIBody
                 _poses.Vocabulary.SetStarters();   // until config.json poses.commands is read (LoadPoseCommands)
                 _poses.OnPoseLoaded = () => { if (_idle != null) _idle.Rebase(); };
                 // Version 52: one writer at a time - the idle motion holds still while VaM applies the pose.
-                _poses.BeforePoseLoad = () => { if (_idle != null) _idle.HoldForPose(PoseController.SettleSeconds); };
+                _poses.BeforePoseLoad = () =>
+                {
+                    if (_idle != null) _idle.HoldForPose(PoseController.SettleSeconds);
+                    StopIdleMovement("paused while a pose is applied");   // version 60: IdlePoser off before VaM applies the pose
+                };
             });
             _diag.Run("Idle poses (IdlePoseScheduler)", () =>
             {
@@ -372,6 +391,14 @@ namespace AIBody
                 if (_idlePoseIntervalJson != null) idlePoses.IntervalSeconds = _idlePoseIntervalJson.val;
                 if (_idlePoseDefaultJson != null) idlePoses.DefaultPose = _idlePoseDefaultJson.val;
                 _idlePoses = idlePoses;
+            });
+            _diag.Run("Idle movement (IdlePoser)", () =>
+            {
+                IdleMovementGate gate = new IdleMovementGate();
+                gate.Enabled = _idleMoveJson == null || _idleMoveJson.val;
+                if (_idleMoveLivelyJson != null) gate.Liveliness = _idleMoveLivelyJson.val;
+                _idleMove = gate;
+                _poser = new IdlePoserLink(_atom);
             });
             _diag.Run("Scene actions", RegisterSceneActions);
             _diag.Run("Commands (CommandRouter)", () =>
@@ -427,6 +454,9 @@ namespace AIBody
             page.ScrollablePopup(_idlePoseDefaultJson);
             page.Button("Apply idle default pose", ApplyIdleDefaultPose);   // 22.11.2026 (Don): go there now
             page.Slider(_idlePoseIntervalJson);
+            page.Header("<b>Idle movement</b>");   // version 60: MacGruber's IdlePoser, weight shift from leg to leg
+            page.Toggle(_idleMoveJson);
+            page.Slider(_idleMoveLivelyJson);
             page.Header("<b>Idle motion and breathing</b>");
             page.Toggle(_idleJson);
             page.Slider(_idleIntensityJson);
@@ -484,6 +514,7 @@ namespace AIBody
             if (_poses != null && !string.IsNullOrEmpty(_poses.LastPlaceNote)) text += "Last place kept: " + _poses.LastPlaceNote + "\n";   // version 54
             text += PoseCommandsInfo();
             text += IdlePosesInfo();
+            text += IdleMovementInfo();
             text += ExpressionHelp + "\n" + BodyControlHelp + "\n" + BodyPositionHelp + "\n" + BreathingHelp + "\n";
             return text;
         }
@@ -529,6 +560,23 @@ namespace AIBody
                 + "<b>Apply idle default pose</b> goes there now; after your own pose command it waits "
                 + IdlePoseScheduler.CooldownSeconds.ToString("0") + " s first, while Dollmaster is active it pauses, and "
                 + "<b>Idle head motion</b> and <b>Breathing</b> keep running in every pose.\n";
+        }
+
+        public const string IdleMovementLabel = "Idle movement";
+        public const string IdleMovementLivelinessLabel = "Idle movement liveliness";
+
+        /// <summary>Version 60: the idle movement in running prose (left field).</summary>
+        private string IdleMovementInfo()
+        {
+            if (_idleMove == null) return "Idle movement: not available (see the log)\n";
+            string problem = _poser != null && _poser.Problem.Length > 0 ? " (" + _poser.Problem + ")" : "";
+            return "<b>Idle movement</b> is " + (_idleMove.Enabled ? _idleMove.Status + problem : "off") + ". While nobody moves or "
+                + "poses her she stands like someone who waits: the weight goes from one leg to the other, hips and chest turn a "
+                + "little, the free foot rests on its toes, the arms hang as they are. It runs in MacGruber's IdlePoser ("
+                + IdleMovementPlan.PoserPackage + ", free on the VaM Hub) on the AI character only, starts from her current "
+                + "standing pose and stops at once when you grab her, load a pose on her or give a pose command; then it waits "
+                + "like the idle poses (" + IdlePoseScheduler.CooldownSeconds.ToString("0") + " s). <b>Idle movement liveliness</b> "
+                + "sets how far and how often she shifts (0 = calm, 1 = restless).\n";
         }
 
         /// <summary>"300 s (5 min)": seconds, with minutes from one minute on.</summary>
@@ -1067,6 +1115,8 @@ namespace AIBody
             body["idle_poses_all_files"].AsBool = _idleAllFilesJson.val;   // version 54
             body["idle_pose_interval_s"].AsFloat = _idlePoseIntervalJson.val;   // version 59 (was idle_pose_min_s / _max_s)
             body["idle_pose_default"] = _idlePoseDefaultJson.val;
+            body["idle_movement"].AsBool = _idleMoveJson.val;                    // version 60
+            body["idle_movement_liveliness"].AsFloat = _idleMoveLivelyJson.val;
             root["body"] = body;
             JSONClass poses = new JSONClass();
             JSONArray commands = new JSONArray();
@@ -1110,6 +1160,8 @@ namespace AIBody
                     Protocol.GetFloat(body, "idle_pose_max_s", IdlePoseScheduler.OldDefaultMaxSeconds));
             string home = Protocol.GetString(body, "idle_pose_default", _idlePoseDefaultJson.val);
             if (home.Length > 0) SetChooserValue(_idlePoseDefaultJson, home);
+            _idleMoveJson.val = Protocol.GetBool(body, "idle_movement", _idleMoveJson.val);   // version 60
+            _idleMoveLivelyJson.val = Protocol.GetFloat(body, "idle_movement_liveliness", _idleMoveLivelyJson.val);
         }
 
         private static void SetChooserValue(JSONStorableStringChooser chooser, string value)
@@ -1276,12 +1328,14 @@ namespace AIBody
             if (DollmasterOwns)
             {
                 UpdateSceneState(speaking);   // Dollmaster owns expressions, breathing, idle motion and poses
+                UpdateIdleMovement(dt);       // version 60: stops IdlePoser (Body control is off while Dollmaster is active)
                 return;
             }
             if (_expressions != null) _expressions.Update(dt);
             if (_breathing != null) _breathing.Update(dt, speaking);
             UpdateSceneState(speaking);
             UpdateIdlePoses(dt, speaking);
+            UpdateIdleMovement(dt);
             if (_idle == null) return;
             string finishedGesture = _idle.Update(dt, speaking,
                 _breathing != null ? _breathing.Cycle : 0f, _breathing != null ? _breathing.CurrentDepth : 0f);
@@ -1354,6 +1408,99 @@ namespace AIBody
             }
         }
 
+        // Version 60 (Don, call 24.11.2026): idle movement with MacGruber's IdlePoser on the AI character (IdleMovement.cs,
+        // IdlePoserLink.cs). It runs only while nobody moves or poses her: grabbing a controller or a pose loaded from
+        // outside stops it at once and starts the idle poses' cooldown (both wait the same way); AIBody's own pose loads
+        // stop it before VaM applies the pose (BeforePoseLoad) and it starts again from the new pose when that is a
+        // standing pose. Speech does not stop it (people shift their weight while they talk).
+        private void UpdateIdleMovement(float dt)
+        {
+            if (_idleMove == null || _poser == null) return;
+            try
+            {
+                _poser.Find(dt, _idleMove.Enabled && BodyControl);
+                bool loading = SuperController.singleton != null && SuperController.singleton.isLoading;   // E43
+                bool settling = _poses != null && _poses.Guard.Active;
+                bool grabbed = _poser.Grabbed();
+                bool jumped = _poser.Jumped(dt, loading || settling || _idleMoveFresh);
+                _idleMoveFresh = false;
+                bool outside = grabbed || jumped;
+                if (outside && _idlePoses != null) _idlePoses.NoteUserPose();   // the idle poses wait the same cooldown
+                if (jumped) Log.Debug("Idle movement: a controller of '" + (_atom != null ? _atom.uid : "?") + "' jumped (pose from outside): stopped, cooldown started");
+                IdleMovementInputs i = new IdleMovementInputs();
+                i.Available = _poser.Available;
+                i.BodyControl = BodyControl;
+                i.Cooldown = _idlePoses != null && _idlePoses.CooldownLeft > 0f;
+                i.Settling = settling;
+                i.Loading = loading;
+                i.Outside = outside;
+                List<IdlePart> pose = null;
+                _idleMoveStandIn -= dt;
+                if (_idleMove.Running || settling || outside || loading || i.Cooldown)
+                {
+                    _idleMoveStandIn = 0f;        // check again (fresh) right when it may start
+                    _idleMoveStanding = false;
+                }
+                else if (i.Available && _idleMove.Enabled && i.BodyControl && !i.Cooldown && _idleMoveStandIn <= 0f)
+                {
+                    _idleMoveStandIn = 0.5f;
+                    pose = _poser.CaptureBase();
+                    _idleMoveStanding = IdleMovementPlan.IsStanding(pose);
+                }
+                i.Standing = _idleMoveStanding;
+                IdleMovementStep step = _idleMove.Update(i);
+                if (step == IdleMovementStep.Stop)
+                {
+                    StopIdleMovement(null);
+                }
+                else if (step == IdleMovementStep.Start)
+                {
+                    string error = StartIdleMovement(pose ?? _poser.CaptureBase());
+                    if (error != null) { _idleMove.StopNow("could not start: " + error); StopIdleMovement(null); Log.Warn("Idle movement: " + error); }
+                }
+                else if (step == IdleMovementStep.Rebuild)
+                {
+                    _idleMoveRebuildIn = 1f;   // after the slider has been still for a second
+                }
+                if (_idleMoveRebuildIn >= 0f && _idleMove.Running)
+                {
+                    _idleMoveRebuildIn -= dt;
+                    if (_idleMoveRebuildIn < 0f) StartIdleMovement(_poser.BasePose);
+                }
+            }
+            catch (Exception e)
+            {
+                string text = Diag.Describe(e);
+                if (text != _idleMoveLastError) { _idleMoveLastError = text; Log.Warn("Idle movement: error: " + text); }
+            }
+        }
+
+        private string _idleMoveLastError;
+
+        /// <summary>States from this base pose into IdlePoser, then IdlePoser on. Returns an error or null.</summary>
+        private string StartIdleMovement(List<IdlePart> basePose)
+        {
+            if (basePose == null || _atom == null) return "no pose";
+            string error = _poser.Push(IdleMovementPlan.BuildJson(_atom.uid, basePose, _idleMove.Liveliness));
+            if (error != null) return error;
+            _poser.BasePose = basePose;
+            _idleMoveRebuildIn = -1f;
+            _idleMoveFresh = true;
+            if (_idle != null) _idle.ChestSuspended = true;   // one writer on the chest: IdlePoser
+            _poser.SetOn(true);
+            Log.Debug("Idle movement: IdlePoser runs on '" + _atom.uid + "' (" + basePose.Count + " controllers, liveliness "
+                      + _idleMove.Liveliness.ToString("0.00") + ")");
+            return null;
+        }
+
+        /// <summary>IdlePoser off now (it writes nothing more; she stays where she is) and the chest back to the idle motion.</summary>
+        private void StopIdleMovement(string why)
+        {
+            if (_poser != null) _poser.SetOn(false);
+            if (_idle != null) _idle.ChestSuspended = false;
+            if (why != null && _idleMove != null && _idleMove.Running) _idleMove.StopNow(why);
+        }
+
         /// <summary>The pose's file for the log (the name if it is not a file, e.g. a gestures.json pose).</summary>
         private string IdlePoseFile(string pose)
         {
@@ -1398,6 +1545,7 @@ namespace AIBody
             if (_expressions != null) _expressions.RestoreNow();
             if (_breathing != null) _breathing.RestoreNow();
             if (_idle != null) _idle.RestoreNow();
+            StopIdleMovement("off (plugin stopped)");   // version 60: IdlePoser writes nothing more
         }
     }
 }

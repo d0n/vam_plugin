@@ -9,7 +9,8 @@ README.md section 4. Categories (kept from the first schema; they no longer matc
   engines     stt, llm, tts (tab Voice > AI Character)
   mic         microphone + push-to-talk settings (tab Client Character; audio/mic_settings.py)
   body        speech_volume, full_volume_distance, body_control, idle_motion, idle_intensity, breathing,
-              breaths_per_minute, breath_depth, breath_morph, idle_poses, idle_poses_all_files, idle_pose_interval_s, idle_pose_default
+              breaths_per_minute, breath_depth, breath_morph, idle_poses, idle_poses_all_files, idle_pose_interval_s, idle_pose_default,
+              idle_movement, idle_movement_liveliness
               (tab AI Character)
   advanced    file_poll_interval_s (slider "Companion inbox poll interval (s)": how often the
               plugin reads the companion inbox, not config.json), verbose_log (tab Config)
@@ -124,6 +125,10 @@ DEFAULTS: dict[str, dict[str, Any]] = {
         # a config.json with the old idle_pose_min_s / idle_pose_max_s gets their mean (migrate_idle_interval)
         "idle_pose_interval_s": 165.0,
         "idle_pose_default": "Stand Up",  # a pose name of the character; not found = no return pose
+        # version 60 (Don): idle movement - MacGruber's IdlePoser on the AI character shifts her weight from leg to leg
+        # while nobody moves or poses her; liveliness 0 = calm .. 1 = restless
+        "idle_movement": True,
+        "idle_movement_liveliness": 0.5,
     },
     "advanced": {"file_poll_interval_s": 0.1, "verbose_log": False},
     # Plugin UI state (version 30): the first-run note about the xAI token was closed or answered once.
@@ -281,6 +286,7 @@ RANGES: dict[tuple[str, str], tuple[float, float]] = {
     ("body", "breaths_per_minute"): (4.0, 40.0),
     ("body", "breath_depth"): (0.0, 1.0),
     ("body", "idle_pose_interval_s"): (30.0, 18000.0),   # version 59 (version 51 min / max: 30 s to 300 min)
+    ("body", "idle_movement_liveliness"): (0.0, 1.0),   # version 60
     ("advanced", "file_poll_interval_s"): (0.02, 2.0),
     ("ai", "xai", "max_output_tokens"): (16, 8000),
     ("ai", "xai", "speed"): (0.7, 1.5),

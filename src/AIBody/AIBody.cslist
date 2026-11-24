@@ -15,6 +15,8 @@ BreathingController.cs
 IdleController.cs
 PoseVocabulary.cs
 IdlePoses.cs
+IdleMovement.cs
+IdlePoserLink.cs
 PoseController.cs
 CommandRouter.cs
 Background.cs
