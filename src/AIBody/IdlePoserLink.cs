@@ -1,6 +1,3 @@
-// Version 62: excluded at build time to isolate the Always-Allow crash. The file is not in AIBody.cslist and compiles
-// to nothing unless AIBODY_IDLEPOSER is defined (see docs/IDLEPOSER_BUILD_SWITCH.md).
-#if AIBODY_IDLEPOSER
 // The VaM side of the idle movement (version 60, see IdleMovement.cs): AIBody's own IdlePoser instance on the AI
 // character - found by its plugin label, or added to the AI character's plugin list once - and the per-frame checks
 // "grabbed" and "posed from outside". Only evidenced calls (docs/API_AUDIT.md E41-E44):
@@ -12,7 +9,8 @@
 //   - on / off: the plugin's "enabled" value (E44: stored like that for every plugin) and the component's enabled flag
 //     (Unity Behaviour.enabled): off = its Update no longer writes the controllers, she stays where she is;
 //   - FreeControllerV3.isGrabbing (E42), SuperController.isLoading (E43), Quaternion.eulerAngles (E43).
-// IdlePoser itself is never changed and not shipped: the scene and the package only reference MacGruber.IdlePoser.9.
+// IdlePoser itself is never changed and not shipped. Version 63: optional, off by default; the package does not depend on
+// MacGruber.IdlePoser.9 (the user installs it to use the toggle) and Body creates this link only when Idle movement is on.
 using System;
 using System.Collections.Generic;
 using SimpleJSON;
@@ -76,8 +74,8 @@ namespace AIBody
             catch (Exception) { installed = false; }
             if (!installed)
             {
-                Problem = IdleMovementPlan.PoserPackage + " is not installed (VaM Hub, free): open the Package Manager > Scan Hub "
-                    + "For Missing Packages, or load the AI-Buddy scene once";
+                Problem = IdleMovementPlan.PoserPackage + " is not installed (VaM Hub, free): install MacGruber's IdlePoser to use "
+                    + "Idle movement (AIBody does not depend on it), or switch Idle movement off";   // version 63
                 Log.Warn("Idle movement: " + Problem);
                 return;
             }
@@ -237,4 +235,3 @@ namespace AIBody
         }
     }
 }
-#endif

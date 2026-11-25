@@ -960,6 +960,22 @@ Report: Grok Bot installed without the checkbox, the AIBody setup failing becaus
 4. If VaM still crashes, note the time and keep the crash dump (`%LOCALAPPDATA%\CrashDumps`) and VaM's `output_log.txt`: the crash is then not caused by the IdlePoser code.
 Report: a crash (with the time), an Idle movement section, an IdlePoser added by AIBody.
 
+## T118 – Idle movement optional, off by default (version 63)
+1. Install v63 over v62 (remove older `d0n.AIBody.*.var` files). Start AIBody Companion, then VaM. Load AI-Buddy; when VaM asks for the plugin permission, click **Always Allow**. Expected: no crash.
+2. Tab AI Character > *Idle movement*: the toggle **Idle movement** is **off**. The left field says it is off and optional. Person `AI` > Plugins: AIBody adds no **AIBody Idle Movement** instance; the log has no "Idle movement:" line.
+3. `config.json` > `body`: `idle_movement` is `false`, `idle_movement_opt_in` is `true` (after the plugin saved once). An older file with `"idle_movement": true` and without `idle_movement_opt_in` leaves the toggle off.
+4. Only with MacGruber's IdlePoser (`MacGruber.IdlePoser.9`) installed: switch **Idle movement** on. Expected: after the idle cooldown AIBody adds one **AIBody Idle Movement** to `AI` and she shifts her weight (T111-T113). Without IdlePoser the left field names the missing package. Switch it off: she stops, nothing moves her any more.
+5. Config tab > **Reset to Default**: **Idle movement** is off again.
+Report: a crash (with the time, and whether Idle movement was on), the toggle on after a fresh install, an IdlePoser instance added while the toggle is off.
+
+## T119 – Center body on control point (version 63)
+1. Tab AI Character > *Body position*: **Center body on control point** is on. Note where the AI character's control point (her root controller) is.
+2. Give five or six pose commands one after another (Stand Up, Sit Down, Get On Your Knees, Stand Up, Turn Around, Lay Down) and let idle poses change once. Expected: every pose looks like the pose file (limbs to each other unchanged), and her hips stay straight over the control point (only the height changes); she does not walk off her place, no collisions with other objects. The left field shows "Last: ... put back over it" when a pose had moved her body.
+3. Move her with the **Body position** sliders, then give a pose command: the body sits at the NEW place.
+4. Switch the toggle off and repeat two pose commands: the poses land where their own offsets take them (the v62 behaviour). Switch it on again.
+5. Dollmaster montages (tab Dollmaster, if used) are not re-centred: the two people keep their arrangement.
+Report: a pose whose limbs look different from the file, a body that drifts away from the control point, a jump when the idle movement starts.
+
 ## T107 – One idle pose interval (version 59)
 1. Install v59, start AIBody Companion, then VaM; load AI-Buddy. Tab AI Character > Idle poses: there is ONE slider **Idle pose interval (s)** (default 165), no min / max wait sliders.
 2. Set it to 60 s and stay quiet: each idle pose change comes after about 45-75 s (60 s +/- 25 %), not always the same wait. The left field says "now between 45 s and 75 s".

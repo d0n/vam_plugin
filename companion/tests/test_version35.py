@@ -176,7 +176,8 @@ class OwnIdleMotionTests(unittest.TestCase):
         self.assertEqual(meta.get("licenseType"), "FC")
         # Idle motion / breathing still adds no plugin package of its own (no Idle Mover). Version 60: the idle movement
         # references MacGruber's IdlePoser (CC BY-SA) as the ONE third-party plugin dependency (test_v60_idle_movement.py).
-        # Version 62: the IdlePoser code is excluded at build time, so no MacGruber dependency at all.
+        # Version 62: the IdlePoser code is excluded at build time, so no MacGruber dependency at all. Version 63 keeps it
+        # out: the idle movement is optional (off by default) and needs IdlePoser installed by the user.
         macgruber = [name for name in meta.get("dependencies", {}) if "MacGruber" in name]
         self.assertEqual(macgruber, [])
         self.assertNotIn("IdleMover", json.dumps(meta.get("dependencies", {})))

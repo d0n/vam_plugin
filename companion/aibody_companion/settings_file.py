@@ -10,7 +10,7 @@ README.md section 4. Categories (kept from the first schema; they no longer matc
   mic         microphone + push-to-talk settings (tab Client Character; audio/mic_settings.py)
   body        speech_volume, full_volume_distance, body_control, idle_motion, idle_intensity, breathing,
               breaths_per_minute, breath_depth, breath_morph, idle_poses, idle_poses_all_files, idle_pose_interval_s, idle_pose_default,
-              idle_movement, idle_movement_liveliness
+              idle_movement, idle_movement_opt_in, idle_movement_liveliness, pose_root_reset
               (tab AI Character)
   advanced    file_poll_interval_s (slider "Companion inbox poll interval (s)": how often the
               plugin reads the companion inbox, not config.json), verbose_log (tab Config)
@@ -127,8 +127,13 @@ DEFAULTS: dict[str, dict[str, Any]] = {
         "idle_pose_default": "Stand Up",  # a pose name of the character; not found = no return pose
         # version 60 (Don): idle movement - MacGruber's IdlePoser on the AI character shifts her weight from leg to leg
         # while nobody moves or poses her; liveliness 0 = calm .. 1 = restless
-        "idle_movement": True,
+        # version 63: optional, off by default; idle_movement counts only together with idle_movement_opt_in (written by
+        # v63+), so an older file with the old default (true) leaves it off
+        "idle_movement": False,
+        "idle_movement_opt_in": True,
         "idle_movement_liveliness": 0.5,
+        # version 63: root-position reset on pose load - the pose is kept, the hips go back over the control point
+        "pose_root_reset": True,
     },
     "advanced": {"file_poll_interval_s": 0.1, "verbose_log": False},
     # Plugin UI state (version 30): the first-run note about the xAI token was closed or answered once.

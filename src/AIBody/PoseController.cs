@@ -609,6 +609,17 @@ namespace AIBody
         public const float MaxSeconds = 5f;
         /// <summary>Always on (no menu); false only for tests.</summary>
         public bool Enabled = true;
+        /// <summary>Version 63: toggle "Center body on control point" (config.json body.pose_root_reset, default on): while the
+        /// guard runs the body is also put back over the control point (BodyMover.CenterOnControl), the pose kept.</summary>
+        public bool CenterBody = RootReset.DefaultOn;
+        /// <summary>The "what" of a Dollmaster montage (DmMontageController passes exactly this text).</summary>
+        public const string MontageWhat = "Dollmaster montage";
+        private bool _center;
+        private bool _centerNoted;
+        /// <summary>"" or the last time a pose change was re-centred over the control point (info field).</summary>
+        public string LastCenterNote { get; private set; }
+        /// <summary>How often the body was re-centred since the start (Verbose log, tests).</summary>
+        public int Centers { get; private set; }
         private readonly Atom _atom;
         private Vector3 _pos;
         private Quaternion _rot;
@@ -622,13 +633,15 @@ namespace AIBody
         public int Restores { get; private set; }
         public bool Active { get { return _age >= 0f; } }
 
-        public PoseGuard(Atom atom) { _atom = atom; LastNote = ""; }
+        public PoseGuard(Atom atom) { _atom = atom; LastNote = ""; LastCenterNote = ""; }
 
         /// <summary>Capture -> load -> put back. partner (Dollmaster montage: the other person) gets the same correction, so
         /// the two keep their arrangement while the AI stays at her place. Returns load's result (null = ok).</summary>
         public string Around(string what, Func<string> load, Atom partner)
         {
             Begin(what);
+            // version 63: a Dollmaster montage (with or without a partner) is never re-centred (RootReset.Applies)
+            if (partner != null || what == MontageWhat) _center = RootReset.Applies(CenterBody, true);
             Vector3 fromPos = _pos;
             Quaternion fromRot = _rot;
             string result;
@@ -662,12 +675,16 @@ namespace AIBody
             _quiet = 0f;
             _noted = false;
             _what = what ?? "";
+            _center = RootReset.Applies(CenterBody, false);   // version 63
+            _centerNoted = false;
         }
 
         /// <summary>Puts her back if the pose change moved her (position or rotation).</summary>
         public void Hold()
         {
-            if (!Active || _atom == null || !BodyMover.Moved(_atom, _pos, _rot)) return;
+            if (!Active || _atom == null) return;
+            Center();   // version 63: the body back over the control point (the pose kept); then her place, as before
+            if (!BodyMover.Moved(_atom, _pos, _rot)) return;
             float cm = (_atom.mainController.transform.position - _pos).magnitude * 100f;
             BodyMover.Relocate(_atom, _pos, _rot);
             _quiet = 0f;
@@ -677,6 +694,31 @@ namespace AIBody
             LastNote = _what + " stores a root position or turn (" + cm.ToString("0") + " cm away): the character was put back to her place";
             Log.Info(Capital(_what) + " moved the whole character " + cm.ToString("0") + " cm (its file stores the root node): "
                 + "put back to her place, the pose kept (the pose file is not changed)");
+        }
+
+        /// <summary>Version 63: the body back over the control point (the pose kept), while the guard of a pose change runs.</summary>
+        private void Center()
+        {
+            if (!_center) return;
+            float m = BodyMover.CenterOnControl(_atom, RootReset.ToleranceMetres);
+            if (m <= 0f) return;
+            _quiet = 0f;   // the guard runs on until nothing moved her for QuietSeconds
+            Centers++;
+            if (_centerNoted) return;   // one note per pose change
+            _centerNoted = true;
+            LastCenterNote = _what + ": body " + (m * 100f).ToString("0") + " cm away from the control point, put back over it (pose kept)";
+            Log.Info(Capital(_what) + ": the body was " + (m * 100f).ToString("0") + " cm away from the control point: put back "
+                + "over it, the pose kept (Center body on control point)");
+        }
+
+        /// <summary>Version 63: re-centre now, outside a pose change (the idle movement does it before it captures her pose).
+        /// Returns the flat distance moved in metres (0 = off or already centred).</summary>
+        public float CenterNow()
+        {
+            if (!RootReset.Applies(CenterBody, false) || _atom == null) return 0f;
+            float m = BodyMover.CenterOnControl(_atom, RootReset.ToleranceMetres);
+            if (m > 0f) Centers++;
+            return m;
         }
 
         /// <summary>Every frame (PoseController.Update): keeps her place until VaM has settled the pose.</summary>
@@ -779,6 +821,35 @@ namespace AIBody
         {
             if (atom == null || atom.mainController == null) return 0;
             return Relocate(atom, atom.mainController.transform.position, Quaternion.Euler(0f, degrees, 0f) * atom.mainController.transform.rotation);
+        }
+
+        /// <summary>Version 63 (root-position reset on pose load): puts the body back over the control point. The hips'
+        /// offset from the main controller is taken in the main controller's frame (RootReset.LocalShift: only the flat part,
+        /// the height stays) and every controller except the main one is moved by that shift - all read first, then each set
+        /// to its own absolute target, like Relocate - so the pose's controllers keep their offsets to each other and the
+        /// main controller (the control point) does not move. Returns the flat distance in metres (0 = nothing moved).</summary>
+        public static float CenterOnControl(Atom atom, float tolerance)
+        {
+            if (atom == null || atom.freeControllers == null || atom.mainController == null) return 0f;
+            FreeControllerV3 hip = atom.GetStorableByID(RootReset.BodyControl) as FreeControllerV3;   // E1, E6 (Dollmaster: hipControl)
+            if (hip == null) return 0f;
+            FreeControllerV3 main = atom.mainController;
+            Transform root = main.transform;
+            Vector3 local = Quaternion.Inverse(root.rotation) * (hip.transform.position - root.position);
+            float sx, sy, sz;
+            float moved = RootReset.LocalShift(local.x, local.y, local.z, tolerance, out sx, out sy, out sz);
+            if (moved <= 0f) return 0f;
+            Vector3 shift = root.rotation * new Vector3(sx, sy, sz);
+            FreeControllerV3[] all = atom.freeControllers;
+            Vector3[] pos = new Vector3[all.Length];
+            for (int i = 0; i < all.Length; i++) if (all[i] != null) pos[i] = all[i].transform.position;
+            for (int i = 0; i < all.Length; i++)
+            {
+                FreeControllerV3 c = all[i];
+                if (c == null || c == main) continue;
+                c.transform.position = pos[i] + shift;
+            }
+            return moved;
         }
 
         /// <summary>Version 54: true when the main controller is more than 1 cm or about half a degree away from the placement.</summary>

@@ -1,38 +1,34 @@
-# IdlePoser idle movement: build switch (version 62)
+# IdlePoser idle movement: optional toggle (version 63; build switch in version 62)
 
-Version 62 is a test build. The idle movement with MacGruber's IdlePoser (version 60/61, `MacGruber.IdlePoser.9`) is
-excluded at **build time** to find out whether it causes the VaM crash (access violation in VaM's `mono.dll`) when
-VaM's plugin permission is confirmed with **Always Allow**. It is not a runtime switch: VaM never compiles or loads
-any IdlePoser code from this package.
+## Version 63: compiled in, runtime toggle, off by default
 
-## What is excluded
+The idle movement with MacGruber's IdlePoser (version 60/61, `MacGruber.IdlePoser.9`) is compiled in again, as in v61:
+`src/AIBody/IdleMovement.cs` and `src/AIBody/IdlePoserLink.cs` are listed in `src/AIBody/AIBody.cslist` (and packaged),
+and there are no `#if AIBODY_IDLEPOSER` wrappers any more. It is an **optional runtime toggle that is off by default**:
 
-- `src/AIBody/IdleMovement.cs` and `src/AIBody/IdlePoserLink.cs` stay in the repository, but
-  - they are no longer listed in `src/AIBody/AIBody.cslist` (so VaM does not load them and `tools/build_var.py` does
-    not put them into the `.var`), and
-  - their whole content is wrapped in `#if AIBODY_IDLEPOSER ... #endif`.
-- `src/AIBody/Body.cs`: every idle-movement block is wrapped in `#if AIBODY_IDLEPOSER ... #endif` (the fields, the
-  storables **Idle movement** / **Idle movement liveliness**, the stop before a pose load, the creation in `Init`,
-  the menu section, the info text, `config.json` `body.idle_movement` / `body.idle_movement_liveliness` save and load,
-  the calls in `Update`, `UpdateIdleMovement` / `StartIdleMovement` / `StopIdleMovement` and the stop in `Restore`).
-  Only the two label constants stay (plain strings).
-- `packaging/meta.json`: no dependency on `MacGruber.IdlePoser.9`.
-- `src/AIBody/IdleController.cs` keeps `ChestSuspended` (nothing sets it any more; always false).
+- Toggle **Idle movement** (tab AI Character > *Idle movement*, storable "Idle movement", `config.json`
+  `body.idle_movement`), default **off** (`Body.IdleMovementDefault`; companion `settings_file.DEFAULTS`;
+  `examples/config.json`). **Reset to Default** switches it off.
+- While it is off, nothing of IdlePoser runs: `Body.Update` calls `UpdateIdleMovement` only when the toggle is on
+  (`IdleMovementOn`); the gate (`IdleMovementGate`) and the VaM link (`IdlePoserLink`) are created only the first time it
+  is switched on (`CreateIdleMovement`). So no search for IdlePoser, no `CreatePlugin`, no IdlePoser instance added.
+  `StopIdleMovement` (before a pose load, when the plugin stops, when the toggle goes off) runs only if it was ever on.
+- An older `config.json` does not switch it on: v60/v61 wrote `"idle_movement": true` as their default. The plugin uses
+  `body.idle_movement` only together with `body.idle_movement_opt_in` (`true`, written by v63 and later,
+  `Body.IdleMovementFromConfig`). A scene saved with v60/v61 did not store the old default, so it loads with the new
+  default (off).
+- `packaging/meta.json` has **no** dependency on `MacGruber.IdlePoser.9`. To use the toggle, install MacGruber's IdlePoser
+  yourself (VaM Hub, free, CC BY-SA). Without it, switching the toggle on only shows "MacGruber.IdlePoser.9 is not
+  installed" in the info field and the log (`IdlePoserLink.Find` checks the package with `FileManagerSecure.FileExists`).
 
-`AIBODY_IDLEPOSER` is defined nowhere (VaM compiles a `.cslist` without extra symbols). The companion app still
-knows the `body.idle_movement` keys; the plugin of this build simply ignores them.
+Risk: if the Always-Allow crash (access violation in VaM's `mono.dll`, v60/v61) comes from VaM compiling or loading
+the IdlePoser code itself, rather than from running it, v63 can crash again even with the toggle off. Version 62 (no
+IdlePoser code at all) is the build to compare with (test step T117; v63: T118).
 
-## How to re-enable
+## Version 62: build switch (history)
 
-1. Add the two files back to `src/AIBody/AIBody.cslist`, before `PoseController.cs`:
-   ```
-   IdleMovement.cs
-   IdlePoserLink.cs
-   ```
-2. Define the symbol for VaM, which has no compiler options: put `#define AIBODY_IDLEPOSER` as the very first line
-   of `Body.cs`, `IdleMovement.cs` and `IdlePoserLink.cs` (a `#define` is valid only in its own file), or remove
-   the `#if AIBODY_IDLEPOSER` / `#endif` lines.
-3. Add the dependency back to `packaging/meta.json`:
-   `"MacGruber.IdlePoser.9": { "licenseType": "CC BY-SA", "dependencies": {} }`.
-4. Run `tools/check_plugin.sh` and the tests (`companion/tests/test_v60_idle_movement.py` builds its harness with
-   `AIBODY_IDLEPOSER` defined).
+Version 62 was a test build: `IdleMovement.cs` / `IdlePoserLink.cs` were out of `AIBody.cslist`, their content and every
+idle-movement block in `Body.cs` were wrapped in `#if AIBODY_IDLEPOSER ... #endif` (a symbol defined nowhere, VaM
+compiles a `.cslist` without extra symbols), and `packaging/meta.json` had no `MacGruber.IdlePoser.9` dependency. To build
+such a package again: remove the two files from `AIBody.cslist` and do not call into them from `Body.cs`
+(see the v62 commit `8426d3b`).

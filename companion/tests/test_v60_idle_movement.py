@@ -45,8 +45,7 @@ class IdleMovementHarnessTests(unittest.TestCase):
         shutil.copy(HARNESS, folder / "Program.cs")
         (folder / "Harness.csproj").write_text(f"""<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><TargetFramework>net8.0</TargetFramework><OutputType>Exe</OutputType><Nullable>disable</Nullable>
-  <EnableDefaultCompileItems>false</EnableDefaultCompileItems><NoWarn>CS0618</NoWarn>
-  <DefineConstants>AIBODY_IDLEPOSER</DefineConstants></PropertyGroup>
+  <EnableDefaultCompileItems>false</EnableDefaultCompileItems><NoWarn>CS0618</NoWarn></PropertyGroup>
   <ItemGroup><Compile Include="Program.cs" /><Compile Include="{ROOT / 'src/AIBody/IdleMovement.cs'}" /></ItemGroup>
 </Project>""", encoding="utf-8")
         result = subprocess.run([v35.DOTNET, "build", "-nologo", "-v", "q", "-o", str(folder / "out")], cwd=folder,
@@ -199,7 +198,8 @@ class PluginWiringTests(unittest.TestCase):
         body = source("Body.cs")
         self.assertIn('IdleMovementLabel = "Idle movement"', body)
         self.assertIn('IdleMovementLivelinessLabel = "Idle movement liveliness"', body)
-        self.assertIn('new JSONStorableBool("Idle movement", true,', body)
+        self.assertIn('new JSONStorableBool("Idle movement", IdleMovementDefault,', body)   # version 63: off by default
+        self.assertIn("public const bool IdleMovementDefault = false;", body)
         self.assertIn('new JSONStorableFloat("Idle movement liveliness", IdleMovementPlan.DefaultLiveliness', body)
         self.assertIn("SettingsDefaults.Bool(_plugin, _idleMoveJson);", body)
         self.assertIn("SettingsDefaults.Float(_plugin, _idleMoveLivelyJson);", body)
@@ -217,7 +217,7 @@ class PluginWiringTests(unittest.TestCase):
                      "CooldownLeft"):
             self.assertIn(part, update, part)
         before = source("Body.cs")
-        self.assertIn('StopIdleMovement("paused while a pose is applied");', before)
+        self.assertIn('StopIdleMovement("paused while a pose is applied");', before)   # version 63: if it was ever on
         self.assertIn("public float CooldownLeft", source("IdlePoses.cs"))
 
     def test_one_writer_on_the_chest(self):
@@ -233,19 +233,19 @@ class PluginWiringTests(unittest.TestCase):
                      '"idlepose"', ".isGrabbing", "FileManagerSecure.FileExists(", "TODO(verify)"):
             self.assertIn(part, link, part)
         self.assertNotIn("Animation Paused", link, "not registered by IdlePoser")
-        # version 62: both files stay in the repository but are out of the .cslist (IdlePoser excluded at build time)
-        self.assertNotIn("IdlePoserLink.cs", (ROOT / "src/AIBody/AIBody.cslist").read_text(encoding="utf-8"))
-        self.assertNotIn("IdleMovement.cs", (ROOT / "src/AIBody/AIBody.cslist").read_text(encoding="utf-8"))
+        # version 63: compiled in again (version 62 had excluded them at build time); optional, off by default
+        self.assertIn("IdlePoserLink.cs", (ROOT / "src/AIBody/AIBody.cslist").read_text(encoding="utf-8"))
+        self.assertIn("IdleMovement.cs", (ROOT / "src/AIBody/AIBody.cslist").read_text(encoding="utf-8"))
 
     def test_config_keys_and_ranges(self):
         result, _ = settings_file.validate({})
-        self.assertIs(result["body"]["idle_movement"], True)
+        self.assertIs(result["body"]["idle_movement"], False)   # version 63: optional, off by default
         self.assertEqual(result["body"]["idle_movement_liveliness"], 0.5)
         result, _ = settings_file.validate({"body": {"idle_movement": False, "idle_movement_liveliness": 7}})
         self.assertIs(result["body"]["idle_movement"], False)
         self.assertEqual(result["body"]["idle_movement_liveliness"], 1.0)
         example = json.loads((ROOT / "examples/config.json").read_text(encoding="utf-8"))
-        self.assertIs(example["body"]["idle_movement"], True)
+        self.assertIs(example["body"]["idle_movement"], False)   # version 63
         body = source("Body.cs")
         self.assertIn('"idle_movement"', body)
         self.assertIn('"idle_movement_liveliness"', body)
@@ -253,7 +253,7 @@ class PluginWiringTests(unittest.TestCase):
     def test_meta_dependency_and_scene_untouched(self):
         meta = json.loads((ROOT / "packaging/meta.json").read_text(encoding="utf-8"))
         self.assertEqual(meta["licenseType"], "FC")
-        # version 62: no IdlePoser dependency while the IdlePoser code is excluded at build time
+        # version 62: no IdlePoser dependency; version 63 keeps it out (optional, off by default, install it yourself)
         self.assertNotIn("MacGruber.IdlePoser.9", meta["dependencies"])
         scene = (ROOT / "examples/scenes/AI-Buddy.json").read_text(encoding="utf-8")
         self.assertNotIn("IdlePoser", scene, "added at runtime by the plugin, not by the scene")

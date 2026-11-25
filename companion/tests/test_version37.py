@@ -104,7 +104,7 @@ class ExampleSceneTests(TestCase):
         meta = json.loads((ROOT / "packaging" / "meta.json").read_text(encoding="utf-8"))
         self.assertEqual(meta.get("licenseType"), "FC")
         deps = meta.get("dependencies") or {}
-        # version 60 added MacGruber's IdlePoser here; version 62 excludes the IdlePoser code at build time and drops it
+        # version 60 added MacGruber's IdlePoser here; version 62 dropped it, version 63 keeps it out (optional toggle)
         self.assertEqual(set(deps), SCENE_PACKAGES)
         for name, license_type in HUB_LICENSES.items():
             self.assertEqual(deps[name].get("licenseType"), license_type)
