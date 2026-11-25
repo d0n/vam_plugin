@@ -953,6 +953,13 @@ Report: an answer of the app's own AI while the bridge is on, events missing, th
 4. config.json `ai.emotion.gestures` `true`: an answer that starts with "Yes" gets a nod, one that starts with "No" a head shake (once per answer, not when the AI chose a gesture). `ai.emotion.keywords.happy` `"yay*"`: a sentence with "yaaay" shows the happy face.
 Report: Grok Bot installed without the checkbox, the AIBody setup failing because of the Grok Bot step, a nod on "No problem".
 
+## T117 – Always Allow without IdlePoser (version 62, test build)
+1. Install v62 over v61 (remove `d0n.AIBody.61.var` and older AIBody packages from AddonPackages). Start AIBody Companion, then VaM.
+2. Load AI-Buddy (or add the plugin `d0n.AIBody.62:/Custom/Scripts/d0n/AIBody/AIBody.cslist`). When VaM asks for the plugin permission, click **Always Allow**. Expected: no crash; the plugin starts.
+3. Tab AI Character: there is no *Idle movement* section; idle poses, idle head motion and breathing work. Person `AI` > Plugins: AIBody adds no **AIBody Idle Movement** instance.
+4. If VaM still crashes, note the time and keep the crash dump (`%LOCALAPPDATA%\CrashDumps`) and VaM's `output_log.txt`: the crash is then not caused by the IdlePoser code.
+Report: a crash (with the time), an Idle movement section, an IdlePoser added by AIBody.
+
 ## T107 – One idle pose interval (version 59)
 1. Install v59, start AIBody Companion, then VaM; load AI-Buddy. Tab AI Character > Idle poses: there is ONE slider **Idle pose interval (s)** (default 165), no min / max wait sliders.
 2. Set it to 60 s and stay quiet: each idle pose change comes after about 45-75 s (60 s +/- 25 %), not always the same wait. The left field says "now between 45 s and 75 s".

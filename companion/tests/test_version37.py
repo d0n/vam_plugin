@@ -104,8 +104,8 @@ class ExampleSceneTests(TestCase):
         meta = json.loads((ROOT / "packaging" / "meta.json").read_text(encoding="utf-8"))
         self.assertEqual(meta.get("licenseType"), "FC")
         deps = meta.get("dependencies") or {}
-        # version 60: plus MacGruber's IdlePoser, which the plugin adds to the AI character at runtime (not in the scene)
-        self.assertEqual(set(deps), SCENE_PACKAGES | {"MacGruber.IdlePoser.9"})
+        # version 60 added MacGruber's IdlePoser here; version 62 excludes the IdlePoser code at build time and drops it
+        self.assertEqual(set(deps), SCENE_PACKAGES)
         for name, license_type in HUB_LICENSES.items():
             self.assertEqual(deps[name].get("licenseType"), license_type)
             self.assertEqual(deps[name].get("dependencies"), {})

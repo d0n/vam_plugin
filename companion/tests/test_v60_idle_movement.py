@@ -45,7 +45,8 @@ class IdleMovementHarnessTests(unittest.TestCase):
         shutil.copy(HARNESS, folder / "Program.cs")
         (folder / "Harness.csproj").write_text(f"""<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><TargetFramework>net8.0</TargetFramework><OutputType>Exe</OutputType><Nullable>disable</Nullable>
-  <EnableDefaultCompileItems>false</EnableDefaultCompileItems><NoWarn>CS0618</NoWarn></PropertyGroup>
+  <EnableDefaultCompileItems>false</EnableDefaultCompileItems><NoWarn>CS0618</NoWarn>
+  <DefineConstants>AIBODY_IDLEPOSER</DefineConstants></PropertyGroup>
   <ItemGroup><Compile Include="Program.cs" /><Compile Include="{ROOT / 'src/AIBody/IdleMovement.cs'}" /></ItemGroup>
 </Project>""", encoding="utf-8")
         result = subprocess.run([v35.DOTNET, "build", "-nologo", "-v", "q", "-o", str(folder / "out")], cwd=folder,
@@ -232,8 +233,9 @@ class PluginWiringTests(unittest.TestCase):
                      '"idlepose"', ".isGrabbing", "FileManagerSecure.FileExists(", "TODO(verify)"):
             self.assertIn(part, link, part)
         self.assertNotIn("Animation Paused", link, "not registered by IdlePoser")
-        self.assertIn("IdlePoserLink.cs", (ROOT / "src/AIBody/AIBody.cslist").read_text(encoding="utf-8"))
-        self.assertIn("IdleMovement.cs", (ROOT / "src/AIBody/AIBody.cslist").read_text(encoding="utf-8"))
+        # version 62: both files stay in the repository but are out of the .cslist (IdlePoser excluded at build time)
+        self.assertNotIn("IdlePoserLink.cs", (ROOT / "src/AIBody/AIBody.cslist").read_text(encoding="utf-8"))
+        self.assertNotIn("IdleMovement.cs", (ROOT / "src/AIBody/AIBody.cslist").read_text(encoding="utf-8"))
 
     def test_config_keys_and_ranges(self):
         result, _ = settings_file.validate({})
@@ -251,7 +253,8 @@ class PluginWiringTests(unittest.TestCase):
     def test_meta_dependency_and_scene_untouched(self):
         meta = json.loads((ROOT / "packaging/meta.json").read_text(encoding="utf-8"))
         self.assertEqual(meta["licenseType"], "FC")
-        self.assertEqual(meta["dependencies"]["MacGruber.IdlePoser.9"], {"licenseType": "CC BY-SA", "dependencies": {}})
+        # version 62: no IdlePoser dependency while the IdlePoser code is excluded at build time
+        self.assertNotIn("MacGruber.IdlePoser.9", meta["dependencies"])
         scene = (ROOT / "examples/scenes/AI-Buddy.json").read_text(encoding="utf-8")
         self.assertNotIn("IdlePoser", scene, "added at runtime by the plugin, not by the scene")
         self.assertNotIn("IdlePoser", (ROOT / "LICENSE").read_text(encoding="utf-8") if (ROOT / "LICENSE").exists() else "")

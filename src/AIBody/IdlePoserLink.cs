@@ -1,3 +1,6 @@
+// Version 62: excluded at build time to isolate the Always-Allow crash. The file is not in AIBody.cslist and compiles
+// to nothing unless AIBODY_IDLEPOSER is defined (see docs/IDLEPOSER_BUILD_SWITCH.md).
+#if AIBODY_IDLEPOSER
 // The VaM side of the idle movement (version 60, see IdleMovement.cs): AIBody's own IdlePoser instance on the AI
 // character - found by its plugin label, or added to the AI character's plugin list once - and the per-frame checks
 // "grabbed" and "posed from outside". Only evidenced calls (docs/API_AUDIT.md E41-E44):
@@ -234,3 +237,4 @@ namespace AIBody
         }
     }
 }
+#endif

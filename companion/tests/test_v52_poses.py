@@ -29,8 +29,10 @@ class LoadOnceTests(unittest.TestCase):
         self.assertLess(self.load.index("BeforePoseLoad()"), self.load.index('presets.CallAction("LoadPreset");'))
         body = source("Body.cs")
         # version 60: the same hook also switches the idle movement (IdlePoser) off before the load
+        # version 62: that call is behind #if AIBODY_IDLEPOSER (IdlePoser excluded at build time)
         self.assertIn("_poses.BeforePoseLoad = () =>\n                {\n                    if (_idle != null) _idle.HoldForPose(PoseController.SettleSeconds);\n"
-                      '                    StopIdleMovement("paused while a pose is applied");', body)
+                      "#if AIBODY_IDLEPOSER", body)
+        self.assertIn('                    StopIdleMovement("paused while a pose is applied");', body)
         idle = source("IdleController.cs")
         hold = method_body(idle, "public void HoldForPose(float seconds)")
         self.assertIn("RestoreNow();", hold, "the offsets come off BEFORE VaM stores / applies the pose")

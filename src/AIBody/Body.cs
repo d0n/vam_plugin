@@ -41,6 +41,7 @@ namespace AIBody
         private JSONStorableFloat _idlePoseMaxJson;
         private JSONStorableStringChooser _idlePoseDefaultJson;
         private IdlePoseScheduler _idlePoses;
+#if AIBODY_IDLEPOSER   // version 62: MacGruber IdlePoser idle movement excluded at build time (docs/IDLEPOSER_BUILD_SWITCH.md)
         // Idle movement (version 60, Don): MacGruber's IdlePoser on the AI character, states built from her current pose.
         private JSONStorableBool _idleMoveJson;
         private JSONStorableFloat _idleMoveLivelyJson;
@@ -50,6 +51,7 @@ namespace AIBody
         private float _idleMoveStandIn;       // the standing check runs at most twice a second
         private bool _idleMoveStanding;       // its last result
         private float _idleMoveRebuildIn = -1f;   // a new liveliness is applied 1 s after the slider stopped moving
+#endif
         // Character configuration wizard (after version 37): gate + recorded gender settings.
         public CharacterWizard Characters;
         /// <summary>Called when a recorded character setting changes (the plugin marks config dirty).</summary>
@@ -295,12 +297,14 @@ namespace AIBody
                 IdlePoseScheduler.DefaultIdlePose, "Idle default pose", (string v) => { if (_idlePoses != null) _idlePoses.DefaultPose = v; _poolDirty = true; });
             _idlePoseDefaultJson.popupOpenCallback = RefreshCharacterChoices;
             SettingsDefaults.Chooser(_plugin, _idlePoseDefaultJson);
+#if AIBODY_IDLEPOSER   // version 62: MacGruber IdlePoser idle movement excluded at build time (docs/IDLEPOSER_BUILD_SWITCH.md)
             // Version 60 (Don, call 24.11.2026): idle movement - almost no settings: on / off and how lively.
             _idleMoveJson = new JSONStorableBool("Idle movement", true, (bool v) => { if (_idleMove != null) _idleMove.Enabled = v; });
             SettingsDefaults.Bool(_plugin, _idleMoveJson);
             _idleMoveLivelyJson = new JSONStorableFloat("Idle movement liveliness", IdleMovementPlan.DefaultLiveliness,
                 (float v) => { if (_idleMove != null) _idleMove.Liveliness = v; }, 0f, 1f);
             SettingsDefaults.Float(_plugin, _idleMoveLivelyJson);
+#endif
 
             Characters = new CharacterWizard(_plugin, () => { if (OnSettingsChanged != null) OnSettingsChanged(); });
             Characters.RequestRebuild = () => { RebuildTab = true; };
@@ -381,7 +385,9 @@ namespace AIBody
                 _poses.BeforePoseLoad = () =>
                 {
                     if (_idle != null) _idle.HoldForPose(PoseController.SettleSeconds);
+#if AIBODY_IDLEPOSER   // version 62: MacGruber IdlePoser idle movement excluded at build time (docs/IDLEPOSER_BUILD_SWITCH.md)
                     StopIdleMovement("paused while a pose is applied");   // version 60: IdlePoser off before VaM applies the pose
+#endif
                 };
             });
             _diag.Run("Idle poses (IdlePoseScheduler)", () =>
@@ -392,6 +398,7 @@ namespace AIBody
                 if (_idlePoseDefaultJson != null) idlePoses.DefaultPose = _idlePoseDefaultJson.val;
                 _idlePoses = idlePoses;
             });
+#if AIBODY_IDLEPOSER   // version 62: MacGruber IdlePoser idle movement excluded at build time (docs/IDLEPOSER_BUILD_SWITCH.md)
             _diag.Run("Idle movement (IdlePoser)", () =>
             {
                 IdleMovementGate gate = new IdleMovementGate();
@@ -400,6 +407,7 @@ namespace AIBody
                 _idleMove = gate;
                 _poser = new IdlePoserLink(_atom);
             });
+#endif
             _diag.Run("Scene actions", RegisterSceneActions);
             _diag.Run("Commands (CommandRouter)", () =>
             {
@@ -454,9 +462,11 @@ namespace AIBody
             page.ScrollablePopup(_idlePoseDefaultJson);
             page.Button("Apply idle default pose", ApplyIdleDefaultPose);   // 22.11.2026 (Don): go there now
             page.Slider(_idlePoseIntervalJson);
+#if AIBODY_IDLEPOSER   // version 62: MacGruber IdlePoser idle movement excluded at build time (docs/IDLEPOSER_BUILD_SWITCH.md)
             page.Header("<b>Idle movement</b>");   // version 60: MacGruber's IdlePoser, weight shift from leg to leg
             page.Toggle(_idleMoveJson);
             page.Slider(_idleMoveLivelyJson);
+#endif
             page.Header("<b>Idle motion and breathing</b>");
             page.Toggle(_idleJson);
             page.Slider(_idleIntensityJson);
@@ -514,7 +524,9 @@ namespace AIBody
             if (_poses != null && !string.IsNullOrEmpty(_poses.LastPlaceNote)) text += "Last place kept: " + _poses.LastPlaceNote + "\n";   // version 54
             text += PoseCommandsInfo();
             text += IdlePosesInfo();
+#if AIBODY_IDLEPOSER   // version 62: MacGruber IdlePoser idle movement excluded at build time (docs/IDLEPOSER_BUILD_SWITCH.md)
             text += IdleMovementInfo();
+#endif
             text += ExpressionHelp + "\n" + BodyControlHelp + "\n" + BodyPositionHelp + "\n" + BreathingHelp + "\n";
             return text;
         }
@@ -565,6 +577,7 @@ namespace AIBody
         public const string IdleMovementLabel = "Idle movement";
         public const string IdleMovementLivelinessLabel = "Idle movement liveliness";
 
+#if AIBODY_IDLEPOSER   // version 62: MacGruber IdlePoser idle movement excluded at build time (docs/IDLEPOSER_BUILD_SWITCH.md)
         /// <summary>Version 60: the idle movement in running prose (left field).</summary>
         private string IdleMovementInfo()
         {
@@ -578,6 +591,7 @@ namespace AIBody
                 + "like the idle poses (" + IdlePoseScheduler.CooldownSeconds.ToString("0") + " s). <b>Idle movement liveliness</b> "
                 + "sets how far and how often she shifts (0 = calm, 1 = restless).\n";
         }
+#endif
 
         /// <summary>"300 s (5 min)": seconds, with minutes from one minute on.</summary>
         public static string WaitText(float seconds)
@@ -1115,8 +1129,10 @@ namespace AIBody
             body["idle_poses_all_files"].AsBool = _idleAllFilesJson.val;   // version 54
             body["idle_pose_interval_s"].AsFloat = _idlePoseIntervalJson.val;   // version 59 (was idle_pose_min_s / _max_s)
             body["idle_pose_default"] = _idlePoseDefaultJson.val;
+#if AIBODY_IDLEPOSER   // version 62: MacGruber IdlePoser idle movement excluded at build time (docs/IDLEPOSER_BUILD_SWITCH.md)
             body["idle_movement"].AsBool = _idleMoveJson.val;                    // version 60
             body["idle_movement_liveliness"].AsFloat = _idleMoveLivelyJson.val;
+#endif
             root["body"] = body;
             JSONClass poses = new JSONClass();
             JSONArray commands = new JSONArray();
@@ -1160,8 +1176,10 @@ namespace AIBody
                     Protocol.GetFloat(body, "idle_pose_max_s", IdlePoseScheduler.OldDefaultMaxSeconds));
             string home = Protocol.GetString(body, "idle_pose_default", _idlePoseDefaultJson.val);
             if (home.Length > 0) SetChooserValue(_idlePoseDefaultJson, home);
+#if AIBODY_IDLEPOSER   // version 62: MacGruber IdlePoser idle movement excluded at build time (docs/IDLEPOSER_BUILD_SWITCH.md)
             _idleMoveJson.val = Protocol.GetBool(body, "idle_movement", _idleMoveJson.val);   // version 60
             _idleMoveLivelyJson.val = Protocol.GetFloat(body, "idle_movement_liveliness", _idleMoveLivelyJson.val);
+#endif
         }
 
         private static void SetChooserValue(JSONStorableStringChooser chooser, string value)
@@ -1328,14 +1346,18 @@ namespace AIBody
             if (DollmasterOwns)
             {
                 UpdateSceneState(speaking);   // Dollmaster owns expressions, breathing, idle motion and poses
+#if AIBODY_IDLEPOSER   // version 62: MacGruber IdlePoser idle movement excluded at build time (docs/IDLEPOSER_BUILD_SWITCH.md)
                 UpdateIdleMovement(dt);       // version 60: stops IdlePoser (Body control is off while Dollmaster is active)
+#endif
                 return;
             }
             if (_expressions != null) _expressions.Update(dt);
             if (_breathing != null) _breathing.Update(dt, speaking);
             UpdateSceneState(speaking);
             UpdateIdlePoses(dt, speaking);
+#if AIBODY_IDLEPOSER   // version 62: MacGruber IdlePoser idle movement excluded at build time (docs/IDLEPOSER_BUILD_SWITCH.md)
             UpdateIdleMovement(dt);
+#endif
             if (_idle == null) return;
             string finishedGesture = _idle.Update(dt, speaking,
                 _breathing != null ? _breathing.Cycle : 0f, _breathing != null ? _breathing.CurrentDepth : 0f);
@@ -1408,6 +1430,7 @@ namespace AIBody
             }
         }
 
+#if AIBODY_IDLEPOSER   // version 62: MacGruber IdlePoser idle movement excluded at build time (docs/IDLEPOSER_BUILD_SWITCH.md)
         // Version 60 (Don, call 24.11.2026): idle movement with MacGruber's IdlePoser on the AI character (IdleMovement.cs,
         // IdlePoserLink.cs). It runs only while nobody moves or poses her: grabbing a controller or a pose loaded from
         // outside stops it at once and starts the idle poses' cooldown (both wait the same way); AIBody's own pose loads
@@ -1500,6 +1523,7 @@ namespace AIBody
             if (_idle != null) _idle.ChestSuspended = false;
             if (why != null && _idleMove != null && _idleMove.Running) _idleMove.StopNow(why);
         }
+#endif
 
         /// <summary>The pose's file for the log (the name if it is not a file, e.g. a gestures.json pose).</summary>
         private string IdlePoseFile(string pose)
@@ -1545,7 +1569,9 @@ namespace AIBody
             if (_expressions != null) _expressions.RestoreNow();
             if (_breathing != null) _breathing.RestoreNow();
             if (_idle != null) _idle.RestoreNow();
+#if AIBODY_IDLEPOSER   // version 62: MacGruber IdlePoser idle movement excluded at build time (docs/IDLEPOSER_BUILD_SWITCH.md)
             StopIdleMovement("off (plugin stopped)");   // version 60: IdlePoser writes nothing more
+#endif
         }
     }
 }

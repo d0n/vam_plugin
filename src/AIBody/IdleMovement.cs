@@ -1,3 +1,6 @@
+// Version 62: excluded at build time to isolate the Always-Allow crash. The file is not in AIBody.cslist and compiles
+// to nothing unless AIBODY_IDLEPOSER is defined (see docs/IDLEPOSER_BUILD_SWITCH.md).
+#if AIBODY_IDLEPOSER
 // Idle movement (version 60, Don, call 24.11.2026): while nobody moves or poses the AI character she moves by herself
 // like someone who stands and waits - the weight goes from one leg to the other, the hips and the chest turn a little,
 // the free foot rests on its toes, the arms hang where they are. The animation runs in MacGruber's IdlePoser
@@ -302,3 +305,4 @@ namespace AIBody
         }
     }
 }
+#endif
