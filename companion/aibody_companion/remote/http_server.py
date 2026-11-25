@@ -140,6 +140,21 @@ def _make_handler(remote: RemoteControl) -> type[BaseHTTPRequestHandler]:
             elif parts.path == "/api/status":
                 if self._gate(query, need_token=True):
                     self._json(200, {"ok": True, **remote.status()})
+            elif parts.path == "/api/bridge/events":  # version 61: the Grok Bot bridge (docs/GROK_BOT_BRIDGE.md)
+                if self._gate(query, need_token=True):
+                    try:
+                        after = int((query.get("after") or ["0"])[0])
+                        wait_s = float((query.get("wait") or ["0"])[0])
+                    except ValueError:
+                        self._fail(400, "'after' must be a whole number and 'wait' a number of seconds")
+                        return
+                    if wait_s != wait_s or wait_s < 0:  # NaN or negative
+                        self._fail(400, "'wait' must be 0 or more seconds")
+                        return
+                    try:
+                        self._json(200, {"ok": True, **remote.bridge_events(after, wait_s)})
+                    except RemoteError as e:
+                        self._fail(404, str(e))
             elif parts.path.startswith("/api/") and parts.path[5:] in ACTIONS:
                 self._fail(405, "use POST for actions")
             else:

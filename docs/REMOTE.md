@@ -50,6 +50,7 @@ POST bodies are JSON objects (`Content-Type: application/json`, at most 16 KB). 
 | `POST /api/stop` | | stops speaking and drops the answer being prepared |
 | `POST /api/event` | `text` | tells the AI about a scene event (like the plugin's *Scene event*) |
 | `POST /api/ptt` | `action`: `start`, `stop`, `toggle` | push-to-talk (microphone mode must be `ptt`) |
+| `GET /api/bridge/events` | `after` (last id you have, 0), `wait` (seconds, 0-25) | version 61, the Grok Bot bridge: what the user said (`user_said`) and scene events (`scene_event`) after `after`, `last_id`, `driver`; filled only with `ai.driver` `grok_bot` (see [GROK_BOT_BRIDGE.md](GROK_BOT_BRIDGE.md)) |
 
 ```
 curl -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \

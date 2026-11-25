@@ -118,7 +118,10 @@ class DirectorTests(unittest.TestCase):
 class ConfigTests(unittest.TestCase):
     def test_keys_and_ranges(self):
         cfg = settings_file.DEFAULTS["ai"]["emotion"]
-        self.assertEqual(cfg, {"fallback": True, "fade": True, "fade_after_s": 6.0, "fade_seconds": 2.5, "listening": True})
+        self.assertEqual(cfg, {"fallback": True, "fade": True, "fade_after_s": 6.0, "fade_seconds": 2.5, "listening": True,
+                               # version 61: gestures from yes / no (off) and own keywords (empty)
+                               "gestures": False, "keywords": {"happy": "", "sad": "", "angry": "", "surprised": "",
+                                                               "thinking": ""}})
         data, errors = settings_file.validate({"ai": {"emotion": {"fade_after_s": "500", "fallback": "false"}}})
         self.assertEqual(errors, [])
         self.assertEqual(data["ai"]["emotion"]["fade_after_s"], 120.0)

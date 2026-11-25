@@ -931,6 +931,28 @@ Report: movement while you hold her, your pose overwritten, a twitch during a po
 4. Config tab > **Reset to Default**: the toggle is on, the slider 0.5, and no dropdown on any tab is empty. config.json has `body.idle_movement` and `body.idle_movement_liveliness`; editing them + **Reload Config JSON** applies them.
 Report: no change between 0 and 1, an empty dropdown, values not saved.
 
+## T114 – Scene load with the idle movement (version 61, comparison build against v60)
+1. Install v61 over v60 (remove `d0n.AIBody.60.var` from AddonPackages). Start AIBody Companion, then VaM.
+2. Load the scene that crashed with v60. Expected: the scene loads. If VaM still crashes, note the time and keep the crash dump (`%LOCALAPPDATA%\CrashDumps`) and VaM's `output_log.txt`: the crash is then not the attach during the load.
+3. After the load, wait about 5 s: AIBody looks for its IdlePoser only now (never while the scene loads). Person `AI` > Plugins: at most ONE active **AIBody Idle Movement**; if the scene was saved with more than one, the extra ones are switched off and the log says so once.
+4. Load AI-Buddy and a scene without AIBody one after the other: no error, no IdlePoser added during the load.
+Report: a crash (with the time), two active AIBody Idle Movement instances, an IdlePoser added while the loading screen is shown.
+
+## T115 – Grok Bot bridge (version 61, optional)
+1. Default install (Grok Bot unchecked): config.json has `ai.driver` `"direct"`; the app answers as in v60.
+2. Set `ai.driver` to `"grok_bot"` and `remote.enabled` to `true`, restart the app: the console says "Grok Bot bridge: on". Say something: the app answers nothing itself; `GET /api/bridge/events` (token from `remote.token`) lists it as `user_said`.
+3. `POST /api/say` with a text: the character speaks it. Mute words ("shut up") still mute locally; pose commands still run locally.
+4. `ai.driver` `"grok_bot"` with `remote.enabled` `false`: the console warns and the direct method runs.
+5. Back to `"direct"` and restart: everything as in v60.
+Report: an answer of the app's own AI while the bridge is on, events missing, the bridge open without a token.
+
+## T116 – Setup: Grok Bot opt-in, gestures from yes / no (version 61)
+1. Run `AIBody Companion Setup.exe`: on the tasks page **Grok Bot (optional)** is unchecked; with it unchecked nothing else is installed.
+2. Check it and choose **Install Grok Bot on this computer**: the setup downloads and installs Grok Bot silently, the last page says to sign in and allow local execution, `Saves/PluginData/AIBody/logs/grok_bot_setup.log` lists the steps, config.json has `ai.driver` `"grok_bot"`.
+3. Choose **Grok's cloud only**: nothing is downloaded; `ai.driver` stays `"direct"`.
+4. config.json `ai.emotion.gestures` `true`: an answer that starts with "Yes" gets a nod, one that starts with "No" a head shake (once per answer, not when the AI chose a gesture). `ai.emotion.keywords.happy` `"yay*"`: a sentence with "yaaay" shows the happy face.
+Report: Grok Bot installed without the checkbox, the AIBody setup failing because of the Grok Bot step, a nod on "No problem".
+
 ## T107 – One idle pose interval (version 59)
 1. Install v59, start AIBody Companion, then VaM; load AI-Buddy. Tab AI Character > Idle poses: there is ONE slider **Idle pose interval (s)** (default 165), no min / max wait sliders.
 2. Set it to 60 s and stay quiet: each idle pose change comes after about 45-75 s (60 s +/- 25 %), not always the same wait. The left field says "now between 45 s and 75 s".

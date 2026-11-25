@@ -109,6 +109,10 @@ class RemoteControl:
         self._http: Any = None
         self._osc: Any = None
         self.errors: list[str] = []  # why a server could not start
+        # version 61: the Grok Bot bridge's event queue (bridge.BridgeQueue), set by cli.start_remote; read by
+        # GET /api/bridge/events. None = no bridge (the route answers 404).
+        self.bridge: Any = None
+        self._driver: dict[str, Any] = {"requested": "direct", "active": "direct", "note": "", "last_event": 0}
 
     # -- start / stop ------------------------------------------------------------------------------
 
@@ -223,7 +227,19 @@ class RemoteControl:
                 "poses": [e["command"] for e in vocabulary.entries],
                 "last_action": dict(self._last_action),
                 "actions": dict(ACTIONS),
+                # version 61: direct method or Grok Bot bridge
+                "driver": app.driver_info() if hasattr(app, "driver_info") else dict(self._driver),
             }
+            self._driver = dict(self._status["driver"])
+
+    def bridge_events(self, after: int, wait_s: float) -> dict[str, Any]:
+        """GET /api/bridge/events (version 61): the events after `after`, waiting up to wait_s for one."""
+        if self.bridge is None:
+            raise RemoteError("the Grok Bot bridge is not available")
+        events = self.bridge.since(after, wait_s)
+        with self._lock:
+            driver = dict(self._driver)
+        return {"events": events, "last_id": self.bridge.last_id, "driver": driver}
 
     def _note(self, name: str, ok: bool, note: str = "") -> None:
         with self._lock:

@@ -1,22 +1,30 @@
-# Release notes of version 60 (25.11.2026)
+# Release notes of version 61 (25.11.2026)
 
-This text is the GitHub release v60.
+This text is the GitHub release v61.
 
-**AIBody v60**: download `AIBody Companion Setup.exe`; it installs AIBody Companion and the package `d0n.AIBody.60.var` (the plugin, the AI-Buddy scene with its thumbnail and the Dollmaster assets) into your VaM folder. `d0n.AIBody.60.var`, `AI-Buddy.json` and `AI-Buddy.jpg` are attached too, for installing by hand.
+**AIBody v61**: download `AIBody Companion Setup.exe`; it installs AIBody Companion and the package `d0n.AIBody.61.var` (the plugin, the AI-Buddy scene with its thumbnail and the Dollmaster assets) into your VaM folder. `d0n.AIBody.61.var`, `AI-Buddy.json` and `AI-Buddy.jpg` are attached too, for installing by hand.
 
-**Install:** double-click `AIBody Companion Setup.exe` (SmartScreen: **More info** > **Run anyway**); it runs over v59. Remove older `d0n.AIBody.*.var` files from AddonPackages. Get MacGruber's **IdlePoser** (`MacGruber.IdlePoser.9`, free on the VaM Hub; VaM's Package Manager > **Scan Hub For Missing Packages** offers it, because AIBody now lists it as a dependency). Start **AIBody Companion** first, then VaM, and load **AI-Buddy** from `d0n.AIBody.60`.
+**Install:** double-click `AIBody Companion Setup.exe` (SmartScreen: **More info** > **Run anyway**); it runs over v60. Remove older `d0n.AIBody.*.var` files from AddonPackages. MacGruber's **IdlePoser** (`MacGruber.IdlePoser.9`, free on the VaM Hub) is still used for the idle movement. Start **AIBody Companion** first, then VaM, and load **AI-Buddy** from `d0n.AIBody.61`.
 
-**New: idle movement**
-- While nobody moves or poses her, the AI character moves by herself like someone who waits: the weight goes from one leg to the other, the hips and chest turn a little, the free heel lifts, the arms stay relaxed, with pauses in between.
-- It runs in MacGruber's IdlePoser (`MacGruber.IdlePoser.9`, CC BY-SA). AIBody adds one instance labelled **AIBody Idle Movement** to the AI character only, never to your own character (`Client`), and builds its states from her current standing pose, so it fits any body and any scene. IdlePoser itself is not changed or shipped; the weight-shift values follow MacGruber's IdlePoser demo scene (credited in `docs/CREDITS.md`).
-- It stops at once when you take over, exactly like the idle poses: when you grab or move one of her controllers, load a pose on her from outside, or give a pose command; then it waits the idle poses' cooldown (120 s) and starts again from her new pose. It also pauses while a pose is applied, while the scene loads, with **Body control** off and while Dollmaster is active.
-- Standing poses only: sitting, kneeling and lying poses get no weight shift.
-- Settings (tab AI Character > *Idle movement*): **Idle movement** (on / off, default on) and **Idle movement liveliness** (0 = calm, 1 = restless, default 0.5). Both are saved with the scene, reset by **Reset to Default** and stored in `config.json` as `body.idle_movement` / `body.idle_movement_liveliness`.
-- Without IdlePoser installed nothing breaks: the info field says the package is missing.
+**Comparison build against v60.** v60 can crash VaM while loading some scenes (access violation in VaM's `mono.dll`). v61 is meant to be loaded with the same scene to compare (test step T114).
 
-**Changed**
-- While the idle movement runs, AIBody's own idle motion leaves the chest to IdlePoser; head motion, gaze and breathing keep running.
+**Fixed: IdlePoser attach during a scene load**
+- v60 looked for its IdlePoser on every frame, also while VaM was still loading the scene, and could add a second IdlePoser to the AI character in the middle of the load (before the scene's own **AIBody Idle Movement** instance was restored). AIBody now waits until the scene has finished loading, plus 3 seconds, before it looks for or adds IdlePoser.
+- A scene that was saved with more than one **AIBody Idle Movement** instance keeps working: the first one is used, the others are switched off and the log says so once (remove them in the Plugins tab and save the scene).
+- Whether this was the cause of the crash is not proven yet: please report whether the scene loads with v61.
 
-Everything from v59 is included.
+**New: Grok Bot bridge (optional, off by default)**
+- A second way to drive the character, next to the direct method: with `config.json` `ai.driver` set to `grok_bot` (and the remote control on), the app hands what the user says and the scene events to Grok Bot through `GET /api/bridge/events` on 127.0.0.1 (token required), and Grok Bot answers with the existing remote calls (`/api/say`, `/api/expression`, `/api/gesture`, `/api/pose`, `/api/look`, `/api/stop`). Mute words and pose commands still work locally.
+- The direct method is unchanged and stays the default (`ai.driver` `direct`). Without the remote control the bridge falls back to the direct method. Switching back is one key and a restart. Details: `docs/GROK_BOT_BRIDGE.md`.
 
-Test steps: `docs/TEST_PROTOCOL.md` T111 (starts after idle, AI character only), T112 (stops when you take over, Dollmaster, pose commands), T113 (toggle, liveliness, Reset to Default).
+**New: setup option for Grok Bot (opt-in)**
+- The setup has a new task **Grok Bot (optional)**, unchecked by default. **Install Grok Bot on this computer** downloads the Grok Bot desktop app from its official release feed, installs it silently for the current user and switches AIBody to the bridge; **Grok's cloud only** installs nothing more and keeps the direct method.
+- Signing in to Grok Bot and allowing local execution on this computer stay manual steps; the setup's last page names them. A failed Grok Bot step never fails the AIBody setup (log: `Saves/PluginData/AIBody/logs/grok_bot_setup.log`).
+
+**New: expressions and gestures from the words**
+- `ai.emotion.keywords`: your own words per emotion (`happy`, `sad`, `angry`, `surprised`, `thinking`), comma-separated, added to the built-in ones; a trailing `*` matches every word that starts like this.
+- `ai.emotion.gestures` (off by default): a nod when an answer starts with a clear yes, a head shake on a clear no; once per answer and only when the AI chose no gesture itself.
+
+Everything from v60 is included.
+
+Test steps: `docs/TEST_PROTOCOL.md` T114 (scene load, comparison with v60), T115 (Grok Bot bridge), T116 (setup option, gestures and keywords).

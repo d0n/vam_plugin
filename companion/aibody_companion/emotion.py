@@ -11,7 +11,14 @@ Three small jobs, all in the app, all using the plugin's existing "expression" c
   * Listening: while the user talks, a very small "listening" expression (inner brows up) is shown, if the
     plugin has that preset (it is not offered to the AI).
 
-Settings: config.json ai.emotion {fallback, fade, fade_after_s, fade_seconds, listening}.
+Version 61 (backlog "own keywords", "gestures matching what is said"):
+  * Own keywords: ai.emotion.keywords {happy, sad, angry, surprised, thinking} = comma-separated words or phrases added
+    to the built-in rules (a trailing "*" = every word starting like this, e.g. "juhu, mega*"). Empty = built-ins only.
+  * Gestures from the words (ai.emotion.gestures, off by default): an answer that starts with a clear yes ("yes",
+    "sure", "ja", "genau", ...) gets a nod, a clear no ("no", "nope", "nein", ...) a head shake - once per answer, only
+    when the AI chose no gesture itself, and only gestures the plugin lists.
+
+Settings: config.json ai.emotion {fallback, fade, fade_after_s, fade_seconds, listening, gestures, keywords}.
 """
 from __future__ import annotations
 
@@ -58,25 +65,66 @@ CANDIDATES = {"happy": ("happy", "smile"), "sad": ("sad",), "angry": ("angry",),
               "surprised": ("surprised",), "thinking": ("thinking",)}
 
 _COMPILED: dict[str, re.Pattern[str]] = {}
+MAX_OWN_KEYWORDS = 100  # per emotion
+MAX_KEYWORD_CHARS = 40
+
+
+def _pattern(starts: Iterable[str], words: Iterable[str]) -> re.Pattern[str]:
+    parts = [r"(?<!\w)" + re.escape(s) + r"\w*" for s in starts]
+    parts += [r"(?<!\w)" + re.escape(w) + r"(?!\w)" if w[-1].isalnum() else r"(?<!\w)" + re.escape(w)
+              for w in words]
+    return re.compile("|".join(parts), re.IGNORECASE)
 
 
 def _compile() -> None:
     for emotion, (starts, words) in RULES.items():
-        parts = [r"(?<!\w)" + re.escape(s) + r"\w*" for s in starts]
-        parts += [r"(?<!\w)" + re.escape(w) + r"(?!\w)" if w[-1].isalnum() else r"(?<!\w)" + re.escape(w)
-                  for w in words]
-        _COMPILED[emotion] = re.compile("|".join(parts), re.IGNORECASE)
+        _COMPILED[emotion] = _pattern(starts, words)
 
 
 _compile()
 
 
-def classify(text: str) -> str | None:
-    """The emotion a sentence expresses ("happy", "sad", "angry", "surprised", "thinking") or None."""
+def parse_keywords(value: Any) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    """'juhu, mega*, wie geil' -> (word beginnings, whole words / phrases); lower case, empty and overlong parts dropped."""
+    starts: list[str] = []
+    words: list[str] = []
+    if isinstance(value, (list, tuple)):
+        items = [str(v) for v in value]
+    else:
+        items = str(value or "").split(",")
+    for item in items:
+        word = " ".join(item.lower().split())
+        prefix = word.endswith("*")
+        word = word.rstrip("*").strip()
+        if not word or len(word) > MAX_KEYWORD_CHARS:
+            continue
+        (starts if prefix else words).append(word)
+        if len(starts) + len(words) >= MAX_OWN_KEYWORDS:
+            break
+    return tuple(starts), tuple(words)
+
+
+def own_rules(keywords: Any) -> dict[str, re.Pattern[str]]:
+    """ai.emotion.keywords -> compiled extra rules per emotion (only the five known emotions)."""
+    out: dict[str, re.Pattern[str]] = {}
+    if not isinstance(keywords, dict):
+        return out
+    for emotion in RULES:
+        starts, words = parse_keywords(keywords.get(emotion))
+        if starts or words:
+            out[emotion] = _pattern(starts, words)
+    return out
+
+
+def classify(text: str, extra: dict[str, re.Pattern[str]] | None = None) -> str | None:
+    """The emotion a sentence expresses ("happy", "sad", "angry", "surprised", "thinking") or None.
+    extra = own keyword rules (own_rules), counted on top of the built-in ones."""
     t = " ".join(str(text).lower().split())
     if not t:
         return None
     scores = {e: len(rx.findall(t)) for e, rx in _COMPILED.items()}
+    for e, rx in (extra or {}).items():
+        scores[e] = scores.get(e, 0) + len(rx.findall(t))
     if "?!" in t or "!?" in t:
         scores["surprised"] += 1
     if t.endswith("...") or t.endswith("…"):
@@ -98,8 +146,45 @@ def pick_expression(emotion: str | None, available: Iterable[str]) -> str | None
     return None
 
 
-def infer_expression(text: str, available: Iterable[str]) -> str | None:
-    return pick_expression(classify(text), available)
+def infer_expression(text: str, available: Iterable[str], extra: dict[str, re.Pattern[str]] | None = None) -> str | None:
+    return pick_expression(classify(text, extra), available)
+
+
+# Version 61: a clear yes / no at the START of an answer -> nod / head shake (the plugin's built-in gestures).
+YES_WORDS = ("yes", "yeah", "yep", "sure", "of course", "absolutely", "exactly", "correct", "definitely",
+             "ja", "jawohl", "genau", "klar", "natürlich", "sicher", "richtig", "stimmt", "auf jeden fall", "logo")
+NO_WORDS = ("no", "nope", "nah", "not at all", "certainly not", "of course not",
+            "nein", "nö", "nee", "auf keinen fall", "keineswegs", "bestimmt nicht")
+_YES = re.compile(r"^(?:" + "|".join(re.escape(w) for w in sorted(YES_WORDS, key=len, reverse=True)) + r")(?!\w)",
+                  re.IGNORECASE)
+_NO = re.compile(r"^(?:" + "|".join(re.escape(w) for w in sorted(NO_WORDS, key=len, reverse=True)) + r")(?!\w)",
+                 re.IGNORECASE)
+GESTURE_CANDIDATES = {"yes": ("nod",), "no": ("shake",)}
+
+
+def classify_answer(text: str) -> str | None:
+    """'yes', 'no' or None: does the sentence START with a clear yes or no? ("No problem" counts as neither.)"""
+    t = " ".join(str(text).lower().split()).lstrip("\"'„“»«(-– ")
+    if not t:
+        return None
+    if re.match(r"^(?:no problem|kein problem|no worries|nicht schlimm)(?!\w)", t):
+        return None
+    if _NO.match(t):
+        return "no"
+    if _YES.match(t):
+        return "yes"
+    return None
+
+
+def infer_gesture(text: str, available: Iterable[str]) -> str | None:
+    kind = classify_answer(text)
+    if not kind:
+        return None
+    have = {str(a).lower(): str(a) for a in available}
+    for name in GESTURE_CANDIDATES[kind]:
+        if name in have:
+            return have[name]
+    return None
 
 
 def offered(names: Iterable[str]) -> list[str]:
@@ -122,6 +207,10 @@ class EmotionDirector:
         self.listening = True
         self.fade_after_s = 6.0
         self.fade_seconds = 2.5
+        self.gestures = False  # version 61: nod / shake from a yes / no (off by default)
+        self._own: dict[str, re.Pattern[str]] = {}
+        self._gesture_answer = -1  # the answer that already got a gesture (from the AI or from the words)
+        self._first_sentence = True
         self.current = NEUTRAL  # last expression the app sent (what the face shows, as far as the app knows)
         self._answer = 0
         self._ai_answer = -1  # the answer in which the AI chose an expression
@@ -135,6 +224,8 @@ class EmotionDirector:
         self.listening = bool(cfg.get("listening", True))
         self.fade_after_s = float(cfg.get("fade_after_s", 6.0))
         self.fade_seconds = float(cfg.get("fade_seconds", 2.5))
+        self.gestures = bool(cfg.get("gestures", False))
+        self._own = own_rules(cfg.get("keywords"))
 
     @property
     def active(self) -> bool:
@@ -142,6 +233,10 @@ class EmotionDirector:
 
     def begin_answer(self) -> None:
         self._answer += 1
+        self._first_sentence = True
+
+    def note_ai_gesture(self) -> None:
+        self._gesture_answer = self._answer
 
     def note_ai_expression(self) -> None:
         self._ai_answer = self._answer
@@ -161,7 +256,7 @@ class EmotionDirector:
         if self._ai_answer == self._answer:
             return None  # the AI chose its expression in this answer
         if self.fallback:
-            name = infer_expression(text, names)
+            name = infer_expression(text, names, self._own)
             if name and name != self.current:
                 return name, self.FALLBACK_INTENSITY, self.FALLBACK_BLEND_S
             if name:
@@ -169,6 +264,17 @@ class EmotionDirector:
         if self.current.lower() == LISTENING and any(n.lower() == NEUTRAL for n in names):
             return NEUTRAL, 1.0, self.LISTENING_BLEND_S  # no emotion found: the listening brows go down
         return None
+
+    def gesture_for_speech(self, text: str, available: Iterable[str]) -> str | None:
+        """Version 61: a nod / head shake before the FIRST sentence of an answer that starts with a clear yes / no."""
+        first = self._first_sentence
+        self._first_sentence = False
+        if not (self.gestures and first) or self._gesture_answer == self._answer:
+            return None
+        name = infer_gesture(text, available)
+        if name:
+            self._gesture_answer = self._answer
+        return name
 
     def user_speech(self, speaking: bool, available: Iterable[str]) -> tuple[str, float, float] | None:
         """Called every tick with "the user is talking": the small listening expression on a rising edge."""

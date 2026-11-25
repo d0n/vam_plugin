@@ -96,6 +96,7 @@ def start_remote(cfg: Config, companion: Companion) -> RemoteControl | None:
     if not remote.enabled:
         return None
     remote.token = settings_file.ensure_remote_token(settings_file.settings_path(cfg.vam_root), cfg.remote)
+    remote.bridge = companion.bridge  # version 61: Grok Bot bridge events (GET /api/bridge/events)
     companion.remote = remote
     for line in remote.start():
         log.info(line)

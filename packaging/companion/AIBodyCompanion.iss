@@ -71,6 +71,13 @@ UninstallDisplayIcon={app}\AIBody Companion.exe
 [Tasks]
 Name: "desktopicon"; Description: "Create a desktop shortcut"; Flags: unchecked
 Name: "autostart"; Description: "Start with Windows"; Flags: unchecked
+; Version 61: Grok Bot is OPT-IN (unchecked by default); the default install stays the direct method. local = download
+; the Grok Bot desktop app from the official release feed, install it silently per user (/S) and switch AIBody to the
+; Grok Bot bridge (config.json ai.driver = grok_bot, remote.enabled = true); cloud = install nothing more, keep the direct
+; method (Grok's cloud through the xAI API). See companion/aibody_companion/grok_bot_setup.py, docs/GROK_BOT_BRIDGE.md.
+Name: "grokbot"; Description: "Grok Bot (optional): let Grok Bot drive the character through a local bridge"; GroupDescription: "Optional, off by default:"; Flags: unchecked
+Name: "grokbot\local"; Description: "Install Grok Bot on this computer (download, about 200 MB) and use the Grok Bot bridge"; Flags: exclusive
+Name: "grokbot\cloud"; Description: "Grok's cloud only: install nothing more, keep the direct method"; Flags: exclusive unchecked
 
 [Files]
 Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
@@ -83,6 +90,8 @@ Name: "{userdesktop}\AIBody Companion"; Filename: "{app}\AIBody Companion.exe"; 
 Name: "{userstartup}\AIBody Companion"; Filename: "{app}\AIBody Companion.exe"; Tasks: autostart
 
 [Run]
+Filename: "{app}\AIBody Companion.exe"; Parameters: "--setup-grok-bot local --vam-root ""{code:VamDirArg}"""; StatusMsg: "Downloading and installing Grok Bot (optional) ..."; Tasks: grokbot\local; Check: HaveVamDir; Flags: waituntilterminated
+Filename: "{app}\AIBody Companion.exe"; Parameters: "--setup-grok-bot cloud --vam-root ""{code:VamDirArg}"""; Tasks: grokbot\cloud; Check: HaveVamDir; Flags: waituntilterminated runhidden
 Filename: "{app}\AIBody Companion.exe"; Description: "Launch AIBody Companion now"; Flags: nowait postinstall skipifsilent
 
 [UninstallRun]
@@ -435,6 +444,12 @@ begin
   Result := AddBackslash(ChosenVamDir()) + 'AddonPackages';
 end;
 
+{ Version 61: the VaM folder for the opt-in Grok Bot step (--setup-grok-bot ... --vam-root). }
+function VamDirArg(Param: String): String;
+begin
+  Result := ChosenVamDir();
+end;
+
 function HaveVamDir(): Boolean;
 begin
   Result := IsVamDir(ChosenVamDir());
@@ -517,6 +532,16 @@ begin
   end
   else
     Log('No VaM folder chosen or found; AIBody Companion asks with its folder picker on its first start.');
+end;
+
+{ Version 61: what a setup cannot do for Grok Bot (sign-in, local execution) is said on the last page. }
+procedure CurPageChanged(CurPageID: Integer);
+begin
+  if (CurPageID = wpFinished) and WizardIsTaskSelected('grokbot\local') then
+    WizardForm.FinishedLabel.Caption := WizardForm.FinishedLabel.Caption + #13#10#13#10 +
+      'Grok Bot (optional): open Grok Bot, sign in with your Cursor account and allow local execution on this ' +
+      'computer (Settings > Computer). Back to the direct method at any time: config.json ai.driver "direct". ' +
+      'Result of the Grok Bot step: <VaM>\Saves\PluginData\AIBody\logs\grok_bot_setup.log.';
 end;
 
 procedure RegisterPreviousData(PreviousDataKey: Integer);

@@ -870,6 +870,14 @@
             "chain"
           ]
         },
+        "driver": {
+          "type": "string",
+          "default": "direct",
+          "enum": [
+            "direct",
+            "grok_bot"
+          ]
+        },
         "persona": {
           "type": "string",
           "default": "You are a friendly, curious character living in a 3D scene. You talk with the user face to face. Answer briefly and naturally, in the language the user speaks.",
@@ -1235,6 +1243,49 @@
                 }
               ],
               "default": true
+            },
+            "gestures": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "true",
+                    "false",
+                    "True",
+                    "False"
+                  ]
+                }
+              ],
+              "default": false
+            },
+            "keywords": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "happy": {
+                  "type": "string",
+                  "default": ""
+                },
+                "sad": {
+                  "type": "string",
+                  "default": ""
+                },
+                "angry": {
+                  "type": "string",
+                  "default": ""
+                },
+                "surprised": {
+                  "type": "string",
+                  "default": ""
+                },
+                "thinking": {
+                  "type": "string",
+                  "default": ""
+                }
+              }
             }
           }
         },

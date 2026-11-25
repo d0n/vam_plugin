@@ -1418,8 +1418,8 @@ namespace AIBody
             if (_idleMove == null || _poser == null) return;
             try
             {
-                _poser.Find(dt, _idleMove.Enabled && BodyControl);
                 bool loading = SuperController.singleton != null && SuperController.singleton.isLoading;   // E43
+                _poser.Find(dt, _idleMove.Enabled && BodyControl, loading);   // version 61: nothing while the scene loads
                 bool settling = _poses != null && _poses.Guard.Active;
                 bool grabbed = _poser.Grabbed();
                 bool jumped = _poser.Jumped(dt, loading || settling || _idleMoveFresh);

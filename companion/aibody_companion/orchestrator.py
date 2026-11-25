@@ -12,6 +12,8 @@ Pipeline modes (config ai.mode, see docs/CONFIG.md):
                when an xAI key is there. While it is not connected, or after it did not answer,
                the chain runs (with xai instead of the test engines) and the status says so.
 Typed text (console) always takes the chain, so the answer path can be tested without a mic.
+Driver (version 61, config ai.driver, bridge.py): "direct" (default) = the modes above; "grok_bot" = Grok Bot answers
+through the remote control's HTTP API (no language model, no realtime here; the app still listens and speaks).
 Proactive timer (proactive.py): after a silence the AI is nudged and may say something. Every
 user turn and nudge carries the local date / time (pipeline/context.py): the AI has no clock.
 
@@ -39,7 +41,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from . import __version__, body_tools, logsetup, pose_commands, protocol, voice_mute, wakeup
+from . import __version__, body_tools, bridge as bridge_module, logsetup, pose_commands, protocol, voice_mute, wakeup
 from .atomicfile import atomic_copy
 from .audio import (
     BargeInRule,
@@ -205,6 +207,9 @@ class Companion:
                 self.engine_set.instances[kind] = instance
         self._clock = clock
         self.remote: Any = None  # remote.RemoteControl (version 31, off by default); its queue is run from tick()
+        # version 61: events for Grok Bot (ai.driver "grok_bot"), read over the remote's GET /api/bridge/events
+        self.bridge = bridge_module.BridgeQueue()
+        self._driver_noted = ""
         settings, errors = apply_mic_config(MicSettings(), config.mic)
         for e in errors:
             log.warning("config 'mic': %s", e)
@@ -307,6 +312,7 @@ class Companion:
     def tick(self) -> None:
         if self.remote is not None:
             self.remote.process(self)
+        self._note_driver()
         self.process_events()
         self._watch_connection()
         self._update_mode()
@@ -330,6 +336,47 @@ class Companion:
             if self.engine_set.refresh():
                 self._last_heartbeat = -HEARTBEAT_INTERVAL_S  # tell the plugin right away
 
+    # -- driver (version 61): direct method or Grok Bot through the localhost bridge -----------
+
+    @property
+    def driver_requested(self) -> str:
+        return bridge_module.normalize_driver(self.engine_set.ai.get("driver"))
+
+    @property
+    def driver(self) -> str:
+        """"grok_bot" only when it is selected AND the remote's HTTP API is open (Grok Bot's way in); else "direct"."""
+        if self.driver_requested != bridge_module.GROK_BOT:
+            return bridge_module.DIRECT
+        remote = self.remote
+        if remote is None or not getattr(remote, "http_bound_port", 0):
+            return bridge_module.DIRECT
+        return bridge_module.GROK_BOT
+
+    def driver_info(self) -> dict[str, Any]:
+        requested, active = self.driver_requested, self.driver
+        note = ""
+        if requested != active:
+            note = ("ai.driver is grok_bot, but the remote control's HTTP API is not open (config.json remote.enabled "
+                    "and a token are needed): the direct method runs")
+        return {"requested": requested, "active": active, "note": note, "last_event": self.bridge.last_id}
+
+    def _note_driver(self) -> None:
+        info = self.driver_info()
+        key = f"{info['requested']}/{info['active']}"
+        if key == self._driver_noted:
+            return
+        self._driver_noted = key
+        if info["note"]:
+            log.warning("Grok Bot bridge: %s", info["note"])
+        elif info["active"] == bridge_module.GROK_BOT:
+            log.info("Grok Bot bridge: on - what the user says goes to Grok Bot (GET /api/bridge/events), Grok Bot "
+                     "answers with /api/say, /api/expression, ... ; no language model or realtime session in this app. "
+                     "Back to the direct method: config.json ai.driver \"direct\" and restart the app")
+
+    @property
+    def bridge_active(self) -> bool:
+        return self.driver == bridge_module.GROK_BOT
+
     # -- modes -----------------------------------------------------------------------------
 
     @property
@@ -346,6 +393,8 @@ class Companion:
         return self.mode_requested == "qa"
 
     def _want_realtime(self) -> tuple[bool, str]:
+        if self.bridge_active:  # version 61: Grok Bot answers; the realtime session would answer by itself
+            return False, "Grok Bot bridge: Grok Bot answers (speech recognition and voice in this app, no language model)"
         mode = self.mode_requested
         has_key = bool(self.engine_set.key("xai"))
         if mode == "qa":
@@ -501,6 +550,8 @@ class Companion:
         commands, result = body_tools.resolve(name, arguments, self.body_lists(), allowed, why)
         if any(t == "expression" for t, _ in commands):
             self.emotion.note_ai_expression()
+        if any(t == "gesture" for t, _ in commands):
+            self.emotion.note_ai_gesture()
         return [self.body_command(t, **f) for t, f in commands], result
 
     def send_directive(self, item: Directive) -> None:
@@ -508,6 +559,7 @@ class Companion:
             self.emotion.note_ai_expression()
             self.send(self.body_command("expression", name=item.expression, intensity=1.0, blend=0.4))
         if item.gesture:
+            self.emotion.note_ai_gesture()
             self.send(self.body_command("gesture", name=item.gesture))
 
     # -- personas and memory ----------------------------------------------------------------
@@ -658,6 +710,8 @@ class Companion:
     # -- proactive -------------------------------------------------------------------------
 
     def _can_nudge_engine(self) -> bool:
+        if self.bridge_active:
+            return False  # version 61: Grok Bot decides itself when to talk
         if self.speech_only:
             return False  # simple Q&A: the AI speaks only when asked
         return self.active_mode == "realtime" or bool(getattr(self.llm, "accepts_context", False))
@@ -709,6 +763,10 @@ class Companion:
             return
         if not as_bool(self._scene_events_cfg().get("enabled", True)):
             log.info("Scene event ignored (ai.scene_events.enabled is false): %s", text)
+            return
+        if self.bridge_active:  # version 61: to Grok Bot instead of the AI of this app
+            log.info("Scene event to Grok Bot (bridge): %s", text)
+            self.bridge.push("scene_event", text=text)
             return
         if not self._can_nudge_engine():
             log.info("Scene event ignored (the AI answers only when asked in simple Q&A mode, or no engine takes notes): %s", text)
@@ -1441,6 +1499,13 @@ class Companion:
                     turn.step("end", result="pose command", command=decision.entry["command"], applied=decision.ok)
                     yield from decision.steps
                     return
+            if kind in ("audio", "text") and self.bridge_active:
+                # version 61 (ai.driver "grok_bot"): Grok Bot answers through the bridge; no language model here
+                self.bridge.push("user_said", text=text, source="voice" if kind == "audio" else "typed")
+                log.info("To Grok Bot (bridge): %r", _short(text))
+                turn.step("end", result="handed to Grok Bot (bridge)", text=text)
+                yield ("status", f"To Grok Bot: {_short(text)}")
+                return
             nudge = kind == "nudge"
             prompt = text
             if not nudge:
@@ -1555,6 +1620,7 @@ class Companion:
             self.emotion.note_ai_expression()
             yield ("command", self.body_command("expression", name=item.expression, intensity=1.0, blend=0.4))
         if item.gesture:
+            self.emotion.note_ai_gesture()
             yield ("command", self.body_command("gesture", name=item.gesture))
 
     def _transcribe(self, utterance: bytes) -> str:
@@ -1796,6 +1862,10 @@ class Companion:
             name, intensity, blend = step
             log.info("Expression from the words (the AI chose none): %s", name)
             self.send(self.body_command("expression", name=name, intensity=intensity, blend=blend))
+        gesture = self.emotion.gesture_for_speech(text, self.body_info.get("gestures") or DEFAULT_GESTURES)
+        if gesture:  # version 61 (ai.emotion.gestures): nod / shake on a clear yes / no
+            log.info("Gesture from the words (the AI chose none): %s", gesture)
+            self.send(self.body_command("gesture", name=gesture))
 
     def _maybe_emotion(self) -> None:
         """Listening brows while the user talks; back to neutral after a while without speech."""

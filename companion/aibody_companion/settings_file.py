@@ -27,7 +27,7 @@ it has controls for):
   setup       asked, background, background_color, choice, revision (version 36): the answers to the first-start
               questions (setup.py); the plugin only reads it (background answer -> its toggle "Set background color")
 
-  ai          mode, persona, persona_name, memory {...}, emotion {...}, language, fallback {stt, llm, tts}, realtime {...}, proactive {...},
+  ai          mode, driver (version 61), persona, persona_name, memory {...}, emotion {...}, language, fallback {stt, llm, tts}, realtime {...}, proactive {...},
               xai {...}, elevenlabs {...}
               plugin controls: mode (tab Voice), language, persona_name and memory.enabled (tab Voice), proactive.enabled /
               idle_seconds (tab Voice), barge_in.enabled (tab Client Character),
@@ -176,6 +176,10 @@ DEFAULTS: dict[str, dict[str, Any]] = {
         # auto = realtime when an xAI key is there (and TTS is not elevenlabs), else chain;
         # realtime = Grok Voice speech-to-speech; chain = STT -> LLM -> TTS (exactly the engines above)
         "mode": "qa",
+        # Version 61: who answers. "direct" (default) = this app's own AI as above; "grok_bot" = Grok Bot answers through
+        # the localhost bridge of the remote control (needs remote.enabled; bridge.py, docs/GROK_BOT_BRIDGE.md). Back to
+        # the direct method at any time: "direct" and restart the app.
+        "driver": "direct",
         "persona": "You are a friendly, curious character living in a 3D scene. You talk with the user "
                    "face to face. Answer briefly and naturally, in the language the user speaks.",
         # the menu "Language" (tab Voice, 22.11.2026 Don): "auto" or a code of the xAI TTS list (languages.py);
@@ -228,6 +232,10 @@ DEFAULTS: dict[str, dict[str, Any]] = {
             "fade_after_s": 6.0,
             "fade_seconds": 2.5,
             "listening": True,
+            # version 61: nod / head shake when an answer starts with a clear yes / no (off by default)
+            "gestures": False,
+            # version 61: own words per emotion, comma-separated, added to the built-in ones ("mega*" = word beginning)
+            "keywords": {"happy": "", "sad": "", "angry": "", "surprised": "", "thinking": ""},
         },
         # Voice barge-in (version 29 rule; since 22.11.2026 the menu toggle "Voice barge-in (headphones)", ON by default,
         # chain and realtime mode, Don): while the body speaks the mic stays closed for the AI (echo protection, always on);
@@ -317,6 +325,7 @@ CHOICES: dict[tuple[str, ...], tuple[str, ...]] = {
     ("characters", "ai_gender"): ("", "Female", "Male"),
     ("characters", "user_gender"): ("", "Female", "Male"),
     ("ai", "mode"): ("qa", "auto", "realtime", "chain"),
+    ("ai", "driver"): ("direct", "grok_bot"),  # version 61
     ("ai", "realtime", "sample_rate"): tuple(str(r) for r in PCM_RATES),
     ("ai", "realtime", "reasoning_effort"): ("none", "high"),
     ("ai", "xai", "sample_rate"): ("8000", "16000", "22050", "24000", "44100", "48000"),

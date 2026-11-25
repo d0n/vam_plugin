@@ -51,11 +51,13 @@ class PackageAfterInstallTests(TestCase):
 
     def test_no_option_any_more(self):
         self.assertNotIn("removeoldvars", self.iss)
-        self.assertNotIn("WizardIsTaskSelected", self.iss)
+        # version 61: the only task asked for in code is the opt-in Grok Bot step (never an old-package option)
+        self.assertEqual(self.iss.count("WizardIsTaskSelected"), self.iss.count("WizardIsTaskSelected('grokbot\\local')"))
         self.assertNotIn('checked on the next page', self.iss)
         tasks = section(self.iss, "[Tasks]", "[Files]")
-        self.assertEqual([l.split(";")[0] for l in tasks.splitlines()[1:] if l.strip()],
-                         ['Name: "desktopicon"', 'Name: "autostart"'])
+        self.assertEqual([l.split(";")[0] for l in tasks.splitlines()[1:] if l.strip() and not l.startswith(";")],
+                         ['Name: "desktopicon"', 'Name: "autostart"', 'Name: "grokbot"', 'Name: "grokbot\\local"',
+                          'Name: "grokbot\\cloud"'])
 
     def test_companion_kill_without_tree_and_stop_before_changes(self):
         self.assertNotIn("/F /T", self.iss)

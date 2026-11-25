@@ -39,11 +39,22 @@ namespace AIBody
         public bool Available { get { return _poser != null; } }
         public bool PoserOn { get { return _poser != null && _poserOn; } }
 
+        /// <summary>Version 61: seconds after a scene load (and after the plugin started) before IdlePoser is looked for
+        /// or added. VaM is still restoring the scene's plugins and their storables (pluginLabel, idlepose) meanwhile.</summary>
+        public const float LoadGraceSeconds = 3f;
+        private float _sinceLoad;
+        private bool _duplicatesNoted;
+
         /// <summary>Finds AIBody's IdlePoser on the AI character (every 2 s until found); adds it once when it is missing,
-        /// the package is installed and add is true. Never on a Person named 'Client' (the user's character).</summary>
-        public void Find(float dt, bool add)
+        /// the package is installed and add is true. Never on a Person named 'Client' (the user's character).
+        /// Version 61: does nothing while the scene loads (loading = SuperController.isLoading, E43) and for
+        /// LoadGraceSeconds after it: up to v60 it could add a second IdlePoser to the plugin list in the middle of VaM's
+        /// scene load, before the scene's own "AIBody Idle Movement" instance had its label back.</summary>
+        public void Find(float dt, bool add, bool loading)
         {
             if (_atom == null) return;
+            if (loading) { _sinceLoad = 0f; return; }
+            if (_sinceLoad < LoadGraceSeconds) { _sinceLoad += dt; return; }
             if (_poser != null)
             {
                 if (_poser.containingAtom == _atom) return;   // the instance was removed (Unity null) or moved
@@ -111,17 +122,37 @@ namespace AIBody
             return result;
         }
 
-        /// <summary>The IdlePoser instance labelled "AIBody Idle Movement" (other IdlePoser instances stay untouched).</summary>
+        /// <summary>The IdlePoser instance labelled "AIBody Idle Movement" (other IdlePoser instances stay untouched).
+        /// Version 61: a scene saved with v60 can hold more than one of them (v60 could add one during the scene load);
+        /// the first is used, every further "AIBody Idle Movement" instance is switched off so only one writes the body.</summary>
         private JSONStorable Search()
         {
             List<string> ids = PoserIds();
+            JSONStorable found = null;
             for (int i = 0; i < ids.Count; i++)
             {
                 JSONStorable s = _atom.GetStorableByID(ids[i]);
                 JSONStorableString label = s != null ? s.GetStringJSONParam("pluginLabel") : null;
-                if (label != null && label.val == IdleMovementPlan.PoserLabel) return s;
+                if (label == null || label.val != IdleMovementPlan.PoserLabel) continue;
+                if (found == null) { found = s; continue; }
+                Switch(s, false);
+                if (!_duplicatesNoted)
+                {
+                    _duplicatesNoted = true;
+                    Log.Warn("Idle movement: '" + _atom.uid + "' has more than one '" + IdleMovementPlan.PoserLabel
+                             + "' plugin (saved by v60); only the first is used, the others are switched off. Remove them "
+                             + "in the Plugins tab and save the scene.");
+                }
             }
-            return null;
+            return found;
+        }
+
+        private static void Switch(JSONStorable plugin, bool on)
+        {
+            if (plugin == null) return;
+            JSONStorableBool enabled = plugin.GetBoolJSONParam("enabled");   // E12, E44
+            if (enabled != null) { if (enabled.val != on) enabled.val = on; }
+            if (plugin.enabled != on) plugin.enabled = on;
         }
 
         /// <summary>On = IdlePoser's Update runs and drives the controllers; off = it writes nothing. Through the plugin's
@@ -130,9 +161,7 @@ namespace AIBody
         {
             _poserOn = on;
             if (_poser == null) return;
-            JSONStorableBool enabled = _poser.GetBoolJSONParam("enabled");   // E12, E44
-            if (enabled != null) { if (enabled.val != on) enabled.val = on; }
-            if (_poser.enabled != on) _poser.enabled = on;
+            Switch(_poser, on);
         }
 
         /// <summary>The current pose of the controllers IdlePoser will drive, relative to their anchors (root / chest).</summary>

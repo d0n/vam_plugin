@@ -430,8 +430,15 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--choose-vam-folder", action="store_true", help="ask for the VaM folder again")
     p.add_argument("--check-vam-root", action="store_true",
                    help="print the VaM folder the app would use (no picker, nothing started) and exit (0 = found)")
+    p.add_argument("--setup-grok-bot", dest="setup_grok_bot", choices=("local", "cloud"),
+                   help="version 61, called by the setup's opt-in task only: install Grok Bot (local) or nothing (cloud)")
     args = p.parse_args(argv)
     folder = data_dir()
+    if args.setup_grok_bot:
+        if not (args.vam_root and looks_like_vam(args.vam_root)):
+            return 1
+        from . import grok_bot_setup
+        return grok_bot_setup.run_setup(args.setup_grok_bot, args.vam_root)
     if args.selftest:
         code = selftest(args.selftest_out)
         os._exit(code)  # the companion thread of the self-test is still running

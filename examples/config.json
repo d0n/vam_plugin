@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "written_by": "AIBody companion app 60 (example)",
+  "written_by": "AIBody companion app 61 (example)",
   "connection": {
     "active": true,
     "network_active": true,
@@ -124,6 +124,7 @@
   },
   "ai": {
     "mode": "qa",
+    "driver": "direct",
     "persona": "You are a friendly, curious character living in a 3D scene. You talk with the user face to face. Answer briefly and naturally, in the language the user speaks.",
     "language": "de",
     "persona_name": "Anna",
@@ -163,7 +164,15 @@
       "fade": true,
       "fade_after_s": 6.0,
       "fade_seconds": 2.5,
-      "listening": true
+      "listening": true,
+      "gestures": false,
+      "keywords": {
+        "happy": "",
+        "sad": "",
+        "angry": "",
+        "surprised": "",
+        "thinking": ""
+      }
     },
     "barge_in": {
       "enabled": true,
