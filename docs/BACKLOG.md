@@ -158,7 +158,7 @@ The three lists are separate: **Done** (in the code, with version), **Won't work
 - ~~**Remote control / web interface, OSC**~~ (localhost only, off by default) – done in version 31, see `REMOTE.md`.
 
 ## Installer (Setup.exe)
-- **Optional: also install Grok Bot and Cursor, preconfigured** (Don, 25.11.2026, open) – the installer offers, as an opt-in step, to install Grok Bot and Cursor as well and to preconfigure them for AIBody.
+- **Optional: also install Grok Bot and Cursor, preconfigured** (Don, 25.11.2026, open, **planned for version 61**) – the installer offers, as an opt-in step, to install Grok Bot and Cursor as well and to preconfigure them for AIBody.
   - Includes a setup choice for the bot that the plugin needs to run: **run it locally** or **connect it to an API**.
   - Details (which settings get preconfigured, how the API connection is entered) still to be specified with Don.
 
