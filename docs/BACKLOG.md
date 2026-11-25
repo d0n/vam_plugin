@@ -157,6 +157,11 @@ The three lists are separate: **Done** (in the code, with version), **Won't work
 - **Interrupting by voice without headphones** – real echo cancellation (AEC) stays "Won't work"; since version 29 there is the level rule `ai.barge_in` (off by default); otherwise the echo gate, by voice with headphones, push-to-talk always.
 - ~~**Remote control / web interface, OSC**~~ (localhost only, off by default) – done in version 31, see `REMOTE.md`.
 
+## Installer (Setup.exe)
+- **Optional: also install Grok Bot and Cursor, preconfigured** (Don, 25.11.2026, open) – the installer offers, as an opt-in step, to install Grok Bot and Cursor as well and to preconfigure them for AIBody.
+  - Includes a setup choice for the bot that the plugin needs to run: **run it locally** or **connect it to an API**.
+  - Details (which settings get preconfigured, how the API connection is entered) still to be specified with Don.
+
 ## Removed menu entries (version 15) and their original purpose
 
 Don's feedback after the VaM test of version 14 (17.11.2026): placeholders and empty fields out, information in one large field. Recorded before removal (sources: code comments, commits, SPEC, REQUIREMENTS, BACKLOG):
