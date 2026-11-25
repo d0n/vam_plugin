@@ -163,6 +163,10 @@ The three lists are separate: **Done** (in the code, with version), **Won't work
   - If local is selected, the installer also installs the prerequisites needed for local operation.
   - Auto-configuration of the local bot is the ideal case, but only if it is feasible without excessive configuration overhead. If it turns out too complex, that part can be dropped or simplified; Don wants to discuss the variants first.
   - Details (which settings get preconfigured, how the API connection is entered) still to be specified with Don.
+- **Grok Bot integration as an optional fork, not a replacement** (Don, 25.11.2026, open, **planned for version 61**, design requirement)
+  - Build a Grok Bot-driven path where Grok Bot controls AIBody through a localhost bridge exposed by the plugin (e.g. a small local HTTP endpoint or file-exchange folder).
+  - The existing direct plugin approach stays fully intact as the fallback. Nothing is removed or rewritten.
+  - Both paths must be selectable (Grok Bot via localhost bridge, or the current direct method), so the new way can be rolled back at any time if it turns out worse.
 
 ## Removed menu entries (version 15) and their original purpose
 
