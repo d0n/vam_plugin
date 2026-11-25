@@ -167,6 +167,7 @@ The three lists are separate: **Done** (in the code, with version), **Won't work
   - Build a Grok Bot-driven path where Grok Bot controls AIBody through a localhost bridge exposed by the plugin (e.g. a small local HTTP endpoint or file-exchange folder).
   - The existing direct plugin approach stays fully intact as the fallback. Nothing is removed or rewritten.
   - Both paths must be selectable (Grok Bot via localhost bridge, or the current direct method), so the new way can be rolled back at any time if it turns out worse.
+  - **Opt-in, not opt-out:** in the installer setup the Grok Bot/local-bot option is unchecked by default. Grok Bot and the local-bot prerequisites are installed only when the user actively chooses that option. The default stays the current direct method.
 
 ## Removed menu entries (version 15) and their original purpose
 
