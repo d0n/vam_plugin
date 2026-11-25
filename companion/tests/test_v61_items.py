@@ -1,5 +1,5 @@
 """Version 61: the Grok Bot bridge (optional driver next to the direct method, opt-in installer step), own emotion
-keywords and gestures from yes / no, and the scene-load guard of the IdlePoser attach (crash review of v60)."""
+keywords and gestures from yes / no. (The scene-load guard of the IdlePoser attach went with the idle movement in version 64.)"""
 from __future__ import annotations
 
 import http.client
@@ -254,23 +254,3 @@ class EmotionV61Tests(unittest.TestCase):
         self.assertIsNone(d.gesture_for_speech("No.", ["shake"]), "the AI's own gesture wins")
         d.begin_answer()
         self.assertIsNone(d.gesture_for_speech("No.", ["nod"]), "only gestures the plugin has")
-
-
-class IdlePoserLoadGuardTests(unittest.TestCase):
-    """Crash review of v60: IdlePoser is never looked for or added while VaM loads a scene."""
-
-    def test_find_waits_for_the_scene_load(self):
-        link = (SRC / "IdlePoserLink.cs").read_text(encoding="utf-8")
-        self.assertIn("public void Find(float dt, bool add, bool loading)", link)
-        self.assertIn("if (loading) { _sinceLoad = 0f; return; }", link)
-        self.assertIn("public const float LoadGraceSeconds = 3f;", link)
-        body = (SRC / "Body.cs").read_text(encoding="utf-8")
-        i, j = body.index("bool loading = SuperController.singleton"), body.index("_poser.Find(dt,")
-        self.assertLess(i, j, "loading is known before Find runs")
-        self.assertIn("_poser.Find(dt, _idleMove.Enabled && BodyControl, loading)", body)
-
-    def test_duplicate_instances_are_switched_off(self):
-        link = (SRC / "IdlePoserLink.cs").read_text(encoding="utf-8")
-        search = link[link.index("private JSONStorable Search()"):link.index("private static void Switch(")]
-        self.assertIn("Switch(s, false);", search)
-        self.assertTrue(re.search(r"if \(found == null\) \{ found = s; continue; \}", search))

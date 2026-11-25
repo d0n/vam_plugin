@@ -1,7 +1,6 @@
-"""Version 63 (25.11.2026, on top of v62): MacGruber IdlePoser idle movement compiled in again as an optional toggle that
-is off by default (nothing of IdlePoser runs while it is off, no package dependency), and a root-position reset on pose
-load (toggle "Center body on control point": the pose kept, the hips back over the control point). The pure math
-(RootReset.cs) runs in a dotnet harness. Version everywhere and English release notes."""
+"""Version 63 (25.11.2026, on top of v62): a root-position reset on pose load (toggle "Center body on control point": the
+pose kept, the hips back over the control point; the pure math, RootReset.cs, runs in a dotnet harness). v63 also
+compiled the idle movement back in as an optional toggle; version 64 removed it again (test_version64.py)."""
 from __future__ import annotations
 
 import json
@@ -31,104 +30,17 @@ def src(name: str) -> str:
 
 
 class VersionTests(TestCase):
-    def test_version_63_everywhere(self):
-        self.assertEqual(__version__, "63")
-        self.assertIn('PluginVersion = "63"', src("AIBody.cs"))
-        self.assertIn('version = "63"', (ROOT / "companion" / "pyproject.toml").read_text())
-        self.assertEqual(json.loads((ROOT / "packaging" / "AIBody.json").read_text())["version"], 63)
-        self.assertTrue(re.search(r"d0n\.AIBody\.63:", first_start.TEMPLATE.read_text()))
-        self.assertIn("AIBody companion app 63 (example)", (ROOT / "examples" / "config.json").read_text(encoding="utf-8"))
-        self.assertEqual(json.loads((ROOT / "packaging" / "meta.json").read_text())["licenseType"], "FC")
-        for f in ("README.md", "docs/REQUIREMENTS.md", "docs/SCENE_GREENSCREEN.md", "docs/RELEASE_NOTES_NEXT.md"):
-            self.assertNotIn("AIBody.62", (ROOT / f).read_text(encoding="utf-8"), f)
-
-    def test_docs(self):
-        readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertIn("Status: version 63, package `d0n.AIBody.63.var`, release `v63`", readme)
-        self.assertIn("**Center body on control point**", readme)
+    def test_version_63_is_historical(self):
+        """Historical: version 63 sources are gone after the v64 bump (and its idle movement toggle was removed in v64);
+        consistency is test_version64. The root-position reset of v63 stays (tests below)."""
+        self.assertTrue((ROOT / "companion" / "tests" / "test_version64.py").is_file())
         spec = (ROOT / "docs" / "SPEC.md").read_text(encoding="utf-8")
         self.assertIn("(version 63, release; on top of v62)", spec)
         proto = (ROOT / "docs" / "TEST_PROTOCOL.md").read_text(encoding="utf-8")
         self.assertIn("## T118", proto)
         self.assertIn("## T119", proto)
-        config = (ROOT / "docs" / "CONFIG.md").read_text(encoding="utf-8")
-        for key in ("`body.pose_root_reset`", "`body.idle_movement_opt_in`"):
-            self.assertIn(key, config)
-        switch = (ROOT / "docs" / "IDLEPOSER_BUILD_SWITCH.md").read_text(encoding="utf-8")
-        for part in ("off by default", "MacGruber.IdlePoser.9", "IdleMovementOn", "CreateIdleMovement", "idle_movement_opt_in"):
-            self.assertIn(part, switch)
-
-    def test_release_notes_english_without_personal_names(self):
-        notes = (ROOT / "docs" / "RELEASE_NOTES_NEXT.md").read_text(encoding="utf-8")
-        self.assertIn("**AIBody v63**", notes)
-        for part in ("d0n.AIBody.63.var", "AI-Buddy.jpg", "AI-Buddy.json", "optional toggle, off by default",
-                     "Root-position reset on pose load", "Center body on control point", "T118", "T119", "Known risk"):
-            self.assertIn(part, notes)
-        self.assertIsNone(re.search(r"\b(" + "Le" + "on|Don)\b", notes), "no personal names in public release notes")
-
-
-class IdleMovementOptionalTests(TestCase):
-    def test_compiled_in_again(self):
-        cslist = src("AIBody.cslist").split()
-        for name in ("IdleMovement.cs", "IdlePoserLink.cs", "RootReset.cs"):
-            self.assertIn(name, cslist)
-        self.assertLess(cslist.index("RootReset.cs"), cslist.index("PoseController.cs"))
-        for path in sorted(SRC.glob("*.cs")):
-            self.assertNotIn("AIBODY_IDLEPOSER", path.read_text(encoding="utf-8"), path.name)
-
-    def test_off_by_default_everywhere(self):
-        body = src("Body.cs")
-        self.assertIn("public const bool IdleMovementDefault = false;", body)
-        self.assertIn('new JSONStorableBool("Idle movement", IdleMovementDefault,', body)
-        self.assertIn("SettingsDefaults.Bool(_plugin, _idleMoveJson);", body, "Reset to Default -> off")
-        self.assertIs(settings_file.DEFAULTS["body"]["idle_movement"], False)
-        self.assertIs(settings_file.DEFAULTS["body"]["idle_movement_opt_in"], True)
-        result, errors = settings_file.validate({})
-        self.assertIs(result["body"]["idle_movement"], False)
-        example = json.loads((ROOT / "examples" / "config.json").read_text(encoding="utf-8"))
-        self.assertIs(example["body"]["idle_movement"], False)
-        self.assertIs(example["body"]["idle_movement_opt_in"], True)
-
-    def test_old_config_without_opt_in_stays_off(self):
-        body = src("Body.cs")
-        rule = method_body(body, "public static bool IdleMovementFromConfig(bool optIn, bool hasKey, bool value)")
-        self.assertIn("return optIn && hasKey && value;", rule)
-        self.assertIn('IdleMovementFromConfig(Protocol.GetBool(body, "idle_movement_opt_in", false),', body)
-        self.assertIn('Protocol.Has(body, "idle_movement"), Protocol.GetBool(body, "idle_movement", IdleMovementDefault));', body)
-        self.assertIn('body["idle_movement_opt_in"].AsBool = true;', body)
-
-    def test_nothing_of_idleposer_runs_while_off(self):
-        body = src("Body.cs")
-        self.assertIn("public bool IdleMovementOn { get { return _idleMoveJson != null && _idleMoveJson.val; } }", body)
-        update = method_body(body, "public void Update(float dt)")
-        calls = [ln.strip() for ln in update.splitlines() if "UpdateIdleMovement(dt)" in ln]
-        self.assertEqual(len(calls), 2, calls)
-        for ln in calls:
-            self.assertTrue(ln.startswith("if (IdleMovementOn) UpdateIdleMovement(dt);"), ln)
-        # created only on first use (no IdlePoserLink / gate in Init)
-        self.assertEqual(body.count("new IdlePoserLink(_atom)"), 1)
-        self.assertEqual(body.count("new IdleMovementGate()"), 1)
-        create = method_body(body, "private void CreateIdleMovement()")
-        self.assertIn("_poser = new IdlePoserLink(_atom);", create)
-        self.assertIn("CreateIdleMovement();", method_body(body, "private void UpdateIdleMovement(float dt)"))
-        self.assertNotIn('_diag.Run("Idle movement (IdlePoser)"', body)
-        # every StopIdleMovement call outside the idle movement itself is guarded
-        for line in body.splitlines():
-            if "StopIdleMovement(\"" in line and "private" not in line:
-                self.assertIn("_idleMove != null || _poser != null", line, line.strip())
-        self.assertIn("IdleMovementOn || _idleMove != null ? IdleMovementInfo() : IdleMovementOffInfo", body)
-
-    def test_toggle_in_menu_and_config(self):
-        body = src("Body.cs")
-        self.assertIn("page.Toggle(_idleMoveJson);", body)
-        self.assertIn('body["idle_movement"].AsBool = _idleMoveJson.val;', body)
-
-    def test_no_hard_dependency(self):
-        meta = json.loads((ROOT / "packaging" / "meta.json").read_text(encoding="utf-8"))
-        self.assertFalse([n for n in meta.get("dependencies", {}) if "IdlePoser" in n])
-        link = src("IdlePoserLink.cs")
-        self.assertIn("FileManagerSecure.FileExists(IdleMovementPlan.PoserCslist)", link)
-        self.assertIn("AIBody does not depend on it", link)
+        self.assertIn("`body.pose_root_reset`", (ROOT / "docs" / "CONFIG.md").read_text(encoding="utf-8"))
+        self.assertIn("**Center body on control point**", (ROOT / "README.md").read_text(encoding="utf-8"))
 
 
 class RootResetWiringTests(TestCase):
@@ -163,11 +75,6 @@ class RootResetWiringTests(TestCase):
             self.assertIn(part, center, part)
         self.assertNotIn("main.transform.position =", center, "the control point never moves")
         self.assertNotIn(".rotation =", center, "rotations (the pose) are kept")
-
-    def test_idle_movement_start_recenters_before_capture(self):
-        update = method_body(src("Body.cs"), "private void UpdateIdleMovement(float dt)")
-        self.assertIn("if (_poses != null && _poses.Guard.CenterNow() > 0f) pose = null;", update)
-        self.assertLess(update.index("CenterNow()"), update.index("StartIdleMovement(pose ?? _poser.CaptureBase())"))
 
 
 @unittest.skipUnless(Path(v35.DOTNET).exists(), "dotnet SDK not installed")

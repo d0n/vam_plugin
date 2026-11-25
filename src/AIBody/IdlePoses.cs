@@ -90,10 +90,6 @@ namespace AIBody
         /// <summary>Seconds of quiet still needed before the next change (for the info field and tests).</summary>
         public float SecondsLeft { get { return Math.Max(_cooldown, _next - _quiet); } }
 
-        /// <summary>Version 60: seconds left of the cooldown after a pose command or after the user posed her (the idle
-        /// movement waits for it too, so both behave the same).</summary>
-        public float CooldownLeft { get { return _cooldown; } }
-
         /// <summary>The user gave a pose command (or applied a pose from the menu): wait CooldownSeconds first.</summary>
         public void NoteUserPose()
         {

@@ -472,57 +472,6 @@
           "default": "Stand Up",
           "description": "Menu 'Idle default pose': the pose the character returns to between idle poses (a pose name of the character; not found = no return pose)"
         },
-        "idle_movement": {
-          "anyOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "enum": [
-                "true",
-                "false",
-                "True",
-                "False"
-              ]
-            }
-          ],
-          "default": false,
-          "description": "Toggle 'Idle movement' (version 60; version 63: optional, default off): while nobody moves or poses the AI character she shifts her weight from leg to leg like someone who waits (MacGruber's IdlePoser, package MacGruber.IdlePoser.9, install it yourself; on the AI character only; standing poses only). Counts only with idle_movement_opt_in true"
-        },
-        "idle_movement_opt_in": {
-          "anyOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string",
-              "enum": [
-                "true",
-                "false",
-                "True",
-                "False"
-              ]
-            }
-          ],
-          "default": true,
-          "description": "Version 63 (written by the plugin and the app): true = idle_movement was written by version 63 or later, where idle movement is opt-in. Without it an older idle_movement value (v60/v61 default on) is ignored and idle movement stays off"
-        },
-        "idle_movement_liveliness": {
-          "anyOf": [
-            {
-              "type": "number",
-              "minimum": 0.0,
-              "maximum": 1.0
-            },
-            {
-              "type": "string",
-              "pattern": "^\\s*-?[0-9]+(\\.[0-9]+)?([eE][-+]?[0-9]+)?\\s*$"
-            }
-          ],
-          "default": 0.5,
-          "description": "Slider 'Idle movement liveliness' (version 60, 0-1, default 0.5): 0 = calm (small, rare weight shifts), 1 = restless (larger, frequent)"
-        },
         "pose_root_reset": {
           "anyOf": [
             {

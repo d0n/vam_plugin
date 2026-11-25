@@ -907,7 +907,7 @@ Report: a dropdown without entries after the reset, the same pose twice in a row
 7. Idle head motion on: watch the head and chest for 2 s after each pose load: no jerk; the idle sway starts again after about 1 s.
 Report: a pose that does not apply, any twitching, a pose applied by just choosing an entry, Body control off after using Dollmaster.
 
-## T111 – Idle movement: starts after idle, AI character only (version 60)
+## T111 – Idle movement: starts after idle, AI character only (version 60) – obsolete since version 64 (idle movement removed)
 1. Install v60 and MacGruber's **IdlePoser** (`MacGruber.IdlePoser.9`, free on the VaM Hub; Package Manager > Scan Hub For Missing Packages finds it through AIBody's dependency). Start AIBody Companion, then VaM; load AI-Buddy with the AI character standing.
 2. Do not touch her and say nothing for about 10 s: she shifts her weight from leg to leg (hips turn a little, the free heel lifts), with pauses, like someone who waits. No jump when it starts. The head keeps its own idle motion and gaze.
 3. Tab AI Character > *Idle movement*: the info field says "Idle movement is running". Person `AI` > Plugins lists one **AIBody Idle Movement** (MacGruber.IdlePoser); Person `Client` has NO IdlePoser.
@@ -916,7 +916,7 @@ Report: a pose that does not apply, any twitching, a pose applied by just choosi
 6. Without IdlePoser installed (or disabled in the Package Manager): no error popup; the info field says MacGruber.IdlePoser.9 is not installed; everything else works.
 Report: no movement after 20 s, a jump at the start, an IdlePoser on Client, two instances after reloading, an error without IdlePoser.
 
-## T112 – Idle movement stops when you take over (version 60)
+## T112 – Idle movement stops when you take over (version 60) – obsolete since version 64 (idle movement removed)
 1. While she shifts her weight (T111), grab a hand or the hip controller (VR hand or mouse): the movement stops at once and she stays where you put her; it does not come back while you hold her, and only about 2 min after you let go (the idle poses' cooldown; the idle pose change waits as well).
 2. While she moves, load a pose from outside (Person > Pose > a preset): the pose stays; the idle movement stops and waits the same cooldown.
 3. While she moves, say a pose command ("Turn Around" or "Stand Up"): the pose is applied cleanly (no fight, no twitch); the movement waits the cooldown and then starts again from the NEW pose if it is a standing one.
@@ -924,14 +924,14 @@ Report: no movement after 20 s, a jump at the start, an IdlePoser on Client, two
 5. An idle pose change (Idle poses on, short interval): the movement stops before the pose loads and starts again from the new pose.
 Report: movement while you hold her, your pose overwritten, a twitch during a pose command, movement while Dollmaster is active.
 
-## T113 – Idle movement toggle, liveliness, Reset to Default (version 60)
+## T113 – Idle movement toggle, liveliness, Reset to Default (version 60) – obsolete since version 64 (idle movement removed)
 1. Tab AI Character > *Idle movement*: **Idle movement** (toggle, on) and **Idle movement liveliness** (slider, 0.5). Nothing else.
 2. Toggle off: she stops at once and stays as she is. Toggle on: it starts again after a few seconds of quiet.
 3. Liveliness 0: small, slow, rare shifts. Liveliness 1: larger, quicker, frequent shifts (after the slider stands still for about 1 s she may go back to her base pose once).
 4. Config tab > **Reset to Default**: the toggle is on, the slider 0.5, and no dropdown on any tab is empty. config.json has `body.idle_movement` and `body.idle_movement_liveliness`; editing them + **Reload Config JSON** applies them.
 Report: no change between 0 and 1, an empty dropdown, values not saved.
 
-## T114 – Scene load with the idle movement (version 61, comparison build against v60)
+## T114 – Scene load with the idle movement (version 61, comparison build against v60) – obsolete since version 64 (idle movement removed)
 1. Install v61 over v60 (remove `d0n.AIBody.60.var` from AddonPackages). Start AIBody Companion, then VaM.
 2. Load the scene that crashed with v60. Expected: the scene loads. If VaM still crashes, note the time and keep the crash dump (`%LOCALAPPDATA%\CrashDumps`) and VaM's `output_log.txt`: the crash is then not the attach during the load.
 3. After the load, wait about 5 s: AIBody looks for its IdlePoser only now (never while the scene loads). Person `AI` > Plugins: at most ONE active **AIBody Idle Movement**; if the scene was saved with more than one, the extra ones are switched off and the log says so once.
@@ -953,14 +953,14 @@ Report: an answer of the app's own AI while the bridge is on, events missing, th
 4. config.json `ai.emotion.gestures` `true`: an answer that starts with "Yes" gets a nod, one that starts with "No" a head shake (once per answer, not when the AI chose a gesture). `ai.emotion.keywords.happy` `"yay*"`: a sentence with "yaaay" shows the happy face.
 Report: Grok Bot installed without the checkbox, the AIBody setup failing because of the Grok Bot step, a nod on "No problem".
 
-## T117 – Always Allow without IdlePoser (version 62, test build)
+## T117 – Always Allow without IdlePoser (version 62, test build) – also applies to version 64 (see T120)
 1. Install v62 over v61 (remove `d0n.AIBody.61.var` and older AIBody packages from AddonPackages). Start AIBody Companion, then VaM.
 2. Load AI-Buddy (or add the plugin `d0n.AIBody.62:/Custom/Scripts/d0n/AIBody/AIBody.cslist`). When VaM asks for the plugin permission, click **Always Allow**. Expected: no crash; the plugin starts.
 3. Tab AI Character: there is no *Idle movement* section; idle poses, idle head motion and breathing work. Person `AI` > Plugins: AIBody adds no **AIBody Idle Movement** instance.
 4. If VaM still crashes, note the time and keep the crash dump (`%LOCALAPPDATA%\CrashDumps`) and VaM's `output_log.txt`: the crash is then not caused by the IdlePoser code.
 Report: a crash (with the time), an Idle movement section, an IdlePoser added by AIBody.
 
-## T118 – Idle movement optional, off by default (version 63)
+## T118 – Idle movement optional, off by default (version 63) – obsolete since version 64 (idle movement removed)
 1. Install v63 over v62 (remove older `d0n.AIBody.*.var` files). Start AIBody Companion, then VaM. Load AI-Buddy; when VaM asks for the plugin permission, click **Always Allow**. Expected: no crash.
 2. Tab AI Character > *Idle movement*: the toggle **Idle movement** is **off**. The left field says it is off and optional. Person `AI` > Plugins: AIBody adds no **AIBody Idle Movement** instance; the log has no "Idle movement:" line.
 3. `config.json` > `body`: `idle_movement` is `false`, `idle_movement_opt_in` is `true` (after the plugin saved once). An older file with `"idle_movement": true` and without `idle_movement_opt_in` leaves the toggle off.
@@ -975,6 +975,14 @@ Report: a crash (with the time, and whether Idle movement was on), the toggle on
 4. Switch the toggle off and repeat two pose commands: the poses land where their own offsets take them (the v62 behaviour). Switch it on again.
 5. Dollmaster montages (tab Dollmaster, if used) are not re-centred: the two people keep their arrangement.
 Report: a pose whose limbs look different from the file, a body that drifts away from the control point, a jump when the idle movement starts.
+
+## T120 – Always Allow and scene load without IdlePoser (version 64)
+1. Install v64 over v63 (remove `d0n.AIBody.63.var` and older AIBody packages from AddonPackages). Start AIBody Companion, then VaM.
+2. Load AI-Buddy (or add the plugin `d0n.AIBody.64:/Custom/Scripts/d0n/AIBody/AIBody.cslist`). When VaM asks for the plugin permission, click **Always Allow**. Expected: no crash; the plugin starts.
+3. Tab AI Character: there is no *Idle movement* section; idle poses, idle head motion, breathing and **Center body on control point** (T119) work. Person `AI` > Plugins: AIBody adds no IdlePoser instance.
+4. A `config.json` that still has `body.idle_movement`, `body.idle_movement_opt_in` or `body.idle_movement_liveliness` (written by v60-v63) loads without an error; the keys are ignored.
+5. If VaM still crashes, note the time and keep the crash dump (`%LOCALAPPDATA%\CrashDumps`) and VaM's `output_log.txt`: the crash is then not caused by the IdlePoser code (compare with v62, T117).
+Report: a crash (with the time), an Idle movement section, an IdlePoser added by AIBody, a config.json error about the old keys.
 
 ## T107 – One idle pose interval (version 59)
 1. Install v59, start AIBody Companion, then VaM; load AI-Buddy. Tab AI Character > Idle poses: there is ONE slider **Idle pose interval (s)** (default 165), no min / max wait sliders.

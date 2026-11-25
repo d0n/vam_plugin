@@ -418,6 +418,10 @@ New in the plugin (`GazeController.cs`), all with evidence E12 / E28 (see the ta
 - No `foreach` over Dictionary `.Keys`/`.Values`, no LINQ, no file or network access added. A gaze exception only
   stops the gaze (`_gazeBroken`), not the body.
 
+## Version 64 (25.11.2026): idle movement removed
+
+- The plugin no longer uses the IdlePoser calls of version 60-63 (E41-E45: `MVRPluginManager.CreatePlugin`, `pluginURLJSON`, `LateRestoreFromJSON`, the plugin `enabled` / `pluginLabel` storables, `FreeControllerV3.isGrabbing`, `SuperController.isLoading`); their stubs are removed from `tools/stubs/VaMStubs.cs` again (back to version 59), so the compile check fails if any of them comes back. Version 63's root-position reset (below) is unchanged.
+
 ## Version 63 (25.11.2026): root-position reset on pose load, idle movement optional
 
 - No new VaM API and no new stub. `BodyMover.CenterOnControl` (PoseController.cs) uses exactly what `BodyMover.Relocate` already uses: `Atom.mainController` and `Atom.freeControllers` (E12, E28), `FreeControllerV3.transform` position read / set (E6), `Quaternion.Inverse` and `Quaternion * Vector3` (E12), plus `GetStorableByID("hipControl") as FreeControllerV3` (E1 / E6 pattern; `hipControl` by that id in Dollmaster's ThrustController / SFXController, E39; and in the idle movement's controller list, E43). The math is pure C# (`RootReset.cs`).

@@ -711,7 +711,7 @@ namespace AIBody
                 + "over it, the pose kept (Center body on control point)");
         }
 
-        /// <summary>Version 63: re-centre now, outside a pose change (the idle movement does it before it captures her pose).
+        /// <summary>Version 63: re-centre now, outside a pose change (unused since v64).
         /// Returns the flat distance moved in metres (0 = off or already centred).</summary>
         public float CenterNow()
         {

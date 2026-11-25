@@ -46,21 +46,6 @@ namespace AIBody
         private float _hold;
         public bool Holding { get { return _hold > 0f; } }
 
-        /// <summary>Version 60: true while the idle movement (IdlePoser on the AI character, IdleMovement.cs) drives the chest; the
-        /// chest weight shift and chest breath of this class stop meanwhile (one writer per controller), the head goes on.</summary>
-        public bool ChestSuspended
-        {
-            get { return _chestSuspended; }
-            set
-            {
-                if (value == _chestSuspended) return;
-                if (value && _chest != null) _chest.transform.rotation = _chest.transform.rotation * Quaternion.Inverse(_lastChestOffset);
-                _lastChestOffset = Quaternion.identity;
-                _chestSuspended = value;
-            }
-        }
-        private bool _chestSuspended;
-
         /// <summary>0..1 overall amount of idle sway.</summary>
         public float Intensity = 0.5f;
 
@@ -171,7 +156,7 @@ namespace AIBody
             }
 
             _lastOffset = ApplyOffset(_head, _lastOffset, Quaternion.Euler(pitch, yaw, roll));
-            if (_chest != null && !_chestSuspended) _lastChestOffset = ApplyOffset(_chest, _lastChestOffset, Quaternion.Euler(chestPitch, chestYaw, chestRoll));
+            if (_chest != null) _lastChestOffset = ApplyOffset(_chest, _lastChestOffset, Quaternion.Euler(chestPitch, chestYaw, chestRoll));
             return finished;
         }
 

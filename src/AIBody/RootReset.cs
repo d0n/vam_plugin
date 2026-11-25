@@ -39,7 +39,7 @@ namespace AIBody
         }
 
         /// <summary>Which pose changes are re-centred: every pose AIBody applies (pose commands, Apply Pose, idle poses, the
-        /// AI's pose tool) and the start of the idle movement - not a Dollmaster montage (it places two people relative to
+        /// AI's pose tool) - not a Dollmaster montage (it places two people relative to
         /// each other; re-centring one would break the arrangement) and nothing while the toggle is off.</summary>
         public static bool Applies(bool enabled, bool montage)
         {
