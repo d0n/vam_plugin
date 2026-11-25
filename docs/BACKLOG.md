@@ -159,7 +159,9 @@ The three lists are separate: **Done** (in the code, with version), **Won't work
 
 ## Installer (Setup.exe)
 - **Optional: also install Grok Bot and Cursor, preconfigured** (Don, 25.11.2026, open, **planned for version 61**) – the installer offers, as an opt-in step, to install Grok Bot and Cursor as well and to preconfigure them for AIBody.
-  - Includes a setup choice for the bot that the plugin needs to run: **run it locally** or **connect it to an API**.
+  - The installer shows a checkbox/option: **install Grok Bot locally** or **use only Grok's cloud/web resources**.
+  - If local is selected, the installer also installs the prerequisites needed for local operation.
+  - Auto-configuration of the local bot is the ideal case, but only if it is feasible without excessive configuration overhead. If it turns out too complex, that part can be dropped or simplified; Don wants to discuss the variants first.
   - Details (which settings get preconfigured, how the API connection is entered) still to be specified with Don.
 
 ## Removed menu entries (version 15) and their original purpose
