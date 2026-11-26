@@ -1,6 +1,6 @@
 """Version 67 (26.11.2026, on top of v66): v66 did not load on Don's PC because VaM had plugins of d0n.AIBody.66 set to "always
-denied" (VaM log + AddonPackagesUserPrefs); the companion now warns about it (read-only). Reload Plugin keeps the plugin's
-settings (ReloadState.cs, pure C#, run in a dotnet harness). Version 67 everywhere; the plugin passes the VaM-limits compile check."""
+denied" (VaM log + AddonPackagesUserPrefs); the companion now warns about it (read-only). Reload Plugin keeping the plugin's
+settings is NOT in v67 (cause not confirmed). Version 67 everywhere; the plugin passes the VaM-limits compile check."""
 from __future__ import annotations
 
 import json
@@ -44,12 +44,11 @@ class VersionTests(TestCase):
     def test_release_notes(self):
         notes = (ROOT / "docs" / "RELEASE_NOTES_NEXT.md").read_text(encoding="utf-8")
         for part in ("**AIBody v67**", "d0n.AIBody.67.var", "always been denied plugin loading", "User Prefs",
-                     "Reload Plugin keeps the Activate toggle", "T125"):
+                     "Not in this release", "T125"):
             self.assertIn(part, notes)
         self.assertNotIn("Le" + "on", notes)
         self.assertIn("## T125 ", (ROOT / "docs" / "TEST_PROTOCOL.md").read_text(encoding="utf-8"))
         self.assertIn("(version 67, release; on top of v66)", (ROOT / "docs" / "SPEC.md").read_text(encoding="utf-8"))
-        self.assertIn("**Done in version 67:**", (ROOT / "docs" / "BACKLOG.md").read_text(encoding="utf-8"))
 
 
 class CslistTests(TestCase):
@@ -63,7 +62,6 @@ class CslistTests(TestCase):
         on_disk = sorted(p.name for p in SRC.glob("*.cs"))
         self.assertEqual(sorted(listed), on_disk)
         self.assertEqual(listed[-1], "AIBody.cs")
-        self.assertIn("ReloadState.cs", listed)
 
     def test_no_csharp_7_constructs_in_the_plugin(self):
         """VaM compiles C# 6 (tools/check_plugin.py also builds with LangVersion 6); a cheap text guard on top."""
@@ -125,72 +123,3 @@ class PackagePrefsTests(TestCase):
         self.assertNotIn("open(", code)
         cli = (ROOT / "companion" / "aibody_companion" / "cli.py").read_text(encoding="utf-8")
         self.assertIn("package_prefs.warning(cfg.vam_root)", cli)
-
-
-class ReloadWiringTests(TestCase):
-    def test_saved_on_destroy_read_in_init_applied_before_the_config_seeding(self):
-        plugin = src("AIBody.cs")
-        self.assertLess(method_body(plugin, "private void OnDestroy()").index("SaveReloadState();"),
-                        method_body(plugin, "private void OnDestroy()").index("OnDisable();"))
-        save = method_body(plugin, "private void SaveReloadState()")
-        self.assertIn("GetJSON(true, true, true)", save)
-        self.assertIn("ReloadState.Stamp(DateTime.UtcNow)", save)
-        self.assertIn('root["atom"] = containingAtom.uid;', save)
-        read = method_body(plugin, "private void ReadReloadState()")
-        self.assertIn("FileManagerSecure.DeleteFile(ReloadStatePath);", read)
-        self.assertIn("ReloadState.Fresh(", read)
-        self.assertIn("ReadReloadState();", method_body(plugin, "public override void Init()"))
-        settings = method_body(plugin, "private void UpdateSettings(float dt)")
-        self.assertLess(settings.index("ApplyReloadState();"), settings.index('_link.LoadSettingsFile()'))
-        apply = method_body(plugin, "private void ApplyReloadState()")
-        self.assertIn("_sceneRestored", apply, "a scene loaded into the new plugin wins")
-        self.assertIn("RestoreFromJSON(state);", apply)
-
-    def test_token_is_never_in_the_state(self):
-        link = src("AppLink.cs")
-        self.assertIn("// Not registered (version 31): same as the first-run note's field; the token lives in config.json only.", link)
-        self.assertNotIn("RegisterString(_xaiTokenJson", link)
-
-
-@unittest.skipUnless(Path(v35.DOTNET).exists(), "dotnet SDK not installed")
-class ReloadStateHarnessTests(TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.tmp = tempfile.TemporaryDirectory()
-        folder = Path(cls.tmp.name)
-        shutil.copy(HARNESS, folder / "Program.cs")
-        (folder / "Harness.csproj").write_text(f"""<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup><TargetFramework>net8.0</TargetFramework><OutputType>Exe</OutputType><Nullable>disable</Nullable>
-  <EnableDefaultCompileItems>false</EnableDefaultCompileItems></PropertyGroup>
-  <ItemGroup><Compile Include="Program.cs" /><Compile Include="{SRC / 'ReloadState.cs'}" /></ItemGroup>
-</Project>""", encoding="utf-8")
-        result = subprocess.run([v35.DOTNET, "build", "-nologo", "-v", "q", "-o", str(folder / "out")], cwd=folder, capture_output=True,
-                                text=True, timeout=240, env={**os.environ, "DOTNET_CLI_TELEMETRY_OPTOUT": "1"})
-        if result.returncode != 0:
-            raise AssertionError("harness build failed:\n" + result.stdout + result.stderr)
-        cls.exe = folder / "out" / "Harness.dll"
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.tmp.cleanup()
-
-    def run_cmds(self, *cmds):
-        proc = subprocess.run([v35.DOTNET, str(self.exe)], input="".join(c + "\n" for c in cmds), capture_output=True, text=True,
-                              encoding="utf-8", timeout=60)
-        self.assertEqual(proc.returncode, 0, proc.stderr)
-        return proc.stdout.splitlines()
-
-    def test_constants(self):
-        self.assertEqual(self.run_cmds("const"), ["reload_state.json\t30"])
-
-    def test_fresh_window(self):
-        stamp = self.run_cmds("stamp\t2026-11-26T20:00:00Z")[0]
-        out = self.run_cmds(*("fresh\t" + stamp + "\t" + now + "\t30" for now in
-                              ("2026-11-26T20:00:00Z", "2026-11-26T20:00:29Z", "2026-11-26T20:00:31Z", "2026-11-26T19:59:59Z")))
-        self.assertEqual(out, ["1", "1", "0", "0"], "0-30 s fresh; older or from the future is not")
-        self.assertEqual(self.run_cmds("fresh\tgarbage\t2026-11-26T20:00:00Z\t30", "fresh\t\t2026-11-26T20:00:00Z\t30"), ["0", "0"])
-
-    def test_applies_only_for_a_plain_reload_on_the_same_atom(self):
-        out = self.run_cmds("applies\t1\tClient\tClient\t0", "applies\t1\tClient\tClient\t1", "applies\t0\tClient\tClient\t0",
-                            "applies\t1\tClient\tAI\t0", "applies\t1\t\t\t0")
-        self.assertEqual(out, ["1", "0", "0", "0", "0"])

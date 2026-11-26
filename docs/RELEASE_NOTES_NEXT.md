@@ -8,7 +8,8 @@ This text is the GitHub release v67.
 
 **Fixed**
 - **The plugin did not load (yellow in the plugin list, no menu).** VaM's log said "Plugin scripts from packages d0n.AIBody.66 were not loaded because they are in packages that have always been denied plugin loading": plugins of that package were set to *always denied* in VaM. That choice is kept by VaM per package version, so v67 is asked about again. If it happens again: VaM > Package Manager > the package > tab **User Prefs** > allow plugins. AIBody Companion now says so in its console at start when an installed AIBody package has plugins denied.
-- **Reload Plugin keeps the Activate toggle.** VaM's *Reload Plugin* used to set scene-only values (the Dollmaster **Activate** toggle and Dollmaster's settings) back to their defaults. The plugin now keeps them across a reload (saved when it is unloaded, read back once within 30 s on the same character). Loading a scene or a new scene is not affected: the scene's own values win.
+
+**Not in this release:** after VaM's *Reload Plugin* the **Active** toggle (tab Voice, above the XAI API Token) was reported to come back unchecked. The code reads it from `config.json` (`connection.active`) after every load; the cause is being checked and will be fixed in a later version.
 
 Everything else is unchanged from v66.
 
