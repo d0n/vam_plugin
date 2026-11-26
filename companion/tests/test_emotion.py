@@ -60,12 +60,35 @@ class DirectorTests(unittest.TestCase):
         self.d.note_sent("happy")
         self.assertIsNone(self.d.for_speech("Das freut mich noch mehr!", HAVE), "same face: nothing to send")
         self.assertIsNone(self.d.for_speech("Es ist Dienstag.", HAVE), "no emotion in the words: no change")
-        self.assertEqual(self.d.for_speech("Leider nicht.", HAVE)[0], "sad")
+        self.assertIsNone(self.d.for_speech("Hmm, vielleicht.", HAVE), "version 66: one fallback expression per answer")
         self.d.begin_answer()
         self.d.note_ai_expression()
-        self.assertIsNone(self.d.for_speech("Leider nicht.", HAVE), "the AI chose a face in this answer")
+        self.assertIsNone(self.d.for_speech("Hmm, vielleicht.", HAVE), "the AI chose a face in this answer")
         self.d.begin_answer()
-        self.assertEqual(self.d.for_speech("Leider nicht.", HAVE)[0], "sad", "a new answer starts without the AI's choice")
+        self.assertIsNone(self.d.for_speech("Hmm, vielleicht.", HAVE), "version 66: still inside the minimum gap")
+        self.now[0] += 4.1
+        self.assertEqual(self.d.for_speech("Hmm, vielleicht.", HAVE)[0], "thinking", "a new answer after the gap")
+
+    def test_version66_fallback_is_one_per_answer_with_a_gap_and_never_sad_or_angry(self):
+        have = HAVE + ["angry", "surprised"]
+        self.d.begin_answer()
+        self.assertIsNone(self.d.for_speech("Leider habe ich das vergessen.", have), "sad is never a fallback")
+        self.assertIsNone(self.d.for_speech("Das ist eine Frechheit, ich hasse das!", have), "angry is never a fallback")
+        first = self.d.for_speech("Hmm, vielleicht.", have)
+        self.assertEqual(first[0], "thinking")
+        self.d.note_sent("thinking")
+        self.assertIsNone(self.d.for_speech("Das freut mich!", have), "a second fallback in the same answer")
+        self.now[0] += 1.0
+        self.d.begin_answer()
+        self.assertIsNone(self.d.for_speech("Das freut mich!", have), "a new answer, but within the 4 s gap")
+        self.now[0] += 3.2
+        self.assertEqual(self.d.for_speech("Das freut mich!", have)[0], "happy", "after the gap")
+        self.assertEqual(emotion.EmotionDirector.FALLBACK_MIN_GAP_S, 4.0)
+        self.assertEqual(emotion.EmotionDirector.FALLBACK_NEVER, ("sad", "angry"))
+        # the AI itself may still choose sad / angry: the director does not filter that (note_ai_expression only suppresses)
+        self.d.begin_answer()
+        self.d.note_ai_expression()
+        self.assertIsNone(self.d.for_speech("Das freut mich!", have))
 
     def test_fallback_can_be_switched_off(self):
         self.d.configure({"fallback": False})
@@ -157,9 +180,9 @@ class EmotionFlowTests(RealtimeSim):
         self.chain([text_stream(["Haha, das freut mich sehr! ", "Leider muss ich bald gehen."], "r1")])
         self.ask()
         names = [e[0] for e in self.expressions()]
-        self.assertEqual(names, ["happy", "sad"])
+        self.assertEqual(names, ["happy"], "version 66: one fallback expression per answer, never sad")
         order = [m["type"] for m in self.plugin.received if m["type"] in ("expression", "speak")]
-        self.assertEqual(order, ["expression", "speak", "expression", "speak"], "the face first, then the voice")
+        self.assertEqual(order, ["expression", "speak", "speak"], "the face first, then the voice")
 
     def test_the_ais_own_expression_wins(self):
         self.chain([text_stream(["<<sad>> Haha, das freut mich sehr!"], "r1")])

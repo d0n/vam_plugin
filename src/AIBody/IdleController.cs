@@ -37,8 +37,14 @@ namespace AIBody
         private float _shiftTarget;
         private float _shift;
         private float _shiftIn;
-        private const float ShiftMin = 5f;
-        private const float ShiftMax = 11f;
+        // version 66: twice as fast (2.5 - 5.5 s; 5 - 11 s up to v65)
+        private const float ShiftMin = 2.5f;
+        private const float ShiftMax = 5.5f;
+        /// <summary>Version 66: the sway and weight-shift noise runs this much faster than up to v65 (roughly double the tempo).</summary>
+        public const float TempoFactor = 2f;
+        /// <summary>Version 66: how strongly each breath lifts the head / chest (up to v65 1.5 and 2 degrees per unit of depth).</summary>
+        public const float BreathHeadDegrees = 3f;
+        public const float BreathChestDegrees = 4f;
 
         public bool Enabled = true;
 
@@ -49,11 +55,11 @@ namespace AIBody
         /// <summary>0..1 overall amount of idle sway.</summary>
         public float Intensity = 0.5f;
 
-        /// <summary>Maximum sway angle in degrees at intensity 1.</summary>
-        public float MaxAngle = 4f;
+        /// <summary>Maximum sway angle in degrees at intensity 1 (version 66: 8, up to v65 4).</summary>
+        public float MaxAngle = 8f;
 
-        /// <summary>Maximum weight-shift lean of the chest in degrees at intensity 1.</summary>
-        public float MaxChestAngle = 2.5f;
+        /// <summary>Maximum weight-shift lean of the chest in degrees at intensity 1 (version 66: 5, up to v65 2.5).</summary>
+        public float MaxChestAngle = 5f;
 
         /// <summary>Extra multiplier while the character is speaking (people move more when talking).</summary>
         public float SpeakingBoost = 1.6f;
@@ -117,12 +123,12 @@ namespace AIBody
 
             // --- idle sway (degrees) ---
             float amount = Enabled ? Intensity * MaxAngle * (speaking ? SpeakingBoost : 1f) : 0f;
-            float pitch = (Mathf.PerlinNoise(_seed, _time * 0.15f) - 0.5f) * 2f * amount;
-            float yaw = (Mathf.PerlinNoise(_seed + 10f, _time * 0.11f) - 0.5f) * 2f * amount;
-            float roll = (Mathf.PerlinNoise(_seed + 20f, _time * 0.09f) - 0.5f) * amount;
+            float pitch = (Mathf.PerlinNoise(_seed, _time * 0.15f * TempoFactor) - 0.5f) * 2f * amount;
+            float yaw = (Mathf.PerlinNoise(_seed + 10f, _time * 0.11f * TempoFactor) - 0.5f) * 2f * amount;
+            float roll = (Mathf.PerlinNoise(_seed + 20f, _time * 0.09f * TempoFactor) - 0.5f) * amount;
 
             // Breathing makes the head rise a tiny bit; express it as a small pitch.
-            pitch -= breathCycle * breathDepth * 1.5f;
+            pitch -= breathCycle * breathDepth * BreathHeadDegrees;
 
             // --- weight shift (chest), the head leans back against it a little ---
             _shiftIn -= deltaTime;
@@ -131,11 +137,11 @@ namespace AIBody
                 _shiftIn = UnityEngine.Random.Range(ShiftMin, ShiftMax);
                 _shiftTarget = _shiftTarget > 0f ? -UnityEngine.Random.Range(0.5f, 1f) : UnityEngine.Random.Range(0.5f, 1f);
             }
-            _shift += ((Enabled ? _shiftTarget : 0f) - _shift) * Mathf.Clamp01(deltaTime * 0.6f);
+            _shift += ((Enabled ? _shiftTarget : 0f) - _shift) * Mathf.Clamp01(deltaTime * 0.6f * TempoFactor);
             float chestAmount = Enabled ? Intensity * MaxChestAngle : 0f;
-            float chestRoll = _shift * chestAmount + (Mathf.PerlinNoise(_seed + 30f, _time * 0.07f) - 0.5f) * chestAmount * 0.5f;
-            float chestYaw = (Mathf.PerlinNoise(_seed + 40f, _time * 0.05f) - 0.5f) * chestAmount;
-            float chestPitch = -breathCycle * breathDepth * 2f;   // the chest rises with each breath
+            float chestRoll = _shift * chestAmount + (Mathf.PerlinNoise(_seed + 30f, _time * 0.07f * TempoFactor) - 0.5f) * chestAmount * 0.5f;
+            float chestYaw = (Mathf.PerlinNoise(_seed + 40f, _time * 0.05f * TempoFactor) - 0.5f) * chestAmount;
+            float chestPitch = -breathCycle * breathDepth * BreathChestDegrees;   // the chest rises with each breath
             roll -= chestRoll * 0.5f;
 
             // --- procedural gestures ---

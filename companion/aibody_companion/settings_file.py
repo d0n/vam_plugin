@@ -122,10 +122,12 @@ DEFAULTS: dict[str, dict[str, Any]] = {
         # Custom/Atom/Person/Pose/AIBody (+ gestures.json poses, pose-command poses and idle_pose_default); "all" = every
         # pose file of the library (the v51-v53 pool). An old idle_poses_all_files (true -> "all", false -> "aibody") is migrated.
         "idle_pose_pool": "aibody",
-        # version 59: one interval, each wait = interval +/- 25 % at random (default 165 s = the mean of v51's 30 / 300 s);
+        # version 59: one interval, each wait = interval +/- 25 % at random (default 30 s since version 66, 165 s in v59-v65; existing saved values are kept);
         # a config.json with the old idle_pose_min_s / idle_pose_max_s gets their mean (migrate_idle_interval)
-        "idle_pose_interval_s": 165.0,
-        "idle_pose_default": "Stand Up",  # a pose name of the character; not found = no return pose
+        "idle_pose_interval_s": 30.0,
+        # version 66: "" = no pose named: the first pose of the idle pool is used (up to v65 "Stand Up", which many characters lack);
+        # a pose name the character does not have also falls back to the first pose of the pool
+        "idle_pose_default": "",
         # version 63: root-position reset on pose load - the pose is kept, the hips go back over the control point
         "pose_root_reset": True,
     },

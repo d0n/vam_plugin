@@ -81,7 +81,7 @@ class MenuTests(unittest.TestCase):
         self.assertNotIn("ApplyPose", chosen)
         self.assertIn("press Apply Pose", chosen)
         self.assertIn("ApplyPoseCommand(command);", method_body(self.body, "private void ApplyPoseCommandNow()"))
-        self.assertIn('(string v) => { if (_idlePoses != null) _idlePoses.DefaultPose = v; _poolDirty = true; }', self.body,
+        self.assertIn('(string v) => { if (_idlePoses != null) _idlePoses.DefaultPose = IdlePoseScheduler.NameOf(v); _poolDirty = true; }', self.body,
                       "Idle default pose: choosing only stores it (the idle poses use it)")
         self.assertIn("_poses.ApplyPose(pose)", method_body(self.body, "private void ApplyIdleDefaultPose()"))
 

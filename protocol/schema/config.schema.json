@@ -455,13 +455,13 @@
               "pattern": "^\\s*-?[0-9]+(\\.[0-9]+)?([eE][-+]?[0-9]+)?\\s*$"
             }
           ],
-          "default": 165.0,
-          "description": "Slider 'Idle pose interval (s)' (version 59): quiet time before an idle pose change; each wait is this value +/- 25 % at random (5-18000, default 165; the minimum was 30 before version 66). Old idle_pose_min_s / idle_pose_max_s are migrated to their mean"
+          "default": 30.0,
+          "description": "Slider 'Idle pose interval (s)' (version 59): quiet time before an idle pose change; each wait is this value +/- 25 % at random (5-18000, default 30; the minimum was 30 before version 66). Old idle_pose_min_s / idle_pose_max_s are migrated to their mean"
         },
         "idle_pose_default": {
           "type": "string",
-          "default": "Stand Up",
-          "description": "Menu 'Idle default pose': the pose the character returns to between idle poses (a pose name of the character; not found = no return pose)"
+          "default": "",
+          "description": "Menu 'Idle default pose': the pose the character returns to between idle poses (a pose name of the character; empty = the first pose of the idle pool, version 66; a name the character does not have also falls back to the first pose of the pool)"
         },
         "pose_root_reset": {
           "anyOf": [

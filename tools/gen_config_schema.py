@@ -71,13 +71,14 @@ DESCRIPTIONS = {
                                 "idle_pose_default; all = 'All pose files': every pose file of the library plus those. An old "
                                 "idle_poses_all_files is migrated (true = all, false = aibody); this key wins when both exist",
     ("body", "idle_pose_interval_s"): "Slider 'Idle pose interval (s)' (version 59): quiet time before an idle pose change; "
-                                      "each wait is this value +/- 25 % at random (5-18000, default 165; the minimum was 30 before version 66). Old "
+                                      "each wait is this value +/- 25 % at random (5-18000, default 30; the minimum was 30 before version 66). Old "
                                       "idle_pose_min_s / idle_pose_max_s are migrated to their mean",
     ("body", "pose_root_reset"): "Toggle 'Center body on control point' (version 63, default on): when a pose is applied "
                                  "the pose is kept, but the hips are put back over the AI character's control point "
                                  "(flat distance only, the height stays); not for Dollmaster montages",
     ("body", "idle_pose_default"): "Menu 'Idle default pose': the pose the character returns to between idle poses "
-                                   "(a pose name of the character; not found = no return pose)",
+                                   "(a pose name of the character; empty = the first pose of the idle pool, version 66; a name the character does not "
+                                   "have also falls back to the first pose of the pool)",
     ("remote",): "Remote control (version 31, file only, no tab; the plugin keeps this section unchanged): a local web page / "
                  "HTTP API and an optional OSC listener of the companion app, off by default, bound to 127.0.0.1 only. "
                  "Applies when the app starts. See docs/REMOTE.md",

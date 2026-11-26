@@ -21,8 +21,12 @@ namespace AIBody
         /// <summary>Breaths per minute at rest.</summary>
         public float Rate = 14f;
 
-        /// <summary>Peak morph value added at full inhale.</summary>
+        /// <summary>Peak morph value added at full inhale, before VisibilityGain.</summary>
         public float Depth = 0.35f;
+
+        /// <summary>Version 66 (breathing was not visible): the morph swing is this many times the Depth setting (the setting stays a
+        /// scaler; the chest and head part of IdleController is stronger by the same factor).</summary>
+        public const float VisibilityGain = 2f;
 
         /// <summary>Depth multiplier while speaking (speech takes over the breathing rhythm).</summary>
         public float SpeakingDepthFactor = 0.3f;
@@ -82,7 +86,7 @@ namespace AIBody
             // Inhale is slightly faster than exhale: shape the sine a little.
             float s = 0.5f - 0.5f * Mathf.Cos(_phase * Mathf.PI * 2f);
             s = Mathf.Pow(s, 1.3f);
-            _morph.morphValue = _baseValue + s * _currentDepth;
+            _morph.morphValue = _baseValue + s * _currentDepth * VisibilityGain;
         }
 
         /// <summary>Current breathing cycle position 0..1 (0 = exhaled). Used for the head bob.</summary>

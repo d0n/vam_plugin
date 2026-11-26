@@ -84,7 +84,7 @@ class OneEntryChooserTests(TestCase):
     def test_saved_zero_is_not_added_and_falls_back(self):
         body = src("Body.cs")
         self.assertIn("UiChooser.ApplyValue(chooser, value);", method_body(body, "private static void SetChooserValue(JSONStorableStringChooser chooser, string value)"))
-        self.assertIn("UiChooser.Sanitize(_idlePoseDefaultJson, IdlePoseScheduler.DefaultIdlePose);", body)
+        self.assertIn("UiChooser.Sanitize(_idlePoseDefaultJson, IdlePoseScheduler.AutoPose);", body)
         self.assertIn("UiChooser.DropPlaceholders(commands);", body)
         link = src("AppLink.cs")
         self.assertIn("UiChooser.ApplyValue(_sttJson,", link)

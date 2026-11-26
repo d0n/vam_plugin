@@ -41,9 +41,11 @@ class ExpressionTests(unittest.TestCase):
         self.assertIn('GetBoolJSONParam("enabled")', pause)
         self.assertIn("_autoWasOn = enabled.val;", pause)
         self.assertIn("if (_autoWasOn) { enabled.val = true;", pause, "put back only if it was on")
-        for sig in ("public void Reset(float blendTime)", "public void RestoreNow()"):
-            self.assertIn("SetShowing(false);", method_body(self.ec, sig), sig)
-        self.assertIn("SetShowing(preset.Count > missing.Count);", self.ec)
+        self.assertIn("SetShowing(false);", method_body(self.ec, "public void RestoreNow()"))
+        # version 66: Reset ends the showing only after the fade back has finished (VaM's Auto Expressions stay paused until then)
+        self.assertIn("EndShowing();", method_body(self.ec, "public void Reset(float blendTime)"))
+        self.assertIn("_releasePending && _layer.ActiveCount == 0", method_body(self.ec, "public void Update(float deltaTime)"))
+        self.assertIn("if (preset.Count > missing.Count) SetShowing(true);", self.ec)
 
 
 class ButtonRegroupingTests(unittest.TestCase):

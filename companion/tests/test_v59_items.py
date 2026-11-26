@@ -37,7 +37,7 @@ def entries(names):
 class IdleIntervalTests(unittest.TestCase):
     def test_scheduler_has_one_interval_with_25_percent_jitter(self):
         text = src("IdlePoses.cs")
-        for part in ("public const float DefaultIntervalSeconds = 165f;", "public const float Jitter = 0.25f;",
+        for part in ("public const float DefaultIntervalSeconds = 30f;", "public const float Jitter = 0.25f;",
                      "public float IntervalSeconds = DefaultIntervalSeconds;", "(1f - Jitter)", "(1f + Jitter)",
                      "public static float MigrateInterval(float minSeconds, float maxSeconds)"):
             self.assertIn(part, text, part)
@@ -69,7 +69,7 @@ class IdleIntervalTests(unittest.TestCase):
                             ({"idle_pose_min_s": 5, "idle_pose_max_s": 10}, 7.5),    # version 66: the floor is 5 s, so the mean 7.5 stays
                             ({"idle_pose_min_s": 1, "idle_pose_max_s": 2}, 5.0),     # clamped to the 5 s floor (30 s up to v65)
                             ({"idle_pose_interval_s": 77, "idle_pose_min_s": 1000, "idle_pose_max_s": 2000}, 77.0),
-                            ({}, 165.0)):
+                            ({}, 30.0)):   # version 66: the default is 30 s again
             result, _ = settings_file.validate({"body": dict(given)})
             self.assertEqual(result["body"]["idle_pose_interval_s"], want, given)
             self.assertNotIn("idle_pose_min_s", result["body"])

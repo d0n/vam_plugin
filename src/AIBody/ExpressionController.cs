@@ -22,6 +22,7 @@ namespace AIBody
             new Dictionary<string, Dictionary<string, float>>(StringComparer.OrdinalIgnoreCase);
         private string _current = "neutral";
         private float _holdRemaining = -1f;
+        private bool _releasePending;   // version 66: showing ends when the fade back has finished (Auto Expressions stay paused until then)
 
         public ExpressionController(MorphHelper morphs)
         {
@@ -93,7 +94,8 @@ namespace AIBody
             _presets["sad"] = Preset("Mouth Frown", 0.5f, "Brow Inner Up", 0.6f);
             _presets["angry"] = Preset("Brow Down", 0.7f, "Mouth Frown", 0.3f);
             _presets["surprised"] = Preset("Brow Outer Up Left", 0.7f, "Brow Outer Up Right", 0.7f, "Mouth Open", 0.3f);
-            _presets["thinking"] = Preset("Brow Down Left", 0.3f, "Mouth Side-Side Left", 0.2f);
+            // version 66: symmetric and mild (up to v65 one brow down and a one-sided mouth, which looked skeptical)
+            _presets["thinking"] = Preset("Brow Inner Up", 0.2f, "Brow Outer Up Left", 0.1f, "Brow Outer Up Right", 0.1f);
             // Version 27: very small "listening" face the companion app shows while the user talks (not offered to the AI).
             _presets["listening"] = Preset("Brow Inner Up", 0.18f, "Mouth Smile Simple", 0.08f);
         }
@@ -153,7 +155,8 @@ namespace AIBody
             _holdRemaining = hold > 0f ? hold : -1f;
             LastResult = (preset.Count - missing.Count) + " of " + preset.Count + " morphs found"
                 + (missing.Count > 0 ? " (missing: " + string.Join(", ", missing.ToArray()) + ")" : "");
-            SetShowing(preset.Count > missing.Count);
+            if (preset.Count > missing.Count) SetShowing(true);
+            else EndShowing();   // "neutral" (or nothing found): the others fade out first, then VaM's Auto Expressions come back
             return true;
         }
 
@@ -163,17 +166,18 @@ namespace AIBody
             List<string> missing = ApplyTargets(morphs, 1f, blendTime, releaseOthers);
             _current = "custom";
             _holdRemaining = -1f;
-            SetShowing(morphs.Count > missing.Count);
+            if (morphs.Count > missing.Count) SetShowing(true);
+            else EndShowing();
             return missing;
         }
 
         public void Reset(float blendTime)
         {
-            SetSpeedFor(1f, blendTime);
-            _layer.ReleaseAll();
+            _layer.BlendSeconds = blendTime;
+            _layer.ReleaseAll();   // back to the look the scene had (not to 0)
             _current = "neutral";
             _holdRemaining = -1f;
-            SetShowing(false);
+            EndShowing();
         }
 
         public void RestoreNow()
@@ -183,8 +187,18 @@ namespace AIBody
             SetShowing(false);
         }
 
+        /// <summary>Version 66: the expression ends. Auto Expressions are given back only when every morph has finished fading back
+        /// (Update), so VaM's own writer does not fight the fade (two writers on the face).</summary>
+        private void EndShowing()
+        {
+            if (!_showing) return;
+            if (_layer.ActiveCount == 0) { _releasePending = false; SetShowing(false); }
+            else _releasePending = true;
+        }
+
         private void SetShowing(bool on)
         {
+            if (on) _releasePending = false;
             if (on == _showing) return;
             _showing = on;
             if (OnShowingChanged != null) OnShowingChanged(on);
@@ -193,10 +207,7 @@ namespace AIBody
         private List<string> ApplyTargets(Dictionary<string, float> targets, float intensity, float blendTime, bool releaseOthers)
         {
             List<string> missing = new List<string>();
-            float maxDelta = 0f;
-            foreach (KeyValuePair<string, float> kv in targets) maxDelta = Mathf.Max(maxDelta, Mathf.Abs(kv.Value * intensity));
-            SetSpeedFor(Mathf.Max(maxDelta, 0.1f), blendTime);
-
+            _layer.BlendSeconds = blendTime;   // version 66: every morph gets its own speed from its own distance (MorphBlendLayer)
             if (releaseOthers) _layer.ReleaseAllExcept(targets.Keys);
             foreach (KeyValuePair<string, float> kv in targets)
             {
@@ -209,11 +220,6 @@ namespace AIBody
             return missing;
         }
 
-        private void SetSpeedFor(float distance, float blendTime)
-        {
-            _layer.Speed = blendTime <= 0.01f ? 1000f : distance / blendTime;
-        }
-
         public void Update(float deltaTime)
         {
             if (_holdRemaining > 0f)
@@ -222,6 +228,7 @@ namespace AIBody
                 if (_holdRemaining <= 0f) Reset(0.5f);
             }
             _layer.Update(deltaTime);
+            if (_releasePending && _layer.ActiveCount == 0) { _releasePending = false; SetShowing(false); }
         }
     }
 }

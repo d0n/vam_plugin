@@ -18,6 +18,10 @@ Version 61 (backlog "own keywords", "gestures matching what is said"):
     "sure", "ja", "genau", ...) gets a nod, a clear no ("no", "nope", "nein", ...) a head shake - once per answer, only
     when the AI chose no gesture itself, and only gestures the plugin lists.
 
+Version 66 (the face flickered sad -> angry -> thinking within one second in a single answer): the fallback sends AT MOST ONE
+expression per answer, at least FALLBACK_MIN_GAP_S seconds after the last fallback expression, and never "sad" or "angry"
+(a keyword match is a weak signal; a wrong frown looks worse than none - the AI can still choose them itself).
+
 Settings: config.json ai.emotion {fallback, fade, fade_after_s, fade_seconds, listening, gestures, keywords}.
 """
 from __future__ import annotations
@@ -198,6 +202,8 @@ class EmotionDirector:
 
     FALLBACK_INTENSITY = 0.85  # a little below an expression the AI chose itself (1.0)
     FALLBACK_BLEND_S = 0.5
+    FALLBACK_MIN_GAP_S = 4.0  # version 66: at least this long between two fallback expressions
+    FALLBACK_NEVER = ("sad", "angry")  # version 66: only the AI itself may choose these
     LISTENING_BLEND_S = 0.7
 
     def __init__(self, cfg: dict[str, Any], clock: Callable[[], float]):
@@ -214,6 +220,8 @@ class EmotionDirector:
         self.current = NEUTRAL  # last expression the app sent (what the face shows, as far as the app knows)
         self._answer = 0
         self._ai_answer = -1  # the answer in which the AI chose an expression
+        self._fallback_answer = -1  # version 66: the answer that already got its one fallback expression
+        self._fallback_at = float("-inf")  # version 66: when the last fallback expression was decided
         self._activity = clock()
         self._user_speaking = False
         self.configure(cfg)
@@ -256,8 +264,14 @@ class EmotionDirector:
         if self._ai_answer == self._answer:
             return None  # the AI chose its expression in this answer
         if self.fallback:
-            name = infer_expression(text, names, self._own)
+            allowed = [n for n in names if n.lower() not in self.FALLBACK_NEVER]
+            name = infer_expression(text, allowed, self._own)
             if name and name != self.current:
+                now = self._clock()
+                if self._fallback_answer == self._answer or now - self._fallback_at < self.FALLBACK_MIN_GAP_S:
+                    return None  # one fallback expression per answer, and not within FALLBACK_MIN_GAP_S of the last one
+                self._fallback_answer = self._answer
+                self._fallback_at = now
                 return name, self.FALLBACK_INTENSITY, self.FALLBACK_BLEND_S
             if name:
                 return None

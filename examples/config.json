@@ -42,8 +42,8 @@
     "breath_morph": "Breath1",
     "idle_poses": true,
     "idle_pose_pool": "aibody",
-    "idle_pose_interval_s": 165.0,
-    "idle_pose_default": "Stand Up",
+    "idle_pose_interval_s": 30.0,
+    "idle_pose_default": "",
     "pose_root_reset": true
   },
   "advanced": {

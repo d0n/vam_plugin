@@ -67,7 +67,7 @@ class RandomOfAllPosesTests(unittest.TestCase):
 class PluginWiringTests(unittest.TestCase):
     def test_scheduler_constants_and_pool(self):
         text = source("IdlePoses.cs")
-        for part in ("DefaultIntervalSeconds = 165f", "Jitter = 0.25f", "LowestSeconds = 5f", "HighestSeconds = 18000f",
+        for part in ("DefaultIntervalSeconds = 30f", "Jitter = 0.25f", "LowestSeconds = 5f", "HighestSeconds = 18000f",
                      "public List<string> Pool(", "WithoutLast(pool)", "public void NoteShown(string pose)", "PoolSize = pool.Count"):
             self.assertIn(part, text, part)
         self.assertNotIn("_inIdlePose", text, "no alternation with the default pose any more")
@@ -91,7 +91,7 @@ class PluginWiringTests(unittest.TestCase):
     def test_info_field_and_verbose_log_show_the_pool(self):
         body = source("Body.cs")
         info = method_body(body, "private string IdlePosesInfo()")
-        for part in ("sets how often the ", "_idlePoses.Pool(", "Default 165 s",
+        for part in ("sets how often the ", "_idlePoses.Pool(", "Default 30 s",
                      "range 5 to 18000 s (300 min)", "slider's value field", "body.idle_pose_interval_s", "Dollmaster",
                      "never the same one twice in a row"):
             self.assertIn(part, info, part)
@@ -106,7 +106,7 @@ class PluginWiringTests(unittest.TestCase):
 
     def test_companion_defaults_ranges_and_example(self):
         # version 59: one interval key; old min / max keys become their mean
-        self.assertEqual(settings_file.DEFAULTS["body"]["idle_pose_interval_s"], 165.0)
+        self.assertEqual(settings_file.DEFAULTS["body"]["idle_pose_interval_s"], 30.0)   # version 66 (165 s in v59-v65)
         self.assertNotIn("idle_pose_min_s", settings_file.DEFAULTS["body"])
         self.assertEqual(settings_file.RANGES[("body", "idle_pose_interval_s")], (5.0, 18000.0))
         result, _ = settings_file.validate({"body": {"idle_pose_interval_s": 17999.5}})
@@ -114,7 +114,7 @@ class PluginWiringTests(unittest.TestCase):
         result, _ = settings_file.validate({"body": {"idle_pose_min_s": 17999.5, "idle_pose_max_s": 99999}})
         self.assertEqual(result["body"]["idle_pose_interval_s"], 18000.0)
         example = json.loads((ROOT / "examples/config.json").read_text(encoding="utf-8"))
-        self.assertEqual(example["body"]["idle_pose_interval_s"], 165.0)
+        self.assertEqual(example["body"]["idle_pose_interval_s"], 30.0)
         self.assertNotIn("idle_pose_max_s", example["body"])
 
 

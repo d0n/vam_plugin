@@ -106,7 +106,9 @@ class IdlePoseSchedulerTests(unittest.TestCase):
     def test_a_user_pose_command_is_respected_for_the_cooldown(self):
         chosen = self.run_case([[1.0, False, True, "user", 1], [1.0, False, True, "", 300]])
         self.assertTrue(chosen)
-        self.assertGreaterEqual(int(chosen[0][0]), 119, "120 s cooldown after the user's pose command")
+        # version 66: no lockout after a user's pose command; the normal wait (30 s +/- 25 %) restarts from there
+        self.assertLess(int(chosen[0][0]), 119, "no 120 s cooldown any more")
+        self.assertGreaterEqual(int(chosen[0][0]), 1 + 22, "the normal wait restarts after the user's pose")
 
     def test_without_the_default_pose_it_still_changes_but_never_goes_back(self):
         names = [n for _, n in self.run_case([[1.0, False, True, "", 600]], default="Nope")]
@@ -147,7 +149,7 @@ class IdlePosePluginTests(unittest.TestCase):
             self.assertIn(part, body, part)
         self.assertIn("IdlePoses.cs", source("AIBody.cslist"))
         self.assertEqual(settings_file.RANGES[("body", "idle_pose_interval_s")], (5.0, 18000.0))   # version 51; the floor is 5 s since version 66
-        self.assertEqual(settings_file.DEFAULTS["body"]["idle_pose_default"], "Stand Up")
+        self.assertEqual(settings_file.DEFAULTS["body"]["idle_pose_default"], "")   # version 66: no character-specific name
         self.assertIs(settings_file.DEFAULTS["body"]["idle_poses"], True)
 
     def test_scheduler_is_pure_and_sandbox_safe(self):

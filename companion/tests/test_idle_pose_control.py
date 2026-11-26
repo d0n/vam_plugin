@@ -20,7 +20,7 @@ class IdlePoseControlTests(unittest.TestCase):
 
     def test_applies_the_chosen_default_pose(self):
         apply = method_body(BODY, "private void ApplyIdleDefaultPose()")
-        for part in ("IdlePoseScheduler.ResolveName(_idlePoseDefaultJson.val, _poses.PoseNames)", "_poses.ApplyPose(pose)",
+        for part in ("IdlePoseScheduler.ResolveName(wanted, _poses.PoseNames)", "_poses.ApplyPose(pose)",
                      "_idlePoses.NoteUserPose()", "<color=red>"):
             self.assertIn(part, apply)
 

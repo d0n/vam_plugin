@@ -12,10 +12,11 @@
 //     the pool has more than one (version 51; up to v50 only pose-command poses were used and every second change went
 //     back to the default pose, so with one usable command the character only switched between two poses);
 //   - never while the AI speaks or the user talks: that resets the quiet time;
-//   - a pose command of the user (spoken, typed or from the menu) is respected for CooldownSeconds first;
+//   - version 66: a pose command of the user (spoken, typed or from the menu) only restarts the normal wait (up to v65 it
+//     also blocked idle poses for a fixed 120 s, CooldownSeconds, which is gone);
 //   - Body control off = no idle poses (the AI / companion side may not move the body); Dollmaster active = paused;
 //   - version 59: the wait between two changes is IntervalSeconds +/- Jitter (25 %) at random (one slider "Idle pose
-//     interval (s)", default 165 s = the mean of the old 30 / 300 s, 30 - 18000 s); up to v58 a random wait between the
+//     interval (s)", default 30 s since version 66 (165 s in v59-v65), 5 - 18000 s); up to v58 a random wait between the
 //     sliders "Idle pose min wait (s)" and "Idle pose max wait (s)" (old values migrate to their mean, MigrateInterval).
 //
 // Pure C# (no VaM types), so tests run it outside VaM (tests/test_idle_poses.py). It only DECIDES; Body applies the
@@ -27,18 +28,31 @@ namespace AIBody
 {
     public class IdlePoseScheduler
     {
-        /// <summary>Version 59: one interval, each wait = interval +/- Jitter at random. Default = the mean of v51's 30 / 300 s.</summary>
-        public const float DefaultIntervalSeconds = 165f;
+        /// <summary>Version 59: one interval, each wait = interval +/- Jitter at random. Default 30 s since version 66.</summary>
+        public const float DefaultIntervalSeconds = 30f;   // version 66 (Don 20:40): 30 s again (165 s = the mean of the old 30 / 300 s in v59-v65)
         public const float Jitter = 0.25f;
         /// <summary>The old v51-v58 defaults (migration of saved min / max values only).</summary>
         public const float OldDefaultMinSeconds = 30f;
         public const float OldDefaultMaxSeconds = 300f;
         public const float LowestSeconds = 5f;           // version 66 (5 s to 18000 s = 300 min; version 51-65: 30 s)
         public const float HighestSeconds = 18000f;
-        public const string DefaultIdlePose = "Stand Up";
+        /// <summary>Version 66: no character-specific default name (up to v65 "Stand Up", a pose many characters do not have).</summary>
+        public const string DefaultIdlePose = "";
+        /// <summary>Version 66: the menu entry (and menu default) of "Idle default pose" that names no pose: the first pose of the
+        /// idle pool is used. config.json body.idle_pose_default is empty for it.</summary>
+        public const string AutoPose = "(first available pose)";
 
-        /// <summary>After a pose command of the user, idle poses wait at least this long.</summary>
-        public const float CooldownSeconds = 120f;
+        /// <summary>True for the menu value that names no pose (the AutoPose entry, empty).</summary>
+        public static bool IsAuto(string menuValue)
+        {
+            return string.IsNullOrEmpty(menuValue) || menuValue == AutoPose;
+        }
+
+        /// <summary>The pose name behind a menu value: "" for AutoPose / empty, else the value.</summary>
+        public static string NameOf(string menuValue)
+        {
+            return IsAuto(menuValue) ? "" : menuValue;
+        }
 
         public bool Enabled = true;
         /// <summary>Version 59: slider "Idle pose interval (s)" (LowestSeconds - HighestSeconds).</summary>
@@ -48,7 +62,6 @@ namespace AIBody
 
         private readonly Random _random;
         private float _quiet;          // seconds without speech / user activity
-        private float _cooldown;       // seconds left after a user pose command
         private float _next;           // quiet seconds needed for the next change
         private string _lastKey = "";  // the pose shown last (never picked twice in a row)
 
@@ -89,12 +102,11 @@ namespace AIBody
         }
 
         /// <summary>Seconds of quiet still needed before the next change (for the info field and tests).</summary>
-        public float SecondsLeft { get { return Math.Max(_cooldown, _next - _quiet); } }
+        public float SecondsLeft { get { return Math.Max(0f, _next - _quiet); } }
 
-        /// <summary>The user gave a pose command (or applied a pose from the menu): wait CooldownSeconds first.</summary>
+        /// <summary>The user gave a pose command (or applied a pose from the menu): restart the normal wait (version 66: no extra lockout).</summary>
         public void NoteUserPose()
         {
-            _cooldown = CooldownSeconds;
             _quiet = 0f;
             PlanNext();
         }
@@ -118,13 +130,12 @@ namespace AIBody
         /// or every pose file with the pool "All pose files"); allNames = every pose (to resolve the linked poses).</summary>
         public string Update(float dt, bool busy, bool bodyControl, PoseVocabulary vocabulary, List<string> poolNames, List<string> allNames)
         {
-            if (_cooldown > 0f) _cooldown = Math.Max(0f, _cooldown - dt);
             if (!Enabled) { _quiet = 0f; _shownSeconds = -1; Status = "off"; return null; }
             if (!bodyControl) { _quiet = 0f; _shownSeconds = -1; Status = "paused (Body control is off)"; return null; }
             if (busy) { _quiet = 0f; _shownSeconds = -1; Status = "paused while someone speaks"; return null; }
             if (_next < Lo || _next > Hi) PlanNext();   // the wait settings changed
             _quiet += dt;
-            if (_cooldown > 0f || _quiet < _next)
+            if (_quiet < _next)
             {
                 int seconds = (int)Math.Round(SecondsLeft);
                 if (Describe && seconds != _shownSeconds)   // a new string once per second, not every frame

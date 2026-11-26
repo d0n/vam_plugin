@@ -164,7 +164,7 @@ class PluginSourceTests(TestCase):
     def test_pool_still_picked_through_idle_all_files(self):
         body = src("Body.cs")
         self.assertIn("private bool IdleAllFiles { get { return _idlePoolJson != null && IdlePoolMode.IsAll(_idlePoolJson.val); } }", body)
-        self.assertEqual(body.count("IdlePoolNames(IdleAllFiles)"), 4)
+        self.assertEqual(body.count("IdlePoolNames(IdleAllFiles)"), 5)
         self.assertIn("(allFiles || IsOwnPoseFile(kv.Value))", src("PoseController.cs"))
 
     def test_legacy_toggle_stays_registered_but_hidden(self):
@@ -281,10 +281,10 @@ class IdleIntervalFloorTests(TestCase):
         sched = src("IdlePoses.cs")
         self.assertIn("public const float LowestSeconds = 5f;", sched)
         self.assertNotIn("LowestSeconds = 30f", sched)
-        self.assertIn("public const float DefaultIntervalSeconds = 165f;", sched)
+        self.assertIn("public const float DefaultIntervalSeconds = 30f;", sched)   # back to 30 s (165 s in v59-v65)
         self.assertIn("public const float HighestSeconds = 18000f;", sched)
         self.assertEqual(settings_file.RANGES[("body", "idle_pose_interval_s")], (5.0, 18000.0))
-        self.assertEqual(settings_file.DEFAULTS["body"]["idle_pose_interval_s"], 165.0)
+        self.assertEqual(settings_file.DEFAULTS["body"]["idle_pose_interval_s"], 30.0)
         schema = json.loads((ROOT / "protocol" / "schema" / "config.schema.json").read_text(encoding="utf-8"))
         node = schema["properties"]["body"]["properties"]["idle_pose_interval_s"]
         bounds = [a for a in node["anyOf"] if a.get("type") == "number"][0]
@@ -315,7 +315,8 @@ class IdleIntervalFloorTests(TestCase):
         self.assertGreater(lowest * (1 - jitter), settle)
         self.assertLessEqual(guard_max, lowest * (1 + jitter) - 1.0, "the guard is over before the longest wait is")
         self.assertIn("keeps the first capture", pose)
-        self.assertIn("public const float CooldownSeconds = 120f;", sched)
+        self.assertNotIn("CooldownSeconds", code(sched), "version 66: no lockout after a manual pose")
+        self.assertNotIn("_cooldown", code(sched))
 
     def test_idle_scheduler_waits_never_starve_or_overlap(self):
         """The quiet time restarts at every pick and with speech; the next pick is never earlier than the shortest wait."""
@@ -323,7 +324,7 @@ class IdleIntervalFloorTests(TestCase):
         update = method_body(sched, "public string Update(float dt, bool busy, bool bodyControl, PoseVocabulary vocabulary, List<string> poolNames, List<string> allNames)")
         self.assertIn("_quiet = 0f;\n            PlanNext();\n            return PickNow(", update)
         self.assertIn("if (busy) { _quiet = 0f;", update)
-        self.assertIn("if (_cooldown > 0f || _quiet < _next)", update)
+        self.assertIn("if (_quiet < _next)", update)
 
     def test_docs_and_notes_name_the_floor_and_the_jitter(self):
         notes = (ROOT / "docs" / "RELEASE_NOTES_NEXT.md").read_text(encoding="utf-8")
@@ -418,7 +419,7 @@ class ExpressionGestureMenuRemovedTests(TestCase):
 
     def test_docs_and_notes(self):
         notes = (ROOT / "docs" / "RELEASE_NOTES_NEXT.md").read_text(encoding="utf-8")
-        for part in ("Expression and gesture controls removed from the menu", "They did not work reliably", "Reset expression",
+        for part in ("Expression and gesture controls removed from the menu", "Reset expression",
                      "Nothing changes for the AI"):
             self.assertIn(part, notes)
         proto = (ROOT / "docs" / "TEST_PROTOCOL.md").read_text(encoding="utf-8")
