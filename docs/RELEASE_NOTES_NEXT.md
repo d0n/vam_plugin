@@ -20,6 +20,8 @@ This text is the GitHub release v66.
 - **Note (from v65, not new):** a dropdown with fewer than two entries is shown as a read-only info line instead of a dropdown.
 - **Installer note:** leave the optional **Grok Bot** task unchecked unless you use the Grok Bot bridge; it switches `ai.driver` to `grok_bot` (the default is the direct method).
 
+**Not in this release:** VaM's *Reload Plugin* still sets scene-only values that `config.json` does not hold, for example the Dollmaster **Activate** toggle, back to their defaults (the xAI token and the settings in `config.json` are kept). A fix needs a decision on where to keep that state; it is noted in `docs/BACKLOG.md`.
+
 Everything else is unchanged from v65.
 
 Test step: `docs/TEST_PROTOCOL.md` T122, T123 and T124.
