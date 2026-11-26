@@ -29,27 +29,10 @@ def src(name: str) -> str:
 
 
 class VersionTests(TestCase):
-    def test_version_67_everywhere(self):
-        self.assertEqual(__version__, "67")
-        self.assertIn('PluginVersion = "67"', src("AIBody.cs"))
-        self.assertIn('version = "67"', (ROOT / "companion" / "pyproject.toml").read_text())
-        self.assertEqual(json.loads((ROOT / "packaging" / "AIBody.json").read_text())["version"], 67)
-        self.assertTrue(re.search(r"d0n\.AIBody\.67:", first_start.TEMPLATE.read_text()))
-        self.assertIn("AIBody companion app 67 (example)", (ROOT / "examples" / "config.json").read_text(encoding="utf-8"))
-        readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertIn("Status: version 67, package `d0n.AIBody.67.var`, release `v67`", readme)
-        for f in ("README.md", "docs/REQUIREMENTS.md", "docs/SCENE_GREENSCREEN.md", "docs/RELEASE_NOTES_NEXT.md"):
-            self.assertNotIn("AIBody.66.var", (ROOT / f).read_text(encoding="utf-8"), f)
-
-    def test_release_notes(self):
-        notes = (ROOT / "docs" / "RELEASE_NOTES_NEXT.md").read_text(encoding="utf-8")
-        for part in ("**AIBody v67**", "d0n.AIBody.67.var", "always been denied plugin loading", "User Prefs",
-                     "Not in this release", "T125"):
-            self.assertIn(part, notes)
-        self.assertNotIn("Le" + "on", notes)
-        self.assertIn("## T125 ", (ROOT / "docs" / "TEST_PROTOCOL.md").read_text(encoding="utf-8"))
-        self.assertIn("(version 67, release; on top of v66)", (ROOT / "docs" / "SPEC.md").read_text(encoding="utf-8"))
-
+    def test_version_67_is_history(self):
+        notes = (ROOT / "docs" / "RELEASE_NOTES_V67.md").read_text(encoding="utf-8")
+        self.assertIn("Release notes of version 67", notes)
+        self.assertIn("Not in this release", notes)
 
 class CslistTests(TestCase):
     """Regression guard: every plugin source is in AIBody.cslist exactly once, every listed file exists, the MVRScript file last."""

@@ -159,7 +159,7 @@ class OriginWiringTests(TestCase):
     def test_absurd_delta_or_runaway_controller_skips_the_pose(self):
         g = guard_text()
         apply = method_body(g, "private bool ApplyOrigin()")
-        self.assertIn("OriginReset.Verdict.Absurd", apply)
+        self.assertIn("OriginReset.Absurd", apply)
         self.assertIn("Reject(", apply)
         reject = method_body(g, "private void Reject(string reason)")
         for part in ("_snap.Restore();", "OnRejected(key)", "Log.Warn(", "bad list"):

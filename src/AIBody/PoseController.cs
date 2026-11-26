@@ -778,9 +778,9 @@ namespace AIBody
             if (hip == null) return false;
             Vector3 h = hip.transform.position;
             float dx, dz;
-            OriginReset.Verdict v = OriginReset.Delta(_origin.x, _origin.z, h.x, h.z, RootReset.ToleranceMetres, out dx, out dz);
-            if (v == OriginReset.Verdict.Tiny) { Log.Debug(Capital(_what) + ": hips already at the origin"); return false; }
-            if (v == OriginReset.Verdict.Absurd)
+            int v = OriginReset.Delta(_origin.x, _origin.z, h.x, h.z, RootReset.ToleranceMetres, out dx, out dz);
+            if (v == OriginReset.Tiny) { Log.Debug(Capital(_what) + ": hips already at the origin"); return false; }
+            if (v == OriginReset.Absurd)
             {
                 Reject("the hips settled " + (h - _origin).magnitude.ToString("0") + " m from her place (limit " + OriginReset.MaxDeltaMetres.ToString("0") + " m)");
                 return true;

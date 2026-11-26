@@ -61,20 +61,27 @@ namespace AIBody
         public const float MaxDeltaMetres = 20f;
         public const float ClearanceMetres = 0.5f;
 
-        public enum Verdict { Ok, Tiny, Absurd }
+        // Results of Delta as int constants, not an enum (version 68): every AIBody build that compiled a C# enum (v60, v61, v63,
+        // v66/v67) crashed VaM inside its script compiler (mono.dll access violation in TypeBuilder.CreateType) right after the plugin
+        // permission; the enum-free builds (v62, v64, v65) did not. The plugin declares no enum (test_version68.py guards it).
+        public const int Ok = 0;
+        public const int Tiny = 1;
+        public const int Absurd = 2;
+
+        public static string VerdictName(int v) { return v == Ok ? "Ok" : v == Tiny ? "Tiny" : v == Absurd ? "Absurd" : "?"; }
 
         /// <summary>origin - current (flat). Verdict Tiny = within tolerance (nothing to do, delta 0), Absurd = NaN / infinite or
         /// longer than MaxDeltaMetres (delta 0: do not propagate it).</summary>
-        public static Verdict Delta(float ox, float oz, float cx, float cz, float tolerance, out float dx, out float dz)
+        public static int Delta(float ox, float oz, float cx, float cz, float tolerance, out float dx, out float dz)
         {
             dx = 0f; dz = 0f;
             float rx = ox - cx, rz = oz - cz;
-            if (float.IsNaN(rx) || float.IsNaN(rz) || float.IsInfinity(rx) || float.IsInfinity(rz)) return Verdict.Absurd;
+            if (float.IsNaN(rx) || float.IsNaN(rz) || float.IsInfinity(rx) || float.IsInfinity(rz)) return Absurd;
             float flat = (float)Math.Sqrt(rx * rx + rz * rz);
-            if (flat > MaxDeltaMetres) return Verdict.Absurd;
-            if (flat <= Math.Max(0f, tolerance)) return Verdict.Tiny;
+            if (flat > MaxDeltaMetres) return Absurd;
+            if (flat <= Math.Max(0f, tolerance)) return Tiny;
             dx = rx; dz = rz;
-            return Verdict.Ok;
+            return Ok;
         }
 
         /// <summary>True when a controller position is a finite number within maxMetres of the reference (NaN / far away = false).</summary>

@@ -25,8 +25,8 @@ public static class Program
             {
                 float dx, dz;
                 JsonElement o = c.GetProperty("o"), cur = c.GetProperty("c");
-                OriginReset.Verdict v = OriginReset.Delta(G(o, 0), G(o, 1), G(cur, 0), G(cur, 1), c.GetProperty("tol").GetSingle(), out dx, out dz);
-                Console.WriteLine("{\"v\":\"" + v + "\",\"dx\":" + F(dx) + ",\"dz\":" + F(dz) + "}");
+                int v = OriginReset.Delta(G(o, 0), G(o, 1), G(cur, 0), G(cur, 1), c.GetProperty("tol").GetSingle(), out dx, out dz);
+                Console.WriteLine("{\"v\":\"" + OriginReset.VerdictName(v) + "\",\"dx\":" + F(dx) + ",\"dz\":" + F(dz) + "}");
             }
             else if (cmd == "sane")
             {

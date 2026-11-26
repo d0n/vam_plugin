@@ -984,6 +984,11 @@ Report: a pose whose limbs look different from the file, a body that drifts away
 5. If VaM still crashes, note the time and keep the crash dump (`%LOCALAPPDATA%\CrashDumps`) and VaM's `output_log.txt`: the crash is then not caused by the IdlePoser code (compare with v62, T117).
 Report: a crash (with the time), an Idle movement section, an IdlePoser added by AIBody, a config.json error about the old keys.
 
+## T126 – No crash after Allow (version 68)
+1. Install v68 (remove older `d0n.AIBody.*.var`). Start AIBody Companion, then VaM, load AI-Buddy from `d0n.AIBody.68`; when VaM asks about plugins, click **Allow** (also try **Always Allow** once). Expected: no crash; the plugin is green and the menu opens.
+2. Apply a pose: about 1.5 s later the log has "Origin reset after pose ..." (the root reset still works without the enum).
+Report: a crash (time, and the newest folder in `%TEMP%\meshedvr\VaM\Crashes`), a yellow plugin.
+
 ## T125 – Plugin loads (version 67)
 1. Install v67. Start AIBody Companion, then VaM, load AI-Buddy from `d0n.AIBody.67`; allow plugins when VaM asks. The plugin is green in the plugin list and the menu opens.
 2. In VaM's Package Manager set `d0n.AIBody.67` > User Prefs > plugins always disabled, restart AIBody Companion: its console shows a warning naming `d0n.AIBody.67` and how to allow plugins. Set it back to allowed.
