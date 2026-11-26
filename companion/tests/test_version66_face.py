@@ -220,3 +220,17 @@ class IdleMotionVisibilityTests(TestCase):
         self.assertIn("public const float BreathChestDegrees = 4f;", idle)
         self.assertIn("breathCycle * breathDepth * BreathHeadDegrees", idle)
         self.assertIn("breathCycle * breathDepth * BreathChestDegrees", idle)
+
+
+class DocsTests(TestCase):
+    def test_notes_spec_and_protocol(self):
+        notes = (ROOT / "docs" / "RELEASE_NOTES_NEXT.md").read_text(encoding="utf-8")
+        for part in ("Idle head motion and breathing are about twice as strong", "Facial expressions of the AI fixed",
+                     "never *sad* or *angry*", "Reset Expression", "Grok Bot", "fewer than two entries", "T123"):
+            self.assertIn(part, notes)
+        self.assertNotIn("Le" + "on", notes)
+        self.assertNotIn("did not work", notes)
+        spec = (ROOT / "docs" / "SPEC.md").read_text(encoding="utf-8")
+        for part in ("**Idle motion and breathing about 2x**", "**AI facial expression path**", "FALLBACK_MIN_GAP_S"):
+            self.assertIn(part, spec)
+        self.assertIn("## T123 ", (ROOT / "docs" / "TEST_PROTOCOL.md").read_text(encoding="utf-8"))

@@ -984,6 +984,14 @@ Report: a pose whose limbs look different from the file, a body that drifts away
 5. If VaM still crashes, note the time and keep the crash dump (`%LOCALAPPDATA%\CrashDumps`) and VaM's `output_log.txt`: the crash is then not caused by the IdlePoser code (compare with v62, T117).
 Report: a crash (with the time), an Idle movement section, an IdlePoser added by AIBody, a config.json error about the old keys.
 
+## T123 – Stronger idle motion and breathing, calmer AI face (version 66)
+1. Install v66, start AIBody Companion, then VaM; load AI-Buddy. Body control, **Idle head motion** and **Breathing** on, **Idle intensity** at its default: the head sways and the weight shifts about twice as far and about twice as often as in v65 (compare with v65 if possible); the breath is clearly visible in the chest and the breath morph. Lower **Idle intensity** / **Breath depth**: the motion gets smaller (the sliders still scale it).
+2. Let the AI answer with a happy sentence and then (at once) a different tone, or send two `expression` commands one after the other (e.g. happy, then neutral): the first look fades out in about the blend time of the second (a second or so), not slowly over many seconds; no mixed faces. VaM's Auto Expressions stay paused until the fade has ended, then the face moves by itself again.
+3. A character without the `AutoExpressions` storable: the log shows once "Auto Expressions: the storable 'AutoExpressions' ... was not found" (Info).
+4. Talk to the AI without it using expression tags: at most one fallback expression per answer, at least 4 s after the previous one; a sad or angry sentence gives no sad / angry fallback face (the AI choosing *sad* itself still works).
+5. Ask the AI for the *thinking* expression: both brows slightly up, mouth neutral, no frown. **Reset expression** by the AI (or Reload Config JSON): the face goes back to what it was before, not to zero.
+Report: a face that needs seconds to fade, two faces mixed, a sad / angry face the AI did not choose, a one-sided thinking face, motion that is not visibly stronger or is jerky.
+
 ## T122 – Idle pose pool dropdown (version 66)
 1. Install v66 over v65. Start AIBody Companion, then VaM, load AI-Buddy, **Always Allow**. Tab AI Character > Idle poses: there is a dropdown **Idle pose pool** (no checkbox *Idle poses from all pose files*). Its entries are **AIBody poses only** (default) and **All pose files**.
 2. With **AIBody poses only**: the info text says the pool is the pose files in `Custom/Atom/Person/Pose/AIBody` plus the gestures.json poses, the poses of your pose commands and the Idle default pose, and shows the pool count.
