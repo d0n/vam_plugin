@@ -33,7 +33,7 @@ namespace AIBody
         /// <summary>The old v51-v58 defaults (migration of saved min / max values only).</summary>
         public const float OldDefaultMinSeconds = 30f;
         public const float OldDefaultMaxSeconds = 300f;
-        public const float LowestSeconds = 30f;          // version 51 (Don 20:39): 30 s to 18000 s (300 min)
+        public const float LowestSeconds = 5f;           // version 66 (5 s to 18000 s = 300 min; version 51-65: 30 s)
         public const float HighestSeconds = 18000f;
         public const string DefaultIdlePose = "Stand Up";
 
@@ -68,7 +68,7 @@ namespace AIBody
             PlanNext();
         }
 
-        /// <summary>Version 59: the shortest / longest wait (interval -/+ 25 %; the interval itself is clamped to 30 - 18000 s).</summary>
+        /// <summary>Version 59: the shortest / longest wait (interval -/+ 25 %; the interval itself is clamped to 5 - 18000 s).</summary>
         public float Lo { get { return Clamp(IntervalSeconds) * (1f - Jitter); } }
         public float Hi { get { return Clamp(IntervalSeconds) * (1f + Jitter); } }
 

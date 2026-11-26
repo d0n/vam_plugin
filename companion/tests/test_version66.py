@@ -267,3 +267,66 @@ class IdlePoolHarnessTests(TestCase):
         self.assertIn("other packages", a)
         self.assertIn("every pose file of your library, including other packages", b)
         self.assertNotIn("Custom/Atom/Person/Pose/AIBody", b)
+
+
+class IdleIntervalFloorTests(TestCase):
+    """Version 66 (Don 20:31): the idle pose interval goes down to 5 s (30 s in v51-v65)."""
+
+    def test_floor_is_5_everywhere(self):
+        sched = src("IdlePoses.cs")
+        self.assertIn("public const float LowestSeconds = 5f;", sched)
+        self.assertNotIn("LowestSeconds = 30f", sched)
+        self.assertIn("public const float DefaultIntervalSeconds = 165f;", sched)
+        self.assertIn("public const float HighestSeconds = 18000f;", sched)
+        self.assertEqual(settings_file.RANGES[("body", "idle_pose_interval_s")], (5.0, 18000.0))
+        self.assertEqual(settings_file.DEFAULTS["body"]["idle_pose_interval_s"], 165.0)
+        schema = json.loads((ROOT / "protocol" / "schema" / "config.schema.json").read_text(encoding="utf-8"))
+        node = schema["properties"]["body"]["properties"]["idle_pose_interval_s"]
+        bounds = [a for a in node["anyOf"] if a.get("type") == "number"][0]
+        self.assertEqual((bounds["minimum"], bounds["maximum"]), (5.0, 18000.0))
+        self.assertIn("range 5 to 18000 s", src("Body.cs"))
+        self.assertIn("range 5-18000 = 300 min", (ROOT / "docs" / "CONFIG.md").read_text(encoding="utf-8"))
+
+    def test_companion_clamps_to_5_and_keeps_5(self):
+        for given, want in ((5, 5.0), (4.9, 5.0), (0, 5.0), (7.5, 7.5), (165, 165.0), (18000, 18000.0), (99999, 18000.0)):
+            data, _ = settings_file.validate({"body": {"idle_pose_interval_s": given}})
+            self.assertEqual(data["body"]["idle_pose_interval_s"], want, given)
+        data, _ = settings_file.validate({"body": {"idle_pose_min_s": 1, "idle_pose_max_s": 2}})
+        self.assertEqual(data["body"]["idle_pose_interval_s"], 5.0, "an old min / max pair is clamped to the new floor")
+        data, _ = settings_file.validate({"body": {"idle_pose_min_s": 6, "idle_pose_max_s": 10}})
+        self.assertEqual(data["body"]["idle_pose_interval_s"], 8.0)
+
+    def test_shortest_wait_is_longer_than_the_pose_guard_window(self):
+        """5 s +/- 25 % is 3.75-6.25 s: longer than PoseGuard.MinSeconds (1.5 s) and the 1 s check; the guard can run up to
+        MaxSeconds (5 s) only while the body keeps moving, and a change that starts then keeps the first capture."""
+        sched, pose = src("IdlePoses.cs"), src("PoseController.cs")
+        lowest = float(re.search(r"LowestSeconds = ([\d.]+)f", sched).group(1))
+        jitter = float(re.search(r"Jitter = ([\d.]+)f", sched).group(1))
+        settle = float(re.search(r"SettleSeconds = ([\d.]+)f", pose).group(1))
+        guard_min = settle + 0.5
+        guard_max = float(re.search(r"public const float MaxSeconds = ([\d.]+)f;", pose).group(1))
+        self.assertEqual((lowest * (1 - jitter), lowest * (1 + jitter)), (3.75, 6.25))
+        self.assertGreater(lowest * (1 - jitter), guard_min)
+        self.assertGreater(lowest * (1 - jitter), settle)
+        self.assertLessEqual(guard_max, lowest * (1 + jitter) - 1.0, "the guard is over before the longest wait is")
+        self.assertIn("keeps the first capture", pose)
+        self.assertIn("public const float CooldownSeconds = 120f;", sched)
+
+    def test_idle_scheduler_waits_never_starve_or_overlap(self):
+        """The quiet time restarts at every pick and with speech; the next pick is never earlier than the shortest wait."""
+        sched = src("IdlePoses.cs")
+        update = method_body(sched, "public string Update(float dt, bool busy, bool bodyControl, PoseVocabulary vocabulary, List<string> poolNames, List<string> allNames)")
+        self.assertIn("_quiet = 0f;\n            PlanNext();\n            return PickNow(", update)
+        self.assertIn("if (busy) { _quiet = 0f;", update)
+        self.assertIn("if (_cooldown > 0f || _quiet < _next)", update)
+
+    def test_docs_and_notes_name_the_floor_and_the_jitter(self):
+        notes = (ROOT / "docs" / "RELEASE_NOTES_NEXT.md").read_text(encoding="utf-8")
+        for part in ("Shorter idle pose interval", "down to 5 s", "3.75 to 6.25 s", "120 s"):
+            self.assertIn(part, notes)
+        spec = (ROOT / "docs" / "SPEC.md").read_text(encoding="utf-8")
+        self.assertIn("**Idle pose interval minimum 5 s**", spec)
+        self.assertIn("PoseGuard", spec)
+        self.assertIn("3.75-6.25 s", (ROOT / "docs" / "CONFIG.md").read_text(encoding="utf-8"))
+        proto = (ROOT / "docs" / "TEST_PROTOCOL.md").read_text(encoding="utf-8")
+        self.assertIn("8. Set **Idle pose interval (s)** to 5", proto)

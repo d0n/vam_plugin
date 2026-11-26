@@ -292,7 +292,7 @@ RANGES: dict[tuple[str, str], tuple[float, float]] = {
     ("body", "idle_intensity"): (0.0, 1.0),
     ("body", "breaths_per_minute"): (4.0, 40.0),
     ("body", "breath_depth"): (0.0, 1.0),
-    ("body", "idle_pose_interval_s"): (30.0, 18000.0),   # version 59 (version 51 min / max: 30 s to 300 min)
+    ("body", "idle_pose_interval_s"): (5.0, 18000.0),   # version 59; the minimum is 5 s since version 66 (30 s in v51-v65)
     ("advanced", "file_poll_interval_s"): (0.02, 2.0),
     ("ai", "xai", "max_output_tokens"): (16, 8000),
     ("ai", "xai", "speed"): (0.7, 1.5),
@@ -448,6 +448,7 @@ def _merge(path: tuple[str, ...], default: dict[str, Any], data: dict[str, Any],
 
 
 OLD_IDLE_MIN_S, OLD_IDLE_MAX_S = 30.0, 300.0
+MIN_IDLE_INTERVAL_S = RANGES[("body", "idle_pose_interval_s")][0]  # 5 s since version 66
 
 
 def migrate_idle_interval(body: dict[str, Any]) -> dict[str, Any]:
@@ -462,7 +463,7 @@ def migrate_idle_interval(body: dict[str, Any]) -> dict[str, Any]:
             lo = OLD_IDLE_MIN_S
         if hi is None:
             hi = OLD_IDLE_MAX_S
-        out["idle_pose_interval_s"] = min(18000.0, max(30.0, (float(lo) + float(hi)) / 2.0))
+        out["idle_pose_interval_s"] = min(18000.0, max(MIN_IDLE_INTERVAL_S, (float(lo) + float(hi)) / 2.0))
     return out
 
 

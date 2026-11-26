@@ -447,7 +447,7 @@
           "anyOf": [
             {
               "type": "number",
-              "minimum": 30.0,
+              "minimum": 5.0,
               "maximum": 18000.0
             },
             {
@@ -456,7 +456,7 @@
             }
           ],
           "default": 165.0,
-          "description": "Slider 'Idle pose interval (s)' (version 59): quiet time before an idle pose change; each wait is this value +/- 25 % at random (30-18000, default 165). Old idle_pose_min_s / idle_pose_max_s are migrated to their mean"
+          "description": "Slider 'Idle pose interval (s)' (version 59): quiet time before an idle pose change; each wait is this value +/- 25 % at random (5-18000, default 165; the minimum was 30 before version 66). Old idle_pose_min_s / idle_pose_max_s are migrated to their mean"
         },
         "idle_pose_default": {
           "type": "string",

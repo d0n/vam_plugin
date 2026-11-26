@@ -1,6 +1,6 @@
 """Version 51 (Don, 22.11.2026 20:38-20:58): idle poses are random of ALL poses (never twice in a row, no forced return
 to the default pose), the existing sliders 'Idle pose min wait (s)' / 'Idle pose max wait (s)' with 30 / 300 s and
-30-18000 s, min <= max, paused by Dollmaster, pool size in the info field and the verbose log."""
+5-18000 s (30-18000 s up to v65), min <= max, paused by Dollmaster, pool size in the info field and the verbose log."""
 from __future__ import annotations
 
 import json
@@ -47,11 +47,11 @@ class RandomOfAllPosesTests(unittest.TestCase):
         self.assertTrue(all(123 <= g <= 208 for g in gaps), gaps)
         self.assertGreater(max(gaps) - min(gaps), 20, "random jitter, not a fixed interval")
 
-    def test_interval_is_clamped_to_30_and_18000_and_old_min_max_become_their_mean(self):
-        # version 59: the interval is clamped to 30-18000 s before the +/- 25 % jitter
+    def test_interval_is_clamped_to_5_and_18000_and_old_min_max_become_their_mean(self):
+        # version 59: the interval is clamped before the +/- 25 % jitter; the floor is 5 s since version 66 (30 s in v51-v65)
         chosen = self.run_case([[1.0, False, True, "", 400]], interval=1)
         steps = [int(i) for i, _ in chosen]
-        self.assertTrue(all(22 <= g <= 38 for g in [b - a for a, b in zip([-1] + steps, steps)]))
+        self.assertTrue(all(4 <= g <= 7 for g in [b - a for a, b in zip([-1] + steps, steps)]), "5 s +/- 25 % = 3.75-6.25 s")
         self.assertEqual(self.run_case([[10.0, False, True, "", 1300]], interval=99999), [], "18000 s - 25 %: not in 13000 s")
         self.assertEqual(len(self.run_case([[10.0, False, True, "", 2260]], interval=99999)), 1, "at most 22500 s")
         chosen = self.run_case([[1.0, False, True, "", 2000]], lo=100, hi=200)   # an old scene: mean 150 s
@@ -67,7 +67,7 @@ class RandomOfAllPosesTests(unittest.TestCase):
 class PluginWiringTests(unittest.TestCase):
     def test_scheduler_constants_and_pool(self):
         text = source("IdlePoses.cs")
-        for part in ("DefaultIntervalSeconds = 165f", "Jitter = 0.25f", "LowestSeconds = 30f", "HighestSeconds = 18000f",
+        for part in ("DefaultIntervalSeconds = 165f", "Jitter = 0.25f", "LowestSeconds = 5f", "HighestSeconds = 18000f",
                      "public List<string> Pool(", "WithoutLast(pool)", "public void NoteShown(string pose)", "PoolSize = pool.Count"):
             self.assertIn(part, text, part)
         self.assertNotIn("_inIdlePose", text, "no alternation with the default pose any more")
@@ -92,7 +92,7 @@ class PluginWiringTests(unittest.TestCase):
         body = source("Body.cs")
         info = method_body(body, "private string IdlePosesInfo()")
         for part in ("sets how often the ", "_idlePoses.Pool(", "Default 165 s",
-                     "range 30 to 18000 s (300 min)", "slider's value field", "body.idle_pose_interval_s", "Dollmaster",
+                     "range 5 to 18000 s (300 min)", "slider's value field", "body.idle_pose_interval_s", "Dollmaster",
                      "never the same one twice in a row"):
             self.assertIn(part, info, part)
         update = method_body(body, "private void UpdateIdlePoses(float dt, bool speaking)")
@@ -108,7 +108,7 @@ class PluginWiringTests(unittest.TestCase):
         # version 59: one interval key; old min / max keys become their mean
         self.assertEqual(settings_file.DEFAULTS["body"]["idle_pose_interval_s"], 165.0)
         self.assertNotIn("idle_pose_min_s", settings_file.DEFAULTS["body"])
-        self.assertEqual(settings_file.RANGES[("body", "idle_pose_interval_s")], (30.0, 18000.0))
+        self.assertEqual(settings_file.RANGES[("body", "idle_pose_interval_s")], (5.0, 18000.0))
         result, _ = settings_file.validate({"body": {"idle_pose_interval_s": 17999.5}})
         self.assertEqual(result["body"]["idle_pose_interval_s"], 17999.5, "exact values are kept")
         result, _ = settings_file.validate({"body": {"idle_pose_min_s": 17999.5, "idle_pose_max_s": 99999}})

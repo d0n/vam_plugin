@@ -75,7 +75,7 @@ class IdlePoseSchedulerTests(unittest.TestCase):
 
     def test_quiet_time_changes_to_random_poses_never_twice_in_a_row(self):
         # version 51: random of ALL poses (the default pose is one of them), no forced return to the default pose;
-        # version 59: old 20 / 40 s become the interval 30 s (the minimum), each wait 30 s +/- 25 %
+        # version 59: old 20 / 40 s become the interval 30 s (their mean), each wait 30 s +/- 25 %
         chosen = self.run_case([[1.0, False, True, "", 600]])
         names = [n for _, n in chosen]
         self.assertGreaterEqual(len(names), 10)
@@ -146,7 +146,7 @@ class IdlePosePluginTests(unittest.TestCase):
                      "_poses.OnPoseLoaded = () => { if (_idle != null) _idle.Rebase(); };"):
             self.assertIn(part, body, part)
         self.assertIn("IdlePoses.cs", source("AIBody.cslist"))
-        self.assertEqual(settings_file.RANGES[("body", "idle_pose_interval_s")], (30.0, 18000.0))   # version 51
+        self.assertEqual(settings_file.RANGES[("body", "idle_pose_interval_s")], (5.0, 18000.0))   # version 51; the floor is 5 s since version 66
         self.assertEqual(settings_file.DEFAULTS["body"]["idle_pose_default"], "Stand Up")
         self.assertIs(settings_file.DEFAULTS["body"]["idle_poses"], True)
 

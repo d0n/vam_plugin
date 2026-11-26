@@ -992,7 +992,8 @@ Report: a crash (with the time), an Idle movement section, an IdlePoser added by
 5. Migration, config: in a copy of `config.json` remove `idle_pose_pool` and set `"idle_poses_all_files": true`; Reload Config JSON: **All pose files**. With `false` or without either key: **AIBody poses only**. With both keys, `idle_pose_pool` wins. `idle_pose_pool` set to `"0"` or `"foo"`: **AIBody poses only**.
 6. Migration, scene: load a scene saved with v54-v65 that had *Idle poses from all pose files* on: **All pose files**. One saved with it off: **AIBody poses only**. Config > **Reset to Default**: **AIBody poses only**.
 7. Let it idle: idle poses change as before in both pools, never the same pose twice in a row.
-Report: a leftover checkbox, a missing entry, a count that does not change, an old scene that lost its setting, an error in the VaM log.
+8. Set **Idle pose interval (s)** to 5 (type 5 into the value field; the slider goes down to 5): the info text says "now between 3.8 s and 6.3 s" (or similar), and for a minute she changes pose every 4-6 s, never the same pose twice in a row, no flicker back to a previous place, no pose change that is cut off, the body stays over her control point. Speak to her: no idle pose while she or you talk. Say a pose command: idle poses wait 120 s. Set the interval back to 165.
+Report: a leftover checkbox, a missing entry, an interval below 5 s or one that refuses 5 s, poses that overlap or stop at 5 s, a count that does not change, an old scene that lost its setting, an error in the VaM log.
 
 ## T121 – One-entry menus are a line, not a dropdown (version 65)
 1. Install v65. Start AIBody Companion, then VaM, load AI-Buddy, **Always Allow**.

@@ -66,7 +66,8 @@ class IdleIntervalTests(unittest.TestCase):
         for given, want in (({"idle_pose_min_s": 60, "idle_pose_max_s": 120}, 90.0),
                             ({"idle_pose_min_s": 30, "idle_pose_max_s": 300}, 165.0),
                             ({"idle_pose_min_s": 600}, 450.0),                    # missing max = the old default 300
-                            ({"idle_pose_min_s": 5, "idle_pose_max_s": 10}, 30.0),   # clamped
+                            ({"idle_pose_min_s": 5, "idle_pose_max_s": 10}, 7.5),    # version 66: the floor is 5 s, so the mean 7.5 stays
+                            ({"idle_pose_min_s": 1, "idle_pose_max_s": 2}, 5.0),     # clamped to the 5 s floor (30 s up to v65)
                             ({"idle_pose_interval_s": 77, "idle_pose_min_s": 1000, "idle_pose_max_s": 2000}, 77.0),
                             ({}, 165.0)):
             result, _ = settings_file.validate({"body": dict(given)})

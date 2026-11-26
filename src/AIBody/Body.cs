@@ -543,7 +543,7 @@ namespace AIBody
                 + (_idlePoses.ExcludedCount > 0 ? "; " + _idlePoses.ExcludedCount + " pose(s) that failed to load are left out" : "")
                 + ". " + IdlePoolMode.Describe(_idlePoolJson != null ? _idlePoolJson.val : IdlePoolMode.DefaultLabel, PoseController.OwnPoseFolder)
                 + ". A pose that stores its own root position no longer moves her away: she is put back to her place. Default 165 s, "
-                + "range 30 to 18000 s (300 min). For an exact value type the number into the slider's value field, or set "
+                + "range 5 to 18000 s (300 min). For an exact value type the number into the slider's value field, or set "
                 + "body.idle_pose_interval_s in config.json (older min / max values become their mean). "
                 + "<b>Idle default pose</b> (" + (home ?? "'" + _idlePoses.DefaultPose + "' not found") + ") is one of the poses and "
                 + "<b>Apply idle default pose</b> goes there now; after your own pose command it waits "
