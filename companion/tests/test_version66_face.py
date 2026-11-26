@@ -224,7 +224,7 @@ class IdleMotionVisibilityTests(TestCase):
 
 class DocsTests(TestCase):
     def test_notes_spec_and_protocol(self):
-        notes = (ROOT / "docs" / "RELEASE_NOTES_NEXT.md").read_text(encoding="utf-8")
+        notes = (ROOT / "docs" / "RELEASE_NOTES_V66.md").read_text(encoding="utf-8")
         for part in ("Idle head motion and breathing are about twice as strong", "Facial expressions of the AI fixed",
                      "never *sad* or *angry*", "Reset Expression", "Grok Bot", "fewer than two entries", "T123"):
             self.assertIn(part, notes)

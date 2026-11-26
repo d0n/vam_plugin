@@ -184,6 +184,14 @@ def main(argv: list[str] | None = None) -> int:
         log.warning("config.json: %s", problem)
     logsetup.set_verbose(cfg.verbose_log)
     maybe_ask_setup(cfg.vam_root, args)
+    if cfg.vam_root:   # version 67: VaM's per-package "plugins always denied" (v66 yellow plugin)
+        try:
+            from . import package_prefs
+            text = package_prefs.warning(cfg.vam_root)
+            if text:
+                log.warning(text)
+        except Exception as e:  # never stop the start for this check
+            log.debug("package prefs check failed: %s", e)
     seeded = personas_module.seed_starter_personas(
         Path(cfg.vam_root) / PLUGIN_DATA_SUBDIR / personas_module.PERSONAS_SUBDIR)
     if seeded:

@@ -39,19 +39,12 @@ def code(text: str) -> str:
 
 class VersionTests(TestCase):
     def test_version_66_everywhere(self):
-        self.assertEqual(__version__, "66")
-        self.assertIn('PluginVersion = "66"', src("AIBody.cs"))
-        self.assertIn('version = "66"', (ROOT / "companion" / "pyproject.toml").read_text())
-        self.assertEqual(json.loads((ROOT / "packaging" / "AIBody.json").read_text())["version"], 66)
-        self.assertTrue(re.search(r"d0n\.AIBody\.66:", first_start.TEMPLATE.read_text()))
-        self.assertIn("AIBody companion app 66 (example)", (ROOT / "examples" / "config.json").read_text(encoding="utf-8"))
-        self.assertEqual(json.loads((ROOT / "packaging" / "meta.json").read_text())["licenseType"], "FC")
-        for f in ("README.md", "docs/REQUIREMENTS.md", "docs/SCENE_GREENSCREEN.md", "docs/RELEASE_NOTES_NEXT.md"):
-            self.assertNotIn("AIBody.65", (ROOT / f).read_text(encoding="utf-8"), f)
+        """Historical: version 66 sources are gone after the v67 bump; consistency is test_version67."""
+        self.assertTrue((ROOT / "companion" / "tests" / "test_version67.py").is_file())
+        self.assertIn("(version 66, release; on top of v65)", (ROOT / "docs" / "SPEC.md").read_text(encoding="utf-8"))
 
     def test_docs(self):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertIn("Status: version 66, package `d0n.AIBody.66.var`, release `v66`", readme)
         self.assertIn("**Idle pose pool**", readme)
         spec = (ROOT / "docs" / "SPEC.md").read_text(encoding="utf-8")
         self.assertIn("(version 66, release; on top of v65)", spec)
@@ -63,7 +56,7 @@ class VersionTests(TestCase):
         self.assertIn("## Version 66", (ROOT / "docs" / "API_AUDIT.md").read_text(encoding="utf-8"))
 
     def test_release_notes_english_without_personal_names(self):
-        notes = (ROOT / "docs" / "RELEASE_NOTES_NEXT.md").read_text(encoding="utf-8")
+        notes = (ROOT / "docs" / "RELEASE_NOTES_V66.md").read_text(encoding="utf-8")
         self.assertIn("**AIBody v66**", notes)
         for part in ("d0n.AIBody.66.var", "AI-Buddy.jpg", "AI-Buddy.json", "Idle pose pool", AIBODY, ALL,
                      "body.idle_pose_pool", "body.idle_poses_all_files", "T122"):
@@ -327,7 +320,7 @@ class IdleIntervalFloorTests(TestCase):
         self.assertIn("if (_quiet < _next)", update)
 
     def test_docs_and_notes_name_the_floor_and_the_jitter(self):
-        notes = (ROOT / "docs" / "RELEASE_NOTES_NEXT.md").read_text(encoding="utf-8")
+        notes = (ROOT / "docs" / "RELEASE_NOTES_V66.md").read_text(encoding="utf-8")
         for part in ("Shorter idle pose interval", "down to 5 s", "3.75 to 6.25 s", "120 s"):
             self.assertIn(part, notes)
         spec = (ROOT / "docs" / "SPEC.md").read_text(encoding="utf-8")
@@ -418,7 +411,7 @@ class ExpressionGestureMenuRemovedTests(TestCase):
         self.assertEqual(data["connection"]["paths"]["gestures"], "Saves/PluginData/AIBody/gestures.json")
 
     def test_docs_and_notes(self):
-        notes = (ROOT / "docs" / "RELEASE_NOTES_NEXT.md").read_text(encoding="utf-8")
+        notes = (ROOT / "docs" / "RELEASE_NOTES_V66.md").read_text(encoding="utf-8")
         for part in ("Expression and gesture controls removed from the menu", "Reset expression",
                      "Nothing changes for the AI"):
             self.assertIn(part, notes)

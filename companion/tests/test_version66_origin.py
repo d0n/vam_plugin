@@ -187,7 +187,7 @@ class OriginWiringTests(TestCase):
         self.assertIn("if (!UseOrigin) Center();", method_body(g, "public void Hold()"), "no origin yet: the v63 centring stays the fallback")
 
     def test_docs(self):
-        notes = (ROOT / "docs" / "RELEASE_NOTES_NEXT.md").read_text(encoding="utf-8")
+        notes = (ROOT / "docs" / "RELEASE_NOTES_V66.md").read_text(encoding="utf-8")
         for part in ("Root reset after a pose", "20 m", "0.5 m", "bad list"):
             self.assertIn(part, notes)
         self.assertIn("## T124 ", (ROOT / "docs" / "TEST_PROTOCOL.md").read_text(encoding="utf-8"))

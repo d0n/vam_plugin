@@ -43,7 +43,7 @@ namespace AIBody
 {
     public class AIBodyPlugin : MVRScript
     {
-        public const string PluginVersion = "66";   // = package number d0n.AIBody.62.var (scheme since version 12)
+        public const string PluginVersion = "67";   // = package number d0n.AIBody.62.var (scheme since version 12)
 
         private AppLink _link;
         private Body _body;
@@ -220,6 +220,7 @@ namespace AIBody
 
             // 5. Start the link and run the self test.
             _initialized = true;
+            ReadReloadState();   // version 67
             if (_link != null)
             {
                 _link.Ready = true;
@@ -618,6 +619,7 @@ namespace AIBody
             {
                 if (_settingsAge < 1.5f) return;
                 _settingsChecked = true;
+                ApplyReloadState();   // version 67: before the config.json seeding ("Settings initialized" comes back true with it)
                 JSONClass file = null;
                 bool readOk = false;
                 _diag.Run("Read config.json", () => { file = _link.LoadSettingsFile(); readOk = true; });
@@ -905,6 +907,7 @@ namespace AIBody
 
         private void OnDestroy()
         {
+            SaveReloadState();   // version 67: Reload Plugin keeps the settings (ReloadState.cs)
             OnDisable();
             try { if (_dm != null) _dm.OnDestroy(); }   // removes its helper atoms and its world panel
             catch (Exception e) { Log.Error("OnDestroy: Dollmaster teardown failed", e); }
@@ -993,6 +996,55 @@ namespace AIBody
         }
 
         /// <summary>Dollmaster's RestoreFromJSON / PostRestore hooks (Dollmaster.cs L148-158).</summary>
+        // ---------------------------------------------------------------- Reload Plugin (version 67)
+        private JSONClass _reloadState;   // read once in Init, applied in UpdateSettings unless a scene was restored
+
+        private string ReloadStatePath { get { return AppLink.DataRoot + "/" + ReloadState.FileName; } }
+
+        private void SaveReloadState()
+        {
+            if (!_initialized || containingAtom == null) return;
+            try
+            {
+                JSONClass root = new JSONClass();
+                root["saved_utc"] = ReloadState.Stamp(DateTime.UtcNow);
+                root["atom"] = containingAtom.uid;
+                root["plugin"] = GetJSON(true, true, true);   // E1: every storable of this plugin (forceStore: also defaults)
+                FileManagerSecure.CreateDirectory(AppLink.DataRoot);
+                FileManagerSecure.WriteAllText(ReloadStatePath, root.ToString());
+            }
+            catch (Exception e) { Log.Error("Reload state: writing failed", e); }
+        }
+
+        private void ReadReloadState()
+        {
+            try
+            {
+                if (!FileManagerSecure.FileExists(ReloadStatePath)) return;
+                JSONClass root = JSON.Parse(FileManagerSecure.ReadAllText(ReloadStatePath)) as JSONClass;
+                FileManagerSecure.DeleteFile(ReloadStatePath);   // read once
+                if (root == null || containingAtom == null) return;
+                bool fresh = ReloadState.Fresh(root["saved_utc"].Value, DateTime.UtcNow, ReloadState.MaxAgeSeconds);
+                if (ReloadState.Applies(fresh, root["atom"].Value, containingAtom.uid, false)) _reloadState = root["plugin"] as JSONClass;
+            }
+            catch (Exception e) { Log.Error("Reload state: reading failed", e); }
+        }
+
+        /// <summary>At the config.json check (VaM has restored a scene by then if it loads one): a plain Reload Plugin gets its values back.</summary>
+        private void ApplyReloadState()
+        {
+            JSONClass state = _reloadState;
+            _reloadState = null;
+            if (state == null) return;
+            if (!ReloadState.Applies(true, containingAtom.uid, containingAtom.uid, _sceneRestored))
+            {
+                Log.Debug("Reload state ignored: a scene was restored into the plugin (the scene wins)");
+                return;
+            }
+            RestoreFromJSON(state);   // also Dollmaster's settings (its RestoreFromJSON / RestoreLate hooks)
+            Log.Info("Reload Plugin: the settings from before the reload were restored (Dollmaster Activate and the other scene values)");
+        }
+
         public override void RestoreFromJSON(JSONClass jc, bool restorePhysical = true, bool restoreAppearance = true, JSONArray presetAtoms = null, bool setMissingToDefault = true)
         {
             base.RestoreFromJSON(jc, restorePhysical, restoreAppearance, presetAtoms, setMissingToDefault);
