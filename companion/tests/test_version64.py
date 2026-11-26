@@ -21,37 +21,12 @@ WORDS = re.compile(r"IdlePoser|IdleMovement|idle_movement|_idleMove|_poser\b|Che
 
 
 class VersionTests(TestCase):
-    def test_version_64_everywhere(self):
-        self.assertEqual(__version__, "64")
-        self.assertIn('PluginVersion = "64"', (SRC / "AIBody.cs").read_text(encoding="utf-8"))
-        self.assertIn('version = "64"', (ROOT / "companion" / "pyproject.toml").read_text())
-        self.assertEqual(json.loads((ROOT / "packaging" / "AIBody.json").read_text())["version"], 64)
-        self.assertTrue(re.search(r"d0n\.AIBody\.64:", first_start.TEMPLATE.read_text()))
-        self.assertIn("AIBody companion app 64 (example)", (ROOT / "examples" / "config.json").read_text(encoding="utf-8"))
-        self.assertEqual(json.loads((ROOT / "packaging" / "meta.json").read_text())["licenseType"], "FC")
-        for f in ("README.md", "docs/REQUIREMENTS.md", "docs/SCENE_GREENSCREEN.md", "docs/RELEASE_NOTES_NEXT.md"):
-            self.assertNotIn("AIBody.63", (ROOT / f).read_text(encoding="utf-8"), f)
-
-    def test_docs(self):
-        readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertIn("Status: version 64, package `d0n.AIBody.64.var`, release `v64`", readme)
-        self.assertNotIn("**Idle movement**", readme)
+    def test_version_64_is_historical(self):
+        """Historical: version 64 sources are gone after the v65 bump; consistency is test_version65."""
+        self.assertTrue((ROOT / "companion" / "tests" / "test_version65.py").is_file())
         spec = (ROOT / "docs" / "SPEC.md").read_text(encoding="utf-8")
         self.assertIn("(version 64, release; on top of v63)", spec)
-        proto = (ROOT / "docs" / "TEST_PROTOCOL.md").read_text(encoding="utf-8")
-        self.assertIn("## T120", proto)
-        self.assertIn("## T118 – Idle movement optional, off by default (version 63) – obsolete since version 64", proto)
-        self.assertIn("removed in version 64", (ROOT / "docs" / "CONFIG.md").read_text(encoding="utf-8"))
-        switch = (ROOT / "docs" / "IDLEPOSER_BUILD_SWITCH.md").read_text(encoding="utf-8")
-        self.assertIn("removed (version 64)", switch)
-
-    def test_release_notes_english_without_personal_names(self):
-        notes = (ROOT / "docs" / "RELEASE_NOTES_NEXT.md").read_text(encoding="utf-8")
-        self.assertIn("**AIBody v64**", notes)
-        for part in ("d0n.AIBody.64.var", "AI-Buddy.jpg", "AI-Buddy.json", "Idle movement removed",
-                     "Center body on control point", "T120"):
-            self.assertIn(part, notes)
-        self.assertIsNone(re.search(r"\b(" + "Le" + "on|Don)\b", notes), "no personal names in public release notes")
+        self.assertIn("## T120", (ROOT / "docs" / "TEST_PROTOCOL.md").read_text(encoding="utf-8"))
 
 
 class IdleMovementRemovedTests(TestCase):

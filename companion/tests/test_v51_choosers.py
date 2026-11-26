@@ -132,11 +132,23 @@ def signature_rest(text, signature):
 class RealListCodeTests(unittest.TestCase):
     def test_after_the_reset_every_menu_has_its_list_and_its_value_is_in_it(self):
         applink, body, ui = source("AppLink.cs"), source("Body.cs"), source("UiHelper.cs")
+        # version 65: EnsureChoices / SetMenu call UiChooser; include that class (it only needs .val / .choices)
+        start = ui.index("public static class UiChooser")
+        depth, end = 0, start
+        for i, ch in enumerate(ui[start:], start):
+            if ch == "{": depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    end = i + 1
+                    break
+        uichooser = ui[start:end] + "\n"
         ensure = signature_rest(applink, "public static void EnsureChoices")
         setmenu = signature_rest(body, "private static void SetMenu")
         reset = method_body(ui, "public int ResetAll(MVRScript plugin)")
         loop = reset[reset.index("for (int i = 0; i < _choosers.Count; i++)"):reset.index("for (int i = 0; i < _colorNames.Count; i++)")]
         code = HARNESS.replace("__ENSURE__", ensure).replace("__SETMENU__", setmenu).replace("__LOOP__", loop)
+        code = code.replace("using System.Text.Json;", "using System.Text.Json;\n" + uichooser, 1)
         with tempfile.TemporaryDirectory() as tmp:
             folder = Path(tmp)
             (folder / "Program.cs").write_text(code, encoding="utf-8")

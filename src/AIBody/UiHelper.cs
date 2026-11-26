@@ -89,10 +89,25 @@ namespace AIBody
             _texts.Add(f);
         }
 
-        public void Popup(JSONStorableStringChooser p) { if (p != null) _popups.Add(_plugin.CreatePopup(p, _right)); }
+        public void Popup(JSONStorableStringChooser p) { Chooser(p, false); }
 
         /// <summary>Popup with a scrolling list (long device lists), as Collider Editor uses it.</summary>
-        public void ScrollablePopup(JSONStorableStringChooser p) { if (p != null) _popups.Add(_plugin.CreateScrollablePopup(p, _right)); }
+        public void ScrollablePopup(JSONStorableStringChooser p) { Chooser(p, true); }
+
+        /// <summary>Version 65: a chooser with fewer than two entries is a short read-only line (the label and the value),
+        /// not a dropdown; with two or more it is a popup (or a scrolling popup). The JSONStorableStringChooser itself is
+        /// unchanged (name, value, choices), so saved scenes and config.json still load.</summary>
+        private void Chooser(JSONStorableStringChooser p, bool scrollable)
+        {
+            if (p == null) return;
+            if (UiChooser.ShowsDropdown(p))
+            {
+                if (scrollable) _popups.Add(_plugin.CreateScrollablePopup(p, _right));
+                else _popups.Add(_plugin.CreatePopup(p, _right));
+                return;
+            }
+            _texts.Add(UiHelper.Header(_plugin, UiChooser.Line(p), _right));
+        }
 
         /// <summary>Like Button, but returns the control (its label can change later: buttonText.text).</summary>
         public UIDynamicButton ButtonRef(string label, UnityEngine.Events.UnityAction onClick)
@@ -171,6 +186,80 @@ namespace AIBody
             _buttons.Clear();
             _texts.Clear();
             _colors.Clear();
+        }
+    }
+
+    /// <summary>
+    /// Version 65: helpers for JSONStorableStringChooser menus. A list with fewer than two entries is shown as a
+    /// read-only line, not as a dropdown (UiPage.Popup / ScrollablePopup). A saved value of "0" or empty is a
+    /// placeholder, not a real choice: it is not added to the list and the default stays. "None", "Not set", "null"
+    /// and "Off" are real choices in some menus and are left alone.
+    /// </summary>
+    public static class UiChooser
+    {
+        public const int DropdownMin = 2;
+        /// <summary>A saved value that is not a real choice: empty, or "0" (often written for an unset number).</summary>
+        public static bool IsPlaceholder(string value)
+        {
+            return string.IsNullOrEmpty(value) || value == "0";
+        }
+
+        public static int Count(JSONStorableStringChooser p)
+        {
+            return p != null && p.choices != null ? p.choices.Count : 0;
+        }
+
+        public static bool ShowsDropdown(JSONStorableStringChooser p)
+        {
+            return Count(p) >= DropdownMin;
+        }
+
+        /// <summary>The read-only line when the menu has fewer than two entries (Header text, includes the control name).</summary>
+        public static string Line(JSONStorableStringChooser p)
+        {
+            string name = p != null && !string.IsNullOrEmpty(p.name) ? p.name : "Choice";
+            string value = p != null ? p.val : null;
+            if (IsPlaceholder(value) && Count(p) == 1) value = p.choices[0];
+            if (IsPlaceholder(value)) return "<b>" + name + "</b>: (none)";
+            return "<b>" + name + "</b>: " + value;
+        }
+
+        /// <summary>Drops placeholder entries from a choice list (in place).</summary>
+        public static void DropPlaceholders(List<string> names)
+        {
+            if (names == null) return;
+            for (int i = names.Count - 1; i >= 0; i--)
+                if (IsPlaceholder(names[i])) names.RemoveAt(i);
+        }
+
+        /// <summary>Apply a saved or reported choice. A placeholder is ignored (the current / default value stays).
+        /// A real unknown value is added to the list (a custom voice, persona or language).</summary>
+        public static void ApplyValue(JSONStorableStringChooser chooser, string value)
+        {
+            if (chooser == null || IsPlaceholder(value)) return;
+            List<string> choices = chooser.choices != null ? new List<string>(chooser.choices) : new List<string>();
+            DropPlaceholders(choices);
+            if (!choices.Contains(value)) choices.Add(value);
+            chooser.choices = choices;   // E9, E24, E25
+            chooser.val = value;
+        }
+
+        /// <summary>Remove placeholder entries from the menu; if the current value is a placeholder, use fallback (or
+        /// the first remaining entry). A real custom value that is not in the list yet is kept and added.</summary>
+        public static void Sanitize(JSONStorableStringChooser chooser, string fallback)
+        {
+            if (chooser == null) return;
+            List<string> choices = chooser.choices != null ? new List<string>(chooser.choices) : new List<string>();
+            DropPlaceholders(choices);
+            string value = chooser.val;
+            if (IsPlaceholder(value))
+            {
+                value = !IsPlaceholder(fallback) ? fallback : (choices.Count > 0 ? choices[0] : "");
+                if (!IsPlaceholder(value) && !choices.Contains(value)) choices.Add(value);
+                if (!IsPlaceholder(value)) chooser.val = value;
+            }
+            else if (!choices.Contains(value)) choices.Add(value);
+            chooser.choices = choices;
         }
     }
 

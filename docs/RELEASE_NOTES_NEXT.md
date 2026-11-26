@@ -1,15 +1,15 @@
-# Release notes of version 64 (25.11.2026)
+# Release notes of version 65 (26.11.2026)
 
-This text is the GitHub release v64.
+This text is the GitHub release v65.
 
-**AIBody v64**: download `AIBody Companion Setup.exe`; it installs AIBody Companion and the package `d0n.AIBody.64.var` (the plugin, the AI-Buddy scene with its thumbnail and the Dollmaster assets) into your VaM folder. `d0n.AIBody.64.var`, `AI-Buddy.json` and `AI-Buddy.jpg` are attached too, for installing by hand.
+**AIBody v65**: download `AIBody Companion Setup.exe`; it installs AIBody Companion and the package `d0n.AIBody.65.var` (the plugin, the AI-Buddy scene with its thumbnail and the Dollmaster assets) into your VaM folder. `d0n.AIBody.65.var`, `AI-Buddy.json` and `AI-Buddy.jpg` are attached too, for installing by hand.
 
-**Install:** double-click `AIBody Companion Setup.exe` (SmartScreen: **More info** > **Run anyway**); it runs over v63. Remove older `d0n.AIBody.*.var` files from AddonPackages. MacGruber's **IdlePoser** is not needed. Start **AIBody Companion** first, then VaM, and load **AI-Buddy** from `d0n.AIBody.64`.
+**Install:** double-click `AIBody Companion Setup.exe` (SmartScreen: **More info** > **Run anyway**); it runs over v64. Remove older `d0n.AIBody.*.var` files from AddonPackages. Start **AIBody Companion** first, then VaM, and load **AI-Buddy** from `d0n.AIBody.65`.
 
 **Changes**
-- **Idle movement removed.** v63 crashed VaM on plugin / scene load. v64 contains no IdlePoser code at all: `IdleMovement.cs` and `IdlePoserLink.cs` are deleted and not in the package, the **Idle movement** toggle and slider are gone, and the package does not depend on `MacGruber.IdlePoser.9`. An older `config.json` with `body.idle_movement`, `body.idle_movement_opt_in` or `body.idle_movement_liveliness` still loads; those keys are ignored.
-- **Kept from v63:** **Center body on control point** (tab AI Character > Body position, `body.pose_root_reset`, default on): when a pose is applied the pose is kept, but her hips are put back over her control point.
+- **Menus with only one entry are a line, not a dropdown.** In the plugin tabs, a choice menu (Idle default pose, Expression, Pose command, and the other choosers) is shown as a short read-only line when it has fewer than two entries, and as a dropdown when it has two or more. Dynamic lists switch automatically. The saved name and value are unchanged, so older scenes and `config.json` still load.
+- **A saved "0" is no longer a menu entry.** If a saved value is `"0"` or empty, the default stays (for example Idle default pose `Stand Up`, Voice `eve`, Speech-to-text `xai`). Real choices such as **Not set** (gender), **None** (Dollmaster Thrust Control) and **null** (the offline speech-to-text engine) are kept.
 
-Everything else is unchanged from v63.
+Everything else is unchanged from v64.
 
-Test steps: `docs/TEST_PROTOCOL.md` T120 (Always Allow and scene load without IdlePoser) and T119 (center body on control point).
+Test step: `docs/TEST_PROTOCOL.md` T121.

@@ -19,7 +19,7 @@ class ExpressionTests(unittest.TestCase):
         self.assertIn('{ "happy", "smile", "sad", "angry", "surprised", "thinking" }', self.ec)
         self.assertIn('new[] { "listening", "neutral" }', names)
         self.assertNotIn("_presets.Keys", names)
-        self.assertIn("if (names.Count > 0 && !names.Contains(chooser.val)) chooser.val = names[0];",
+        self.assertIn("if (names.Count > 0 && (UiChooser.IsPlaceholder(chooser.val) || !names.Contains(chooser.val))) chooser.val = names[0];",
                       method_body(self.body, "private static void SetMenu(JSONStorableStringChooser chooser, List<string> names)"))
 
     def test_show_expression_works_and_reports_the_morphs(self):

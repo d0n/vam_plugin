@@ -1181,9 +1181,9 @@ namespace AIBody
             JSONClass engines = root["engines"] as JSONClass;
             if (engines != null)
             {
-                _sttJson.val = Protocol.GetString(engines, "stt", _sttJson.val);
-                _llmJson.val = Protocol.GetString(engines, "llm", _llmJson.val);
-                _ttsJson.val = Protocol.GetString(engines, "tts", _ttsJson.val);
+                UiChooser.ApplyValue(_sttJson, Protocol.GetString(engines, "stt", _sttJson.val));
+                UiChooser.ApplyValue(_llmJson, Protocol.GetString(engines, "llm", _llmJson.val));
+                UiChooser.ApplyValue(_ttsJson, Protocol.GetString(engines, "tts", _ttsJson.val));
             }
             JSONClass ai = root["ai"] as JSONClass;
             if (ai != null)
@@ -1222,29 +1222,18 @@ namespace AIBody
         /// <summary>config.json ai.language into the menu; an unknown code is added as a choice so it is not lost.</summary>
         private void SetLanguage(string code)
         {
+            if (UiChooser.IsPlaceholder(code)) return;   // version 65: a saved "0" keeps the default language
             string label = LanguageLabel(code);
-            if (!_languageJson.choices.Contains(label))
-            {
-                List<string> choices = new List<string>(_languageJson.choices);
-                choices.Add(label);
-                try { _languageJson.choices = choices; }   // choices refresh: E9, E24, E25
-                catch (Exception e) { _diag.Fail("Extend language list", e); }
-            }
-            _languageJson.val = label;
+            try { UiChooser.ApplyValue(_languageJson, label); }
+            catch (Exception e) { _diag.Fail("Extend language list", e); }
         }
 
         private void SetPersona(string name)
         {
             // Version 40: an empty ai.persona_name was "(none)"; version 50 (no "(none)" any more): Anna.
-            if (string.IsNullOrEmpty(name) || name == "(none)") name = PersonaDefault;   // version 50: no "(none)" any more
-            if (!_personaJson.choices.Contains(name))
-            {
-                List<string> choices = new List<string>(_personaJson.choices);
-                choices.Add(name);
-                try { _personaJson.choices = choices; }   // choices refresh: E9, E24, E25
-                catch (Exception e) { _diag.Fail("Extend persona list", e); }
-            }
-            _personaJson.val = name;
+            if (string.IsNullOrEmpty(name) || name == "(none)" || UiChooser.IsPlaceholder(name)) name = PersonaDefault;   // version 50: no "(none)"; version 65: "0" too
+            try { UiChooser.ApplyValue(_personaJson, name); }
+            catch (Exception e) { _diag.Fail("Extend persona list", e); }
         }
 
         /// <summary>Persona folder names from the last companion heartbeat (version 35: kept for the menu refill).</summary>
@@ -1271,10 +1260,12 @@ namespace AIBody
         {
             if (_personaJson == null) return;
             // Version 40: never a blank menu entry; version 50: an empty or "(none)" value (old scene or config) is Anna.
-            if (string.IsNullOrEmpty(_personaJson.val) || _personaJson.val == "(none)") _personaJson.val = PersonaDefault;
+            if (string.IsNullOrEmpty(_personaJson.val) || _personaJson.val == "(none)" || UiChooser.IsPlaceholder(_personaJson.val))
+                _personaJson.val = PersonaDefault;
             List<string> choices = new List<string>(StarterPersonas);   // version 50: female + male starter, no "(none)"
-            for (int i = 0; i < _personaNames.Count; i++) if (!choices.Contains(_personaNames[i])) choices.Add(_personaNames[i]);
-            if (!choices.Contains(_personaJson.val)) choices.Add(_personaJson.val);
+            for (int i = 0; i < _personaNames.Count; i++)
+                if (!UiChooser.IsPlaceholder(_personaNames[i]) && !choices.Contains(_personaNames[i])) choices.Add(_personaNames[i]);
+            if (!UiChooser.IsPlaceholder(_personaJson.val) && !choices.Contains(_personaJson.val)) choices.Add(_personaJson.val);
             bool same = choices.Count == _personaJson.choices.Count;
             for (int i = 0; same && i < choices.Count; i++) same = choices[i] == _personaJson.choices[i];
             if (same) return;
@@ -1302,9 +1293,9 @@ namespace AIBody
             for (int i = 0; i < names.Count; i++)
             {
                 string n = names[i].Value;
-                if (n.Length > 0 && !choices.Contains(n)) choices.Add(n);
+                if (!UiChooser.IsPlaceholder(n) && !choices.Contains(n)) choices.Add(n);
             }
-            if (!string.IsNullOrEmpty(_voiceJson.val) && !choices.Contains(_voiceJson.val)) choices.Add(_voiceJson.val);
+            if (!UiChooser.IsPlaceholder(_voiceJson.val) && !choices.Contains(_voiceJson.val)) choices.Add(_voiceJson.val);
             bool same = choices.Count == _voiceJson.choices.Count;
             for (int i = 0; same && i < choices.Count; i++) same = choices[i] == _voiceJson.choices[i];
             if (same) return;
@@ -1314,15 +1305,9 @@ namespace AIBody
 
         private void SetVoice(string voice)
         {
-            if (string.IsNullOrEmpty(voice)) return;
-            if (!_voiceJson.choices.Contains(voice))
-            {
-                List<string> choices = new List<string>(_voiceJson.choices);
-                choices.Add(voice);
-                try { _voiceJson.choices = choices; }   // choices refresh: E9, E24, E25
-                catch (Exception e) { _diag.Fail("Extend voice list", e); }
-            }
-            _voiceJson.val = voice;
+            if (UiChooser.IsPlaceholder(voice)) return;   // version 65: a saved "0" keeps the default voice
+            try { UiChooser.ApplyValue(_voiceJson, voice); }
+            catch (Exception e) { _diag.Fail("Extend voice list", e); }
         }
 
         /// <summary>
@@ -1567,9 +1552,12 @@ namespace AIBody
         {
             if (chooser == null || builtIn == null) return;
             List<string> choices = new List<string>(builtIn);
+            UiChooser.DropPlaceholders(choices);
             List<string> old = chooser.choices;
-            if (old != null) for (int i = 0; i < old.Count; i++) if (!string.IsNullOrEmpty(old[i]) && !choices.Contains(old[i])) choices.Add(old[i]);
-            if (!string.IsNullOrEmpty(chooser.val) && !choices.Contains(chooser.val)) choices.Add(chooser.val);
+            if (old != null) for (int i = 0; i < old.Count; i++)
+                if (!UiChooser.IsPlaceholder(old[i]) && !choices.Contains(old[i])) choices.Add(old[i]);
+            if (!UiChooser.IsPlaceholder(chooser.val) && !choices.Contains(chooser.val)) choices.Add(chooser.val);
+            else if (UiChooser.IsPlaceholder(chooser.val) && choices.Count > 0) chooser.val = choices[0];
             bool same = old != null && choices.Count == old.Count;
             for (int i = 0; same && i < choices.Count; i++) same = choices[i] == old[i];
             if (same) return;
@@ -1588,12 +1576,14 @@ namespace AIBody
             if (names == null || chooser == null) return;
             // Version 50: the built-in list first (never empty or reduced to the test engine), then what the app reports.
             List<string> choices = new List<string>(BuiltInChoices(chooser));
+            UiChooser.DropPlaceholders(choices);
             for (int i = 0; i < names.Count; i++)
             {
                 string n = names[i].Value;
-                if (n.Length > 0 && !choices.Contains(n)) choices.Add(n);
+                if (!UiChooser.IsPlaceholder(n) && !choices.Contains(n)) choices.Add(n);
             }
-            if (!string.IsNullOrEmpty(chooser.val) && !choices.Contains(chooser.val)) choices.Add(chooser.val);
+            if (!UiChooser.IsPlaceholder(chooser.val) && !choices.Contains(chooser.val)) choices.Add(chooser.val);
+            else if (UiChooser.IsPlaceholder(chooser.val) && choices.Count > 0) chooser.val = choices[0];
             bool same = choices.Count == chooser.choices.Count;
             for (int i = 0; same && i < choices.Count; i++) same = choices[i] == chooser.choices[i];
             if (same) return;

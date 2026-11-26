@@ -643,23 +643,33 @@ namespace AIBody
         public void RefreshCharacterChoices()
         {
             if (_poseCommandChoiceJson == null) return;
+            bool poseDrop = UiChooser.ShowsDropdown(_poseCommandChoiceJson);
+            bool idleDrop = UiChooser.ShowsDropdown(_idlePoseDefaultJson);
+            bool exprDrop = UiChooser.ShowsDropdown(_expressionChoiceJson);
+            bool gestDrop = UiChooser.ShowsDropdown(_gestureChoiceJson);
             List<string> poses = _poses != null ? _poses.PoseNames : new List<string>();
             List<string> commands = new List<string>();
             if (_poses != null) for (int i = 0; i < _poses.Vocabulary.Count; i++) commands.Add(_poses.Vocabulary.Get(i).Command);
+            UiChooser.DropPlaceholders(commands);
             _syncingPoseMenu = true;
             try
             {
                 _poseCommandChoiceJson.choices = commands;   // E9, E24, E25
                 // version 58 (Don 16:09: no empty dropdown): the first command when none is chosen; choosing only selects
                 // since version 52 (Apply Pose applies), so this applies nothing
-                if (!commands.Contains(_poseCommandChoiceJson.val)) _poseCommandChoiceJson.val = commands.Count > 0 ? commands[0] : "";
+                // version 65: a placeholder ("0" / empty) falls back to the first command, and is not kept as a choice
+                if (UiChooser.IsPlaceholder(_poseCommandChoiceJson.val) || !commands.Contains(_poseCommandChoiceJson.val))
+                    _poseCommandChoiceJson.val = commands.Count > 0 ? commands[0] : "";
             }
             finally { _syncingPoseMenu = false; }
             if (_idlePoseDefaultJson != null)
             {
                 List<string> homes = new List<string>(poses);
-                if (!homes.Contains(_idlePoseDefaultJson.val)) homes.Add(_idlePoseDefaultJson.val);   // keep the saved choice
+                UiChooser.DropPlaceholders(homes);
+                if (!UiChooser.IsPlaceholder(_idlePoseDefaultJson.val) && !homes.Contains(_idlePoseDefaultJson.val))
+                    homes.Add(_idlePoseDefaultJson.val);   // keep the saved choice (a real pose name)
                 _idlePoseDefaultJson.choices = homes;   // E9, E24, E25
+                UiChooser.Sanitize(_idlePoseDefaultJson, IdlePoseScheduler.DefaultIdlePose);
             }
             List<string> expressions = new List<string>();
             if (_expressions != null) foreach (string n in _expressions.PresetNames) expressions.Add(n);
@@ -668,12 +678,18 @@ namespace AIBody
             if (_poses != null) foreach (string n in _poses.GestureNames) if (!poses.Contains(n)) gestures.Add(n);
             foreach (string n in new[] { "nod", "shake", "tilt" }) if (!gestures.Contains(n)) gestures.Add(n);
             SetMenu(_gestureChoiceJson, gestures);
+            if (poseDrop != UiChooser.ShowsDropdown(_poseCommandChoiceJson)
+                || idleDrop != UiChooser.ShowsDropdown(_idlePoseDefaultJson)
+                || exprDrop != UiChooser.ShowsDropdown(_expressionChoiceJson)
+                || gestDrop != UiChooser.ShowsDropdown(_gestureChoiceJson))
+                RebuildTab = true;   // version 65: switch between the dropdown and the read-only line
         }
 
         private static void SetMenu(JSONStorableStringChooser chooser, List<string> names)
         {
+            UiChooser.DropPlaceholders(names);
             chooser.choices = names;   // E9, E24, E25
-            if (names.Count > 0 && !names.Contains(chooser.val)) chooser.val = names[0];
+            if (names.Count > 0 && (UiChooser.IsPlaceholder(chooser.val) || !names.Contains(chooser.val))) chooser.val = names[0];
         }
 
         // ---------------------------------------------------------------- pose commands (version 32)
@@ -1144,13 +1160,8 @@ namespace AIBody
 
         private static void SetChooserValue(JSONStorableStringChooser chooser, string value)
         {
-            if (!chooser.choices.Contains(value))
-            {
-                List<string> choices = new List<string>(chooser.choices);
-                choices.Add(value);
-                chooser.choices = choices;
-            }
-            chooser.val = value;
+            // version 65: a saved "0" or empty value is not added as a choice; the default already in the chooser stays
+            UiChooser.ApplyValue(chooser, value);
         }
 
         /// <summary>Set from config.json (connection.paths) by the plugin.</summary>

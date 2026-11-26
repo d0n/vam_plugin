@@ -984,6 +984,14 @@ Report: a pose whose limbs look different from the file, a body that drifts away
 5. If VaM still crashes, note the time and keep the crash dump (`%LOCALAPPDATA%\CrashDumps`) and VaM's `output_log.txt`: the crash is then not caused by the IdlePoser code (compare with v62, T117).
 Report: a crash (with the time), an Idle movement section, an IdlePoser added by AIBody, a config.json error about the old keys.
 
+## T121 – One-entry menus are a line, not a dropdown (version 65)
+1. Install v65. Start AIBody Companion, then VaM, load AI-Buddy, **Always Allow**.
+2. Tab AI Character: **Expression**, **Gesture**, **Pose command**, **Idle default pose**, **AI gender/body** and **Your character gender** (after Yes). Menus with two or more entries are dropdowns; a menu with one entry (or none) is a short read-only line with the name and the value, not a dropdown. Add or delete pose commands until only one remains: **Pose command** becomes a line; add a second: it is a dropdown again.
+3. Tab Voice: **AI mode**, **Language model**, **Persona**, **Language**, **Voice**, **Speech-to-text**, **Text-to-speech**, **Mic mode**, **VAD engine** are dropdowns (each has two or more entries).
+4. In a copy of `config.json`, set `body.idle_pose_default` to `"0"`, `engines.stt` to `"0"`, `ai.realtime.voice` to `"0"`. Reload Config JSON. Expected: no `"0"` in any dropdown; Idle default pose stays `Stand Up` (or the pose it had), Speech-to-text stays `xai`, Voice stays `eve` (or the voice it had).
+5. Tab Dollmaster (if used): **Personality** and **Thrust Control** stay dropdowns; **None** in Thrust Control is the "no target" choice and must still be there.
+Report: a one-entry dropdown that is still a popup, a `"0"` entry in a menu, a missing **None** / **Not set** / **null** choice, a saved `"0"` that stuck as the value.
+
 ## T107 – One idle pose interval (version 59)
 1. Install v59, start AIBody Companion, then VaM; load AI-Buddy. Tab AI Character > Idle poses: there is ONE slider **Idle pose interval (s)** (default 165), no min / max wait sliders.
 2. Set it to 60 s and stay quiet: each idle pose change comes after about 45-75 s (60 s +/- 25 %), not always the same wait. The left field says "now between 45 s and 75 s".

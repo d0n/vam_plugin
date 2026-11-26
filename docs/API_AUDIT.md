@@ -418,6 +418,10 @@ New in the plugin (`GazeController.cs`), all with evidence E12 / E28 (see the ta
 - No `foreach` over Dictionary `.Keys`/`.Values`, no LINQ, no file or network access added. A gaze exception only
   stops the gaze (`_gazeBroken`), not the body.
 
+## Version 65 (26.11.2026): one-entry choosers are a read-only line
+
+- No new VaM API. `UiPage.Popup` / `ScrollablePopup` still use `CreatePopup` / `CreateScrollablePopup` (E16, E24) when the list has two or more entries, and `CreateTextField` (E12, the same call as `Header`) when it has fewer. Choice lists are still set with `chooser.choices = ...` (E9, E24, E25). The storable itself is unchanged.
+
 ## Version 64 (25.11.2026): idle movement removed
 
 - The plugin no longer uses the IdlePoser calls of version 60-63 (E41-E45: `MVRPluginManager.CreatePlugin`, `pluginURLJSON`, `LateRestoreFromJSON`, the plugin `enabled` / `pluginLabel` storables, `FreeControllerV3.isGrabbing`, `SuperController.isLoading`); their stubs are removed from `tools/stubs/VaMStubs.cs` again (back to version 59), so the compile check fails if any of them comes back. Version 63's root-position reset (below) is unchanged.
