@@ -984,6 +984,15 @@ Report: a pose whose limbs look different from the file, a body that drifts away
 5. If VaM still crashes, note the time and keep the crash dump (`%LOCALAPPDATA%\CrashDumps`) and VaM's `output_log.txt`: the crash is then not caused by the IdlePoser code (compare with v62, T117).
 Report: a crash (with the time), an Idle movement section, an IdlePoser added by AIBody, a config.json error about the old keys.
 
+## T124 – Root reset to the scene-load place (version 66)
+1. Install v66, start AIBody Companion, then VaM; load AI-Buddy; **Center body on control point** on (default). The log has one Info line "Origin of 'AI' captured: hips at x / y / z" about 1.5 s after the scene loaded.
+2. Apply a few poses (pose commands, Apply Pose): after each, about 1.5 s later, the log has "Origin reset after pose ...: delta ... collision shift no" and the hips are again at the captured place (flat), also for poses that store a root position; sitting / lying poses keep their height. No visible whipping or body distortion while she moves back (physics held for 0.3 s).
+3. Move her with **Body position** (forward 1 m, turn 90): apply a pose: she stays at the NEW place. **Reset body position** and **Reset poses**: the next pose returns to the scene-load place.
+4. Put the client (or another person) within 0.5 m of her place and apply a pose: she ends up beside that place, 0.5 m or more away from the person, and the log says "moved sideways" (collision shift yes).
+5. Apply the pose "Doggie Spread - NutkinChan" (the one that threw the body 2.39 km in v65): if the body is more than 20 m off or a controller is not a number, the pose is NOT applied: the previous look comes back, the log has a Warn "was NOT applied ... on the bad list for this session", and the same pose is refused until **Reload Plugin**; an idle pose or pose command picks another pose instead.
+6. **Center body on control point** off: poses behave as before the reset (no origin move). A Dollmaster montage is never moved back.
+Report: a pose that ends away from the captured place, a jerk or stretched body during the move, a missing log line, a sideways shift that was not needed or not enough, a skipped pose that was applied anyway, an origin that does not follow Body position.
+
 ## T123 – Stronger idle motion and breathing, calmer AI face (version 66)
 1. Install v66, start AIBody Companion, then VaM; load AI-Buddy. Body control, **Idle head motion** and **Breathing** on, **Idle intensity** at its default: the head sways and the weight shifts about twice as far and about twice as often as in v65 (compare with v65 if possible); the breath is clearly visible in the chest and the breath morph. Lower **Idle intensity** / **Breath depth**: the motion gets smaller (the sliders still scale it).
 2. Let the AI answer with a happy sentence and then (at once) a different tone, or send two `expression` commands one after the other (e.g. happy, then neutral): the first look fades out in about the blend time of the second (a second or so), not slowly over many seconds; no mixed faces. VaM's Auto Expressions stay paused until the fade has ended, then the face moves by itself again.

@@ -313,6 +313,7 @@ namespace AIBody
             Atom ai = _body.Atom;
             _aiPlacement = PlacementSnapshot.Take(ai);
             _clientPlacement = PlacementSnapshot.Take(FindClient(ai));
+            _body.CaptureOrigin();   // version 66: the hips' origin of the root reset, as the scene has it now
         }
 
         /// <summary>Button "Reset poses": the AI first, the client ClientResetDelay later (Update), so they do not collide.</summary>

@@ -48,11 +48,11 @@ namespace AIBody
     }
 
     /// <summary>
-    /// Pure math of the "origin" root reset (SOP-10, Don 26.11.2026 20:55; NOT wired into the plugin yet, see docs/BACKLOG.md):
+    /// Pure math of the "origin" root reset (SOP-10, Don 26.11.2026 20:55; used by PoseGuard in PoseController.cs, version 66):
     /// the origin is the hips' world position captured when the scene was loaded; after a pose has settled every controller of
     /// the atom is moved by the same flat world-space delta (origin - hips), the pose's own offsets untouched, no rotation. A delta
-    /// that is not a number or longer than MaxDeltaMetres is refused (the caller then snaps back to the stored origin offset and
-    /// logs a warning). Another person within ClearanceMetres (flat) of the target point moves the target sideways (perpendicular
+    /// that is not a number or longer than MaxDeltaMetres is refused (the caller then SKIPS the pose: the look from before the load is
+    /// put back and the pose goes on the session's bad list). Another person within ClearanceMetres (flat) of the target point moves the target sideways (perpendicular
     /// to the way there) by the smallest offset that clears it. Height: the delta is flat (x, z); y keeps the pose's floor height.
     /// Plain floats, so tests run it outside VaM (companion/tests/test_version66_origin.py).
     /// </summary>

@@ -532,6 +532,12 @@ namespace AIBody
 
         public const string RootResetLabel = "Center body on control point";
 
+        /// <summary>Version 66 (SOP-10): the hips' origin of the scene load is captured once the scene has loaded (AIBodyPlugin.TakePlacement).</summary>
+        public void CaptureOrigin()
+        {
+            if (_poses != null) _poses.Guard.CaptureOrigin();
+        }
+
         /// <summary>Version 63: the root-position reset in running prose (left field).</summary>
         private string RootResetInfo()
         {
@@ -539,8 +545,10 @@ namespace AIBody
             string last = _poses != null && _poses.Guard.LastCenterNote.Length > 0 ? " Last: " + _poses.Guard.LastCenterNote + "." : "";
             return "<b>Center body on control point</b> is " + (on ? "on" : "off") + ": when a pose is applied (pose commands, Apply "
                 + "Pose, idle poses, the AI's pose tool) the pose is kept, but her body (the hips) is "
-                + "put back over her control point - the place the scene and <b>Body position</b> give her - instead of where the "
-                + "pose's own offsets would take it. Only the flat distance is taken back, the height stays (sitting, lying).\n" + last
+                + "put back where the scene had them when it was loaded (moved along with <b>Body position</b>) instead of where the "
+                + "pose's own offsets would take it: once the pose has settled, the whole body is moved by the same flat distance with "
+                + "physics held for a moment, the height stays (sitting, lying). Another person within 0.5 m of that place moves it "
+                + "sideways; a pose that throws her more than 20 m away is skipped and not used again this session.\n" + last
                 + (last.Length > 0 ? "\n" : "");
         }
 
@@ -874,6 +882,7 @@ namespace AIBody
             Vector3 pos = BodyMover.TargetPosition(_homePos, _homeRot, _moveForwardJson.val, _moveRightJson.val, _turnJson.val);
             Quaternion rot = Quaternion.Euler(0f, _turnJson.val, 0f) * _homeRot;
             int n = BodyMover.Relocate(_atom, pos, rot);
+            if (_poses != null) _poses.Guard.SetOriginForPlace(pos, rot);   // version 66: the origin of the root reset goes with her
             if (_poses != null) _poses.Guard.Rebase();   // version 56: a pose guard still running keeps the NEW place
             if (_idle != null) _idle.Rebase();   // the idle head motion starts from the new place
             Log.Debug("Body position: forward " + _moveForwardJson.val.ToString("0.00") + " m, right " + _moveRightJson.val.ToString("0.00")
@@ -885,6 +894,7 @@ namespace AIBody
         {
             if (_atom == null) return;
             if (_homeSet) BodyMover.Relocate(_atom, _homePos, _homeRot);
+            if (_homeSet && _poses != null) _poses.Guard.SetOriginForPlace(_homePos, _homeRot);   // version 66
             if (_poses != null) _poses.Guard.Rebase();   // version 56
             _homeSet = false;
             _syncingMove = true;
@@ -897,6 +907,7 @@ namespace AIBody
         /// <summary>Version 54: Reset poses put her back to the scene placement; the Body position offsets start at 0 again.</summary>
         public void ForgetBodyPosition()
         {
+            if (_poses != null) _poses.Guard.ResetOrigin();   // version 66: the origin of the root reset is the scene's again
             _homeSet = false;
             _syncingMove = true;
             try { _moveForwardJson.val = 0f; _moveRightJson.val = 0f; _turnJson.val = 0f; }

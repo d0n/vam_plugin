@@ -1,10 +1,10 @@
-"""SOP-10 (Don 26.11.2026 20:55), math only: the "origin" root reset - flat delta, sanity guard, sideways shift away from other
-people, log line. NOT wired into the plugin (needs design decisions, see docs/BACKLOG.md); the pure C# (OriginReset in
-RootReset.cs) runs in a dotnet harness."""
+"""SOP-10 (Don 26.11.2026 20:55): the "origin" root reset - flat delta, sanity guard, sideways shift away from other people, log
+line (pure C# OriginReset in RootReset.cs, run in a dotnet harness) and its wiring in PoseGuard / Body / AIBodyPlugin (source checks)."""
 from __future__ import annotations
 
 import json
 import math
+import re
 import os
 import shutil
 import subprocess
@@ -14,6 +14,7 @@ from pathlib import Path
 from unittest import TestCase
 
 from . import test_version35 as v35
+from .test_plugin_menu import method_body
 
 ROOT = Path(__file__).resolve().parents[2]
 SRC = ROOT / "src" / "AIBody"
@@ -107,3 +108,87 @@ class OriginMathTests(TestCase):
         for part in ("Sit Down", "-0.500 / 1.000", "0.004 m from the origin", "collision shift yes"):
             self.assertIn(part, line)
         self.assertIn("collision shift no", self.ask(cmd="log", pose="p", dx=0, dz=0, d=0, shift=False)["line"])
+
+
+def src(name: str) -> str:
+    return (SRC / name).read_text(encoding="utf-8")
+
+
+def guard_text() -> str:
+    pose = src("PoseController.cs")
+    return pose[pose.index("public class PoseGuard"):pose.index("public static class BodyMover")]
+
+
+class OriginWiringTests(TestCase):
+    def test_named_constants(self):
+        text = src("RootReset.cs")
+        self.assertIn("public const float MaxDeltaMetres = 20f;", text)
+        self.assertIn("public const float ClearanceMetres = 0.5f;", text)
+        self.assertIn("public const float UnlockSeconds = 0.3f;", guard_text())
+
+    def test_origin_is_captured_once_when_the_scene_has_loaded(self):
+        plugin = src("AIBody.cs")
+        take = method_body(plugin, "private void TakePlacement()")
+        self.assertIn("_body.CaptureOrigin();", take)
+        self.assertLess(take.index("_aiPlacement = PlacementSnapshot.Take(ai);"), take.index("_body.CaptureOrigin();"))
+        self.assertIn("if (_placementTaken || !_settingsChecked", take, "after the scene restore (the config.json check), once")
+        self.assertEqual(src("PoseController.cs").count("CaptureOrigin()"), 1, "only defined; called by Body")
+        self.assertNotIn("CaptureOrigin", method_body(guard_text(), "public string Around(string what, Func<string> load, Atom partner)"),
+                         "never at pose-apply time")
+
+    def test_origin_follows_body_position_and_resets_with_reset_poses(self):
+        body = src("Body.cs")
+        self.assertIn("_poses.Guard.SetOriginForPlace(pos, rot);", method_body(body, "private void OnBodyMove()"))
+        self.assertIn("_poses.Guard.SetOriginForPlace(_homePos, _homeRot);", method_body(body, "private void ResetBodyPosition()"))
+        self.assertIn("_poses.Guard.ResetOrigin();", method_body(body, "public void ForgetBodyPosition()"))
+
+    def test_one_move_after_the_pose_settled_physics_suspended_all_controllers(self):
+        g = guard_text()
+        update = method_body(g, "public void Update(float dt)")
+        self.assertIn("if (UseOrigin && !_originDone)", update)
+        self.assertLess(update.index("_age >= MinSeconds && _quiet >= QuietSeconds"), update.index("ApplyOrigin()"))
+        apply = method_body(g, "private bool ApplyOrigin()")
+        self.assertLess(apply.index("SuspendPhysics();"), apply.index("BodyMover.Shift(_atom, new Vector3(dx, 0f, dz));"))
+        self.assertIn("new Vector3(dx, 0f, dz)", apply, "flat: the height stays the pose's")
+        self.assertIn("_unlockIn = UnlockSeconds;", apply)
+        self.assertIn("FreeControllerV3.PositionState.Lock", method_body(g, "private void SuspendPhysics()"))
+        self.assertIn("_locked[i].currentPositionState = _lockedStates[i];", method_body(g, "private void ResumePhysics()"))
+        shift = method_body(src("PoseController.cs"), "public static int Shift(Atom atom, Vector3 shift)")
+        self.assertIn("atom.mainController.transform.rotation", shift, "no rotation change; every controller via Relocate")
+
+    def test_absurd_delta_or_runaway_controller_skips_the_pose(self):
+        g = guard_text()
+        apply = method_body(g, "private bool ApplyOrigin()")
+        self.assertIn("OriginReset.Verdict.Absurd", apply)
+        self.assertIn("Reject(", apply)
+        reject = method_body(g, "private void Reject(string reason)")
+        for part in ("_snap.Restore();", "OnRejected(key)", "Log.Warn(", "bad list"):
+            self.assertIn(part, reject)
+        self.assertIn("string bad = Runaway();", method_body(g, "public void Hold()"), "a thrown body is caught at once")
+        self.assertIn("string bad = Runaway();", apply, "and after the move")
+        pose = src("PoseController.cs")
+        self.assertIn("_badPoses.Add(key);", pose)
+        self.assertIn("if (_badPoses.Contains(path))", method_body(pose, "public string LoadPose(string path)"))
+        self.assertIn("Guard.PoseKey = path;", method_body(pose, "public string LoadPose(string path)"))
+
+    def test_collision_avoidance_and_log(self):
+        g = guard_text()
+        apply = method_body(g, "private bool ApplyOrigin()")
+        self.assertIn("OriginReset.Sideways(h.x, h.z, ref tx, ref tz, OthersFlat(), OriginReset.ClearanceMetres)", apply)
+        self.assertIn("Log.Info(OriginReset.LogLine(_what, dx, dz, dist, shifted));", apply)
+        others = method_body(g, "private float[] OthersFlat()")
+        self.assertIn('a.type != "Person"', others)
+        self.assertIn('"chestControl"', others)
+        self.assertIn("RootReset.BodyControl", others)
+
+    def test_montages_and_the_toggle_are_untouched(self):
+        g = guard_text()
+        self.assertIn("private bool UseOrigin { get { return _center && _hasOrigin; } }", g)
+        self.assertIn("if (!UseOrigin) Center();", method_body(g, "public void Hold()"), "no origin yet: the v63 centring stays the fallback")
+
+    def test_docs(self):
+        notes = (ROOT / "docs" / "RELEASE_NOTES_NEXT.md").read_text(encoding="utf-8")
+        for part in ("Root reset after a pose", "20 m", "0.5 m", "bad list"):
+            self.assertIn(part, notes)
+        self.assertIn("## T124 ", (ROOT / "docs" / "TEST_PROTOCOL.md").read_text(encoding="utf-8"))
+        self.assertIn("**Origin root reset**", (ROOT / "docs" / "SPEC.md").read_text(encoding="utf-8"))

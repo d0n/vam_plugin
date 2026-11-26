@@ -22,9 +22,21 @@ namespace AIBody
         private readonly Dictionary<string, JSONClass> _gestures =
             new Dictionary<string, JSONClass>(StringComparer.OrdinalIgnoreCase);
 
+        /// <summary>Version 66: pose files the origin reset skipped this session (a pose that throws the body far away); they are
+        /// not applied again until the plugin reloads (ApplyCommand then takes a substitute pose).</summary>
+        private readonly HashSet<string> _badPoses = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        public int BadPoseCount { get { return _badPoses.Count; } }
+
         public PoseController(Atom atom, IdleController idle)
         {
             Guard = new PoseGuard(atom);
+            Guard.OnRejected = (string key) =>
+            {
+                if (string.IsNullOrEmpty(key)) return;
+                _badPoses.Add(key);
+                string name = PoseNameOfFile(key);
+                if (name != null && OnPoseBroken != null) OnPoseBroken(name);   // out of the idle pool for the session, like a broken file
+            };
             _atom = atom;
             _idle = idle;
         }
@@ -362,6 +374,8 @@ namespace AIBody
             if (path.ToLowerInvariant().EndsWith(".json"))
                 return "'" + path + "' is a .json file, not a pose preset (.vap): load it in VaM and save it as a pose preset (tab Pose)";
             if (_atom == null) return "No AI character";
+            if (_badPoses.Contains(path))
+                return "'" + path + "' was skipped earlier this session: it threw the character far away (the origin reset refused it); not applied again until the plugin reloads";
             JSONStorable presets = _atom.GetStorableByID("PosePresets");
             if (presets == null) return "Atom has no PosePresets storable";
             // presetBrowsePath = SuperController.singleton.NormalizePath(path), then CallAction("LoadPreset") (E7);
@@ -375,6 +389,7 @@ namespace AIBody
             bool onSelectWas = onSelect != null && onSelect.val;
             if (BeforePoseLoad != null) BeforePoseLoad();
             StartCheck(path);
+            Guard.PoseKey = path;   // version 66: for the bad list when the origin reset skips this pose
             // Version 56: the one position-preserving wrapper of every pose change (capture -> load -> put back, then on the
             // next frames until VaM has settled the pose)
             Guard.Around("pose " + Short(path), () =>
@@ -616,6 +631,182 @@ namespace AIBody
         public const string MontageWhat = "Dollmaster montage";
         private bool _center;
         private bool _centerNoted;
+
+        // ---- version 66 (SOP-10, Don 26.11.2026): the ORIGIN root reset --------------------------------------------------
+        // The hips' world position is captured once when the scene has loaded (CaptureOrigin, from Body via AIBodyPlugin.TakePlacement).
+        // When a pose has settled (MinSeconds / QuietSeconds, at most MaxSeconds) ONE step moves every controller of the atom by the
+        // same flat world delta (origin - hips), the pose's own offsets and every rotation untouched; the height stays (a sitting or
+        // lying pose keeps its floor height). Physics is suspended around it (SuspendPhysics: every controller's position state is
+        // Lock while the move is made and for UnlockSeconds after it, then put back) so the joints are not whipped by a big move.
+        // Body position moves the origin along with her (SetOriginForPlace); Reset poses / Reset body position put it back.
+        // A delta over OriginReset.MaxDeltaMetres, a controller that is NaN or that far away: the pose is SKIPPED (Reject): the
+        // look from right before the load is put back, the pose goes on the session's bad list and a warning says so.
+        // TODO(verify in VaM): FreeControllerV3.PositionState.Lock makes the controller's body follow its transform at once (the
+        // enum and currentPositionState are used by Dollmaster, E39; the Lock behaviour itself was not checked in VaM).
+        /// <summary>Seconds the controllers stay locked after the origin move.</summary>
+        public const float UnlockSeconds = 0.3f;
+        private bool _hasOrigin;
+        private Vector3 _origin0, _origin;
+        private Vector3 _originLocal0;   // the hips in the main controller's frame at capture
+        private bool _originDone;
+        private float _unlockIn = -1f;
+        private FreeControllerV3[] _locked;
+        private FreeControllerV3.PositionState[] _lockedStates;
+        private PlacementSnapshot _snap;
+        /// <summary>The key of the pose being loaded (its file path), for the bad list; set by PoseController before Around.</summary>
+        public string PoseKey = "";
+        /// <summary>Called with PoseKey when a pose was skipped (PoseController keeps the bad list).</summary>
+        public Action<string> OnRejected;
+        /// <summary>How many poses were skipped since the start.</summary>
+        public int Rejected { get; private set; }
+        public bool HasOrigin { get { return _hasOrigin; } }
+        /// <summary>The origin now (world), valid when HasOrigin.</summary>
+        public Vector3 Origin { get { return _origin; } }
+        private bool UseOrigin { get { return _center && _hasOrigin; } }
+
+        /// <summary>Captures the hips' world position now (call once after the scene has loaded).</summary>
+        public bool CaptureOrigin()
+        {
+            if (_atom == null || _atom.mainController == null) return false;
+            FreeControllerV3 hip = _atom.GetStorableByID(RootReset.BodyControl) as FreeControllerV3;
+            if (hip == null) return false;
+            Transform main = _atom.mainController.transform;
+            _origin0 = hip.transform.position;
+            _origin = _origin0;
+            _originLocal0 = Quaternion.Inverse(main.rotation) * (_origin0 - main.position);
+            _hasOrigin = !(float.IsNaN(_origin0.x) || float.IsNaN(_origin0.z) || float.IsInfinity(_origin0.x) || float.IsInfinity(_origin0.z));
+            if (_hasOrigin)
+                Log.Info("Origin of '" + _atom.uid + "' captured: hips at " + _origin0.x.ToString("0.000") + " / " + _origin0.y.ToString("0.000") + " / "
+                    + _origin0.z.ToString("0.000") + " (a pose that settles elsewhere is moved back here)");
+            return _hasOrigin;
+        }
+
+        /// <summary>A deliberate move of her place (Body position): the origin goes with her (same offset to the main controller).</summary>
+        public void SetOriginForPlace(Vector3 pos, Quaternion rot)
+        {
+            if (_hasOrigin) _origin = pos + rot * _originLocal0;
+        }
+
+        /// <summary>Back to the origin of the scene load (Reset poses).</summary>
+        public void ResetOrigin() { if (_hasOrigin) _origin = _origin0; }
+
+        private string Runaway()
+        {
+            FreeControllerV3[] all = _atom.freeControllers;
+            if (all == null || _atom.mainController == null) return null;
+            Vector3 m = _atom.mainController.transform.position;
+            for (int i = 0; i < all.Length; i++)
+            {
+                if (all[i] == null) continue;
+                Vector3 p = all[i].transform.position;
+                if (!OriginReset.Sane(p.x, p.y, p.z, m.x, m.y, m.z, OriginReset.MaxDeltaMetres))
+                    return "controller '" + all[i].name + "' is " + (float.IsNaN(p.x + p.y + p.z) ? "not a number" : (p - m).magnitude.ToString("0") + " m away");
+            }
+            return null;
+        }
+
+        private void SuspendPhysics()
+        {
+            if (_locked != null || _atom == null || _atom.freeControllers == null) return;
+            FreeControllerV3[] all = _atom.freeControllers;
+            _locked = new FreeControllerV3[all.Length];
+            _lockedStates = new FreeControllerV3.PositionState[all.Length];
+            for (int i = 0; i < all.Length; i++)
+            {
+                if (all[i] == null) continue;
+                _locked[i] = all[i];
+                _lockedStates[i] = all[i].currentPositionState;
+                all[i].currentPositionState = FreeControllerV3.PositionState.Lock;
+            }
+        }
+
+        private void ResumePhysics()
+        {
+            if (_locked == null) return;
+            for (int i = 0; i < _locked.Length; i++) if (_locked[i] != null) _locked[i].currentPositionState = _lockedStates[i];
+            _locked = null;
+            _lockedStates = null;
+        }
+
+        /// <summary>The other people's hips and chests (flat x, z pairs) for the collision check.</summary>
+        private float[] OthersFlat()
+        {
+            List<float> xz = new List<float>();
+            List<Atom> atoms = SuperController.singleton != null ? SuperController.singleton.GetAtoms() : null;
+            if (atoms == null) return xz.ToArray();
+            for (int i = 0; i < atoms.Count; i++)
+            {
+                Atom a = atoms[i];
+                if (a == null || a == _atom || a.type != "Person") continue;
+                string[] ids = { RootReset.BodyControl, "chestControl" };
+                for (int k = 0; k < ids.Length; k++)
+                {
+                    FreeControllerV3 c = a.GetStorableByID(ids[k]) as FreeControllerV3;
+                    if (c == null) continue;
+                    xz.Add(c.transform.position.x);
+                    xz.Add(c.transform.position.z);
+                }
+            }
+            return xz.ToArray();
+        }
+
+        /// <summary>Skips the pose: the look from before the load is put back (physics suspended), the pose is reported as bad.</summary>
+        private void Reject(string reason)
+        {
+            Rejected++;
+            string key = PoseKey;
+            LastNote = Capital(_what) + " skipped: " + reason + "; the previous pose was put back";
+            Log.Warn(Capital(_what) + " was NOT applied: " + reason + ". The previous look was put back and the pose is on the bad list for this "
+                + "session (it is not applied again until the plugin reloads).");
+            if (_snap != null)
+            {
+                SuspendPhysics();
+                _snap.Restore();
+                _pos = _atom.mainController.transform.position;
+                _rot = _atom.mainController.transform.rotation;
+                _unlockIn = UnlockSeconds;
+                _originDone = true;
+            }
+            else _age = -1f;
+            if (OnRejected != null) OnRejected(key);
+        }
+
+        /// <summary>The ONE origin move of a settled pose; true when the guard has to wait for the unlock (or the pose was skipped).</summary>
+        private bool ApplyOrigin()
+        {
+            FreeControllerV3 hip = _atom.GetStorableByID(RootReset.BodyControl) as FreeControllerV3;
+            if (hip == null) return false;
+            Vector3 h = hip.transform.position;
+            float dx, dz;
+            OriginReset.Verdict v = OriginReset.Delta(_origin.x, _origin.z, h.x, h.z, RootReset.ToleranceMetres, out dx, out dz);
+            if (v == OriginReset.Verdict.Tiny) { Log.Debug(Capital(_what) + ": hips already at the origin"); return false; }
+            if (v == OriginReset.Verdict.Absurd)
+            {
+                Reject("the hips settled " + (h - _origin).magnitude.ToString("0") + " m from her place (limit " + OriginReset.MaxDeltaMetres.ToString("0") + " m)");
+                return true;
+            }
+            float tx = _origin.x, tz = _origin.z;
+            bool shifted = OriginReset.Sideways(h.x, h.z, ref tx, ref tz, OthersFlat(), OriginReset.ClearanceMetres);
+            if (shifted)
+            {
+                dx = tx - h.x; dz = tz - h.z;
+                Log.Info(Capital(_what) + ": another person stands within " + OriginReset.ClearanceMetres.ToString("0.0") + " m of her place: moved sideways to clear it");
+            }
+            SuspendPhysics();
+            BodyMover.Shift(_atom, new Vector3(dx, 0f, dz));
+            string bad = Runaway();
+            if (bad != null) { Reject("after the move " + bad); return true; }
+            Vector3 after = hip.transform.position;
+            float dist = (float)Math.Sqrt((after.x - _origin.x) * (after.x - _origin.x) + (after.z - _origin.z) * (after.z - _origin.z));
+            _pos = _atom.mainController.transform.position;   // the guard keeps the new place, not the old one
+            _rot = _atom.mainController.transform.rotation;
+            _unlockIn = UnlockSeconds;
+            Centers++;
+            LastCenterNote = _what + ": body moved " + Math.Sqrt(dx * dx + dz * dz).ToString("0.00") + " m back to her place (origin)";
+            Log.Info(OriginReset.LogLine(_what, dx, dz, dist, shifted));
+            return true;
+        }
+
         /// <summary>"" or the last time a pose change was re-centred over the control point (info field).</summary>
         public string LastCenterNote { get; private set; }
         /// <summary>How often the body was re-centred since the start (Verbose log, tests).</summary>
@@ -666,6 +857,7 @@ namespace AIBody
         public void Begin(string what)
         {
             if (!Enabled || _atom == null || _atom.mainController == null) return;
+            bool wasActive = Active;
             if (!Active)
             {
                 _pos = _atom.mainController.transform.position;
@@ -677,13 +869,23 @@ namespace AIBody
             _what = what ?? "";
             _center = RootReset.Applies(CenterBody, false);   // version 63
             _centerNoted = false;
+            ResumePhysics();   // version 66: a new pose change while the controllers are locked: free them first
+            _unlockIn = -1f;
+            _originDone = false;
+            if (!wasActive) _snap = UseOrigin ? PlacementSnapshot.Take(_atom) : null;   // the look right before the load (kept while a guard runs)
         }
 
         /// <summary>Puts her back if the pose change moved her (position or rotation).</summary>
         public void Hold()
         {
             if (!Active || _atom == null) return;
-            Center();   // version 63: the body back over the control point (the pose kept); then her place, as before
+            if (UseOrigin && _unlockIn < 0f)
+            {
+                string bad = Runaway();   // version 66: a pose that throws the body far away is skipped at once, not chased
+                if (bad != null) { Reject(bad); return; }
+            }
+            if (!UseOrigin) Center();   // version 63: the body back over the control point (the pose kept); version 66: with an origin ApplyOrigin does it once, settled
+            if (_unlockIn >= 0f) return;   // locked after the origin move: nothing else moves her
             if (!BodyMover.Moved(_atom, _pos, _rot)) return;
             float cm = (_atom.mainController.transform.position - _pos).magnitude * 100f;
             BodyMover.Relocate(_atom, _pos, _rot);
@@ -725,10 +927,26 @@ namespace AIBody
         public void Update(float dt)
         {
             if (!Active) return;
+            if (_unlockIn >= 0f)   // version 66: controllers locked after the origin move (or after a skipped pose)
+            {
+                _unlockIn -= dt;
+                if (_unlockIn < 0f) { ResumePhysics(); _age = -1f; _snap = null; }
+                return;
+            }
             Hold();
+            if (!Active || _unlockIn >= 0f) return;   // Hold skipped the pose
             _age += dt;
             _quiet += dt;
-            if ((_age >= MinSeconds && _quiet >= QuietSeconds) || _age >= MaxSeconds) _age = -1f;
+            if ((_age >= MinSeconds && _quiet >= QuietSeconds) || _age >= MaxSeconds)
+            {
+                if (UseOrigin && !_originDone)
+                {
+                    _originDone = true;
+                    if (ApplyOrigin()) return;
+                }
+                _age = -1f;
+                _snap = null;
+            }
         }
 
         /// <summary>A deliberate move (Body position, Reset poses): the guard keeps the new place, not the old one.</summary>

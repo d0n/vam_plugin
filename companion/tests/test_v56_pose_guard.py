@@ -48,7 +48,9 @@ class PoseGuardTests(unittest.TestCase):
         self.assertIn("public const float MinSeconds = PoseController.SettleSeconds + 0.5f;", g)
         self.assertIn("public const float QuietSeconds = 0.5f;", g)
         self.assertIn("public const float MaxSeconds = 5f;", g)
-        self.assertIn("if ((_age >= MinSeconds && _quiet >= QuietSeconds) || _age >= MaxSeconds) _age = -1f;", g)
+        # version 66: the end of the guard first runs the ONE origin move (ApplyOrigin) once, then the same condition ends it
+        self.assertIn("if ((_age >= MinSeconds && _quiet >= QuietSeconds) || _age >= MaxSeconds)\n            {", g)
+        self.assertIn("_age = -1f;\n                _snap = null;", g)
         self.assertIn("Guard.Update(dt);", method_body(src("PoseController.cs"), "public void Update(float dt)"))
         self.assertIn("public void Rebase()", g)
 
