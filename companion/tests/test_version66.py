@@ -32,6 +32,11 @@ def src(name: str) -> str:
     return (SRC / name).read_text(encoding="utf-8")
 
 
+def code(text: str) -> str:
+    """C# without // comments (the menu code keeps comments that name the removed controls)."""
+    return re.sub(r"//[^\n]*", "", text)
+
+
 class VersionTests(TestCase):
     def test_version_66_everywhere(self):
         self.assertEqual(__version__, "66")
@@ -330,3 +335,94 @@ class IdleIntervalFloorTests(TestCase):
         self.assertIn("3.75-6.25 s", (ROOT / "docs" / "CONFIG.md").read_text(encoding="utf-8"))
         proto = (ROOT / "docs" / "TEST_PROTOCOL.md").read_text(encoding="utf-8")
         self.assertIn("8. Set **Idle pose interval (s)** to 5", proto)
+
+
+class ExpressionGestureMenuRemovedTests(TestCase):
+    """Version 66 (Don 20:34 / 20:36): every expression / gesture entry is gone from the plugin menu; the AI path stays."""
+
+    def test_menu_entries_are_gone(self):
+        body = src("Body.cs")
+        tab = code(method_body(body, "public void BuildCharacterTab(UiPage page)"))
+        body = code(body)
+        for gone in ("Expression and gesture", "Show expression", "Reset expression", "Play gesture", "_expressionChoiceJson",
+                     "_gestureChoiceJson", "ShowChosenExpression", "PlayChosenGesture"):
+            self.assertNotIn(gone, tab, gone)
+        for gone in ('new JSONStorableStringChooser("Expression"', 'new JSONStorableStringChooser("Gesture"',
+                     "ShowChosenExpression", "PlayChosenGesture", "_expressionChoiceJson", "_gestureChoiceJson",
+                     "private static void SetMenu(", "ExpressionHelp", "ExpressionsNote",
+                     'JSONStorableAction("Reset expression"', 'text += "Expression: "'):
+            self.assertNotIn(gone, body, gone)
+        self.assertNotIn("expressions.json reloaded", src("AIBody.cs"))
+        self.assertLess(tab.index("page.Slider(_breathDepthJson);"), tab.index('"<b>Poses</b>"'))
+
+    def test_no_expression_or_gesture_line_in_info_selftest_and_status(self):
+        body = src("Body.cs")
+        info = code(method_body(body, "public string CharacterInfoText()"))
+        self.assertNotRegex(info, r"(?i)expression|gesture\b")
+        selftest = code(method_body(body, "public string SelfTestText()"))
+        self.assertNotRegex(selftest, r"(?i)expression|gesture|timeline")
+        self.assertIn('t["expression_morphs_found"]', body, "the values stay in SelfTestJson")
+        for f in ("Body.cs", "AIBody.cs", "AppLink.cs", "MicConfig.cs", "CharacterWizard.cs"):
+            for m in re.finditer(r'page\.(?:Button|Header|Toggle|Slider|Popup|ScrollablePopup)\(([^;]*)\)', code(src(f))):
+                if '"Reload poses"' in m.group(1):
+                    continue   # the Poses section is unchanged (the button reloads gestures.json, which holds poses)
+                self.assertNotRegex(m.group(1), r"(?i)expression|gesture", f + ": " + m.group(0))
+
+    def test_poses_section_is_unchanged(self):
+        tab = method_body(src("Body.cs"), "public void BuildCharacterTab(UiPage page)")
+        for part in ('page.Header("<b>Poses</b>");', "page.ScrollablePopup(_poseCommandChoiceJson);", 'page.Button("Apply Pose", ApplyPoseCommandNow);',
+                     'page.Button("Add Pose", StartAddPose);', 'page.Button("Reload poses"'):
+            self.assertIn(part, tab, part)
+
+    def test_ai_path_stays(self):
+        router = src("CommandRouter.cs")
+        self.assertIn('Protocol.Has(msg, "expression") && BodyOn && _expressions != null', router)
+        self.assertIn("_expressions.SetExpression(Protocol.GetString(msg, \"expression\", \"\"),", router)
+        self.assertIn('public const string CmdExpression = "expression";', src("Protocol.cs"))
+        self.assertIn('public const string CmdGesture = "gesture";', src("Protocol.cs"))
+        body = src("Body.cs")
+        self.assertIn("_expressions.OnShowingChanged = PauseAutoExpressions;", body)
+        self.assertIn('JSONStorableAction("Expression: " + expression', body)
+        self.assertIn('JSONStorableAction("Gesture: " + gesture', body)
+        self.assertIn('JSONStorableAction("Reload config files", ReloadConfigFiles)', body)
+        self.assertIn("ReloadExpressions();", method_body(body, "public void ReloadConfigFiles()"))
+        self.assertIn("ReloadGestures();", method_body(body, "public void ReloadConfigFiles()"))
+        idle = src("IdleController.cs")
+        for g in ("nod", "shake", "tilt"):
+            self.assertIn(f'"{g}"', idle)
+        self.assertIn("public string PlayGesture(", src("PoseController.cs"))
+        self.assertIn("public bool SetExpression(", src("ExpressionController.cs"))
+        self.assertIn("public IEnumerable<string> PresetNames", src("ExpressionController.cs"))
+
+    def test_old_scene_and_config_load_without_errors(self):
+        """The removed controls never stored a value: no scene storable (the choosers were not registered) and no config key."""
+        scene = (ROOT / "examples" / "scenes" / "AI-Buddy.json").read_text(encoding="utf-8")
+        for gone in ('"Expression"', '"Gesture"', "Reset expression"):
+            self.assertNotIn(gone, scene)
+        body = src("Body.cs")
+        self.assertNotIn("RegisterStringChooser(_expressionChoiceJson", body)
+        defaults = settings_file.defaults()
+        for key in defaults["body"]:
+            self.assertNotRegex(key, r"(?i)expression|gesture_choice|show_expression")
+        old = {"body": {"expression": "happy", "gesture": "nod", "show_expression": True, "idle_poses": True}}
+        data, errors = settings_file.validate(old)
+        self.assertIs(data["body"]["idle_poses"], True)
+        self.assertEqual(len(errors), 3, "unknown keys are reported as problems, never raised; nothing was ever written")
+        # a real v65 config.json (example) loads clean, and the AI's keys stay
+        data, errors = settings_file.validate(json.loads((ROOT / "examples" / "config.json").read_text(encoding="utf-8")))
+        self.assertEqual(errors, [])
+        self.assertIn("gestures", data["ai"]["emotion"])
+        self.assertIn("keywords", data["ai"]["emotion"])
+        self.assertEqual(data["connection"]["paths"]["expressions"], "Saves/PluginData/AIBody/expressions.json")
+        self.assertEqual(data["connection"]["paths"]["gestures"], "Saves/PluginData/AIBody/gestures.json")
+
+    def test_docs_and_notes(self):
+        notes = (ROOT / "docs" / "RELEASE_NOTES_NEXT.md").read_text(encoding="utf-8")
+        for part in ("Expression and gesture controls removed from the menu", "They did not work reliably", "Reset expression",
+                     "Nothing changes for the AI"):
+            self.assertIn(part, notes)
+        proto = (ROOT / "docs" / "TEST_PROTOCOL.md").read_text(encoding="utf-8")
+        self.assertIn("9. Tab AI Character has no section *Expression and gesture*", proto)
+        self.assertIn("obsolete since version 66", proto)
+        self.assertIn("**Manual expression and gesture UI removed**", (ROOT / "docs" / "SPEC.md").read_text(encoding="utf-8"))
+        self.assertNotIn("`Reset expression`,", (ROOT / "README.md").read_text(encoding="utf-8"))

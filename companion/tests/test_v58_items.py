@@ -142,8 +142,9 @@ class NoEmptyDropdownTests(unittest.TestCase):
     def test_every_chooser_has_a_default_or_is_filled(self):
         # choosers created with "" are filled by RefreshCharacterChoices (SetMenu: first entry)
         body = src("Body.cs")
-        for name in ("_expressionChoiceJson", "_gestureChoiceJson"):
-            self.assertIn(f"SetMenu({name},", body)
+        # version 66: the expression and gesture menus are gone; no chooser is created with an empty list and no SetMenu
+        for name in ("_expressionChoiceJson", "_gestureChoiceJson", "SetMenu("):
+            self.assertNotIn(name, body)
 
 
 if __name__ == "__main__":

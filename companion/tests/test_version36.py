@@ -489,8 +489,8 @@ class EyesBelongToVaMTests(unittest.TestCase):
 
     def test_expressions_and_gestures_stay(self):
         body = source("Body.cs")
-        for needle in ("Show expression", "Reset expression", "Reload expressions", "Play gesture", '"Expression: "',
-                       '"Gesture: "'):
+        # version 66: the manual menu entries are gone (test_version66); the trigger actions "Expression: x" / "Gesture: x" stay
+        for needle in ('"Expression: "', '"Gesture: "', "Reload config files"):
             self.assertIn(needle, body)
         # the built-in head gestures (examples/gestures.json maps names such as agree/disagree onto them)
         self.assertIn('new[] { "nod", "shake", "tilt" }', body)
@@ -577,7 +577,7 @@ class MenuLayoutTests(unittest.TestCase):
         char = method_body(source("Body.cs"), "public void BuildCharacterTab(UiPage page)")
         self.order(char, ["Characters.Build(page)", '"<b>Body control</b>"', "_bodyControlJson", '"<b>Idle poses</b>"', "_idlePosesJson", "_idlePoseIntervalJson",
                           '"<b>Idle motion and breathing</b>"', "_idleJson", "_breathingJson", "_breathRateJson", "_breathDepthJson",
-                          '"<b>Expression and gesture</b>"', '"<b>Poses</b>"'])
+                          '"<b>Poses</b>"'])   # version 66: no "Expression and gesture" section
         # version 47 (Don 22.11.2026): no "Breath morph" header / "Breath1" input box in the menu any more
         self.assertNotIn("page.Header(BreathMorphLabel)", char)
         self.assertNotIn("TextInput(_breathMorphJson)", char)

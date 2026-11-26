@@ -118,8 +118,6 @@ namespace AIBody
         private BreathingController _breathing;
         private IdleController _idle;
         private PoseController _poses;
-        private JSONStorableStringChooser _expressionChoiceJson;
-        private JSONStorableStringChooser _gestureChoiceJson;
         private JSONStorableStringChooser _poseCommandChoiceJson;   // "Pose command": choosing only selects; Apply Pose applies (v52)
         private JSONStorableString _poseCommandTextJson;            // "New pose command": the spoken command for Add Pose
         private bool _syncingPoseMenu;                              // true while code (not the user) sets the menu value
@@ -207,18 +205,7 @@ namespace AIBody
             string text = "  Pose storage (PosePresets): " + (storage == "ok" ? "yes" : "NO (" + storage + ")") + "\n";
             text += "  Poses: " + t["poses"].AsInt + " (files in Custom/Atom/Person/Pose: " + t["pose_files"].AsInt + ")\n";
             text += "  Breath morph '" + t["breath_morph"].Value + "': " + (t["breath_morph_found"].AsBool ? "found" : "NOT found (config.json body.breath_morph)") + "\n";
-            int found = t["expression_morphs_found"].AsInt, total = t["expression_morphs_total"].AsInt;
-            text += "  Expression morphs: " + (total == 0 ? "-" : found + " of " + total + " found");
-            JSONArray missing = t["expression_morphs_missing"] as JSONArray;
-            if (missing != null && missing.Count > 0)
-            {
-                List<string> names = new List<string>();
-                for (int i = 0; i < missing.Count && i < 6; i++) names.Add(missing[i].Value);
-                text += " – missing: " + string.Join(", ", names.ToArray()) + (missing.Count > 6 ? ", …" : "");
-            }
-            text += "\n";
-            if (t["timeline_gestures"].AsInt > 0)
-                text += "  Timeline for " + t["timeline_gestures"].AsInt + " gesture(s): " + (t["timeline"].AsBool ? "yes" : "NO (Timeline plugin missing on this Person)") + "\n";
+            // version 66: no "Expression morphs" / "Timeline for N gestures" lines (the data stays in SelfTestJson)
             return text;
         }
 
@@ -314,13 +301,8 @@ namespace AIBody
                 OnPoseCommandChosen);
             _poseCommandChoiceJson.popupOpenCallback = RefreshCharacterChoices;
             _poseCommandTextJson = new JSONStorableString("New pose command", "", (string v) => { });   // not registered: only typed text
-            _expressionChoiceJson = new JSONStorableStringChooser("Expression", new List<string>(), "", "Expression", (string v) => { });
-            _expressionChoiceJson.popupOpenCallback = RefreshCharacterChoices;
-            _gestureChoiceJson = new JSONStorableStringChooser("Gesture", new List<string>(), "", "Gesture", (string v) => { });
-            _gestureChoiceJson.popupOpenCallback = RefreshCharacterChoices;
             CreateSceneHooks();
             _plugin.RegisterAction(new JSONStorableAction("Stop speaking", StopSpeaking));
-            _plugin.RegisterAction(new JSONStorableAction("Reset expression", () => { if (_expressions != null) _expressions.Reset(0.4f); }));
             _plugin.RegisterAction(new JSONStorableAction("Reload config files", ReloadConfigFiles));
         }
 
@@ -455,14 +437,10 @@ namespace AIBody
             page.Slider(_breathDepthJson);
             // Version 47 (Don 22.11.2026, screenshot): the "Breath morph" header and its "Breath1" input box are gone from the
             // menu. The storable "Breath morph" (default Breath1, saved with scenes) and config.json body.breath_morph still set it.
-            page.Header("<b>Expression and gesture</b>");
-            page.Popup(_expressionChoiceJson);
-            page.Button("Show expression", ShowChosenExpression);
-            page.Button("Reset expression", () => { if (_expressions != null) _expressions.Reset(0.4f); });
-            // Version 53 (Don 20:57): no separate "Reload expressions (expressions.json)" button; Reload Config JSON (tab
-            // Config) and the trigger action "Reload config files" reload expressions.json.
-            page.Popup(_gestureChoiceJson);
-            page.Button("Play gesture", PlayChosenGesture);
+            // Version 66 (Don 20:34): the manual expression and gesture controls (Expression menu, Show expression, Reset
+            // expression, Gesture menu, Play gesture) are gone from the menu; the AI still shows expressions and gestures by
+            // itself (companion 'express' / 'gesture' commands, nod / shake), and expressions.json is still reloaded by
+            // Reload Config JSON (tab Config) and the trigger action "Reload config files".
             page.Header("<b>Poses</b>");
             // Version 52: Pose command (choosing selects) + Apply Pose, Add Pose, Delete Pose, Reset poses; then the list tools.
             // No empty menu (version 16): the menu and Delete Pose appear only when there is a command.
@@ -505,14 +483,14 @@ namespace AIBody
             text += PoseCommandsInfo();
             text += IdlePosesInfo();
             text += RootResetInfo();
-            text += ExpressionHelp + "\n" + BodyControlHelp + "\n" + BodyPositionHelp + "\n" + BreathingHelp + "\n";
+            text += BodyControlHelp + "\n" + BodyPositionHelp + "\n" + BreathingHelp + "\n";
             return text;
         }
 
         /// <summary>What the toggle "Body control" does (version 35, the same text as in docs/SPEC.md).</summary>
         public const string BodyControlHelp = "With <b>Body control</b> off the AI and the companion app cannot move the body: no poses (also no "
             + "spoken pose commands), gestures, expressions, morphs, triggers, idle or breathing commands and no idle poses, so "
-            + "the character only speaks. Your own controls <b>Pose command</b>, <b>Reset poses</b>, <b>Show expression</b> and <b>Play gesture</b> still work, and so do "
+            + "the character only speaks. Your own controls <b>Pose command</b> and <b>Reset poses</b> still work, and so do "
             + "the plugin's own life signs, each with its own toggle: <b>Idle head motion</b> (with the chest weight shift) and <b>Breathing</b>.";
 
         /// <summary>The breathing controls in running prose (20.11.2026, Don's style rule for the left fields).</summary>
@@ -647,14 +625,12 @@ namespace AIBody
             }
         }
 
-        /// <summary>Fills the pose / expression / gesture menus from what this body really has.</summary>
+        /// <summary>Fills the pose menus from what this body really has (version 66: the expression and gesture menus are gone).</summary>
         public void RefreshCharacterChoices()
         {
             if (_poseCommandChoiceJson == null) return;
             bool poseDrop = UiChooser.ShowsDropdown(_poseCommandChoiceJson);
             bool idleDrop = UiChooser.ShowsDropdown(_idlePoseDefaultJson);
-            bool exprDrop = UiChooser.ShowsDropdown(_expressionChoiceJson);
-            bool gestDrop = UiChooser.ShowsDropdown(_gestureChoiceJson);
             List<string> poses = _poses != null ? _poses.PoseNames : new List<string>();
             List<string> commands = new List<string>();
             if (_poses != null) for (int i = 0; i < _poses.Vocabulary.Count; i++) commands.Add(_poses.Vocabulary.Get(i).Command);
@@ -679,25 +655,9 @@ namespace AIBody
                 _idlePoseDefaultJson.choices = homes;   // E9, E24, E25
                 UiChooser.Sanitize(_idlePoseDefaultJson, IdlePoseScheduler.DefaultIdlePose);
             }
-            List<string> expressions = new List<string>();
-            if (_expressions != null) foreach (string n in _expressions.PresetNames) expressions.Add(n);
-            SetMenu(_expressionChoiceJson, expressions);
-            List<string> gestures = new List<string>();
-            if (_poses != null) foreach (string n in _poses.GestureNames) if (!poses.Contains(n)) gestures.Add(n);
-            foreach (string n in new[] { "nod", "shake", "tilt" }) if (!gestures.Contains(n)) gestures.Add(n);
-            SetMenu(_gestureChoiceJson, gestures);
             if (poseDrop != UiChooser.ShowsDropdown(_poseCommandChoiceJson)
-                || idleDrop != UiChooser.ShowsDropdown(_idlePoseDefaultJson)
-                || exprDrop != UiChooser.ShowsDropdown(_expressionChoiceJson)
-                || gestDrop != UiChooser.ShowsDropdown(_gestureChoiceJson))
+                || idleDrop != UiChooser.ShowsDropdown(_idlePoseDefaultJson))
                 RebuildTab = true;   // version 65: switch between the dropdown and the read-only line
-        }
-
-        private static void SetMenu(JSONStorableStringChooser chooser, List<string> names)
-        {
-            UiChooser.DropPlaceholders(names);
-            chooser.choices = names;   // E9, E24, E25
-            if (names.Count > 0 && (UiChooser.IsPlaceholder(chooser.val) || !names.Contains(chooser.val))) chooser.val = names[0];
         }
 
         // ---------------------------------------------------------------- pose commands (version 32)
@@ -1042,20 +1002,6 @@ namespace AIBody
             else Note("<color=red>Pose command '" + command + "': " + error + "</color>", true);
         }
 
-        /// <summary>Button "Show expression" (version 53: works without opening the menu first, never starts on "neutral",
-        /// and says how many of the expression's morphs the character has).</summary>
-        private void ShowChosenExpression()
-        {
-            if (_expressions == null) { Note("<color=red>Show expression: no morphs on this character (see the Self-test in tab Config)</color>", true); return; }
-            if (DollmasterOwns) { Note("<color=red>Show expression: Dollmaster is active and owns the face (tab Dollmaster)</color>", true); return; }
-            if (string.IsNullOrEmpty(_expressionChoiceJson.val)) RefreshCharacterChoices();
-            string name = _expressionChoiceJson.val;
-            if (!_expressions.SetExpression(name, 1f, 0.4f, -1f)) { Note("<color=red>Show expression: unknown expression '" + name + "'</color>", true); return; }
-            bool none = _expressions.LastResult.StartsWith("0 of ") && !_expressions.LastResult.StartsWith("0 of 0");
-            Note((none ? "<color=red>" : "") + "Expression '" + name + "': " + _expressions.LastResult
-                + (none ? " - check the morph names in expressions.json against the character's Morphs tab</color>" : ""), none);
-        }
-
         // ---------------------------------------------------------------- VaM's Auto Expressions (version 53)
 
         private bool _autoPaused;
@@ -1087,14 +1033,6 @@ namespace AIBody
                 }
             }
             catch (Exception e) { Log.Warn("Auto Expressions could not be switched: " + Diag.Describe(e)); }
-        }
-
-        private void PlayChosenGesture()
-        {
-            if (_poses == null) { CharacterNote = "Gesture: PoseController missing"; return; }
-            string name = _gestureChoiceJson.val;
-            string error = _poses.PlayGesture(name, 0f, 0f);
-            CharacterNote = error == null ? "Gesture: " + name : "<color=red>Gesture '" + name + "': " + error + "</color>";
         }
 
         // ---------------------------------------------------------------- config.json "body"
@@ -1193,21 +1131,8 @@ namespace AIBody
         {
             if (_expressions != null) _expressions.LoadPresetFile(ExpressionsPath);
             _selfTestAge = 999f;   // self test checks the new morph names
-            RefreshCharacterChoices();   // version 53: the Expression menu shows the new presets at once
         }
 
-        /// <summary>Version 53: help of the Expression part (left info field).</summary>
-        public const string ExpressionHelp = "<b>Expression</b>: choose one and press <b>Show expression</b>; it stays until "
-            + "<b>Reset expression</b> (or the next expression). The note above says how many of its morphs this character has; "
-            + "while an AIBody expression shows, VaM's own Auto Expressions pause so they do not cover it, and come back afterwards. "
-            + "Your own expressions: Saves/PluginData/AIBody/expressions.json (morph display names from the Morphs tab), "
-            + "reloaded by <b>Reload Config JSON</b> in tab Config (and by the trigger action \"Reload config files\").";
-
-        /// <summary>Version 53: for the Reload Config JSON status line.</summary>
-        public string ExpressionsNote
-        {
-            get { return _expressions != null ? _expressions.PresetCount + " expressions (" + ExpressionsPath + ")" : "expressions not available (no morphs)"; }
-        }
 
         public void ReloadGestures()
         {
@@ -1468,7 +1393,6 @@ namespace AIBody
             if (DollmasterOwns) text += "Dollmaster is active (tab Dollmaster): it owns the body; AIBody only speaks\n";
             else if (!BodyControl) text += "Body control: off (speech only; no poses, gestures, expressions or idle poses from the AI side)\n";
             if (_testStatus != null) text += _testStatus + "\n";
-            if (_expressions != null) text += "Expression: " + _expressions.Current + "\n";
             if (_breathing != null && _morphs != null)
                 text += "Breath morph: " + (_breathing.HasMorph ? _breathing.MorphName : "'" + _breathing.MorphName + "' not found") + "\n";
             return text;

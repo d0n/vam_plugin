@@ -161,8 +161,10 @@ class Version18MenuTests(unittest.TestCase):
 
     def test_menu_labels_are_english(self):
         body = method_body(source("Body.cs"), "public void BuildCharacterTab(UiPage page)")
-        for label in ('"Add Pose"', '"Delete Pose"', '"Reset poses"', '"Reload poses"', '"Show expression"', '"Play gesture"'):
+        for label in ('"Add Pose"', '"Delete Pose"', '"Reset poses"', '"Reload poses"'):
             self.assertIn(label, body)
+        for gone in ('"Show expression"', '"Play gesture"', '"Reset expression"'):   # version 66
+            self.assertNotIn(gone, body)
         for german in ("Pose anwenden", "Ausdruck zeigen", "Geste abspielen", "Körper"):
             self.assertNotIn(german, body)
 

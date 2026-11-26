@@ -35,7 +35,7 @@ namespace AIBody
         public Action<bool> OnShowingChanged;
         private bool _showing;
 
-        /// <summary>Version 53: what the last SetExpression found ("2 of 2 morphs"), for the Show expression note.</summary>
+        /// <summary>Version 53: what the last SetExpression found ("2 of 2 morphs"), (kept for the log / tests; the Show expression button is gone since version 66).</summary>
         public string LastResult { get; private set; }
 
         /// <summary>Names for the menu (version 53): the visible expressions first in a fixed order, then the others,

@@ -19,16 +19,13 @@ class ExpressionTests(unittest.TestCase):
         self.assertIn('{ "happy", "smile", "sad", "angry", "surprised", "thinking" }', self.ec)
         self.assertIn('new[] { "listening", "neutral" }', names)
         self.assertNotIn("_presets.Keys", names)
-        self.assertIn("if (names.Count > 0 && (UiChooser.IsPlaceholder(chooser.val) || !names.Contains(chooser.val))) chooser.val = names[0];",
-                      method_body(self.body, "private static void SetMenu(JSONStorableStringChooser chooser, List<string> names)"))
+        # version 66: the Expression menu is gone; PresetNames still feeds the AI's expression list (state / heartbeat)
+        self.assertIn("_expressions.PresetNames", self.body)
 
-    def test_show_expression_works_and_reports_the_morphs(self):
-        show = method_body(self.body, "private void ShowChosenExpression()")
-        self.assertIn("if (string.IsNullOrEmpty(_expressionChoiceJson.val)) RefreshCharacterChoices();", show)
-        self.assertIn("_expressions.SetExpression(name, 1f, 0.4f, -1f)", show)
-        self.assertIn("_expressions.LastResult", show)
-        self.assertIn("check the morph names in expressions.json", show)
-        self.assertIn("if (DollmasterOwns)", show)
+    def test_manual_show_expression_is_gone_but_the_morph_report_stays(self):
+        # version 66: ShowChosenExpression and the menu are removed; the expression code the AI uses is unchanged
+        self.assertNotIn("ShowChosenExpression", self.body)
+        self.assertNotIn("_expressionChoiceJson", self.body)
         self.assertIn('morphs found', method_body(self.ec, "public bool SetExpression(string name, float intensity, float blendTime, float hold)"))
 
     def test_two_sided_names_fall_back_to_left_and_right(self):
@@ -51,24 +48,22 @@ class ExpressionTests(unittest.TestCase):
 
 class ButtonRegroupingTests(unittest.TestCase):
     def test_buttons(self):
+        # version 66: Show expression / Reset expression are gone from the tab (test_version66); reloading stays
         tab = method_body(source("Body.cs"), "public void BuildCharacterTab(UiPage page)")
-        self.assertIn('page.Button("Show expression", ShowChosenExpression);', tab)
-        self.assertIn('page.Button("Reset expression"', tab)
+        self.assertNotIn('page.Button("Show expression"', tab)
+        self.assertNotIn('page.Button("Reset expression"', tab)
         self.assertNotIn('page.Button("Reload expressions (expressions.json)"', tab)
         body = source("Body.cs")
         self.assertIn('_plugin.RegisterAction(new JSONStorableAction("Reload config files", ReloadConfigFiles));', body)
         self.assertIn("ReloadExpressions();", method_body(body, "public void ReloadConfigFiles()"))
-        self.assertIn("RefreshCharacterChoices();", method_body(body, "public void ReloadExpressions()"))
         reload = method_body(source("AIBody.cs"), "private void ReloadConfigJson()")
         self.assertIn("_body.ReloadConfigFiles();", reload)
-        self.assertIn("expressions.json reloaded: ", reload)
+        self.assertNotIn("expressions.json reloaded: ", reload)
 
-    def test_help_in_the_left_field(self):
+    def test_no_expression_help_in_the_left_field(self):
         body = source("Body.cs")
-        self.assertIn("ExpressionHelp + ", method_body(body, "public string CharacterInfoText()"))
-        for part in ("<b>Show expression</b>", "<b>Reset expression</b>", "Auto Expressions", "<b>Reload Config JSON</b>",
-                     "Reload config files"):
-            self.assertIn(part, body[body.index("public const string ExpressionHelp"):][:900], part)
+        self.assertNotIn("ExpressionHelp", body)
+        self.assertNotIn("ExpressionsNote", body)
 
 
 if __name__ == "__main__":

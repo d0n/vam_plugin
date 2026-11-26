@@ -200,7 +200,7 @@ the connection lines (*Connection*) in *Voice*, the body lines (*Body*) in *AI C
 
 - **Self-test**: Person atom yes/no, head audio (`HeadAudioSource`) found, morphs (`geometry`)
   found, pose storage (`PosePresets` with `presetBrowsePath`), pose count (and preset files found
-  with `GetFiles` on `Custom/Atom/Person/Pose`), breath morph found, expression morphs x of y found
+  with `GetFiles` on `Custom/Atom/Person/Pose`), breath morph found (version 66: expression morphs are no longer shown in the menu)
   (missing names listed), Timeline storable present for `timeline` gestures (version 13),
   `Saves/PluginData/AIBody/<channel>` writable, companion app heartbeat seen. The body checks are
   recomputed at most every 5 s and sent as `selftest` in `ready`/`heartbeat`; the companion logs
@@ -271,7 +271,7 @@ If the companion app is missing or crashes, the plugin keeps running: the status
 old events are kept), and the link comes back by itself as soon as the app runs again. If the app
 restarted while the body was speaking, the old speech is cancelled.
 
-Actions for triggers: *Reconnect*, *Stop speaking*, *Reset expression*, *Reload config files*,
+Actions for triggers: *Reconnect*, *Stop speaking*, *Reload config files*,
 *Push-to-talk start / stop / toggle*. Gaze is not part of AIBody (the eyes belong to VaM); use
 [Glance](https://hub.virtamate.com/resources/glance-realistic-head-driven-eye-motion.5461/) on the
 same atom.

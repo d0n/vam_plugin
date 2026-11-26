@@ -99,7 +99,7 @@ class BreathMorphBoxesTests(TestCase):
         self.assertNotIn("_breathMorphJson", tab)
         for kept in ("page.Toggle(_breathingJson);", "page.Slider(_breathRateJson);", "page.Slider(_breathDepthJson);"):
             self.assertIn(kept, tab)
-        self.assertLess(tab.index("page.Slider(_breathDepthJson);"), tab.index('"<b>Expression and gesture</b>"'))
+        self.assertLess(tab.index("page.Slider(_breathDepthJson);"), tab.index('"<b>Poses</b>"'))   # version 66: no Expression and gesture section
         self.assertIn('new JSONStorableString("Breath morph", "Breath1"', body)
         self.assertIn("SettingsDefaults.Text(_plugin, _breathMorphJson);", body)
         self.assertIn('body["breath_morph"] = _breathMorphJson.val;', body)

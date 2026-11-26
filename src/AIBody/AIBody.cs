@@ -598,8 +598,7 @@ namespace AIBody
                 if (_body != null) _body.ReloadConfigFiles();
                 ApplyBackgroundSetup(file);
                 _link.MarkConfigDirty();
-                _configStatus = "config.json reloaded (" + DateTime.Now.ToString("HH:mm:ss") + "): " + _link.SettingsPath
-                    + (_body != null ? "; expressions.json reloaded: " + _body.ExpressionsNote : "");   // version 53
+                _configStatus = "config.json reloaded (" + DateTime.Now.ToString("HH:mm:ss") + "): " + _link.SettingsPath;   // version 66: no expressions.json line
             }
             catch (Exception e)
             {

@@ -193,7 +193,7 @@ but please have a quick look anyway) and a screenshot of the status field with *
 2. Tab **AI Character** > section **Poses**: open the menu (poses from `gestures.json` and from
    `<VaM>/Custom/Atom/Person/Pose/` or `.../Pose/AIBody/`), choose one, **Apply pose**.
    Status field: result of the action. **Reload poses** after putting a new pose file there.
-3. Choose an expression > **Show expression**; choose a gesture > **Play gesture**.
+3. (Obsolete since version 66: the Expression / Gesture menus and buttons are gone.)
 4. Tab **Voice** > **Use realtime voice** on, tab **AI Character** > **Body control** on.
    Say: "Smile for me" (poses are no AI tool any more since version 32: "Strike another pose" must NOT move the
    body, see T24-T29). Console: `realtime tool call` or
@@ -470,7 +470,7 @@ Needs the starter pose files (T24), at least `Stand Up` and one more.
 ## T36 – Body control off (version 35)
 
 1. Switch **Body control** off (tab AI Character > Body). Ask the AI to smile and to wave, type `Sit Down`: it answers by voice, but no expression, gesture or pose; `Sit Down` is answered as ordinary text. No idle poses (T31).
-2. Your own buttons still work: Apply pose, Show expression, Play gesture. Idle head motion, breathing, gaze and blink keep their own toggles.
+2. Your own buttons still work: Apply pose (version 66: the Show expression and Play gesture buttons are gone). Idle head motion, breathing, gaze and blink keep their own toggles.
 3. The info field (AI Character) explains this. Switch it on again: everything works. Report the info field text.
 
 ## T37 – First-start questions in the companion app (version 35; replaced by T41 in version 36)
@@ -993,11 +993,14 @@ Report: a crash (with the time), an Idle movement section, an IdlePoser added by
 6. Migration, scene: load a scene saved with v54-v65 that had *Idle poses from all pose files* on: **All pose files**. One saved with it off: **AIBody poses only**. Config > **Reset to Default**: **AIBody poses only**.
 7. Let it idle: idle poses change as before in both pools, never the same pose twice in a row.
 8. Set **Idle pose interval (s)** to 5 (type 5 into the value field; the slider goes down to 5): the info text says "now between 3.8 s and 6.3 s" (or similar), and for a minute she changes pose every 4-6 s, never the same pose twice in a row, no flicker back to a previous place, no pose change that is cut off, the body stays over her control point. Speak to her: no idle pose while she or you talk. Say a pose command: idle poses wait 120 s. Set the interval back to 165.
-Report: a leftover checkbox, a missing entry, an interval below 5 s or one that refuses 5 s, poses that overlap or stop at 5 s, a count that does not change, an old scene that lost its setting, an error in the VaM log.
+9. Tab AI Character has no section *Expression and gesture*: no **Expression** menu, **Show expression**, **Reset expression**, **Gesture** menu or **Play gesture** (the section after *Idle motion and breathing* is *Poses*). Tab Config > Self-test has no "Expression morphs" or "Timeline for ..." line, and the status does not list an "Expression:" line. Trigger action list: no "Reset expression" ("Reload config files", "Expression: ..." and "Gesture: ..." are still there).
+10. The AI still acts: let it talk with a happy / sad answer or ask for a nod (yes) and a head shake (no): the face changes and the head nods / shakes as before. Edit `Saves/PluginData/AIBody/expressions.json`, tab Config > **Reload Config JSON**: the status says "config.json reloaded (...)" and the AI uses the new expression.
+11. Load a scene or `config.json` from v65 or older: no error in the VaM log about the removed Expression / Gesture entries.
+Report: a leftover checkbox, a missing entry, an Expression / Gesture entry that is still in the menu, an interval below 5 s or one that refuses 5 s, poses that overlap or stop at 5 s, a count that does not change, an old scene that lost its setting, an error in the VaM log.
 
 ## T121 – One-entry menus are a line, not a dropdown (version 65)
 1. Install v65. Start AIBody Companion, then VaM, load AI-Buddy, **Always Allow**.
-2. Tab AI Character: **Expression**, **Gesture**, **Pose command**, **Idle default pose**, **AI gender/body** and **Your character gender** (after Yes). Menus with two or more entries are dropdowns; a menu with one entry (or none) is a short read-only line with the name and the value, not a dropdown. Add or delete pose commands until only one remains: **Pose command** becomes a line; add a second: it is a dropdown again.
+2. Tab AI Character: **Pose command**, **Idle default pose**, **AI gender/body** and **Your character gender** (after Yes). Menus with two or more entries are dropdowns; a menu with one entry (or none) is a short read-only line with the name and the value, not a dropdown. Add or delete pose commands until only one remains: **Pose command** becomes a line; add a second: it is a dropdown again.
 3. Tab Voice: **AI mode**, **Language model**, **Persona**, **Language**, **Voice**, **Speech-to-text**, **Text-to-speech**, **Mic mode**, **VAD engine** are dropdowns (each has two or more entries).
 4. In a copy of `config.json`, set `body.idle_pose_default` to `"0"`, `engines.stt` to `"0"`, `ai.realtime.voice` to `"0"`. Reload Config JSON. Expected: no `"0"` in any dropdown; Idle default pose stays `Stand Up` (or the pose it had), Speech-to-text stays `xai`, Voice stays `eve` (or the voice it had).
 5. Tab Dollmaster (if used): **Personality** and **Thrust Control** stay dropdowns; **None** in Thrust Control is the "no target" choice and must still be there.
@@ -1147,7 +1150,7 @@ Report: no picture (with a screenshot of the AddonPackages folder), freeze on af
 4. Freeze Motion/Sound on while she should talk: after about 3 s the log says the clip did not play (it names Freeze Motion/Sound); stale clips older than 8 s are dropped ("Speech backlog: N clip(s) ... dropped as stale").
 Report: a burst of late answers, answers to old sentences after unfreezing, a stuck mouth/voice.
 
-## T88 – Expressions, Show expression, Reload Config JSON (version 53, Don 22.11.2026 20:49 / 20:57)
+## T88 – Expressions, Show expression, Reload Config JSON (version 53, Don 22.11.2026 20:49 / 20:57) – obsolete since version 66: the Expression / Gesture menu entries and buttons are gone (steps 1-4 do not apply; step 5 and 7 still do, see T122)
 1. Install v53, start AIBody Companion, then VaM; load AI-Buddy. Tab AI Character, part *Expression and gesture*: the buttons are **Show expression** and **Reset expression** (no "Reload expressions (expressions.json)").
 2. Without opening the menu, press **Show expression**: the face shows "happy" clearly (the first entry); the left field says "Expression 'happy': N of N morphs found". VaM's Auto Expressions (person tab Auto Expressions) are off while it shows.
 3. Choose sad, angry, surprised, thinking and press **Show expression** each time: each is visible and stays. Press **Reset expression**: the face goes back; Auto Expressions are on again (if they were on before).
