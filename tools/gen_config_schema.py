@@ -65,9 +65,11 @@ DESCRIPTIONS = {
                                         "written by the plugin)",
     ("body", "idle_poses"): "Toggle 'Idle poses' (version 35): when nothing happens for a while the character takes an "
                             "available pose of the pose commands by itself and next time goes back to idle_pose_default",
-    ("body", "idle_poses_all_files"): "Toggle 'Idle poses from all pose files' (version 54, default off): off = idle poses "
-                                      "use Custom/Atom/Person/Pose/AIBody plus the pose-command poses and idle_pose_default; "
-                                      "on = every pose file of the library",
+    ("body", "idle_pose_pool"): "Menu 'Idle pose pool' (version 66, default aibody; replaces the version 54 toggle "
+                                "idle_poses_all_files): aibody = 'AIBody poses only': the pose files in "
+                                "Custom/Atom/Person/Pose/AIBody plus the gestures.json poses, the pose-command poses and "
+                                "idle_pose_default; all = 'All pose files': every pose file of the library plus those. An old "
+                                "idle_poses_all_files is migrated (true = all, false = aibody); this key wins when both exist",
     ("body", "idle_pose_interval_s"): "Slider 'Idle pose interval (s)' (version 59): quiet time before an idle pose change; "
                                       "each wait is this value +/- 25 % at random (30-18000, default 165). Old "
                                       "idle_pose_min_s / idle_pose_max_s are migrated to their mean",

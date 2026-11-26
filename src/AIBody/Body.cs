@@ -33,7 +33,9 @@ namespace AIBody
         private JSONStorableBool _bodyControlJson;
         // Idle poses (version 35): the character changes on its own to an available pose now and then.
         private JSONStorableBool _idlePosesJson;
-        private JSONStorableBool _idleAllFilesJson;   // version 54
+        private JSONStorableStringChooser _idlePoolJson;   // version 66 (menu "Idle pose pool"; version 54-65 the toggle "Idle poses from all pose files")
+        private JSONStorableBool _idleAllFilesLegacy;      // version 66: the old toggle, only restored from old scenes, never saved or shown
+        private float _legacyPoolSeconds;                  // version 66: after an old scene set the legacy toggle, its All is applied for this long
         private bool _poolDirty = true;               // version 54: the info field recounts the pool only after a change
         private int _poolCount, _poolVocabCount = -1, _poolNamesCount = -1;
         private JSONStorableFloat _idlePoseIntervalJson;   // version 59: one slider
@@ -265,9 +267,16 @@ namespace AIBody
             _idlePosesJson = new JSONStorableBool("Idle poses", true, (bool v) => { if (_idlePoses != null) _idlePoses.Enabled = v; });
             SettingsDefaults.Bool(_plugin, _idlePosesJson);
             // Version 54 (Don 23:31): idle poses use the AIBody pose folder (+ the poses linked by pose commands and the Idle
-            // default pose); this toggle adds every pose file of the library again (as in v51-v53). Off by default.
-            _idleAllFilesJson = new JSONStorableBool("Idle poses from all pose files", false, (bool v) => { _poolDirty = true; });
-            SettingsDefaults.Bool(_plugin, _idleAllFilesJson);
+            // default pose); version 66: the menu "Idle pose pool" - "AIBody poses only" (default) or "All pose files" (every pose
+            // file of the library again, as in v51-v53). Replaces the version 54 toggle "Idle poses from all pose files".
+            _idlePoolJson = new JSONStorableStringChooser(IdlePoolMode.MenuName, IdlePoolMode.Labels(), IdlePoolMode.DefaultLabel,
+                IdlePoolMode.MenuName, (string v) => OnIdlePoolChanged(v));
+            SettingsDefaults.Chooser(_plugin, _idlePoolJson);
+            // The old toggle, registered AFTER the menu: a scene saved with v54-v65 restores it and true becomes "All pose
+            // files" (false is the default already). Not shown, not saved (isStorable false), not part of Reset to Default.
+            _idleAllFilesLegacy = new JSONStorableBool(IdlePoolMode.LegacyToggleName, false, (bool v) => MigrateIdlePool(v));
+            _idleAllFilesLegacy.isStorable = false;
+            _plugin.RegisterBool(_idleAllFilesLegacy);
             // Version 59: ONE slider sets how often the random idle pose changes; each wait = the interval +/- 25 % at random
             // (default 165 s, 30 - 18000 s). Up to v58 two sliders (min / max wait, version 51).
             _idlePoseIntervalJson = new JSONStorableFloat(IdleIntervalLabel, IdlePoseScheduler.DefaultIntervalSeconds,
@@ -434,7 +443,7 @@ namespace AIBody
             page.Toggle(_rootResetJson);   // version 63: root-position reset on pose load
             page.Header("<b>Idle poses</b>");
             page.Toggle(_idlePosesJson);
-            page.Toggle(_idleAllFilesJson);
+            page.Popup(_idlePoolJson);   // version 66: two entries, so a dropdown (UiChooser)
             page.ScrollablePopup(_idlePoseDefaultJson);
             page.Button("Apply idle default pose", ApplyIdleDefaultPose);   // 22.11.2026 (Don): go there now
             page.Slider(_idlePoseIntervalJson);
@@ -530,10 +539,9 @@ namespace AIBody
             return "<b>Idle poses</b> is " + (_idlePoses.Enabled ? _idlePoses.Status : "off") + ". <b>" + IdleIntervalLabel + "</b> sets how often the "
                 + "idle pose changes: each wait is the interval plus or minus 25 % at random (now between "
                 + WaitText(_idlePoses.Lo) + " and " + WaitText(_idlePoses.Hi) + "); after that wait without speech or a pose command the "
-                + "character takes a random pose of its " + pool + " idle poses (the pose files in " + PoseController.OwnPoseFolder
-                + ", gestures.json poses, the poses of your pose commands and the Idle default pose; <b>Idle poses from all pose files</b> "
-                + "(" + (IdleAllFiles ? "on" : "off") + ") adds every pose file of your library), never the same one twice in a row"
+                + "character takes a random pose of its " + pool + " idle poses, never the same one twice in a row"
                 + (_idlePoses.ExcludedCount > 0 ? "; " + _idlePoses.ExcludedCount + " pose(s) that failed to load are left out" : "")
+                + ". " + IdlePoolMode.Describe(_idlePoolJson != null ? _idlePoolJson.val : IdlePoolMode.DefaultLabel, PoseController.OwnPoseFolder)
                 + ". A pose that stores its own root position no longer moves her away: she is put back to her place. Default 165 s, "
                 + "range 30 to 18000 s (300 min). For an exact value type the number into the slider's value field, or set "
                 + "body.idle_pose_interval_s in config.json (older min / max values become their mean). "
@@ -1107,7 +1115,9 @@ namespace AIBody
             body["breath_depth"].AsFloat = _breathDepthJson.val;
             body["breath_morph"] = _breathMorphJson.val;
             body["idle_poses"].AsBool = _idlePosesJson.val;
-            body["idle_poses_all_files"].AsBool = _idleAllFilesJson.val;   // version 54
+            // version 66: the menu as a short key; the old boolean idle_poses_all_files is no longer written (an older plugin
+            // reading this file keeps its own value; the companion reads the old key only to migrate it)
+            body["idle_pose_pool"] = IdlePoolMode.KeyOf(_idlePoolJson.val);
             body["idle_pose_interval_s"].AsFloat = _idlePoseIntervalJson.val;   // version 59 (was idle_pose_min_s / _max_s)
             body["idle_pose_default"] = _idlePoseDefaultJson.val;
             body["pose_root_reset"].AsBool = _rootResetJson.val;                 // version 63
@@ -1144,7 +1154,12 @@ namespace AIBody
             _breathDepthJson.val = Protocol.GetFloat(body, "breath_depth", _breathDepthJson.val);
             _breathMorphJson.val = Protocol.GetString(body, "breath_morph", _breathMorphJson.val);
             _idlePosesJson.val = Protocol.GetBool(body, "idle_poses", _idlePosesJson.val);
-            _idleAllFilesJson.val = Protocol.GetBool(body, "idle_poses_all_files", _idleAllFilesJson.val);   // version 54
+            // version 66: idle_pose_pool wins; a config.json of v54-v65 has the boolean idle_poses_all_files (true = All pose
+            // files, false = AIBody poses only); neither key = the current value (scene / default) stays
+            if (Protocol.Has(body, "idle_pose_pool"))
+                _idlePoolJson.val = IdlePoolMode.LabelOfKey(Protocol.GetString(body, "idle_pose_pool", IdlePoolMode.AibodyKey));
+            else if (Protocol.Has(body, "idle_poses_all_files"))
+                _idlePoolJson.val = IdlePoolMode.LabelOfLegacy(Protocol.GetBool(body, "idle_poses_all_files", false));
             // version 59: idle_pose_interval_s; a config.json of v51-v58 (idle_pose_min_s / _max_s only) gives their mean
             if (Protocol.Has(body, "idle_pose_interval_s"))
                 _idlePoseIntervalJson.val = Protocol.GetFloat(body, "idle_pose_interval_s", _idlePoseIntervalJson.val);
@@ -1314,6 +1329,7 @@ namespace AIBody
             }
             bool speaking = _speech != null && _speech.IsSpeaking;
             if (_poses != null) _poses.Update(dt);   // version 52: the check SettleSeconds after a pose load
+            MaintainLegacyPool(dt);                   // version 66
             if (DollmasterOwns)
             {
                 UpdateSceneState(speaking);   // Dollmaster owns expressions, breathing, idle motion and poses
@@ -1342,8 +1358,34 @@ namespace AIBody
         private bool _idleEmptyLogged;
         private string _idleLastError;
 
-        /// <summary>Version 54: setting "Idle poses from all pose files" (config.json body.idle_poses_all_files).</summary>
-        private bool IdleAllFiles { get { return _idleAllFilesJson != null && _idleAllFilesJson.val; } }
+        /// <summary>Version 66: menu "Idle pose pool" = "All pose files" (config.json body.idle_pose_pool = "all"; version 54-65
+        /// the toggle "Idle poses from all pose files", body.idle_poses_all_files).</summary>
+        private bool IdleAllFiles { get { return _idlePoolJson != null && IdlePoolMode.IsAll(_idlePoolJson.val); } }
+
+        /// <summary>The menu changed (or a scene / config.json set a value): an unknown, empty or "0" value is the default; the
+        /// info field recounts the pool.</summary>
+        private void OnIdlePoolChanged(string value)
+        {
+            _poolDirty = true;
+            if (_idlePoolJson != null && !IdlePoolMode.IsLabel(value)) _idlePoolJson.val = IdlePoolMode.Normalize(value);
+        }
+
+        /// <summary>An old scene (v54-v65) restored the toggle "Idle poses from all pose files": true selects "All pose files".
+        /// VaM restores the menu and the old toggle in an order this plugin cannot rely on (a scene without the menu key would
+        /// set the menu to its default after the toggle), so MaintainLegacyPool applies it again for a moment.</summary>
+        private void MigrateIdlePool(bool allFiles)
+        {
+            if (!allFiles || _idlePoolJson == null) return;
+            _legacyPoolSeconds = 3f;
+            _idlePoolJson.val = IdlePoolMode.AllLabel;
+        }
+
+        private void MaintainLegacyPool(float dt)
+        {
+            if (_legacyPoolSeconds <= 0f) return;
+            _legacyPoolSeconds -= dt;
+            if (_idlePoolJson != null && !IdlePoolMode.IsAll(_idlePoolJson.val)) _idlePoolJson.val = IdlePoolMode.AllLabel;
+        }
 
         private void UpdateIdlePoses(float dt, bool speaking)
         {

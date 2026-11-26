@@ -21,33 +21,14 @@ def src(name: str) -> str:
 
 
 class VersionTests(TestCase):
-    def test_version_65_everywhere(self):
-        self.assertEqual(__version__, "65")
-        self.assertIn('PluginVersion = "65"', src("AIBody.cs"))
-        self.assertIn('version = "65"', (ROOT / "companion" / "pyproject.toml").read_text())
-        self.assertEqual(json.loads((ROOT / "packaging" / "AIBody.json").read_text())["version"], 65)
-        self.assertTrue(re.search(r"d0n\.AIBody\.65:", first_start.TEMPLATE.read_text()))
-        self.assertIn("AIBody companion app 65 (example)", (ROOT / "examples" / "config.json").read_text(encoding="utf-8"))
-        self.assertEqual(json.loads((ROOT / "packaging" / "meta.json").read_text())["licenseType"], "FC")
-        for f in ("README.md", "docs/REQUIREMENTS.md", "docs/SCENE_GREENSCREEN.md", "docs/RELEASE_NOTES_NEXT.md"):
-            self.assertNotIn("AIBody.64", (ROOT / f).read_text(encoding="utf-8"), f)
-
-    def test_docs(self):
-        readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertIn("Status: version 65, package `d0n.AIBody.65.var`, release `v65`", readme)
+    def test_version_65_is_historical(self):
+        """Historical: version 65 sources are gone after the v66 bump; consistency is test_version66."""
+        self.assertTrue((ROOT / "companion" / "tests" / "test_version66.py").is_file())
         spec = (ROOT / "docs" / "SPEC.md").read_text(encoding="utf-8")
         self.assertIn("(version 65, release; on top of v64)", spec)
         proto = (ROOT / "docs" / "TEST_PROTOCOL.md").read_text(encoding="utf-8")
         self.assertIn("## T121", proto)
         self.assertIn("a saved `\"0\"` or empty value", (ROOT / "docs" / "CONFIG.md").read_text(encoding="utf-8"))
-
-    def test_release_notes_english_without_personal_names(self):
-        notes = (ROOT / "docs" / "RELEASE_NOTES_NEXT.md").read_text(encoding="utf-8")
-        self.assertIn("**AIBody v65**", notes)
-        for part in ("d0n.AIBody.65.var", "AI-Buddy.jpg", "AI-Buddy.json", "Menus with only one entry",
-                     "A saved \"0\" is no longer a menu entry", "T121"):
-            self.assertIn(part, notes)
-        self.assertIsNone(re.search(r"\b(" + "Le" + "on|Don)\b", notes), "no personal names in public release notes")
 
 
 class OneEntryChooserTests(TestCase):

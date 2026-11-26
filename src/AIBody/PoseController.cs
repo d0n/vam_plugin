@@ -88,7 +88,7 @@ namespace AIBody
         }
 
         /// <summary>Version 54: the folder whose pose files idle poses use on their own (the others only with
-        /// "Idle poses from all pose files", or when a pose command links them).</summary>
+        /// the pool "All pose files" of the menu "Idle pose pool", or when a pose command links them).</summary>
         public const string OwnPoseFolder = "Custom/Atom/Person/Pose/AIBody";
 
         /// <summary>True for a pose file in OwnPoseFolder (the path as GetFiles returned it, any slash, any case).</summary>
@@ -99,7 +99,7 @@ namespace AIBody
         }
 
         /// <summary>Version 54: the poses idle poses may pick on their own: gestures.json poses and OwnPoseFolder files, or every
-        /// listed pose file with allFiles (setting "Idle poses from all pose files").</summary>
+        /// listed pose file with allFiles (menu "Idle pose pool" = "All pose files", version 66).</summary>
         public List<string> IdlePoolNames(bool allFiles)
         {
             List<string> names = new List<string>();

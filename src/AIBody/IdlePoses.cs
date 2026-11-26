@@ -4,8 +4,9 @@
 //
 // Rules:
 //   - version 54 (Don 23:31): the pool is the gestures.json poses and the pose files in Custom/Atom/Person/Pose/AIBody
-//     plus the poses linked by pose commands and the Idle default pose; "Idle poses from all pose files" (off by default)
-//     adds every pose file of the library again; a pose that fails to load is dropped for the session;
+//     plus the poses linked by pose commands and the Idle default pose; version 66: the menu "Idle pose pool" (IdlePoolMode;
+//     before: the toggle "Idle poses from all pose files", off by default) "All pose files" adds every pose file of the
+//     library again; a pose that fails to load is dropped for the session;
 //   - up to v53 the pool: every pose of the character (gestures.json poses + the pose files the plugin lists), the poses linked by
 //     pose commands (also files chosen with Add Pose) and the Idle default pose; never the same pose twice in a row when
 //     the pool has more than one (version 51; up to v50 only pose-command poses were used and every second change went
@@ -114,7 +115,7 @@ namespace AIBody
         }
 
         /// <summary>Version 54: poolNames = the poses idle may pick on their own (gestures.json poses and the AIBody pose folder,
-        /// or every pose file with "Idle poses from all pose files"); allNames = every pose (to resolve the linked poses).</summary>
+        /// or every pose file with the pool "All pose files"); allNames = every pose (to resolve the linked poses).</summary>
         public string Update(float dt, bool busy, bool bodyControl, PoseVocabulary vocabulary, List<string> poolNames, List<string> allNames)
         {
             if (_cooldown > 0f) _cooldown = Math.Max(0f, _cooldown - dt);
@@ -175,7 +176,7 @@ namespace AIBody
         }
 
         /// <summary>Version 54 (Don 23:31): the pool is poolNames (gestures.json poses + the AIBody pose folder, or every pose
-        /// file with "Idle poses from all pose files") plus the poses linked by pose commands and the Idle default pose
+        /// file with the pool "All pose files") plus the poses linked by pose commands and the Idle default pose
         /// (resolved in allNames), without the poses that failed to load (Exclude).</summary>
         public List<string> Pool(PoseVocabulary vocabulary, List<string> poolNames, List<string> allNames)
         {
@@ -229,6 +230,76 @@ namespace AIBody
         {
             if (string.IsNullOrEmpty(name) || poseNames == null) return null;
             return PoseVocabulary.Resolve(new PoseCommand(name, name), poseNames);
+        }
+    }
+
+    /// <summary>
+    /// Version 66 (menu "Idle pose pool", replaces the version 54 toggle "Idle poses from all pose files"): which pose files
+    /// the idle poses may pick. The menu value is the label shown to the user; config.json (body.idle_pose_pool) keeps the
+    /// short key. An unknown or empty value (also a saved "0") is the default. Pure C#, no VaM types (tests run it).
+    /// </summary>
+    public static class IdlePoolMode
+    {
+        public const string AibodyKey = "aibody";
+        public const string AllKey = "all";
+        public const string AibodyLabel = "AIBody poses only";
+        public const string AllLabel = "All pose files";
+        public const string DefaultLabel = AibodyLabel;
+        public const string MenuName = "Idle pose pool";
+        /// <summary>The storable name of the version 54-65 toggle; old scenes still restore it (Body maps true to All).</summary>
+        public const string LegacyToggleName = "Idle poses from all pose files";
+
+        public static List<string> Labels()
+        {
+            return new List<string> { AibodyLabel, AllLabel };
+        }
+
+        /// <summary>True when the label is the pool of every pose file.</summary>
+        public static bool IsAll(string label)
+        {
+            return label == AllLabel;
+        }
+
+        /// <summary>A menu value as one of the two labels; anything else (unknown, empty, "0", an old key) is the default.</summary>
+        public static string Normalize(string value)
+        {
+            if (value == AllLabel || value == AllKey) return AllLabel;
+            return DefaultLabel;
+        }
+
+        /// <summary>True when the value is exactly one of the two labels (no repair needed).</summary>
+        public static bool IsLabel(string value)
+        {
+            return value == AibodyLabel || value == AllLabel;
+        }
+
+        /// <summary>config.json value for a label: "all" or "aibody".</summary>
+        public static string KeyOf(string label)
+        {
+            return IsAll(label) ? AllKey : AibodyKey;
+        }
+
+        /// <summary>The label for a config.json key; an unknown key is the default.</summary>
+        public static string LabelOfKey(string key)
+        {
+            return key == AllKey ? AllLabel : DefaultLabel;
+        }
+
+        /// <summary>The label for the old config.json boolean idle_poses_all_files (true = All, false = AIBody poses only).</summary>
+        public static string LabelOfLegacy(bool allFiles)
+        {
+            return allFiles ? AllLabel : AibodyLabel;
+        }
+
+        /// <summary>One sentence for the menu's info text: what the chosen pool includes.</summary>
+        public static string Describe(string label, string ownFolder)
+        {
+            if (IsAll(label))
+                return "<b>" + MenuName + "</b> is <b>" + AllLabel + "</b>: every pose file of your library, including other packages, "
+                    + "plus the gestures.json poses, the poses of your pose commands and the Idle default pose";
+            return "<b>" + MenuName + "</b> is <b>" + AibodyLabel + "</b>: the pose files in " + ownFolder
+                + " plus the gestures.json poses, the poses of your pose commands and the Idle default pose (choose <b>"
+                + AllLabel + "</b> to add every pose file of your library, including other packages)";
         }
     }
 }

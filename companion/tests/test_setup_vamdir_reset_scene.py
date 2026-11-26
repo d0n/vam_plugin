@@ -151,7 +151,9 @@ class ResetToDefaultTests(TestCase):
                                                      # tab Dollmaster: saved with the scene like the old plugin's settings
                                                      "_dmActivateJson",
                                                      # version 59: old idle min / max, only to migrate old scenes
-                                                     "_idlePoseMinJson", "_idlePoseMaxJson"]))
+                                                     "_idlePoseMinJson", "_idlePoseMaxJson",
+                                                 # version 66: the old idle pool toggle, only to migrate old scenes
+                                                 "_idleAllFilesLegacy"]))
         self.assertIn("Defaults.TrackColor(BackgroundColorName, _backgroundColorJson.val);", self.plugin)
         wizard = source("CharacterWizard.cs")
         for name in ("_askedJson", "_wantedJson"):

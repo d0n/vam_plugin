@@ -38,6 +38,7 @@ class ChooserEnumerationTests(unittest.TestCase):
         expected = {
             "AppLink.cs:_aiModeJson", "AppLink.cs:_voiceJson", "AppLink.cs:_personaJson", "AppLink.cs:_languageJson",
             "AppLink.cs:c",                                        # the 3 engine menus (Engine(name, choices, default))
+            "Body.cs:_idlePoolJson",                               # version 66: a fixed list of two labels, nothing to refill
             "Body.cs:_idlePoseDefaultJson", "Body.cs:_poseCommandChoiceJson", "Body.cs:_expressionChoiceJson",
             "Body.cs:_gestureChoiceJson", "CharacterWizard.cs:_aiGenderJson", "CharacterWizard.cs:_userGenderJson",
             "MicConfig.cs:Mode", "MicConfig.cs:VadEngine",

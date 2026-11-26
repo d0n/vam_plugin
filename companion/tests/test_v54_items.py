@@ -112,13 +112,14 @@ class BodyPositionTests(unittest.TestCase):
 class IdlePoolTests(unittest.TestCase):
     def test_pool_from_aibody_folder_plus_linked_and_toggle(self):
         body = src("Body.cs")
-        self.assertIn('new JSONStorableBool("Idle poses from all pose files", false', body)
-        self.assertIn("SettingsDefaults.Bool(_plugin, _idleAllFilesJson);", body)
+        # version 66: the toggle became the menu "Idle pose pool" (test_version66.py)
+        self.assertIn("new JSONStorableStringChooser(IdlePoolMode.MenuName", body)
+        self.assertIn("SettingsDefaults.Chooser(_plugin, _idlePoolJson);", body)
         self.assertIn("_poses.IdlePoolNames(IdleAllFiles), _poses.PoseNames)", body)
         pose = src("PoseController.cs")
         self.assertIn('public const string OwnPoseFolder = "Custom/Atom/Person/Pose/AIBody";', pose)
         self.assertIn("(allFiles || IsOwnPoseFile(kv.Value))", pose)
-        self.assertIs(settings_file.DEFAULTS["body"]["idle_poses_all_files"], False)
+        self.assertEqual(settings_file.DEFAULTS["body"]["idle_pose_pool"], "aibody")
 
     def test_bad_pose_is_dropped(self):
         body = src("Body.cs")

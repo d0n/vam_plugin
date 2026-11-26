@@ -418,6 +418,10 @@ New in the plugin (`GazeController.cs`), all with evidence E12 / E28 (see the ta
 - No `foreach` over Dictionary `.Keys`/`.Values`, no LINQ, no file or network access added. A gaze exception only
   stops the gaze (`_gazeBroken`), not the body.
 
+## Version 66 (26.11.2026): Idle pose pool dropdown
+
+- No new VaM API. The menu is a `JSONStorableStringChooser` (constructor with name, choices, default, display name, callback, as the other choosers) shown with `CreatePopup` (E16) through `UiPage.Popup`; the old `JSONStorableBool` "Idle poses from all pose files" stays registered with `RegisterBool`, `isStorable = false` (the pattern of the old min / max wait storables). Nothing else.
+
 ## Version 65 (26.11.2026): one-entry choosers are a read-only line
 
 - No new VaM API. `UiPage.Popup` / `ScrollablePopup` still use `CreatePopup` / `CreateScrollablePopup` (E16, E24) when the list has two or more entries, and `CreateTextField` (E12, the same call as `Header`) when it has fewer. Choice lists are still set with `chooser.choices = ...` (E9, E24, E25). The storable itself is unchanged.

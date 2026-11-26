@@ -984,6 +984,16 @@ Report: a pose whose limbs look different from the file, a body that drifts away
 5. If VaM still crashes, note the time and keep the crash dump (`%LOCALAPPDATA%\CrashDumps`) and VaM's `output_log.txt`: the crash is then not caused by the IdlePoser code (compare with v62, T117).
 Report: a crash (with the time), an Idle movement section, an IdlePoser added by AIBody, a config.json error about the old keys.
 
+## T122 – Idle pose pool dropdown (version 66)
+1. Install v66 over v65. Start AIBody Companion, then VaM, load AI-Buddy, **Always Allow**. Tab AI Character > Idle poses: there is a dropdown **Idle pose pool** (no checkbox *Idle poses from all pose files*). Its entries are **AIBody poses only** (default) and **All pose files**.
+2. With **AIBody poses only**: the info text says the pool is the pose files in `Custom/Atom/Person/Pose/AIBody` plus the gestures.json poses, the poses of your pose commands and the Idle default pose, and shows the pool count.
+3. Choose **All pose files**: the info text says every pose file of the library, including other packages, and the pool count grows to all pose files. Choose **AIBody poses only** again: the count drops back.
+4. Choose **All pose files**, save the scene, reload it: still **All pose files**. In `config.json` `body.idle_pose_pool` is `"all"` after a moment (and there is no `idle_poses_all_files`).
+5. Migration, config: in a copy of `config.json` remove `idle_pose_pool` and set `"idle_poses_all_files": true`; Reload Config JSON: **All pose files**. With `false` or without either key: **AIBody poses only**. With both keys, `idle_pose_pool` wins. `idle_pose_pool` set to `"0"` or `"foo"`: **AIBody poses only**.
+6. Migration, scene: load a scene saved with v54-v65 that had *Idle poses from all pose files* on: **All pose files**. One saved with it off: **AIBody poses only**. Config > **Reset to Default**: **AIBody poses only**.
+7. Let it idle: idle poses change as before in both pools, never the same pose twice in a row.
+Report: a leftover checkbox, a missing entry, a count that does not change, an old scene that lost its setting, an error in the VaM log.
+
 ## T121 – One-entry menus are a line, not a dropdown (version 65)
 1. Install v65. Start AIBody Companion, then VaM, load AI-Buddy, **Always Allow**.
 2. Tab AI Character: **Expression**, **Gesture**, **Pose command**, **Idle default pose**, **AI gender/body** and **Your character gender** (after Yes). Menus with two or more entries are dropdowns; a menu with one entry (or none) is a short read-only line with the name and the value, not a dropdown. Add or delete pose commands until only one remains: **Pose command** becomes a line; add a second: it is a dropdown again.
@@ -1117,9 +1127,9 @@ Report: muted after Reset to Default, a muted state saved in the scene.
 Report: a part of the body left behind, her jumping back after a pose, Reset not returning her.
 
 ## T90 – Idle poses from the AIBody folder, toggle, bad pose files (version 54)
-1. Tab AI Character > Idle poses: the info field says the pool is the AIBody pose folder (Custom/Atom/Person/Pose/AIBody) plus the linked poses; **Idle poses from all pose files** is off.
+1. Tab AI Character > Idle poses: the info field says the pool is the AIBody pose folder (Custom/Atom/Person/Pose/AIBody) plus the linked poses; **Idle pose pool** is **AIBody poses only** (version 66; up to v65 the toggle *Idle poses from all pose files*, off).
 2. Watch idle switches for a few minutes (min/max wait 30 s): only AIBody poses and pose-command poses are used.
-3. Switch **Idle poses from all pose files** on: the pool count grows to all pose files. Switch it off again.
+3. Set **Idle pose pool** to **All pose files**: the pool count grows to all pose files. Set it back to **AIBody poses only** (version 66; up to v65 the toggle *Idle poses from all pose files*).
 4. If a pose fails ("failed and is left out from now on"), it never comes again; the info field counts it as left out.
 Report: a pose from another folder while the toggle is off, a bad pose coming again.
 

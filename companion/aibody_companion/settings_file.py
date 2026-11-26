@@ -9,7 +9,7 @@ README.md section 4. Categories (kept from the first schema; they no longer matc
   engines     stt, llm, tts (tab Voice > AI Character)
   mic         microphone + push-to-talk settings (tab Client Character; audio/mic_settings.py)
   body        speech_volume, full_volume_distance, body_control, idle_motion, idle_intensity, breathing,
-              breaths_per_minute, breath_depth, breath_morph, idle_poses, idle_poses_all_files, idle_pose_interval_s, idle_pose_default,
+              breaths_per_minute, breath_depth, breath_morph, idle_poses, idle_pose_pool, idle_pose_interval_s, idle_pose_default,
               pose_root_reset
               (tab AI Character)
   advanced    file_poll_interval_s (slider "Companion inbox poll interval (s)": how often the
@@ -118,9 +118,10 @@ DEFAULTS: dict[str, dict[str, Any]] = {
         # Idle poses (version 35): after about idle_pose_interval_s seconds (version 59) without speech or a pose command the
         # character takes a random pose of all its poses (version 51; idle_pose_default is one of them, never twice in a row).
         "idle_poses": True,
-        # version 54 (Don 23:31): idle poses use Custom/Atom/Person/Pose/AIBody (+ pose-command poses and idle_pose_default);
-        # true = every pose file of the library again (as in v51-v53)
-        "idle_poses_all_files": False,
+        # version 66: menu "Idle pose pool" (replaces the version 54 toggle idle_poses_all_files): "aibody" = the pose files in
+        # Custom/Atom/Person/Pose/AIBody (+ gestures.json poses, pose-command poses and idle_pose_default); "all" = every
+        # pose file of the library (the v51-v53 pool). An old idle_poses_all_files (true -> "all", false -> "aibody") is migrated.
+        "idle_pose_pool": "aibody",
         # version 59: one interval, each wait = interval +/- 25 % at random (default 165 s = the mean of v51's 30 / 300 s);
         # a config.json with the old idle_pose_min_s / idle_pose_max_s gets their mean (migrate_idle_interval)
         "idle_pose_interval_s": 165.0,
@@ -323,6 +324,7 @@ CHOICES: dict[tuple[str, ...], tuple[str, ...]] = {
     ("characters", "user_gender"): ("", "Female", "Male"),
     ("ai", "mode"): ("qa", "auto", "realtime", "chain"),
     ("ai", "driver"): ("direct", "grok_bot"),  # version 61
+    ("body", "idle_pose_pool"): ("aibody", "all"),  # version 66
     ("ai", "realtime", "sample_rate"): tuple(str(r) for r in PCM_RATES),
     ("ai", "realtime", "reasoning_effort"): ("none", "high"),
     ("ai", "xai", "sample_rate"): ("8000", "16000", "22050", "24000", "44100", "48000"),
@@ -409,7 +411,9 @@ LEGACY_KEYS = {("connection", "channel"), ("ai", "channels"),
                # replaced on 22.11.2026 by ai.barge_in.enabled (the menu toggle; echo protection always on, Don)
                ("ai", "realtime", "send_while_speaking"),
                # version 64: the idle movement with MacGruber's IdlePoser (v60-v63) is removed
-               ("body", "idle_movement"), ("body", "idle_movement_opt_in"), ("body", "idle_movement_liveliness")}
+               ("body", "idle_movement"), ("body", "idle_movement_opt_in"), ("body", "idle_movement_liveliness"),
+               # version 66: the toggle of version 54-65, read only to migrate it (migrate_idle_pool), no longer written
+               ("body", "idle_poses_all_files")}
 
 
 def _merge(path: tuple[str, ...], default: dict[str, Any], data: dict[str, Any], errors: list[str]) -> dict[str, Any]:
@@ -462,6 +466,18 @@ def migrate_idle_interval(body: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
+def migrate_idle_pool(body: dict[str, Any]) -> dict[str, Any]:
+    """Version 66: body.idle_poses_all_files (v54-v65, bool) becomes body.idle_pose_pool: true -> "all", false -> "aibody".
+    An existing idle_pose_pool wins (the plugin does the same in Body.ApplySettings). Returns a new dict."""
+    if "idle_poses_all_files" not in body:
+        return body
+    out = {k: v for k, v in body.items() if k != "idle_poses_all_files"}
+    if "idle_pose_pool" not in out:
+        old = body["idle_poses_all_files"]
+        out["idle_pose_pool"] = "all" if old is True or (isinstance(old, str) and old.strip().lower() == "true") else "aibody"
+    return out
+
+
 def validate(data: Any) -> tuple[dict[str, Any], list[str]]:
     """Returns (settings with defaults filled in and bad values replaced, problems)."""
     result = defaults()
@@ -495,7 +511,7 @@ def validate(data: Any) -> tuple[dict[str, Any], list[str]]:
                     errors.append(f"poses: unknown key {key!r}")
             continue
         if cat == "body":
-            section = migrate_idle_interval(section)
+            section = migrate_idle_pool(migrate_idle_interval(section))
         result[cat] = _merge((cat,), DEFAULTS[cat], section, errors)
     if "version" in data and as_number(data["version"]) != VERSION:
         errors.append(f"version {data['version']!r} is not {VERSION}; reading what is compatible")
