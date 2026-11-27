@@ -57,6 +57,16 @@ namespace AIBody
 
         /// <summary>True while the user is talking (set by the plugin from the companion's level reports).</summary>
         public Func<bool> UserSpeaking;
+        /// <summary>Version 69: the menu mute (AppLink.Muted): while it is on, no expression is shown.</summary>
+        public Func<bool> Muted;
+
+        /// <summary>Version 69: the frame-stall warning with what the pose code was doing (AIBodyPlugin.Update).</summary>
+        public string FrameStallLine(double seconds)
+        {
+            PoseGuard g = _poses != null ? _poses.Guard : null;
+            return FrameStall.LogLine(seconds, g != null ? g.What : "", g != null && g.OriginRunning, g != null && g.Freezing,
+                g != null ? g.LastDelta : 0f);
+        }
 
         /// <summary>The test WAV shipped next to the .cslist (written by tools/build_var.py).</summary>
         public const string TestToneFile = "AIBodyTest.wav";
@@ -380,6 +390,7 @@ namespace AIBody
                 _router = new CommandRouter(_send, _speech, _expressions, _poses, _idle, _breathing,
                     () => BodyControl);
                 _router.ApplyPoseFromCompanion = ApplyCompanionPose;   // version 56
+                _router.Muted = () => Muted != null && Muted();          // version 69: no expressions while muted
             });
             _diag.Run("Load config files", ReloadConfigFiles);
         }

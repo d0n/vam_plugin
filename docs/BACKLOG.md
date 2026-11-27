@@ -189,7 +189,3 @@ Don's feedback after the VaM test of version 14 (17.11.2026): placeholders and e
 - **HTTP transport / network code in the plugin** (removed v0.6.1) – only if VaM officially allows it. (Since version 30 the one loopback socket to the companion app exists, see "Done"; HTTP, `UnityWebRequest` and any internet access from the plugin stay dropped.)
 - **Microphone in VaM** – stays in the companion app.
 - **APIs without a public, working plugin evidence** for VaM 1.22's sandbox – see `API_AUDIT.md`.
-
-## Reload Plugin: the Active toggle (26.11.2026, Don 21:42)
-
-**After VaM's Reload Plugin the toggle "Active" (tab Voice, above the XAI API Token) is reported unchecked** – Don, 26.11.2026 – not Dollmaster. Code path: `AppLink.CreateStorables` registers `_activeJson` ("Active", default true, `SettingsDefaults.Bool`); the packaged scene saves no "Active" and no "Settings initialized", so after every load (also a Reload) `AIBodyPlugin.UpdateSettings` applies `config.json` 1.5 s after Init (`AppLink.ApplySettings`: `connection.active`), and `WriteSettings` writes `connection.active` back every second while it changes. Don's `config.json` had `connection.active` true (written by plugin 65), so no code path found that turns it off on a reload; the cause is not confirmed. Next: reproduce in VaM with Verbose log (which values VaM restores on Reload, the order against the 1.5 s config check), then fix.

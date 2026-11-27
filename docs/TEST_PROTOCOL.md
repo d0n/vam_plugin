@@ -984,6 +984,15 @@ Report: a pose whose limbs look different from the file, a body that drifts away
 5. If VaM still crashes, note the time and keep the crash dump (`%LOCALAPPDATA%\CrashDumps`) and VaM's `output_log.txt`: the crash is then not caused by the IdlePoser code (compare with v62, T117).
 Report: a crash (with the time), an Idle movement section, an IdlePoser added by AIBody, a config.json error about the old keys.
 
+## T127 – Physics freeze, Active after reload, mute, frame stall (version 69)
+1. Install v69 (remove older `d0n.AIBody.*.var`). Start AIBody Companion, then VaM, load AI-Buddy from `d0n.AIBody.69`, allow plugins. Tab Config: **Verbose log** on. The log has "Origin of 'AI' captured: hips at ...".
+2. Apply several poses in a row (pose commands, Apply Pose, idle poses), including "Doggie Spread - NutkinChan" and poses that store a root position. For a pose that ends more than 0.3 m from her place the log has `Physics freeze: ... moved her X m (x ... / z ...), physics frozen 0.3x s, then 0.5 s to settle` and the Origin reset line; she goes back without stretching, flailing or jumping. Small corrections show only the Origin reset line (no freeze line).
+3. Put the client (or another person) so that only a hand or foot reaches her place, apply a pose: she ends up beside it, the log says "moved sideways" (collision shift yes).
+4. Tick **Active** (tab Voice), then the plugin's **Reload Plugin**: Active is still ticked, the token still there. Untick Active, Reload Plugin: it stays unticked.
+5. Tick **Mute** and let the companion send expressions (or say something with the bridge on): the face does not change. Untick Mute: expressions come back.
+6. Any freeze of VaM longer than 2 s (a scene load counts) logs `Frame stall: one VaM frame took X s; last pose '...', origin reset running/not running, physics freeze on/off, last delta X m`. Send the log after the session.
+Report: a large correction without a freeze line, a stretched or jumping body during a freeze, Active unticked after Reload Plugin, an expression while muted, a VaM freeze without a Frame stall line.
+
 ## T126 – No crash after Allow (version 68)
 1. Install v68 (remove older `d0n.AIBody.*.var`). Start AIBody Companion, then VaM, load AI-Buddy from `d0n.AIBody.68`; when VaM asks about plugins, click **Allow** (also try **Always Allow** once). Expected: no crash; the plugin is green and the menu opens.
 2. Apply a pose: about 1.5 s later the log has "Origin reset after pose ..." (the root reset still works without the enum).

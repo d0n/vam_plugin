@@ -29,6 +29,9 @@ namespace AIBody
 
         /// <summary>Version 56: set by Body; a pose command from the companion (spoken, typed, the AI's tool).</summary>
         public Func<string, string> ApplyPoseFromCompanion;
+        /// <summary>Version 69: true while the menu mute is on: expression commands (also the one riding on speak) are ignored.</summary>
+        public Func<bool> Muted;
+        private bool IsMuted { get { return Muted != null && Muted(); } }
 
         public CommandRouter(Action<JSONClass> send, SpeechPlayer speech, ExpressionController expressions,
             PoseController poses, IdleController idle, BreathingController breathing, Func<bool> bodyControl)
@@ -126,7 +129,7 @@ namespace AIBody
                     string utteranceId = id.Length > 0 ? id : "utt-" + DateTime.UtcNow.Ticks;
                     bool interrupt = Protocol.GetString(msg, "queue", "append") == "interrupt";
                     string error = _speech.Enqueue(utteranceId, Protocol.GetString(msg, "audio", ""), interrupt);
-                    if (error == null && Protocol.Has(msg, "expression") && BodyOn && _expressions != null)
+                    if (error == null && Protocol.Has(msg, "expression") && BodyOn && _expressions != null && !IsMuted)
                     {
                         try
                         {
@@ -147,6 +150,7 @@ namespace AIBody
 
                 case Protocol.CmdExpression:
                 {
+                    if (IsMuted) { Log.Debug("Muted: expression ignored"); return null; }   // version 69
                     string name = Protocol.GetString(msg, "name", "neutral");
                     bool ok = _expressions.SetExpression(name,
                         Protocol.GetFloat(msg, "intensity", 1f),

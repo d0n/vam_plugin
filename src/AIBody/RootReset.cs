@@ -136,6 +136,13 @@ namespace AIBody
             return true;
         }
 
+        /// <summary>Version 69: the controllers of ANOTHER person that count for the sideways check (read at the moment of the move,
+        /// so where that person is NOW): hips and chest as before, plus head, hands, elbows, knees and feet. Ids as in VaM's Person
+        /// atom (hipControl / chestControl as before; the limb ids follow the same naming, TODO(verify in VaM) that each exists).</summary>
+        public static readonly string[] OtherControls = {
+            "hipControl", "chestControl", "headControl", "lHandControl", "rHandControl", "lElbowControl", "rElbowControl",
+            "lKneeControl", "rKneeControl", "lFootControl", "rFootControl" };
+
         /// <summary>The line of the Info log per reset: pose, delta, final distance of the hips to the origin, collision shift.</summary>
         public static string LogLine(string pose, float dx, float dz, float finalHipDistance, bool collisionShift)
         {
@@ -143,6 +150,75 @@ namespace AIBody
                 + " / " + dz.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture) + " m (x / z), hips "
                 + finalHipDistance.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture)
                 + " m from the origin, collision shift " + (collisionShift ? "yes" : "no");
+        }
+    }
+
+    /// <summary>
+    /// Version 69 (Don 28.11.2026 00:44): a LARGE correction (a pose change or the origin reset moves her more than
+    /// LargeMoveMetres, flat) is made with her physics FROZEN: every controller is position-locked and VaM's simulation is paused
+    /// for PauseFrames (SuperController.PauseSimulation, the call the Dollmaster montage loader makes right after a pose load, E39),
+    /// the move is made in one step, the lock stays for FreezeSeconds, then physics runs again and gets SettleSeconds in which the
+    /// guard moves nothing. Cause: a big move with physics running drags the joints through inertia (stretching, self-collision,
+    /// jumps). Small corrections (up to LargeMoveMetres) stay as before (lock for PoseGuard.UnlockSeconds).
+    /// Small-steps fallback (StepsEnabled): moving in steps of StepMetres per frame instead of one jump; written and tested
+    /// here, but OFF (constant, no setting, no menu entry) until it is shown to work in VaM.
+    /// Pure C#: tests run it outside VaM (companion/tests/test_version69.py).
+    /// </summary>
+    public static class PhysicsFreeze
+    {
+        public const float LargeMoveMetres = 0.3f;
+        public const float FreezeSeconds = 0.3f;
+        public const float SettleSeconds = 0.5f;
+        public const int PauseFrames = 5;
+        public const bool StepsEnabled = false;
+        public const float StepMetres = 0.05f;
+
+        /// <summary>True when a move of (dx, dz) (flat) is large: then physics is frozen for it.</summary>
+        public static bool IsLarge(float dx, float dz)
+        {
+            if (float.IsNaN(dx) || float.IsNaN(dz)) return false;
+            return Math.Sqrt(dx * dx + dz * dz) > LargeMoveMetres;
+        }
+
+        /// <summary>Small-steps fallback: how many frames a move of `metres` takes at `stepMetres` per frame (at least 1).</summary>
+        public static int Steps(float metres, float stepMetres)
+        {
+            if (float.IsNaN(metres) || metres <= 0f) return 1;
+            if (stepMetres <= 0f) return 1;
+            return Math.Max(1, (int)Math.Ceiling(metres / stepMetres - 1e-4));
+        }
+
+        /// <summary>True when the steps fallback runs for this move (only when switched on in code AND the move is large).</summary>
+        public static bool UseSteps(bool stepsEnabled, float dx, float dz)
+        {
+            return stepsEnabled && IsLarge(dx, dz);
+        }
+
+        /// <summary>The Info line per freeze: what moved her, the delta and how long physics was held (freeze + settle).</summary>
+        public static string LogLine(string what, float dx, float dz, float frozenSeconds)
+        {
+            System.Globalization.CultureInfo c = System.Globalization.CultureInfo.InvariantCulture;
+            float d = (float)Math.Sqrt(dx * dx + dz * dz);
+            return "Physics freeze: " + what + " moved her " + d.ToString("0.00", c) + " m (x " + dx.ToString("0.00", c) + " / z "
+                + dz.ToString("0.00", c) + "), physics frozen " + frozenSeconds.ToString("0.00", c) + " s, then "
+                + SettleSeconds.ToString("0.0", c) + " s to settle";
+        }
+    }
+
+    /// <summary>Version 69: a frame that took longer than StallSeconds (wall clock) is logged as a warning with what the pose code
+    /// was doing. Pure C#.</summary>
+    public static class FrameStall
+    {
+        public const double StallSeconds = 2.0;
+
+        public static bool IsStall(double frameSeconds) { return frameSeconds > StallSeconds; }
+
+        public static string LogLine(double frameSeconds, string lastPose, bool originRunning, bool freezing, float delta)
+        {
+            System.Globalization.CultureInfo c = System.Globalization.CultureInfo.InvariantCulture;
+            return "Frame stall: one VaM frame took " + frameSeconds.ToString("0.0", c) + " s; last pose '"
+                + (string.IsNullOrEmpty(lastPose) ? "-" : lastPose) + "', origin reset " + (originRunning ? "running" : "not running")
+                + ", physics freeze " + (freezing ? "on" : "off") + ", last delta " + delta.ToString("0.00", c) + " m";
         }
     }
 }

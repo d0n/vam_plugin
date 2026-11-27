@@ -492,6 +492,16 @@ namespace AIBody
         /// On start (and "Reload Config JSON") the token comes from config.json ai.xai.api_key and fills the field.
         /// If the file has none, a token typed before the file was read is kept and written to the file.
         /// </summary>
+        /// <summary>Version 69: the Active toggle always comes from config.json connection.active (like the token), on every load
+        /// and after Reload Plugin, also for a scene with saved settings; a missing key leaves the toggle as it is.</summary>
+        public void AdoptActive(JSONClass root)
+        {
+            JSONClass connection = root != null ? root["connection"] as JSONClass : null;
+            if (connection == null || _activeJson == null || !Protocol.Has(connection, "active")) return;
+            bool v = Protocol.GetBool(connection, "active", true);
+            if (_activeJson.val != v) _activeJson.val = v;
+        }
+
         public void AdoptToken(JSONClass root)
         {
             JSONClass ai = root != null ? root["ai"] as JSONClass : null;

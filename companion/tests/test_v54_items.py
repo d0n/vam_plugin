@@ -101,7 +101,7 @@ class BodyPositionTests(unittest.TestCase):
         self.assertLess(load.index("if (BeforePoseLoad != null) BeforePoseLoad();"), load.index("Guard.Around("))
         self.assertLess(load.index("Guard.Around("), load.index('presets.CallAction("LoadPreset")'))
         self.assertIn("Guard.Update(dt);", method_body(pose, "public void Update(float dt)"))
-        guard = pose[pose.index("public class PoseGuard"):pose.index("public class PoseGuard") + 16000]   # version 66: the origin code made the class longer
+        guard = pose[pose.index("public class PoseGuard"):pose.index("public static class BodyMover")]   # version 66/69: the whole class
         self.assertIn("BodyMover.Relocate(_atom, _pos, _rot);", guard)
         self.assertNotIn("WriteAllText", guard, "the pose files are never changed")
 

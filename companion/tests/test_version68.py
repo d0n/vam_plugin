@@ -27,16 +27,8 @@ def compiled_files() -> list[Path]:
 
 
 class VersionTests(TestCase):
-    def test_version_68_everywhere(self):
-        self.assertEqual(__version__, "68")
-        self.assertIn('PluginVersion = "68"', (SRC / "AIBody.cs").read_text(encoding="utf-8"))
-        self.assertIn('version = "68"', (ROOT / "companion" / "pyproject.toml").read_text())
-        self.assertEqual(json.loads((ROOT / "packaging" / "AIBody.json").read_text())["version"], 68)
-        self.assertTrue(re.search(r"d0n\.AIBody\.68:", first_start.TEMPLATE.read_text()))
-        self.assertIn("AIBody companion app 68 (example)", (ROOT / "examples" / "config.json").read_text(encoding="utf-8"))
-        readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertIn("Status: version 68, package `d0n.AIBody.68.var`, release `v68`", readme)
-        notes = (ROOT / "docs" / "RELEASE_NOTES_NEXT.md").read_text(encoding="utf-8")
+    def test_version_68_is_history(self):
+        notes = (ROOT / "docs" / "RELEASE_NOTES_V68.md").read_text(encoding="utf-8")
         for s in ("Release notes of version 68", "crashed right after allowing", "T126"):
             self.assertIn(s, notes)
         self.assertIn("## T126", (ROOT / "docs" / "TEST_PROTOCOL.md").read_text(encoding="utf-8"))

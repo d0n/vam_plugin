@@ -150,7 +150,7 @@ class OriginWiringTests(TestCase):
         apply = method_body(g, "private bool ApplyOrigin()")
         self.assertLess(apply.index("SuspendPhysics();"), apply.index("BodyMover.Shift(_atom, new Vector3(dx, 0f, dz));"))
         self.assertIn("new Vector3(dx, 0f, dz)", apply, "flat: the height stays the pose's")
-        self.assertIn("_unlockIn = UnlockSeconds;", apply)
+        self.assertIn("_unlockIn = _freezing ? PhysicsFreeze.FreezeSeconds : UnlockSeconds;", apply)   # version 69: freeze for large moves
         self.assertIn("FreeControllerV3.PositionState.Lock", method_body(g, "private void SuspendPhysics()"))
         self.assertIn("_locked[i].currentPositionState = _lockedStates[i];", method_body(g, "private void ResumePhysics()"))
         shift = method_body(src("PoseController.cs"), "public static int Shift(Atom atom, Vector3 shift)")
@@ -178,8 +178,9 @@ class OriginWiringTests(TestCase):
         self.assertIn("Log.Info(OriginReset.LogLine(_what, dx, dz, dist, shifted));", apply)
         others = method_body(g, "private float[] OthersFlat()")
         self.assertIn('a.type != "Person"', others)
-        self.assertIn('"chestControl"', others)
-        self.assertIn("RootReset.BodyControl", others)
+        self.assertIn("OriginReset.OtherControls", others)   # version 69: hips, chest and the limbs / head
+        self.assertIn('"chestControl"', src("RootReset.cs"))
+        self.assertIn('"hipControl"', src("RootReset.cs"))
 
     def test_montages_and_the_toggle_are_untouched(self):
         g = guard_text()

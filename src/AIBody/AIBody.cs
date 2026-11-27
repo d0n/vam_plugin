@@ -43,7 +43,7 @@ namespace AIBody
 {
     public class AIBodyPlugin : MVRScript
     {
-        public const string PluginVersion = "68";   // = package number d0n.AIBody.62.var (scheme since version 12)
+        public const string PluginVersion = "69";   // = package number d0n.AIBody.62.var (scheme since version 12)
 
         private AppLink _link;
         private Body _body;
@@ -163,6 +163,7 @@ namespace AIBody
                 };
                 _body.PluginFolder = FindPluginFolder;
                 _body.UserSpeaking = () => _link != null && _link.UserSpeaking;
+                _body.Muted = () => _link != null && _link.Muted;   // version 69: no expressions while muted
                 _body.OnSettingsChanged = () => { if (_link != null) _link.MarkConfigDirty(); };
                 _link.AppendConfig = (JSONClass evt) =>
                 {
@@ -625,6 +626,8 @@ namespace AIBody
                 // The XAI API Token comes from config.json ai.xai.api_key (a missing file is fine; an unreadable one
                 // is not: then nothing is written back, so a saved token cannot be overwritten).
                 if (readOk) _diag.Run("XAI API Token from config.json", () => _link.AdoptToken(file));
+                // Version 69: the Active toggle too, always (a scene with saved settings and Reload Plugin kept the scene's value).
+                if (readOk) _diag.Run("Active from config.json", () => _link.AdoptActive(file));
                 // Pose commands live only in config.json (not in the scene): always read, also for a scene with saved settings.
                 if (file != null && _body != null) _diag.Run("Pose commands from config.json", () => _body.LoadPoseCommands(file));
                 if (file != null) _diag.Run("Background answer from the companion setup", () => ApplyBackgroundSetup(file));
@@ -804,10 +807,19 @@ namespace AIBody
 
         // ---------------------------------------------------------------- frame loop
 
+        private DateTime _lastFrameUtc = DateTime.MinValue;   // version 69: frame-stall warning (wall clock)
+
         private void Update()
         {
             if (!_initialized) return;
             float dt = Time.deltaTime;
+            DateTime nowUtc = DateTime.UtcNow;
+            if (_lastFrameUtc != DateTime.MinValue && _body != null)
+            {
+                double frame = (nowUtc - _lastFrameUtc).TotalSeconds;
+                if (FrameStall.IsStall(frame)) Log.Warn(_body.FrameStallLine(frame));
+            }
+            _lastFrameUtc = nowUtc;
             // Version 36 (performance): the info texts are only built while the plugin's UI is open
             // (UITransform.gameObject.activeInHierarchy, E12 L1271 / E11 L206); opening it refreshes at once.
             bool visible = UiVisible();
@@ -896,6 +908,7 @@ namespace AIBody
 
         private void OnEnable()
         {
+            _lastFrameUtc = DateTime.MinValue;   // version 69: the time the plugin was off is not a frame stall
             if (!_initialized) return;
             ApplyBackground();   // version 36: the background comes back when the plugin is enabled again
             if (_link == null) return;

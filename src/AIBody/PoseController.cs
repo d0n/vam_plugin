@@ -664,6 +664,34 @@ namespace AIBody
         public Vector3 Origin { get { return _origin; } }
         private bool UseOrigin { get { return _center && _hasOrigin; } }
 
+        // ---- version 69 (Don 28.11.2026 00:44): physics FREEZE for large corrections (RootReset.cs PhysicsFreeze) ----------------
+        private bool _freezing;            // the current lock belongs to a large move (logged when it ends)
+        private float _frozenFor;          // seconds the large move has been frozen so far
+        private float _freezeDx, _freezeDz;
+        private float _settleIn = -1f;     // after a freeze: physics runs, the guard moves nothing for PhysicsFreeze.SettleSeconds
+        private int _stepsLeft;            // small-steps fallback (PhysicsFreeze.StepsEnabled, off)
+        private Vector3 _step;
+        private bool _relocFrozen;         // one pause per pose change for a large root move of the pose file
+        /// <summary>True while physics is frozen for a large correction or settles after it.</summary>
+        public bool Freezing { get { return _freezing || _settleIn >= 0f; } }
+        /// <summary>True while the origin move of a settled pose runs (locked or settling).</summary>
+        public bool OriginRunning { get { return _unlockIn >= 0f || _settleIn >= 0f; } }
+        /// <summary>The last correction (flat metres) the guard made: origin move or root move of a pose file.</summary>
+        public float LastDelta { get; private set; }
+        /// <summary>How many large corrections were frozen since the start.</summary>
+        public int Freezes { get; private set; }
+
+        /// <summary>VaM's simulation paused for a few frames (E39: MontageController calls it right after a pose load).</summary>
+        private static void PauseSimulation()
+        {
+            try
+            {
+                if (SuperController.singleton != null)
+                    SuperController.singleton.PauseSimulation(PhysicsFreeze.PauseFrames, "AIBody: large pose correction");
+            }
+            catch (Exception e) { Log.Debug("PauseSimulation failed: " + e.Message); }
+        }
+
         /// <summary>Captures the hips' world position now (call once after the scene has loaded).</summary>
         public bool CaptureOrigin()
         {
@@ -728,7 +756,7 @@ namespace AIBody
             _lockedStates = null;
         }
 
-        /// <summary>The other people's hips and chests (flat x, z pairs) for the collision check.</summary>
+        /// <summary>The other people's hips, chests, heads, hands, elbows, knees and feet (flat x, z pairs) for the collision check.</summary>
         private float[] OthersFlat()
         {
             List<float> xz = new List<float>();
@@ -738,7 +766,7 @@ namespace AIBody
             {
                 Atom a = atoms[i];
                 if (a == null || a == _atom || a.type != "Person") continue;
-                string[] ids = { RootReset.BodyControl, "chestControl" };
+                string[] ids = OriginReset.OtherControls;   // version 69: limbs and head too, read now (where that person is now)
                 for (int k = 0; k < ids.Length; k++)
                 {
                     FreeControllerV3 c = a.GetStorableByID(ids[k]) as FreeControllerV3;
@@ -754,6 +782,8 @@ namespace AIBody
         private void Reject(string reason)
         {
             Rejected++;
+            _freezing = false;   // version 69: a skipped pose is not logged as a freeze
+            _stepsLeft = 0;
             string key = PoseKey;
             LastNote = Capital(_what) + " skipped: " + reason + "; the previous pose was put back";
             Log.Warn(Capital(_what) + " was NOT applied: " + reason + ". The previous look was put back and the pose is on the bad list for this "
@@ -792,7 +822,25 @@ namespace AIBody
                 dx = tx - h.x; dz = tz - h.z;
                 Log.Info(Capital(_what) + ": another person stands within " + OriginReset.ClearanceMetres.ToString("0.0") + " m of her place: moved sideways to clear it");
             }
+            LastDelta = (float)Math.Sqrt(dx * dx + dz * dz);
             SuspendPhysics();
+            if (PhysicsFreeze.IsLarge(dx, dz))   // version 69: a large move with her physics frozen (paused + locked), then settle
+            {
+                PauseSimulation();
+                _freezing = true;
+                _frozenFor = 0f;
+                _freezeDx = dx; _freezeDz = dz;
+                Freezes++;
+                if (PhysicsFreeze.UseSteps(PhysicsFreeze.StepsEnabled, dx, dz))   // fallback, off: the move in small steps, one per frame
+                {
+                    int n = PhysicsFreeze.Steps(LastDelta, PhysicsFreeze.StepMetres);
+                    _step = new Vector3(dx / n, 0f, dz / n);
+                    _stepsLeft = n;
+                    _unlockIn = PhysicsFreeze.FreezeSeconds;
+                    LastCenterNote = _what + ": body moving " + LastDelta.ToString("0.00") + " m back to her place in " + n + " steps";
+                    return true;
+                }
+            }
             BodyMover.Shift(_atom, new Vector3(dx, 0f, dz));
             string bad = Runaway();
             if (bad != null) { Reject("after the move " + bad); return true; }
@@ -800,7 +848,7 @@ namespace AIBody
             float dist = (float)Math.Sqrt((after.x - _origin.x) * (after.x - _origin.x) + (after.z - _origin.z) * (after.z - _origin.z));
             _pos = _atom.mainController.transform.position;   // the guard keeps the new place, not the old one
             _rot = _atom.mainController.transform.rotation;
-            _unlockIn = UnlockSeconds;
+            _unlockIn = _freezing ? PhysicsFreeze.FreezeSeconds : UnlockSeconds;
             Centers++;
             LastCenterNote = _what + ": body moved " + Math.Sqrt(dx * dx + dz * dz).ToString("0.00") + " m back to her place (origin)";
             Log.Info(OriginReset.LogLine(_what, dx, dz, dist, shifted));
@@ -823,6 +871,8 @@ namespace AIBody
         /// <summary>How often she was put back since the start (Verbose log, tests).</summary>
         public int Restores { get; private set; }
         public bool Active { get { return _age >= 0f; } }
+        /// <summary>Version 69: what the last pose change was ("" before the first), for the frame-stall warning.</summary>
+        public string What { get { return _what; } }
 
         public PoseGuard(Atom atom) { _atom = atom; LastNote = ""; LastCenterNote = ""; }
 
@@ -871,6 +921,10 @@ namespace AIBody
             _centerNoted = false;
             ResumePhysics();   // version 66: a new pose change while the controllers are locked: free them first
             _unlockIn = -1f;
+            _freezing = false;   // version 69
+            _settleIn = -1f;
+            _stepsLeft = 0;
+            _relocFrozen = false;
             _originDone = false;
             if (!wasActive) _snap = UseOrigin ? PlacementSnapshot.Take(_atom) : null;   // the look right before the load (kept while a guard runs)
         }
@@ -887,7 +941,16 @@ namespace AIBody
             if (!UseOrigin) Center();   // version 63: the body back over the control point (the pose kept); version 66: with an origin ApplyOrigin does it once, settled
             if (_unlockIn >= 0f) return;   // locked after the origin move: nothing else moves her
             if (!BodyMover.Moved(_atom, _pos, _rot)) return;
-            float cm = (_atom.mainController.transform.position - _pos).magnitude * 100f;
+            Vector3 moved = _atom.mainController.transform.position - _pos;
+            float cm = moved.magnitude * 100f;
+            if (!_relocFrozen && PhysicsFreeze.IsLarge(moved.x, moved.z))   // version 69: a large root move of the pose file
+            {
+                _relocFrozen = true;
+                PauseSimulation();   // her physics held while she is put back in one step
+                Freezes++;
+                LastDelta = moved.magnitude;
+                Log.Info(PhysicsFreeze.LogLine(_what + " (root position in the pose file)", -moved.x, -moved.z, PhysicsFreeze.PauseFrames * Time.deltaTime));
+            }
             BodyMover.Relocate(_atom, _pos, _rot);
             _quiet = 0f;
             Restores++;
@@ -927,10 +990,43 @@ namespace AIBody
         public void Update(float dt)
         {
             if (!Active) return;
+            if (_settleIn >= 0f)   // version 69: physics runs again after a freeze; nothing moves her until it has settled
+            {
+                _settleIn -= dt;
+                if (_settleIn < 0f) { _age = -1f; _snap = null; }
+                return;
+            }
             if (_unlockIn >= 0f)   // version 66: controllers locked after the origin move (or after a skipped pose)
             {
+                if (_stepsLeft > 0)   // version 69 small-steps fallback (off): one step per frame, the lock runs on afterwards
+                {
+                    BodyMover.Shift(_atom, _step);
+                    _stepsLeft--;
+                    if (_freezing) _frozenFor += dt;
+                    if (_stepsLeft == 0)
+                    {
+                        string bad = Runaway();
+                        if (bad != null) { _freezing = false; Reject("after the move " + bad); return; }
+                        _pos = _atom.mainController.transform.position;
+                        _rot = _atom.mainController.transform.rotation;
+                        Centers++;
+                    }
+                    return;
+                }
                 _unlockIn -= dt;
-                if (_unlockIn < 0f) { ResumePhysics(); _age = -1f; _snap = null; }
+                if (_freezing) _frozenFor += dt;
+                if (_unlockIn < 0f)
+                {
+                    ResumePhysics();
+                    if (_freezing)
+                    {
+                        _freezing = false;
+                        _settleIn = PhysicsFreeze.SettleSeconds;
+                        Log.Info(PhysicsFreeze.LogLine(_what, _freezeDx, _freezeDz, _frozenFor));
+                        return;
+                    }
+                    _age = -1f; _snap = null;
+                }
                 return;
             }
             Hold();
