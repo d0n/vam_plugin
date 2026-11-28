@@ -313,8 +313,16 @@ Switch on **Verbose log** in the plugin tab *Config* (or `"advanced": {"verbose_
   written (INFO; the trace only while Verbose log is on), rotating at 1 MB, 5 old files kept
   (`companion.log.1` ... `.5`). API keys never appear: keys read from the environment or a key file,
   `Bearer ...` and anything shaped like `xai-...` / `sk-...` are replaced by `***`.
-- **Plugin:** `[debug]` lines in the VaM log (command received / failed, `PlayNow`, speaking, ended)
-  and the last 8 of them under *Recent events* in the status box.
+- **Plugin (version 70):** the in-game VaM log is silent unless Verbose is on. `Log.Info`, `Log.Warn`,
+  `Log.Error` and `Log.Debug` all go through one helper (`src/AIBody/Log.cs`) and write nothing when
+  Verbose is off (including Origin reset, Physics freeze, Frame stall, Mute, audio errors, and
+  Dollmaster messages). With Verbose on: Info / Warn / Error lines, `[debug]` lines (command received
+  / failed, `[audio]` clip received / play / ended, voice path), and the last 8 debug lines under
+  *Recent events* in the status box.
+- **Voice path (version 70, Verbose only):** the companion turn trace adds a `voice path` line with the
+  Windows default output device, the TTS WAV (path, size, length), `ai.driver`, and later the plugin's
+  `speech_started` / `speech_ended` / `audio_failed` result (including `played` and the device). When
+  `ai.driver` is `grok_bot`, the line says this app does not synthesize TTS for that turn.
 
 ### AI modes (companion app)
 

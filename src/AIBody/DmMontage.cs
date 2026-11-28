@@ -77,7 +77,7 @@ namespace AIBody
             }
             if (person1JSON == null)
             {
-                SuperController.LogError("Expected at least one person named Person in montage");
+                Log.Error("Expected at least one person named Person in montage");   // AIBody port, version 70: in-game log only through Log, and only when Verbose is on
                 return null;
             }
 

@@ -52,6 +52,7 @@ from .audio import (
     apply_mic_config,
     silero_model_path,
 )
+from .audio.capture import default_output_device
 from .config import ENGINES_AVAILABLE, PLUGIN_DATA_SUBDIR, Config
 from .emotion import EmotionDirector, offered as offered_expressions
 from .latency import LatencyStats, LatencyTrace, describe
@@ -905,7 +906,7 @@ class Companion:
             elif type_ == "mute":
                 self.set_muted(bool(as_bool(event.get("muted"))), "menu")
             elif type_ == "error":
-                log.warning("The plugin reported a problem (%s): %s - see the VaM log (lines starting with AIBody) for details",
+                log.warning("The plugin reported a problem (%s): %s - see the VaM log (lines starting with AIBody; tab Config: Verbose log must be on) for details",
                             event.get("code"), event.get("message"))
                 if event.get("code") == "audio_failed":
                     self._audio_failed(str(event.get("reply_to") or ""), str(event.get("message") or ""))
@@ -922,7 +923,9 @@ class Companion:
         if turn is None:
             return
         turn.step(f"plugin: {type_}", utterance=uid, duration=event.get("duration"), reason=event.get("reason"),
-                  code=event.get("code"), message=event.get("message"))
+                  code=event.get("code"), message=event.get("message"),
+                  device=default_output_device() if logsetup.is_verbose() else None,
+                  played=(type_ == "speech_started") or None)
         if type_ == "speech_started" and getattr(turn, "latency", None):
             result = turn.latency.finish(self._clock())
             if result:
@@ -1503,6 +1506,9 @@ class Companion:
                 # version 61 (ai.driver "grok_bot"): Grok Bot answers through the bridge; no language model here
                 self.bridge.push("user_said", text=text, source="voice" if kind == "audio" else "typed")
                 log.info("To Grok Bot (bridge): %r", _short(text))
+                # version 70: verbose voice-path diagnostics (turn.step is a no-op unless Verbose is on)
+                turn.step("voice path", driver=self.driver, device=default_output_device() if logsetup.is_verbose() else None,
+                          note="Grok Bot answers; this app does not synthesize TTS for this turn")
                 turn.step("end", result="handed to Grok Bot (bridge)", text=text)
                 yield ("status", f"To Grok Bot: {_short(text)}")
                 return
@@ -1842,6 +1848,11 @@ class Companion:
                 turn.latency.mark("speak_sent", self._clock())
             turn.step("speak sent", utterance=utterance_id, audio=rel, seconds=round(duration, 2),
                       queue="interrupt" if interrupt else "append")
+            # version 70: verbose voice-path diagnostics (output device, TTS file, driver)
+            size = path.stat().st_size if path.exists() else 0
+            turn.step("voice path", device=default_output_device() if logsetup.is_verbose() else None,
+                      tts_wav=rel, bytes=size, seconds=round(duration, 2), utterance=utterance_id,
+                      driver=self.driver)
         self.gate.on_speak_sent(utterance_id, duration, interrupt=interrupt)
         self._unstarted[utterance_id] = self._clock()
         self._emotion_for_speech(text)

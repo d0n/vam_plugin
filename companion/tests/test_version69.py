@@ -15,9 +15,6 @@ import unittest
 from pathlib import Path
 from unittest import TestCase
 
-from aibody_companion import __version__
-from aibody_companion import setup as first_start
-
 from . import test_version35 as v35
 from .test_plugin_menu import method_body
 from .test_version68 import code, compiled_files
@@ -37,15 +34,8 @@ def guard_text() -> str:
 
 
 class VersionTests(TestCase):
-    def test_version_69_everywhere(self):
-        self.assertEqual(__version__, "69")
-        self.assertIn('PluginVersion = "69"', src("AIBody.cs"))
-        self.assertIn('version = "69"', (ROOT / "companion" / "pyproject.toml").read_text())
-        self.assertEqual(json.loads((ROOT / "packaging" / "AIBody.json").read_text())["version"], 69)
-        self.assertTrue(re.search(r"d0n\.AIBody\.69:", first_start.TEMPLATE.read_text()))
-        self.assertIn("AIBody companion app 69 (example)", (ROOT / "examples" / "config.json").read_text(encoding="utf-8"))
-        self.assertIn("Status: version 69, package `d0n.AIBody.69.var`, release `v69`", (ROOT / "README.md").read_text(encoding="utf-8"))
-        notes = (ROOT / "docs" / "RELEASE_NOTES_NEXT.md").read_text(encoding="utf-8")
+    def test_version_69_is_history(self):
+        notes = (ROOT / "docs" / "RELEASE_NOTES_V69.md").read_text(encoding="utf-8")
         for s in ("Release notes of version 69", "Physics freeze", "Active", "T127"):
             self.assertIn(s, notes)
         self.assertIn("## T127", (ROOT / "docs" / "TEST_PROTOCOL.md").read_text(encoding="utf-8"))

@@ -30,7 +30,7 @@ namespace AIBody
         {
             EXPRESSIONS_PATH = DmPlugin.ASSETS_PATH + "/Expressions";
             string MANIFEST_PATH = EXPRESSIONS_PATH + "/expression_manifest.json";
-            Debug.Log(MANIFEST_PATH);
+            Log.Debug(MANIFEST_PATH);   // AIBody port, version 70: in-game log only through Log, and only when Verbose is on
             manifest = JSON.Parse(/* AIBody port: FileManagerSecure */ FileManagerSecure.ReadAllText(MANIFEST_PATH)).AsObject;
 
             mouthOpenGroup = new DmExpressionGroup(manifest["mouth open"].AsObject, dm);
@@ -82,7 +82,7 @@ namespace AIBody
                 DAZMorph morph = morphControl.GetMorphByDisplayName(name);
                 if (morph == null)
                 {
-                    SuperController.LogError("No morph named " + name);
+                    Log.Error("No morph named " + name);   // AIBody port, version 70: in-game log only through Log, and only when Verbose is on
                     continue;
                 }
                 if (morph.isPoseControl || morph.region.Contains("Expressions"))

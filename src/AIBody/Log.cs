@@ -6,6 +6,7 @@ using System.Collections.Generic;
 
 namespace AIBody
 {
+    /// <summary>Version 70: every in-game VaM log line (Info, Warn, Error, Debug) is written only while Verbose is on.</summary>
     public static class Log
     {
         public static string Prefix = "AIBody: ";
@@ -13,6 +14,7 @@ namespace AIBody
 
         public static void Info(string message)
         {
+            if (!Verbose) return;   // version 70: the in-game VaM log is silent unless Verbose is on
             SuperController.LogMessage(Prefix + message);
         }
 
@@ -36,16 +38,19 @@ namespace AIBody
         /// <summary>A short warning in the normal (not red) log: something was ignored on purpose.</summary>
         public static void Warn(string message)
         {
+            if (!Verbose) return;
             SuperController.LogMessage(Prefix + "Warning: " + message);
         }
 
         public static void Error(string message)
         {
+            if (!Verbose) return;
             SuperController.LogError(Prefix + message);
         }
 
         public static void Error(string message, Exception e)
         {
+            if (!Verbose) return;
             SuperController.LogError(Prefix + message + "\n" + e);
         }
     }

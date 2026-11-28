@@ -4,7 +4,7 @@ Status: 21.11.2026, version 44. Overview of what is done and what is open; updat
 - Agreed specification (what applies): [`docs/SPEC.md`](SPEC.md)
 - Deferred ideas / nice to have: [`docs/BACKLOG.md`](BACKLOG.md)
 - Test instructions in VaM: [`docs/TEST_PROTOCOL.md`](TEST_PROTOCOL.md) · API evidence: [`docs/API_AUDIT.md`](API_AUDIT.md)
-- Repo: https://github.com/d0n/vam_plugin · current package: `d0n.AIBody.69.var` (version = package number since 12)
+- Repo: https://github.com/d0n/vam_plugin · current package: `d0n.AIBody.70.var` (version = package number since 12)
 
 "Done" means: tested in code and against rebuilt counterparts. What has not yet been checked in VaM or against the real xAI APIs is listed again under 2.
 
@@ -75,7 +75,7 @@ Status: 21.11.2026, version 44. Overview of what is done and what is open; updat
 - Sliders in the plugin cover the full config.json ranges (VAD threshold up to 0.5, Proactive idle up to 3600 s), so that values from the file are not clipped and written back; a test compares all sliders with the app's ranges – version 12.
 
 ### Logging
-- Verbose log (tab Config, `advanced.verbose_log`, `-v`): a trace per turn in the console and `<VaM>/Saves/PluginData/AIBody/logs/companion.log` (1 MB × 5), keys redacted; in the plugin `[debug]` lines and *Recent events* – v0.7.3; tool calls and latency in the trace – v0.7.4.
+- Verbose log (tab Config, `advanced.verbose_log`, `-v`): a trace per turn in the console and `<VaM>/Saves/PluginData/AIBody/logs/companion.log` (1 MB × 5), keys redacted; in the plugin `[debug]` lines and *Recent events* – v0.7.3; tool calls and latency in the trace – v0.7.4; from v70 the in-game VaM log (Info / Warn / Error / Debug, including Origin reset, Physics freeze, Frame stall, Mute, audio, Dollmaster) is written only while Verbose is on, plus a verbose `voice path` trace (output device, TTS file, clip play result, `ai.driver`).
 - Extended self-test for the points that can only be checked in VaM (T5): pose memory, poses and pose files, breath morph, expression morphs with missing names, Timeline storable; in the status field and as "Plugin self-test: …" in the console and `companion.log` – version 13.
 
 ### Scene, docs

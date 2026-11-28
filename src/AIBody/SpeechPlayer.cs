@@ -328,6 +328,7 @@ namespace AIBody
             if (interrupt) StopAll("interrupted");
             if (_current == null && _queue.Count == 0) _lastProgressUtc = DateTime.UtcNow;   // version 54: a new start, not a stall
             _queue.Add(new Utterance { Id = id, Path = path, WaitingForFile = missing, EnqueuedUtc = DateTime.UtcNow });
+            Log.Debug("[audio] " + id + ": received clip " + path + (interrupt ? ", interrupt" : "") + ", Speech volume " + _volume.ToString("0.00") + ", " + SourceState());
             if (missing) Log.Debug("Audio file not visible yet, waiting for it: " + path);
             if (_current == null) Status = (missing ? "Waiting for file: " : "Loading: ") + FileName(path);
             return null;

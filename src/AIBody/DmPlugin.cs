@@ -212,7 +212,7 @@ namespace AIBody
             catch (Exception e)
             {
                 Problem = "Dollmaster " + (on ? "activation" : "deactivation") + " failed: " + e.Message;
-                SuperController.LogError("AIBody: " + Problem + "\n" + e);
+                Log.Error(Problem, e);   // AIBody port, version 70: in-game log only through Log, and only when Verbose is on
             }
         }
 
@@ -337,7 +337,7 @@ namespace AIBody
             catch (Exception e)
             {
                 Problem = "Dollmaster start failed: " + e.Message;
-                SuperController.LogError("AIBody: Dollmaster exception caught: " + e);
+                Log.Error("Dollmaster exception caught", e);   // AIBody port, version 70: in-game log only through Log, and only when Verbose is on
             }
         }
 
@@ -408,7 +408,7 @@ namespace AIBody
             }
             catch(Exception e)
             {
-                SuperController.LogError("AIBody: Dollmaster exception caught: " + e);
+                Log.Error("Dollmaster exception caught", e);   // AIBody port, version 70: in-game log only through Log, and only when Verbose is on
             }
         }
 
@@ -441,7 +441,7 @@ namespace AIBody
             }
             catch (Exception e)
             {
-                SuperController.LogError("AIBody: Dollmaster exception caught: " + e);
+                Log.Error("Dollmaster exception caught", e);   // AIBody port, version 70: in-game log only through Log, and only when Verbose is on
             }
 
         }

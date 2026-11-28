@@ -40,7 +40,7 @@ namespace AIBody
             }
             catch(Exception e)
             {
-                Debug.LogWarning(e);
+                Log.Warn("persona.json: " + e);   // AIBody port, version 70: in-game log only through Log, and only when Verbose is on
             }
 
             return json;
@@ -175,13 +175,13 @@ namespace AIBody
                 return null;
             }
 
-            Debug.Log(clipGroup.Count);
+            Log.Debug("persona clips: " + clipGroup.Count);   // AIBody port, version 70: in-game log only through Log, and only when Verbose is on
 
             int randomIndex = UnityEngine.Random.Range(0, clipGroup.Count);
             string picked = clipGroup[randomIndex].Value;
 
             string clipName = DmPathExt.GetFileName(picked);
-            Debug.Log(clipName);
+            Log.Debug("persona clip: " + clipName);   // AIBody port, version 70: in-game log only through Log, and only when Verbose is on
 
             return audioClips.Find((nac) =>
             {

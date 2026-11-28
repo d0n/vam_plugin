@@ -121,7 +121,7 @@ namespace AIBody
 
                     if (atom.GetStorableByID("AnimationPattern")==null)
                     {
-                        SuperController.LogError("Select an Animation Pattern");
+                        Log.Error("Select an Animation Pattern");   // AIBody port, version 70: in-game log only through Log, and only when Verbose is on
                         return;
                     }
 
